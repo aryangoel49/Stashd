@@ -8,7 +8,7 @@ import type { FlyItem, Item, NamingRequest, OverlayPlay, Route, ToastInfo } from
 import type { Core } from './core';
 import { openItems } from './open';
 import { canName, cleanFileName, closeItems, freePath, saveUntitled, suggestedFileName } from './tidy';
-import { getWindow, showWindow } from './windows';
+import { getWindow, prepareWindow, showWindow } from './windows';
 
 const UNDO_MS = 10_000;
 
@@ -17,11 +17,18 @@ export class TidyFlow {
   private naming: { jobId: string; entryId: string; items: Item[]; resolve: (names: (string | null)[]) => void } | null = null;
   private undo: { items: Item[]; frontKey: string | null; timer: NodeJS.Timeout } | null = null;
   private toastTimer: NodeJS.Timeout | null = null;
+  private overlayDone: (() => void) | null = null;
 
   constructor(
     private readonly core: Core,
     private readonly trayBounds: () => Rectangle,
   ) {}
+
+  /** Make the animation and toast windows ahead of time, so they appear instantly. */
+  prepare(): void {
+    prepareWindow('overlay');
+    prepareWindow('toast');
+  }
 
   payload(route: Route): unknown {
     return this.payloads.get(route) ?? null;
@@ -57,14 +64,16 @@ export class TidyFlow {
       }
     }
 
-    // 2. Close and animate.
+    // 2. Animate and close together: icons start flying, then the windows close behind them.
     const closable = entry.items.filter((i) => i.kind !== 'app' && !i.untitled);
     if (!closable.length) {
       this.toast({ title: 'Nothing to tidy', detail: `${job.name} is saved. Its windows stay open.`, canUndo: false });
       return;
     }
-    this.play(closable, false);
+    const animation = this.play(closable, false);
+    await wait(250);
     const { closed, failed } = await closeItems(closable);
+    await animation;
     this.setUndo(closed, entry.frontKey);
     const left = failed.length + entry.items.filter((i) => i.untitled).length;
     this.toast({
@@ -110,34 +119,44 @@ export class TidyFlow {
     return base;
   }
 
-  private play(items: Item[], reverse: boolean): void {
-    void (async () => {
-      const tray = this.trayBounds();
-      const display = screen.getDisplayMatching(tray);
-      const flies = await this.withIcons(items);
-      const play: OverlayPlay = {
-        items: flies,
-        target: { x: tray.x + tray.width / 2 - display.bounds.x, y: tray.y + tray.height / 2 - display.bounds.y },
-        reverse,
-      };
-      this.payloads.set('overlay', play);
-      const win = showWindow('overlay', { onReady: (w) => w.webContents.send('payload:updated') });
-      win.setBounds(display.bounds);
-      win.showInactive();
-      win.webContents.send('payload:updated');
-      setTimeout(() => {
-        const w = getWindow('overlay');
-        if (w && this.payloads.get('overlay') === play) w.hide();
-      }, 2600 + flies.length * 90);
-    })();
+  /** Plays the fly-in (or fly-out) animation. Resolves when it has finished. */
+  private async play(items: Item[], reverse: boolean): Promise<void> {
+    const tray = this.trayBounds();
+    const display = screen.getDisplayMatching(tray);
+    const flies = await this.withIcons(items);
+    const play: OverlayPlay = {
+      items: flies,
+      target: { x: tray.x + tray.width / 2 - display.bounds.x, y: tray.y + tray.height / 2 - display.bounds.y },
+      reverse,
+    };
+    this.payloads.set('overlay', play);
+    const win = prepareWindow('overlay');
+    win.setBounds(display.bounds);
+    const finished = new Promise<void>((resolve) => {
+      this.overlayDone = resolve;
+      // Safety net in case the window never reports back.
+      setTimeout(resolve, 1500 + flies.length * 120);
+    });
+    win.webContents.send('overlay:play', play);
+    win.showInactive();
+    await finished;
+    this.overlayDone = null;
+    if (this.payloads.get('overlay') === play) win.hide();
+  }
+
+  /** The animation window says it's done. */
+  finishOverlay(): void {
+    this.overlayDone?.();
   }
 
   // ---------- toast and undo ----------
 
   private toast(info: ToastInfo): void {
     this.payloads.set('toast', info);
-    showWindow('toast', { near: this.trayBounds(), onReady: (w) => w.webContents.send('payload:updated') });
-    getWindow('toast')?.webContents.send('payload:updated');
+    const win = prepareWindow('toast');
+    win.webContents.send('toast:show', info);
+    // Let it draw the new text first, then slide it in under the menu bar icon.
+    setTimeout(() => showWindow('toast', { near: this.trayBounds() }), 60);
     if (this.toastTimer) clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => getWindow('toast')?.hide(), info.canUndo ? UNDO_MS : 4000);
   }
@@ -153,8 +172,9 @@ export class TidyFlow {
     clearTimeout(u.timer);
     this.undo = null;
     getWindow('toast')?.hide();
-    this.play(u.items, true);
+    const animation = this.play(u.items, true);
     await openItems(u.items, u.frontKey, this.core.settings.get());
+    await animation;
     this.toast({ title: 'Brought back', detail: `${u.items.length} ${u.items.length === 1 ? 'item' : 'items'} reopened.`, canUndo: false });
   }
 
@@ -168,21 +188,45 @@ export class TidyFlow {
     showWindow('naming', { onReady: (w) => w.webContents.send('payload:updated') });
     setTimeout(() => {
       getWindow('naming')?.close();
-      this.play(
+      if (process.env.WWI_CAPTURE_DIR) {
+        // Snap a few frames of the animation to check it.
+        for (const ms of [150, 450, 750, 1000]) {
+          setTimeout(() => {
+            const w = getWindow('overlay');
+            void w?.webContents.capturePage().then((img) =>
+              import('node:fs/promises').then((fs) => fs.writeFile(path.join(process.env.WWI_CAPTURE_DIR!, `fly-${ms}.png`), img.resize({ width: 1000 }).toPNG())),
+            );
+          }, ms);
+        }
+      }
+      void this.play(
         [
           { key: 'doc:/Applications/Pages.app', kind: 'doc', label: 'Climate essay.docx', detail: '', app: 'Pages', path: '/Applications/Pages.app' },
           { key: 'tab:x', kind: 'tab', label: 'Sea level rise | JSTOR', detail: '', app: 'Google Chrome' },
           { key: 'tab:y', kind: 'tab', label: 'Google Scholar', detail: '', app: 'Safari' },
         ],
         false,
-      );
-      this.toast({ title: 'Climate essay · 9 items packed', detail: 'Everything else is still open.', canUndo: true });
+      ).then(() => {
+        this.toast({ title: 'Climate essay · 9 items packed', detail: 'Everything else is still open.', canUndo: true });
+        if (process.env.WWI_CAPTURE_DIR) {
+          setTimeout(() => {
+            void getWindow('toast')
+              ?.webContents.executeJavaScript("document.body.classList.add('test-capture')")
+              .then(() => getWindow('toast')?.webContents.capturePage())
+              .then((img) => img && import('node:fs/promises').then((fs) => fs.writeFile(path.join(process.env.WWI_CAPTURE_DIR!, 'toast-shown.png'), img.toPNG())));
+          }, 700);
+        }
+      });
     }, 5000);
   }
 
   dismissToast(): void {
     getWindow('toast')?.hide();
   }
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 function browserAppPath(appName: string): string | null {

@@ -42,6 +42,7 @@ describe('close scripts', () => {
 
   it('ask apps to close documents normally, so unsaved changes get a prompt', () => {
     expect(closeDocsScript('Microsoft Word')).toContain('close d saving ask');
+    expect(closeDocsScript('Microsoft Word')).toContain('fn contains "://"');
     expect(closeDocsScript('Pages')).toContain('close d saving ask');
     expect(closeDocsScript('Finder')).toContain('close w');
     expect(closeDocsScript('Spotify')).toBeNull();

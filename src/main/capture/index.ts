@@ -108,6 +108,11 @@ export async function capture(settings: Settings, helper: Helper, selfNames: str
   ]);
   errors.push(...tabResult.errors, ...docResult.errors);
   const assembled = assemble(win, tabResult.tabs, docResult.items, selfNames);
+  // If an app's files couldn't be read (permission not given yet), say so on its item.
+  const blocked = new Set(docResult.errors.map((e) => e.collector.replace(/^docs:/, '')));
+  for (const it of assembled.items) {
+    if (it.kind === 'app' && blocked.has(it.app)) it.detail = "Couldn't see its files";
+  }
   return { at: new Date().toISOString(), ...assembled, errors };
 }
 

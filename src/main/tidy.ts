@@ -97,6 +97,8 @@ end run`;
       ? `set fn to (full name of d) as text
         if fn starts with "/" then
           set p to fn
+        else if fn contains "://" then
+          set p to fn
         else if fn contains ":" then
           set p to POSIX path of fn
         end if`
@@ -232,7 +234,8 @@ export async function closeItems(items: Item[]): Promise<TidyResult> {
   await Promise.all(
     [...byApp.entries()].map(async ([key, group]) => {
       const script = key.startsWith('tab:') ? closeTabsScript(key.slice(4) as BrowserName) : closeDocsScript(key);
-      const targets = group.map((i) => (i.kind === 'tab' ? i.url! : i.path!)).filter(Boolean);
+      // Tabs and OneDrive documents are matched by address, everything else by file path.
+      const targets = group.map((i) => (i.kind === 'tab' ? i.url : (i.path ?? i.url))).filter((t): t is string => !!t);
       if (!script || !targets.length) {
         result.failed.push(...group);
         return;

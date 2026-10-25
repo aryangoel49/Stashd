@@ -94,7 +94,15 @@ export function holdWindow(route: Route, hold: boolean): void {
   else holdOpen.delete(route);
 }
 
-export function showWindow(route: Route, opts: { onReady?: (win: BrowserWindow) => void; near?: Rectangle } = {}): BrowserWindow {
+/** Create a window ahead of time without showing it, so it appears instantly later. */
+export function prepareWindow(route: Route): BrowserWindow {
+  return getWindow(route) ?? showWindow(route, { background: true });
+}
+
+export function showWindow(
+  route: Route,
+  opts: { onReady?: (win: BrowserWindow) => void; near?: Rectangle; background?: boolean } = {},
+): BrowserWindow {
   const existing = getWindow(route);
   if (existing) {
     if (opts.near) placeUnder(existing, opts.near);
@@ -131,8 +139,10 @@ export function showWindow(route: Route, opts: { onReady?: (win: BrowserWindow) 
   if (opts.near) placeUnder(win, opts.near);
   else if (route === 'save' || route === 'naming') placeCentered(win);
 
+  if (route === 'overlay') win.setBounds(screen.getPrimaryDisplay().bounds);
+
   win.once('ready-to-show', () => {
-    if (route !== 'overlay') reveal(win, route);
+    if (route !== 'overlay' && !opts.background) reveal(win, route);
     opts.onReady?.(win);
     if (!app.isPackaged && process.env.WWI_CAPTURE_DIR) void captureForTests(win, route);
   });

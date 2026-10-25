@@ -9,7 +9,11 @@ import { isPermissionError } from '../collectors/browsers';
 const US = 'character id 31';
 const RS = 'character id 30';
 
-/** Office apps report "full name", which can be an old-style "Disk:Folder:File" path. */
+/**
+ * Office apps report "full name": a POSIX path, an old-style "Disk:Folder:File" path, a web address
+ * for OneDrive/SharePoint files, or just "Document1" for a file that was never saved.
+ * Output per document: name, POSIX path (if any), raw full name.
+ */
 function officeScript(bundleId: string, collection: string): string {
   return `
 set out to ""
@@ -17,15 +21,16 @@ tell application id "${bundleId}"
   repeat with d in ${collection}
     set n to name of d
     set p to ""
+    set fn to ""
     try
       set fn to (full name of d) as text
       if fn starts with "/" then
         set p to fn
-      else if fn contains ":" then
+      else if fn contains ":" and fn does not contain "://" then
         set p to POSIX path of fn
       end if
     end try
-    set out to out & n & ${US} & p & ${RS}
+    set out to out & n & ${US} & p & ${US} & fn & ${RS}
   end repeat
 end tell
 return out`;
@@ -103,9 +108,10 @@ export function parseDocOutput(adapter: Pick<DocAdapter, 'app' | 'kind'>, out: s
   const seen = new Set<string>();
   const records = out.split('\x1e').map((r) => r.replace(/^\n+/, '')).filter((r) => r.includes('\x1f'));
   records.forEach((r, i) => {
-    const [rawName, rawPath] = r.split('\x1f');
+    const [rawName, rawPath, rawFull] = r.split('\x1f');
     const name = (rawName ?? '').trim();
     const p = (rawPath ?? '').trim();
+    const full = (rawFull ?? '').trim();
     if (!name && !p) return;
     if (adapter.kind === 'folder') {
       if (!p.startsWith('/')) return;
@@ -114,6 +120,14 @@ export function parseDocOutput(adapter: Pick<DocAdapter, 'app' | 'kind'>, out: s
       if (seen.has(key)) return;
       seen.add(key);
       items.push({ key, kind: 'folder', label: path.basename(clean) || clean, detail: shortDir(path.dirname(clean)), app: adapter.app, path: clean, active: i === 0 });
+      return;
+    }
+    // A OneDrive or SharePoint file: Office gives a web address instead of a path.
+    if (!p && /^https?:\/\//i.test(full)) {
+      const key = `doc:${full}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      items.push({ key, kind: 'doc', label: name || decodeURIComponent(full.split('/').pop() ?? full), detail: `${adapter.app}, in OneDrive`, app: adapter.app, url: full, active: i === 0 });
       return;
     }
     const untitled = !p.startsWith('/');
@@ -147,7 +161,8 @@ export async function collectDocs(runningBundleIds: Set<string>): Promise<{ item
   const results = await Promise.all(
     adapters.map(async (a) => {
       try {
-        const r = await run('osascript', ['-e', a.script], { timeoutMs: 6000 });
+        // Long timeout: the first time, macOS shows an "allow access?" pop-up and waits for you.
+        const r = await run('osascript', ['-e', a.script], { timeoutMs: 60_000 });
         return parseDocOutput(a, r.stdout);
       } catch (e) {
         const denied = isPermissionError(e);

@@ -129,7 +129,8 @@ export async function collectTabs(
     const up = running ? running.has(BROWSER_APPS[b].bundleId) : await isRunning(b);
     if (!up) continue;
     try {
-      const r = await run('osascript', ['-e', SCRIPTS[b]], { timeoutMs: 8000 });
+      // Long timeout: the first time, macOS shows an "allow access?" pop-up and waits for you.
+      const r = await run('osascript', ['-e', SCRIPTS[b]], { timeoutMs: 60_000 });
       for (const t of parseTabOutput(b, r.stdout)) {
         const url = cleanTabUrl(t.url, opts);
         if (url) tabs.push({ ...t, url });

@@ -36,6 +36,14 @@ export function Save() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState(false);
   const [state, setState] = useState<'loading' | 'ready' | 'saving' | 'saved'>('loading');
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    if (state !== 'loading') return setSlow(false);
+    const t = setTimeout(() => setSlow(true), 2000);
+    return () => clearTimeout(t);
+  }, [state]);
   const [error, setError] = useState<string | null>(null);
   const [example, setExample] = useState(0);
 
@@ -68,8 +76,9 @@ export function Save() {
     const offs = [
       api.onSaveBegin(begin),
       api.onWindowBlur(() => {
-        // Like Spotlight: clicking away closes it, unless you've typed a note.
-        if (!noteRef.current?.value) void cancel();
+        // Like Spotlight: clicking away closes it, unless you've typed a note. Not while it's still
+        // looking, because macOS may be showing its "allow access?" pop-up, which takes focus.
+        if (stateRef.current === 'ready' && !noteRef.current?.value) void cancel();
       }),
     ];
     const onKey = (e: KeyboardEvent) => {
@@ -103,7 +112,8 @@ export function Save() {
     try {
       await api.commitSave({ jobId: preview.jobId, name: name.trim(), note, keys: chosen.map((i) => i.key), tidy });
       setState('saved');
-      setTimeout(() => void api.closeWindow(), 550);
+      // With Tidy up, get out of the way quickly so the animation is visible.
+      setTimeout(() => void api.closeWindow(), tidy ? 250 : 700);
     } catch (e) {
       setError(errorText(e));
       setState('ready');
@@ -120,10 +130,14 @@ export function Save() {
 
   if (state === 'saved') {
     return (
-      <form ref={ref} className="save" style={{ height: 120 }}>
+      <form ref={ref} className="save">
         <div className="saved fade-in">
+          <span className="saved-check">
+            <Icon name="check" />
+          </span>
           <span>
-            <Icon name="check" /> Saved to {name}
+            Saved to <b>{name}</b>
+            {tidy && <span className="muted"> · tidying up</span>}
           </span>
         </div>
       </form>
@@ -140,8 +154,13 @@ export function Save() {
       }}
     >
       {state === 'loading' ? (
-        <div className="muted" style={{ padding: '18px 4px' }}>
+        <div className="muted" style={{ padding: '6px 4px' }}>
           <span className="spinner" /> Looking at what's open…
+          {slow && (
+            <div className="small fade-in" style={{ marginTop: 8 }}>
+              If macOS asks to let Where Was I see your apps, click <b>OK</b>. It only asks once per app.
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -217,7 +236,15 @@ export function Save() {
                 </span>
               </button>
               <button type="submit" className="btn primary" disabled={state !== 'ready' || chosen.length === 0}>
-                {state === 'saving' ? <span className="spinner" /> : 'Save'} <span style={{ opacity: 0.7 }}>↵</span>
+                {state === 'saving' ? (
+                  <>
+                    <span className="spinner on-accent" /> Saving…
+                  </>
+                ) : (
+                  <>
+                    Save <span style={{ opacity: 0.7 }}>↵</span>
+                  </>
+                )}
               </button>
             </span>
           </div>

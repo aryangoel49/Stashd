@@ -57,6 +57,9 @@ export async function openItems(items: Item[], frontKey: string | null, settings
           continue;
         }
         await openUrl(item);
+      } else if (item.kind === 'doc' && !item.path && item.url) {
+        // A OneDrive or SharePoint document: ask its app to open the address.
+        await run('open', ['-a', item.app, item.url], { timeoutMs: 15_000 });
       } else if (item.kind === 'doc' || item.kind === 'folder') {
         if (!item.path) {
           result.missing.push(`${item.label} (never saved)`);

@@ -18,6 +18,14 @@ describe('document adapters', () => {
     ]);
   });
 
+  it('reads OneDrive documents (Office gives a web address) and untitled ones', () => {
+    const out = `AI research.docx${US}${US}https://d.docs.live.net/abc123/Documents/AI%20research.docx${RS}Document2${US}${US}Document2${RS}`;
+    const items = parseDocOutput({ app: 'Microsoft Word', kind: 'doc' }, out);
+    expect(items[0]).toMatchObject({ key: 'doc:https://d.docs.live.net/abc123/Documents/AI%20research.docx', label: 'AI research.docx', url: 'https://d.docs.live.net/abc123/Documents/AI%20research.docx', detail: 'Microsoft Word, in OneDrive', active: true });
+    expect(items[0].untitled).toBeUndefined();
+    expect(items[1]).toMatchObject({ key: 'untitled:Microsoft Word:Document2', untitled: true });
+  });
+
   it('reads Finder folders and skips duplicates', () => {
     const out = `School${US}/Users/a/Documents/School/${RS}School${US}/Users/a/Documents/School/${RS}`;
     const items = parseDocOutput({ app: 'Finder', kind: 'folder' }, out);

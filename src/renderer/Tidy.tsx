@@ -86,55 +86,87 @@ export function Naming() {
 
 // ---------- the fly-in animation ----------
 
+const POP_MS = 200;
+const FLY_MS = 560;
+const STAGGER_MS = 70;
+
+/** Wait for icons to be decoded before animating, so nothing pops in half-drawn. */
+async function ready(imgs: HTMLImageElement[]): Promise<void> {
+  await Promise.race([Promise.all(imgs.map((i) => i.decode().catch(() => undefined))), new Promise((r) => setTimeout(r, 250))]);
+}
+
+async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<void> {
+  layer.innerHTML = '';
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const n = play.items.length;
+  const perRow = Math.min(6, n);
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const imgs: HTMLImageElement[] = [];
+  const cards = play.items.map((item, i) => {
+    const card = document.createElement('div');
+    card.className = 'fly';
+    const tile = document.createElement('div');
+    tile.className = 'fly-tile';
+    if (item.icon) {
+      const img = document.createElement('img');
+      img.src = item.icon;
+      img.alt = '';
+      imgs.push(img);
+      tile.appendChild(img);
+    }
+    const label = document.createElement('span');
+    label.textContent = item.label;
+    card.append(tile, label);
+    layer.appendChild(card);
+
+    // A neat row (or two) just above the middle of the screen.
+    const row = Math.floor(i / perRow);
+    const inRow = Math.min(perRow, n - row * perRow);
+    const col = i % perRow;
+    const x = w / 2 + (col - (inRow - 1) / 2) * 116 - 50;
+    const y = h * 0.4 + row * 120 - 46;
+    return { card, label, x, y };
+  });
+  await ready(imgs);
+  await new Promise((r) => requestAnimationFrame(r));
+
+  const tx = play.target.x - 50;
+  const ty = play.target.y - 46;
+  const animations = cards.map(({ card, label, x, y }, i) => {
+    const at = `translate3d(${x}px, ${y}px, 0)`;
+    const home = `translate3d(${tx}px, ${ty}px, 0)`;
+    const frames: Keyframe[] = play.reverse
+      ? [
+          { transform: `${home} scale(0.12)`, opacity: 0, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' },
+          { transform: `${at} scale(1)`, opacity: 1, offset: 0.75 },
+          { transform: `${at} scale(1)`, opacity: 0 },
+        ]
+      : [
+          { transform: `${at} scale(0.8)`, opacity: 0, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' },
+          { transform: `${at} scale(1)`, opacity: 1, offset: POP_MS / (POP_MS + FLY_MS), easing: 'cubic-bezier(0.55, 0, 0.8, 0.2)' },
+          { transform: `${home} scale(0.12)`, opacity: 0.3 },
+        ];
+    const timing: KeyframeAnimationOptions = { duration: reduce ? 1 : POP_MS + FLY_MS, delay: reduce ? 0 : i * STAGGER_MS, fill: 'both' };
+    // Labels fade out as the icons start to fly, so the motion stays clean.
+    label.animate([{ opacity: 1 }, { opacity: 1, offset: 0.3 }, { opacity: 0, offset: 0.45 }, { opacity: 0 }], timing);
+    return card.animate(frames, timing).finished;
+  });
+  await Promise.all(animations).catch(() => undefined);
+}
+
 export function Overlay() {
-  const play = usePayload<OverlayPlay>();
   const layer = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    const el = layer.current;
-    if (!play || !el) return;
-    el.innerHTML = '';
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const cols = Math.min(4, play.items.length);
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    play.items.forEach((item, i) => {
-      const card = document.createElement('div');
-      card.className = 'fly';
-      if (item.icon) {
-        const img = document.createElement('img');
-        img.src = item.icon;
-        img.alt = '';
-        card.appendChild(img);
-      } else {
-        card.classList.add('plain');
-      }
-      const label = document.createElement('span');
-      label.textContent = item.label;
-      card.appendChild(label);
-      el.appendChild(card);
-
-      // Start in a loose grid in the middle of the screen, fly into the menu bar icon.
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const sx = w / 2 + (col - (cols - 1) / 2) * 150;
-      const sy = h * 0.42 + row * 120;
-      const start = `translate(${sx - 50}px, ${sy - 45}px) scale(1)`;
-      const end = `translate(${play.target.x - 50}px, ${play.target.y - 45}px) scale(0.08)`;
-      const frames = [
-        { transform: start, opacity: 0 },
-        { transform: start, opacity: 1, offset: 0.25 },
-        { transform: end, opacity: 0.2 },
-      ];
-      card.animate(play.reverse ? [...frames].reverse() : frames, {
-        duration: reduce ? 1 : 950,
-        delay: reduce ? 0 : i * 90,
-        easing: 'cubic-bezier(0.55, 0, 0.25, 1)',
-        fill: 'forwards',
+    return api.onOverlayPlay((play) => {
+      const el = layer.current;
+      if (!el) return;
+      void playAnimation(el, play).then(() => {
+        el.innerHTML = '';
+        void api.overlayDone();
       });
     });
-  }, [play]);
-
+  }, []);
   return <div ref={layer} className="fly-layer" />;
 }
 
@@ -142,18 +174,26 @@ export function Overlay() {
 
 export function Toast() {
   useSettings();
-  const info = usePayload<ToastInfo>();
+  const [info, setInfo] = useState<ToastInfo | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => setBusy(false), [info]);
+  const [key, setKey] = useState(0);
+  useEffect(() => {
+    void api.getPayload<ToastInfo>().then((p) => p && setInfo(p));
+    return api.onToastShow((p) => {
+      setInfo(p);
+      setBusy(false);
+      setKey((k) => k + 1);
+    });
+  }, []);
   if (!info) return null;
   return (
-    <div className="toast fade-in">
+    <div className="toast" key={key}>
       <span className="icon" style={{ width: 34, height: 34, color: 'var(--accent)' }}>
         <Icon name={info.canUndo ? 'stack' : 'check'} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{info.title}</span>
-        <span className="muted small">{info.detail}</span>
+        <span className="toast-title">{info.title}</span>
+        <span className="muted small toast-detail">{info.detail}</span>
       </span>
       {info.canUndo ? (
         <button

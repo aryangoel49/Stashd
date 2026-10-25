@@ -131,10 +131,12 @@ function start(): void {
       finishNaming: (names) => tidy.finishNaming(names),
       undoTidy: () => tidy.undoLast(),
       dismissToast: () => tidy.dismissToast(),
+      overlayDone: () => tidy.finishOverlay(),
       testClaude: (key) => testClaudeKey(key, settings.get().aiModel),
       openSave,
     });
 
+    tidy.prepare();
     const initial = settings.get();
     applyShortcuts(initial);
     applyLoginItem(initial);

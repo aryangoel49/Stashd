@@ -174,24 +174,29 @@ button { cursor: default; }
 .section-label { font-size: 11px; font-weight: 600; color: var(--muted); padding: 2px 4px 0; }
 .suggest { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 11px; background: color-mix(in srgb, var(--accent) 12%, transparent); font-size: 12px; }
 .suggest b { color: var(--accent); }
-.saved { height: 100%; display: grid; place-items: center; font: 600 17px -apple-system, 'SF Pro Display', sans-serif; color: var(--accent); }
+.saved { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 0; font-size: 15px; }
+.saved b { font-weight: 600; }
+.saved-check { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; flex: none; }
+.saved-check svg { width: 15px; height: 15px; stroke-width: 2.4; }
+.spinner.on-accent { border-color: rgba(255, 255, 255, 0.35); border-top-color: #fff; }
 
 /* ---------- Tidy up ---------- */
 .fly-layer { position: fixed; inset: 0; pointer-events: none; }
 .fly {
-  position: absolute; left: 0; top: 0; width: 100px; display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: 0;
-  will-change: transform, opacity;
+  position: absolute; left: 0; top: 0; width: 100px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  opacity: 0; will-change: transform, opacity; backface-visibility: hidden;
 }
-.fly img { width: 64px; height: 64px; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.3)); }
-.fly.plain::before {
-  content: ''; width: 64px; height: 64px; border-radius: 16px;
-  background: color-mix(in srgb, var(--accent) 85%, #fff); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
-}
+.fly-tile { width: 72px; height: 72px; display: grid; place-items: center; }
+.fly-tile img { width: 72px; height: 72px; }
+.fly-tile:empty { border-radius: 18px; background: var(--accent); }
 .fly span {
-  max-width: 120px; font-size: 11px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  background: rgba(0, 0, 0, 0.45); padding: 2px 8px; border-radius: 99px;
+  max-width: 110px; font-size: 11px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: rgba(0, 0, 0, 0.55); padding: 2px 8px; border-radius: 99px;
 }
-.toast { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px; height: 100%; }
+.toast { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px; height: 100%; animation: toastIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.toast-title { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toast-detail { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 
 /* ---------- App window ---------- */
 body.main { overflow: hidden; background: transparent; }

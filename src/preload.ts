@@ -2,7 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppInfo, BriefView, Job, JobSummary, OpenResult, SavePreview, SaveRequest, SaveResult, Settings } from './shared/types';
+import type { AppInfo, BriefView, Job, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -45,6 +45,7 @@ const api = {
   finishNaming: (names: (string | null)[]) => invoke<boolean>('naming:done', names),
   undoTidy: () => invoke<void>('tidy:undo'),
   dismissToast: () => invoke<boolean>('toast:dismiss'),
+  overlayDone: () => invoke<boolean>('overlay:done'),
 
   onJobsChanged: (cb: () => void) => on('jobs:changed', cb),
   onSettingsChanged: (cb: () => void) => on('settings:changed', cb),
@@ -53,6 +54,8 @@ const api = {
   onWindowShown: (cb: () => void) => on('window:shown', cb),
   onWindowBlur: (cb: () => void) => on('window:blur', cb),
   onPayload: (cb: () => void) => on('payload:updated', cb),
+  onOverlayPlay: (cb: (play: OverlayPlay) => void) => on('overlay:play', (p) => cb(p as OverlayPlay)),
+  onToastShow: (cb: (info: ToastInfo) => void) => on('toast:show', (p) => cb(p as ToastInfo)),
   onMainShow: (cb: (view: 'main' | 'settings') => void) => on('main:show', (v) => cb(v === 'settings' ? 'settings' : 'main')),
 };
 
