@@ -5,6 +5,8 @@
 //   wwi-helper brief     Reads {"instructions": "...", "prompt": "..."} on stdin and asks Apple's
 //                        on-device model (Apple Intelligence) for a brief. Runs entirely on this Mac.
 //   wwi-helper status    Prints whether Apple Intelligence is available.
+//   wwi-helper icons     Reads a JSON list of file or app paths on stdin and prints their Finder
+//                        icons as small PNG data URLs (for the tidy-up animation).
 //
 // Output is always one line of JSON on stdout.
 
@@ -106,12 +108,42 @@ func briefCommand() {
     printJSON(["error": "unavailable"])
 }
 
+func iconsCommand() {
+    let input = FileHandle.standardInput.readDataToEndOfFile()
+    guard let paths = try? JSONSerialization.jsonObject(with: input) as? [String] else {
+        printJSON(["error": "bad input"])
+        return
+    }
+    var out: [Any] = []
+    for path in paths.prefix(24) {
+        guard FileManager.default.fileExists(atPath: path) else { out.append(NSNull()); continue }
+        let icon = NSWorkspace.shared.icon(forFile: path)
+        let size = NSSize(width: 128, height: 128)
+        guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 128, pixelsHigh: 128, bitsPerSample: 8,
+                                         samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else {
+            out.append(NSNull()); continue
+        }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        icon.draw(in: NSRect(origin: .zero, size: size))
+        NSGraphicsContext.restoreGraphicsState()
+        if let png = rep.representation(using: .png, properties: [:]) {
+            out.append("data:image/png;base64," + png.base64EncodedString())
+        } else {
+            out.append(NSNull())
+        }
+    }
+    printJSON(["icons": out])
+}
+
 let args = CommandLine.arguments
 switch args.count > 1 ? args[1] : "" {
 case "windows": windowsCommand()
 case "brief": briefCommand()
 case "status": statusCommand()
+case "icons": iconsCommand()
 default:
-    printJSON(["error": "usage: wwi-helper windows|brief|status"])
+    printJSON(["error": "usage: wwi-helper windows|brief|status|icons"])
     exit(2)
 }

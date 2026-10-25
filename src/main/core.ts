@@ -217,10 +217,14 @@ export class Core {
       const prevId = ids[ids.indexOf(entryId) + 1];
       const previous = prevId ? await this.store.entry(jobId, prevId).catch(() => null) : null;
       const feedback = previous?.feedback && !previous.feedback.helpful ? (previous.feedback.comment ?? 'The last brief was not helpful.') : null;
-      entry.brief = await writeBrief(this.writers, entry, previous, feedback);
-      await this.store.saveEntry(entry);
+      const brief = await writeBrief(this.writers, entry, previous, feedback);
+      // Re-read: the save may have changed while the brief was being written (a file got named).
+      const fresh = await this.store.entry(jobId, entryId);
+      const keys = new Set(fresh.items.map((i) => i.key));
+      fresh.brief = { ...brief, needed: brief.needed.filter((k) => keys.has(k)) };
+      await this.store.saveEntry(fresh);
       this.notify();
-      return entry;
+      return fresh;
     } finally {
       this.writing.delete(lock);
     }
@@ -265,6 +269,17 @@ export class Core {
     await this.setCurrent(jobId);
     this.notify();
     return result;
+  }
+
+  /** Swap one item in a save (used when an untitled document gets saved with a name). */
+  async replaceItem(jobId: string, entryId: string, oldKey: string, item: Item): Promise<SaveEntry> {
+    const entry = await this.store.entry(jobId, entryId);
+    entry.items = entry.items.map((i) => (i.key === oldKey ? item : i));
+    if (entry.frontKey === oldKey) entry.frontKey = item.key;
+    if (entry.brief) entry.brief.needed = entry.brief.needed.map((k) => (k === oldKey ? item.key : k));
+    await this.store.saveEntry(entry);
+    this.notify();
+    return entry;
   }
 
   async rename(jobId: string, name: string): Promise<void> {

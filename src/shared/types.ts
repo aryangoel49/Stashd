@@ -2,7 +2,7 @@
 
 export type BrowserName = 'chrome' | 'arc' | 'safari';
 export type Accent = 'indigo' | 'teal' | 'coral';
-export type Route = 'panel' | 'save' | 'main' | 'overlay' | 'naming';
+export type Route = 'panel' | 'save' | 'main' | 'overlay' | 'naming' | 'toast';
 
 export interface Settings {
   browsers: Record<BrowserName, boolean>;
@@ -178,4 +178,31 @@ export interface AppInfo {
   hasApiKey: boolean;
   appleAi: 'available' | 'unavailable' | 'unknown';
   shortcutErrors: string[];
+}
+
+/** Untitled documents to name before tidying up. */
+export interface NamingRequest {
+  jobName: string;
+  items: { key: string; app: string; label: string; suggested: string }[];
+  folder: string;
+}
+
+/** One flying item in the tidy-up animation. */
+export interface FlyItem {
+  label: string;
+  /** data: URL of the app or file icon, or null for a plain card. */
+  icon: string | null;
+}
+
+export interface OverlayPlay {
+  items: FlyItem[];
+  /** Where the menu bar icon is, inside the overlay window. */
+  target: { x: number; y: number };
+  reverse: boolean;
+}
+
+export interface ToastInfo {
+  title: string;
+  detail: string;
+  canUndo: boolean;
 }

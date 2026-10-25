@@ -30,7 +30,11 @@ function handle(channel: string, fn: Handler): void {
 export interface IpcHooks {
   shortcutErrors: () => string[];
   appleStatus: () => AppInfo['appleAi'];
-  afterSave: (result: { jobId: string; tidy: boolean }) => void;
+  afterSave: (result: { jobId: string; entryId: string; tidy: boolean }) => void;
+  payload: (route: string) => unknown;
+  finishNaming: (names: (string | null)[]) => void;
+  undoTidy: () => Promise<void>;
+  dismissToast: () => void;
   testClaude: (key: string) => Promise<void>;
   openSave: () => void;
 }
@@ -77,7 +81,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('save:commit', async (_e, req) => {
     const r = v.saveRequest(req);
     const result = await core.commitSave(r);
-    hooks.afterSave({ jobId: result.jobId, tidy: r.tidy });
+    hooks.afterSave({ jobId: result.jobId, entryId: result.entryId, tidy: r.tidy });
     return result;
   });
   handle('save:cancel', () => {
@@ -130,6 +134,17 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   });
   handle('system:openAppleAiSettings', async () => {
     await shell.openExternal(APPLE_AI_SETTINGS);
+    return true;
+  });
+  handle('ui:payload', (event) => hooks.payload(routeOf(BrowserWindow.fromWebContents(event.sender)) ?? ''));
+  handle('naming:done', (_e, names) => {
+    if (!Array.isArray(names) || names.length > 50) throw new Error('bad names');
+    hooks.finishNaming(names.map((n) => (n == null ? null : v.str(n, 'file name', 200).trim() || null)));
+    return true;
+  });
+  handle('tidy:undo', () => hooks.undoTidy());
+  handle('toast:dismiss', () => {
+    hooks.dismissToast();
     return true;
   });
   handle('app:quit', () => {

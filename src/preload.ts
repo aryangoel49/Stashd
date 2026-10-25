@@ -39,6 +39,10 @@ const api = {
   openAutomationSettings: () => invoke<boolean>('system:openAutomationSettings'),
   openAppleAiSettings: () => invoke<boolean>('system:openAppleAiSettings'),
   quit: () => invoke<boolean>('app:quit'),
+  getPayload: <T>() => invoke<T | null>('ui:payload'),
+  finishNaming: (names: (string | null)[]) => invoke<boolean>('naming:done', names),
+  undoTidy: () => invoke<void>('tidy:undo'),
+  dismissToast: () => invoke<boolean>('toast:dismiss'),
 
   onJobsChanged: (cb: () => void) => on('jobs:changed', cb),
   onSettingsChanged: (cb: () => void) => on('settings:changed', cb),
@@ -46,6 +50,7 @@ const api = {
   onSaveBegin: (cb: () => void) => on('save:begin', cb),
   onWindowShown: (cb: () => void) => on('window:shown', cb),
   onWindowBlur: (cb: () => void) => on('window:blur', cb),
+  onPayload: (cb: () => void) => on('payload:updated', cb),
 };
 
 export type Api = typeof api;

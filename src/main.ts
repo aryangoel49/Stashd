@@ -3,7 +3,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { app, globalShortcut, Menu, type Rectangle } from 'electron';
-import type { AppInfo, Settings } from './shared/types';
+import type { AppInfo, Route, Settings } from './shared/types';
 import { appleWriter } from './main/brief/apple';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
 import { Core } from './main/core';
@@ -12,6 +12,7 @@ import { registerIpc } from './main/ipc';
 import { SecretStore } from './main/secrets';
 import { SettingsStore } from './main/settings';
 import { JobStore } from './main/store';
+import { TidyFlow } from './main/tidyflow';
 import { AppTray } from './main/tray';
 import { broadcast, getWindow, hardenWebContents, showWindow } from './main/windows';
 
@@ -117,11 +118,19 @@ function start(): void {
 
     tray = new AppTray({ togglePanel: (b) => togglePanel(b), save: openSave, openMain: () => showWindow('main') });
     core.onChanged(() => broadcast('jobs:changed'));
+    const tidy = new TidyFlow(core, () => tray.bounds());
 
     registerIpc(core, secrets, {
       shortcutErrors: () => shortcutErrors,
       appleStatus: () => appleStatus,
-      afterSave: () => tray.flash('Saved'),
+      afterSave: ({ jobId, entryId, tidy: tidyUp }) => {
+        if (tidyUp) void tidy.run(jobId, entryId);
+        else tray.flash('Saved');
+      },
+      payload: (route) => tidy.payload(route as Route),
+      finishNaming: (names) => tidy.finishNaming(names),
+      undoTidy: () => tidy.undoLast(),
+      dismissToast: () => tidy.dismissToast(),
       testClaude: (key) => testClaudeKey(key, settings.get().aiModel),
       openSave,
     });
@@ -139,6 +148,7 @@ function start(): void {
     if (!app.isPackaged && process.env.WWI_CAPTURE_DIR) {
       togglePanel(tray.bounds());
       setTimeout(openSave, 7500);
+      if (process.env.WWI_DEMO_TIDY) setTimeout(() => tidy.demo(), 1000);
     }
   });
 }

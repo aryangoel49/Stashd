@@ -50,6 +50,13 @@ export class Helper {
     }
   }
 
+  /** Finder icons for files and apps, as PNG data URLs (null where there is none). */
+  async icons(paths: string[]): Promise<(string | null)[]> {
+    const r = await run(this.binary, ['icons'], { timeoutMs: 8000, input: JSON.stringify(paths), maxBuffer: 16 * 1024 * 1024 });
+    const out = JSON.parse(r.stdout) as { icons?: unknown[] };
+    return paths.map((_, i) => (typeof out.icons?.[i] === 'string' ? (out.icons[i] as string) : null));
+  }
+
   /** Ask Apple's on-device model. Throws if it is unavailable or fails. */
   async appleBrief(instructions: string, prompt: string): Promise<string> {
     const r = await run(this.binary, ['brief'], { timeoutMs: 45_000, input: JSON.stringify({ instructions, prompt }) });

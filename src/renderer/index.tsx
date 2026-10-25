@@ -4,6 +4,7 @@ import type { Route } from '../shared/types';
 import { Main } from './Main';
 import { Panel } from './Panel';
 import { Save } from './Save';
+import { Naming, Overlay, Toast } from './Tidy';
 import './styles.css';
 
 const route = (window.location.hash.replace(/^#\/?/, '') || 'panel') as Route;
@@ -13,6 +14,9 @@ const views: Partial<Record<Route, ComponentType>> = {
   panel: Panel,
   save: Save,
   main: Main,
+  naming: Naming,
+  overlay: Overlay,
+  toast: Toast,
 };
 const View = views[route] ?? Panel;
 

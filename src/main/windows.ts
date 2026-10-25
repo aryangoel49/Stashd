@@ -60,6 +60,7 @@ const OPTIONS: Record<Route, Electron.BrowserWindowConstructorOptions> = {
   panel: { ...GLASS, width: 360, height: 440, alwaysOnTop: true },
   save: { ...GLASS, width: 540, height: 200, alwaysOnTop: true },
   naming: { ...GLASS, width: 460, height: 220, alwaysOnTop: true },
+  toast: { ...GLASS, width: 330, height: 64, alwaysOnTop: true },
   main: {
     width: 960,
     height: 640,
@@ -108,6 +109,10 @@ export function showWindow(route: Route, opts: { onReady?: (win: BrowserWindow) 
   windows.set(route, win);
   win.on('closed', () => windows.delete(route));
 
+  if (route === 'toast') {
+    win.setAlwaysOnTop(true, 'pop-up-menu');
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
   if (route === 'panel' || route === 'save' || route === 'naming') {
     win.setAlwaysOnTop(true, route === 'panel' ? 'pop-up-menu' : 'floating');
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -137,6 +142,10 @@ export function showWindow(route: Route, opts: { onReady?: (win: BrowserWindow) 
 
 function reveal(win: BrowserWindow, route: Route): void {
   if (win.isMinimized()) win.restore();
+  if (route === 'toast') {
+    win.showInactive();
+    return;
+  }
   win.show();
   if (route !== 'overlay') {
     app.focus({ steal: true });
@@ -160,7 +169,7 @@ function placeCentered(win: BrowserWindow): void {
 /** The UI asks for its window to fit its content height. */
 export function fitHeight(win: BrowserWindow, height: number): void {
   const route = [...windows.entries()].find(([, w]) => w === win)?.[0];
-  if (!route || route === 'main' || route === 'overlay') return;
+  if (!route || route === 'main' || route === 'overlay' || route === 'toast') return;
   const area = screen.getDisplayMatching(win.getBounds()).workArea;
   const h = Math.round(Math.min(Math.max(height, 80), area.height - 40));
   const b = win.getBounds();
@@ -182,7 +191,7 @@ export function broadcast(channel: string, ...args: unknown[]): void {
 
 async function captureForTests(win: BrowserWindow, route: Route): Promise<void> {
   const { writeFile } = await import('node:fs/promises');
-  await new Promise((r) => setTimeout(r, 2500));
+  await new Promise((r) => setTimeout(r, route === 'overlay' ? 700 : 2500));
   if (win.isDestroyed()) return;
   // The page capture can't see the native frosted glass, so paint an approximation behind it.
   await win.webContents.executeJavaScript("document.body.classList.add('test-capture')");
