@@ -29,7 +29,14 @@ export function tabToItem(t: Tab): Item {
  * Put the pieces together (pure, for tests): dedupe, add app items for apps without
  * captured content, and work out which item was in front.
  */
-export function assemble(win: WindowsInfo, tabs: Tab[], docs: Item[], selfNames: string[]): Omit<Capture, 'at' | 'errors'> {
+export function assemble(
+  win: WindowsInfo,
+  tabs: Tab[],
+  docs: Item[],
+  selfNames: string[],
+  /** Document apps that answered: if they listed nothing, they have nothing open worth reopening. */
+  answered: Set<string> = new Set(),
+): Omit<Capture, 'at' | 'errors'> {
   const self = new Set([...selfNames, ...NOT_APP_ITEMS]);
   const regular = new Set(win.apps.map((a) => a.name));
   const appOrder = win.order.filter((n) => regular.has(n) && !self.has(n));
@@ -64,7 +71,7 @@ export function assemble(win: WindowsInfo, tabs: Tab[], docs: Item[], selfNames:
   const browserApps = new Set(Object.values(BROWSER_APPS).map((b) => b.appName));
   const appsWithContent = new Set(items.map((i) => i.app));
   for (const name of appOrder) {
-    if (browserApps.has(name) || appsWithContent.has(name) || self.has(name)) continue;
+    if (browserApps.has(name) || appsWithContent.has(name) || self.has(name) || answered.has(name)) continue;
     add({ key: `app:${name}`, kind: 'app', label: name, detail: 'App', app: name });
   }
 
@@ -107,7 +114,7 @@ export async function capture(settings: Settings, helper: Helper, selfNames: str
     collectDocs(running),
   ]);
   errors.push(...tabResult.errors, ...docResult.errors);
-  const assembled = assemble(win, tabResult.tabs, docResult.items, selfNames);
+  const assembled = assemble(win, tabResult.tabs, docResult.items, selfNames, docResult.answered);
   // If an app's files couldn't be read (permission not given yet), say so on its item.
   const blocked = new Set(docResult.errors.map((e) => e.collector.replace(/^docs:/, '')));
   for (const it of assembled.items) {

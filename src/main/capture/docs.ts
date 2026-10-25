@@ -17,7 +17,7 @@ const RS = 'character id 30';
  * Documents are read one by one (so one odd document can't break the list), the front one first.
  * If the app won't list its documents, its window titles are used instead (marked "window").
  */
-function officeScript(bundleId: string, collection: string, activeName: string): string {
+function officeScript(bundleId: string, collection: string, element: string, activeName: string): string {
   // Every variable starts with "wwi" so it can never clash with an app's own words
   // ("row" is a table row in Word and Excel, which broke an earlier version).
   return `
@@ -33,7 +33,8 @@ tell application id "${bundleId}"
   end try
   repeat with wwiI from 1 to wwiCount
     try
-      set wwiDoc to item wwiI of ${collection}
+      -- "document 1", not "item 1 of documents": Word answers the second with an empty name.
+      set wwiDoc to ${element} wwiI
       set wwiName to name of wwiDoc
       set wwiPosix to ""
       set wwiFull to ""
@@ -70,7 +71,8 @@ function iworkScript(bundleId: string): string {
   return `
 set wwiOut to ""
 tell application id "${bundleId}"
-  repeat with wwiDoc in documents
+  repeat with wwiI from 1 to (count of documents)
+    set wwiDoc to document wwiI
     set wwiName to name of wwiDoc
     set wwiPosix to ""
     try
@@ -87,7 +89,8 @@ function pathScript(bundleId: string): string {
   return `
 set wwiOut to ""
 tell application id "${bundleId}"
-  repeat with wwiDoc in documents
+  repeat with wwiI from 1 to (count of documents)
+    set wwiDoc to document wwiI
     set wwiName to name of wwiDoc
     set wwiPosix to ""
     try
@@ -120,9 +123,9 @@ export interface DocAdapter {
 }
 
 export const DOC_ADAPTERS: DocAdapter[] = [
-  { bundleId: 'com.microsoft.Word', app: 'Microsoft Word', kind: 'doc', script: officeScript('com.microsoft.Word', 'documents', 'active document') },
-  { bundleId: 'com.microsoft.Excel', app: 'Microsoft Excel', kind: 'doc', script: officeScript('com.microsoft.Excel', 'workbooks', 'active workbook') },
-  { bundleId: 'com.microsoft.Powerpoint', app: 'Microsoft PowerPoint', kind: 'doc', script: officeScript('com.microsoft.Powerpoint', 'presentations', 'active presentation') },
+  { bundleId: 'com.microsoft.Word', app: 'Microsoft Word', kind: 'doc', script: officeScript('com.microsoft.Word', 'documents', 'document', 'active document') },
+  { bundleId: 'com.microsoft.Excel', app: 'Microsoft Excel', kind: 'doc', script: officeScript('com.microsoft.Excel', 'workbooks', 'workbook', 'active workbook') },
+  { bundleId: 'com.microsoft.Powerpoint', app: 'Microsoft PowerPoint', kind: 'doc', script: officeScript('com.microsoft.Powerpoint', 'presentations', 'presentation', 'active presentation') },
   { bundleId: 'com.apple.iWork.Pages', app: 'Pages', kind: 'doc', script: iworkScript('com.apple.iWork.Pages') },
   { bundleId: 'com.apple.iWork.Numbers', app: 'Numbers', kind: 'doc', script: iworkScript('com.apple.iWork.Numbers') },
   { bundleId: 'com.apple.iWork.Keynote', app: 'Keynote', kind: 'doc', script: iworkScript('com.apple.iWork.Keynote') },
@@ -226,14 +229,16 @@ function errorDetail(e: unknown): string {
   return text.replace(/\s+/g, ' ').trim().slice(0, 240);
 }
 
-export async function collectDocs(runningBundleIds: Set<string>): Promise<{ items: Item[]; errors: CollectorError[] }> {
+export async function collectDocs(runningBundleIds: Set<string>): Promise<{ items: Item[]; errors: CollectorError[]; answered: Set<string> }> {
   const adapters = DOC_ADAPTERS.filter((a) => runningBundleIds.has(a.bundleId));
   const errors: CollectorError[] = [];
+  const answered = new Set<string>();
   const results = await Promise.all(
     adapters.map(async (a) => {
       try {
         // Long timeout: the first time, macOS shows an "allow access?" pop-up and waits for you.
         const r = await run('osascript', ['-e', a.script], { timeoutMs: 60_000 });
+        answered.add(a.app);
         return await resolveUnknownPaths(parseDocOutput(a, r.stdout));
       } catch (e) {
         const denied = isPermissionError(e);
@@ -249,5 +254,5 @@ export async function collectDocs(runningBundleIds: Set<string>): Promise<{ item
       }
     }),
   );
-  return { items: results.flat(), errors };
+  return { items: results.flat(), errors, answered };
 }

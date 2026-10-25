@@ -51,11 +51,10 @@ body {
   cursor: default;
   overflow: hidden;
 }
-body.overlay { background: transparent; }
+body.route-overlay { background: transparent; }
 /* Development screenshots only: stands in for the macOS glass the page capture can't see. */
 body.test-capture { background: linear-gradient(160deg, #ecebf3, #e3e6ef) !important; }
 @media (prefers-color-scheme: dark) { body.test-capture { background: linear-gradient(160deg, #2b2b33, #24252c) !important; } }
-body.main { overflow: auto; }
 
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: default; }
@@ -129,7 +128,7 @@ button { cursor: default; }
 .unpack-btn { padding: 5px 11px; font-size: 12px; flex: none; opacity: 0.85; }
 .delete-btn { flex: none; width: 28px; height: 28px; padding: 0; border-radius: 8px; color: var(--faint); margin-left: -4px; }
 .delete-btn:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
-.job-row:hover .unpack-btn { opacity: 1; background: var(--accent); color: #fff; box-shadow: none; }
+.job-row:hover .unpack-btn, .unpack-btn.pack { opacity: 1; background: var(--accent); color: #fff; box-shadow: none; }
 .pack-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 0 2px 8px; }
 .pack-btn { padding: 9px 14px; font-size: 13px; }
 .job-row.current { background: color-mix(in srgb, var(--accent) 16%, transparent); box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 35%, transparent); }
@@ -210,7 +209,7 @@ button { cursor: default; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 
 /* ---------- App window ---------- */
-body.main { overflow: hidden; background: transparent; }
+body.route-main { overflow: hidden; background: transparent; }
 .main-grid { display: grid; grid-template-columns: 230px minmax(0, 1fr); height: 100%; }
 .side { display: flex; flex-direction: column; min-height: 0; padding: 0 10px 10px; }
 .side-title { font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 10px 6px; }
@@ -227,7 +226,7 @@ body.main { overflow: hidden; background: transparent; }
 .content { overflow-y: auto; background: var(--content-bg); box-shadow: inset 0.5px 0 0 var(--hair); }
 :root { --content-bg: rgba(255, 255, 255, 0.55); }
 @media (prefers-color-scheme: dark) { :root { --content-bg: rgba(28, 28, 32, 0.55); } }
-body.main.test-capture .main-grid { background: transparent; }
+body.route-main.test-capture .main-grid { background: transparent; }
 .detail { padding: 0 32px 40px; display: grid; gap: 22px; max-width: 760px; }
 .glass-card { padding: 16px 18px; border-radius: 16px; background: var(--well); box-shadow: inset 0 0.5px 0 var(--rim), inset 0 0 0 0.5px var(--hair), 0 10px 30px rgba(0, 0, 0, 0.06); }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }

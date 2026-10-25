@@ -76,7 +76,7 @@ export function Panel() {
             {view && <JobMenu view={view} onGone={() => setSelected(null)} />}
           </div>
           {view ? (
-            <BriefCard view={view} />
+            <BriefCard view={view} current={jobs?.find((j) => j.id === view.job.id)?.current ?? false} />
           ) : (
             <div className="muted small" style={{ padding: '18px 8px' }}>
               <span className="spinner" /> Writing your brief…
@@ -172,18 +172,31 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
         </span>
       </span>
       {job.current && <span className="live" />}
-      <button
-        className="btn small unpack-btn"
-        disabled={busy}
-        title="Reopen everything in this job"
-        onClick={(e) => {
-          e.stopPropagation();
-          setBusy(true);
-          void api.openJob(job.id, null, 'all').finally(() => setBusy(false));
-        }}
-      >
-        {busy ? <span className="spinner" /> : 'Unpack'}
-      </button>
+      {job.current ? (
+        <button
+          className="btn small unpack-btn pack"
+          title="Save this job and tidy it away"
+          onClick={(e) => {
+            e.stopPropagation();
+            void api.openWindow('pack');
+          }}
+        >
+          Pack up
+        </button>
+      ) : (
+        <button
+          className="btn small unpack-btn"
+          disabled={busy}
+          title="Reopen everything in this job"
+          onClick={(e) => {
+            e.stopPropagation();
+            setBusy(true);
+            void api.openJob(job.id, null, 'all').finally(() => setBusy(false));
+          }}
+        >
+          {busy ? <span className="spinner" /> : 'Unpack'}
+        </button>
+      )}
       <button
         className="btn ghost delete-btn"
         title={`Delete ${job.name}`}

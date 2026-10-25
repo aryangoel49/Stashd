@@ -18,7 +18,7 @@ export function Sentence({ brief }: { brief: Brief }) {
 
 const SOURCE: Record<Brief['source'], string> = { claude: 'Brief by Claude', apple: 'Brief by Apple Intelligence', basic: 'Basic brief' };
 
-export function BriefCard({ view, onOpened }: { view: BriefView; onOpened?: (r: OpenResult) => void }) {
+export function BriefCard({ view, onOpened, current = false }: { view: BriefView; onOpened?: (r: OpenResult) => void; current?: boolean }) {
   const { job, entry, brief } = view;
   const [busy, setBusy] = useState<'needed' | 'all' | null>(null);
   const [result, setResult] = useState<OpenResult | null>(null);
@@ -55,6 +55,16 @@ export function BriefCard({ view, onOpened }: { view: BriefView; onOpened?: (r: 
       </div>
       <Sentence brief={brief} />
 
+      {current ? (
+        <div className="actions">
+          <button className="btn primary" onClick={() => void api.openWindow('pack')} title="Save this job and tidy it away">
+            Pack up
+          </button>
+          <button className="btn" onClick={() => void api.openWindow('save')} title="Save without closing anything">
+            Save only
+          </button>
+        </div>
+      ) : (
       <div className="actions">
         <button className="btn primary" disabled={busy !== null} onClick={() => void open('all')} title="Reopen everything in this job">
           {busy === 'all' ? <span className="spinner on-accent" /> : null} Unpack everything
@@ -63,6 +73,7 @@ export function BriefCard({ view, onOpened }: { view: BriefView; onOpened?: (r: 
           {busy === 'needed' ? <span className="spinner" /> : null} Only what I need
         </button>
       </div>
+      )}
 
       {result && (
         <div className="muted small fade-in" style={{ marginTop: 10 }}>

@@ -69,6 +69,8 @@ function family(app: string): DocFamily | null {
 }
 
 const OFFICE_COLLECTION: Record<string, string> = { 'Microsoft Word': 'documents', 'Microsoft Excel': 'workbooks', 'Microsoft PowerPoint': 'presentations' };
+/** The singular element name. Office apps answer "document 1" properly but "item 1 of documents" with an empty name. */
+const OFFICE_ELEMENT: Record<string, string> = { 'Microsoft Word': 'document', 'Microsoft Excel': 'workbook', 'Microsoft PowerPoint': 'presentation' };
 
 /** Closes open documents whose file path (or file name) is one of the targets. */
 export function closeDocsScript(app: string): string | null {
@@ -96,6 +98,7 @@ on run wwiTargets
 end run`;
   }
   const collection = fam === 'office' ? OFFICE_COLLECTION[app] : 'documents';
+  const element = fam === 'office' ? OFFICE_ELEMENT[app] : 'document';
   const pathOf =
     fam === 'office'
       ? `set wwiFull to (full name of wwiDoc) as text
@@ -136,7 +139,7 @@ on run wwiTargets
     end try
     repeat with wwiI from wwiCount to 1 by -1
       try
-        set wwiDoc to item wwiI of ${collection}
+        set wwiDoc to ${element} wwiI
         set wwiName to ""
         try
           set wwiName to name of wwiDoc
@@ -203,8 +206,9 @@ export function saveAsScript(app: string): string | null {
   const id = adapter.bundleId;
   const fam = family(app);
   const collection = fam === 'office' ? OFFICE_COLLECTION[app] : 'documents';
+  const element = fam === 'office' ? OFFICE_ELEMENT[app] : 'document';
   let save: string;
-  if (app === 'Microsoft Word') save = 'save as wwiDoc file name wwiHfs';
+  if (app === 'Microsoft Word') save = 'save as wwiDoc file name wwiHfs file format format document default';
   else if (app === 'Microsoft Excel') save = 'save workbook as wwiDoc filename wwiHfs';
   else if (app === 'Microsoft PowerPoint') save = 'save wwiDoc in wwiHfs';
   else save = 'save wwiDoc in (POSIX file wwiTargetPath)';
@@ -215,7 +219,7 @@ on run wwiArgs
   set wwiHfs to (POSIX file wwiTargetPath) as text
   tell application id "${id}"
     repeat with wwiI from 1 to (count of ${collection})
-      set wwiDoc to item wwiI of ${collection}
+      set wwiDoc to ${element} wwiI
       if (name of wwiDoc) is wwiDocName then
         ${save}
         return "saved"

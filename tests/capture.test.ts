@@ -65,6 +65,11 @@ describe('assemble and front item', () => {
     expect(r.items.map((i) => i.key)).toEqual(['doc:/Users/a/Essay.docx', 'tab:https://a.io/', 'tab:https://b.io/', 'tab:https://c.io/', 'app:Spotify', 'app:Figma']);
   });
 
+  it('leaves out document apps that answered with nothing open', () => {
+    const r = assemble(win, tabs, [], ['Where Was I'], new Set(['Microsoft Word']));
+    expect(r.items.some((i) => i.app === 'Microsoft Word')).toBe(false);
+  });
+
   it('picks the front document, or the active tab of the front browser window', () => {
     const r = assemble(win, tabs, docs, ['Where Was I']);
     expect(frontItemKey(r.items, r.appOrder)).toBe('doc:/Users/a/Essay.docx');

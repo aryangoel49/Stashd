@@ -8,7 +8,9 @@ import { Naming, Overlay, Toast } from './Tidy';
 import './styles.css';
 
 const route = (window.location.hash.replace(/^#\/?/, '') || 'panel') as Route;
-document.body.classList.add(route);
+// "route-" prefix: a plain "save" or "toast" class on <body> would also pick up the box's own
+// styles (padding, width) and give every window double margins.
+document.body.classList.add(`route-${route}`);
 
 const views: Partial<Record<Route, ComponentType>> = {
   panel: Panel,
