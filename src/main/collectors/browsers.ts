@@ -2,9 +2,17 @@
 // Only asks a browser that is already running (never launches one), skips Chrome and Arc
 // incognito windows, and never reads cookies, history, passwords or page contents.
 
-import type { BrowserName, CollectorError, Tab } from '../../shared/types';
+import type { BrowserName, CollectorError } from '../../shared/types';
 import { run, RunError } from '../exec';
 import { cleanTabUrl, type UrlOptions } from '../urls';
+
+export interface Tab {
+  browser: BrowserName;
+  window: number;
+  title: string;
+  url: string;
+  active: boolean;
+}
 
 export const BROWSER_APPS: Record<BrowserName, { bundleId: string; appName: string; label: string }> = {
   chrome: { bundleId: 'com.google.Chrome', appName: 'Google Chrome', label: 'Chrome' },
@@ -112,11 +120,14 @@ export function isPermissionError(e: unknown): boolean {
 export async function collectTabs(
   browsers: BrowserName[],
   opts: UrlOptions,
+  /** Bundle ids of running apps, when already known. Saves asking each browser. */
+  running?: Set<string>,
 ): Promise<{ tabs: Tab[]; errors: CollectorError[] }> {
   const tabs: Tab[] = [];
   const errors: CollectorError[] = [];
   for (const b of browsers) {
-    if (!(await isRunning(b))) continue;
+    const up = running ? running.has(BROWSER_APPS[b].bundleId) : await isRunning(b);
+    if (!up) continue;
     try {
       const r = await run('osascript', ['-e', SCRIPTS[b]], { timeoutMs: 8000 });
       for (const t of parseTabOutput(b, r.stdout)) {

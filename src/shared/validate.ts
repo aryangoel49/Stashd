@@ -1,32 +1,40 @@
 // Input checks for everything that crosses from the UI into the main process.
 // Each function either returns a clean value or throws.
 
-import type { BrowserName, Project, RestoreRequest, Settings } from './types';
+import type { Accent, BrowserName, SaveRequest, Settings } from './types';
+
+export const DEFAULT_LIFESTYLE_APPS = [
+  'Spotify', 'Music', 'Messages', 'Mail', 'Microsoft Outlook', 'Slack', 'WhatsApp', 'Discord', 'Telegram',
+  'Calendar', 'Notion Calendar', 'FaceTime', 'Podcasts', 'YouTube Music', 'System Settings', 'Activity Monitor',
+  'Claude', 'ChatGPT', 'App Store', 'Photos', 'Reminders', 'Clock', 'Weather',
+];
+
+export const DEFAULT_LIFESTYLE_SITES = [
+  'mail.google.com', 'calendar.google.com', 'music.youtube.com', 'open.spotify.com', 'web.whatsapp.com',
+  'outlook.live.com', 'outlook.office.com', 'messages.google.com', 'discord.com', 'web.telegram.org',
+];
 
 export const DEFAULT_SETTINGS: Settings = {
-  projects: [],
   browsers: { chrome: true, arc: true, safari: true },
-  excludedDomains: ['accounts.google.com', 'mail.google.com', 'bank', 'login', 'signin', 'auth'],
+  excludedDomains: ['accounts.google.com', 'bank', 'login', 'signin', 'auth'],
+  lifestyleSites: DEFAULT_LIFESTYLE_SITES,
+  lifestyleApps: DEFAULT_LIFESTYLE_APPS,
   keepQueryStrings: false,
-  shellHistory: false,
-  lookbackHours: 12,
-  retentionCount: 20,
-  retentionDays: 30,
-  autoSnapshot: false,
   launchAtLogin: false,
-  openFilesInVSCode: true,
   shortcutSave: 'CommandOrControl+Shift+S',
   shortcutRecap: 'CommandOrControl+Shift+W',
-  aiRecap: false,
+  accent: 'indigo',
+  tidyUp: false,
   aiModel: 'claude-haiku-5-5',
   aiDisclosureAccepted: false,
 };
 
 export const BROWSERS: BrowserName[] = ['chrome', 'arc', 'safari'];
+const ACCENTS: Accent[] = ['indigo', 'teal', 'coral'];
 
 const ID_RE = /^[a-z0-9][a-z0-9-]{0,80}$/;
-// Snapshot ids are ISO timestamps with ':' and '.' replaced by '-', plus an optional suffix.
-const SNAPSHOT_ID_RE = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z(-\d+)?$/;
+// Entry ids are ISO timestamps with ':' and '.' replaced by '-', plus an optional suffix.
+const ENTRY_ID_RE = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z(-\d+)?$/;
 
 export class ValidationError extends Error {}
 
@@ -49,33 +57,26 @@ export function bool(v: unknown, name: string): boolean {
   return v;
 }
 
-export function int(v: unknown, name: string, min: number, max: number): number {
-  if (typeof v !== 'number' || !Number.isInteger(v) || v < min || v > max) {
-    fail(`${name} must be a whole number from ${min} to ${max}`);
-  }
-  return v;
-}
-
-export function projectId(v: unknown): string {
-  const s = str(v, 'project id', 100);
-  if (!ID_RE.test(s)) fail('bad project id');
+export function jobId(v: unknown): string {
+  const s = str(v, 'job id', 100);
+  if (!ID_RE.test(s)) fail('bad job id');
   return s;
 }
 
-export function snapshotId(v: unknown): string {
-  const s = str(v, 'snapshot id', 100);
-  if (!SNAPSHOT_ID_RE.test(s)) fail('bad snapshot id');
+export function entryId(v: unknown): string {
+  const s = str(v, 'save id', 100);
+  if (!ENTRY_ID_RE.test(s)) fail('bad save id');
   return s;
+}
+
+export function jobName(v: unknown): string {
+  const s = str(v, 'name', 200).replace(/\s+/g, ' ').trim();
+  if (!s) fail('Give the job a name');
+  return s.slice(0, 80);
 }
 
 export function note(v: unknown): string {
   return str(v ?? '', 'note', 2000).trim();
-}
-
-export function absolutePath(v: unknown, name = 'path'): string {
-  const s = str(v, name, 4096);
-  if (!s.startsWith('/') || s.includes('\0')) fail(`${name} must be a full folder path`);
-  return s;
 }
 
 const ACCEL_RE = /^((CommandOrControl|Command|Cmd|Control|Ctrl|Alt|Option|Shift|Super)\+){1,4}([A-Z0-9]|F\d{1,2}|Space)$/;
@@ -86,23 +87,14 @@ export function accelerator(v: unknown, name: string): string {
   return s;
 }
 
-function domainList(v: unknown): string[] {
-  if (!Array.isArray(v) || v.length > 200) fail('excluded domains must be a list');
-  return v
-    .map((d) => str(d, 'excluded domain', 200).trim().toLowerCase())
-    .filter((d) => d.length > 0 && /^[a-z0-9.-]+$/.test(d));
+function domainList(v: unknown, name: string): string[] {
+  if (!Array.isArray(v) || v.length > 300) fail(`${name} must be a list`);
+  return [...new Set(v.map((d) => str(d, name, 200).trim().toLowerCase()).filter((d) => d.length > 0 && /^[a-z0-9.-]+$/.test(d)))];
 }
 
-function projects(v: unknown): Project[] {
-  if (!Array.isArray(v) || v.length > 100) fail('projects must be a list');
-  const seen = new Set<string>();
-  return v.map((p) => {
-    if (!isPlainObject(p)) fail('bad project');
-    const id = projectId(p.id);
-    if (seen.has(id)) fail('duplicate project');
-    seen.add(id);
-    return { id, name: str(p.name, 'project name', 120).trim() || id, path: absolutePath(p.path) };
-  });
+function appList(v: unknown): string[] {
+  if (!Array.isArray(v) || v.length > 300) fail('apps must be a list');
+  return [...new Set(v.map((a) => str(a, 'app name', 120).trim()).filter(Boolean))];
 }
 
 /** Validate a partial settings update from the UI and merge it onto the current settings. */
@@ -111,27 +103,27 @@ export function settingsPatch(v: unknown, current: Settings): Settings {
   const next: Settings = { ...current, browsers: { ...current.browsers } };
   for (const [k, val] of Object.entries(v)) {
     switch (k) {
-      case 'projects': next.projects = projects(val); break;
       case 'browsers': {
         if (!isPlainObject(val)) fail('browsers must be an object');
         for (const b of BROWSERS) if (b in val) next.browsers[b] = bool(val[b], b);
         break;
       }
-      case 'excludedDomains': next.excludedDomains = domainList(val); break;
+      case 'excludedDomains': next.excludedDomains = domainList(val, 'excluded sites'); break;
+      case 'lifestyleSites': next.lifestyleSites = domainList(val, 'everyday sites'); break;
+      case 'lifestyleApps': next.lifestyleApps = appList(val); break;
       case 'keepQueryStrings': next.keepQueryStrings = bool(val, k); break;
-      case 'shellHistory': next.shellHistory = bool(val, k); break;
-      case 'lookbackHours': next.lookbackHours = int(val, 'lookback hours', 1, 168); break;
-      case 'retentionCount': next.retentionCount = int(val, 'snapshots to keep', 1, 500); break;
-      case 'retentionDays': next.retentionDays = int(val, 'days to keep', 1, 3650); break;
-      case 'autoSnapshot': next.autoSnapshot = bool(val, k); break;
       case 'launchAtLogin': next.launchAtLogin = bool(val, k); break;
-      case 'openFilesInVSCode': next.openFilesInVSCode = bool(val, k); break;
       case 'shortcutSave': next.shortcutSave = accelerator(val, 'save shortcut'); break;
-      case 'shortcutRecap': next.shortcutRecap = accelerator(val, 'recap shortcut'); break;
-      case 'aiRecap': next.aiRecap = bool(val, k); break;
+      case 'shortcutRecap': next.shortcutRecap = accelerator(val, 'brief shortcut'); break;
+      case 'accent': {
+        if (!ACCENTS.includes(val as Accent)) fail('unknown colour');
+        next.accent = val as Accent;
+        break;
+      }
+      case 'tidyUp': next.tidyUp = bool(val, k); break;
       case 'aiModel': {
         const m = str(val, 'model name', 100).trim();
-        if (!/^[a-z0-9][a-z0-9.\-]{1,99}$/.test(m)) fail('model name looks wrong');
+        if (!/^[a-z0-9][a-z0-9.-]{1,99}$/.test(m)) fail('model name looks wrong');
         next.aiModel = m;
         break;
       }
@@ -144,8 +136,8 @@ export function settingsPatch(v: unknown, current: Settings): Settings {
 
 /** Fill in missing fields of settings read from disk (older versions, hand edits). */
 export function normalizeStoredSettings(raw: unknown): Settings {
-  if (!isPlainObject(raw)) return { ...DEFAULT_SETTINGS };
   const out: Settings = { ...DEFAULT_SETTINGS, browsers: { ...DEFAULT_SETTINGS.browsers } };
+  if (!isPlainObject(raw)) return out;
   for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]) {
     if (!(key in raw)) continue;
     try {
@@ -157,19 +149,25 @@ export function normalizeStoredSettings(raw: unknown): Settings {
   return out;
 }
 
-export function restoreRequest(v: unknown): RestoreRequest {
-  if (!isPlainObject(v)) fail('bad restore request');
-  if (!Array.isArray(v.keys)) fail('keys must be a list');
-  if (v.keys.length > 20) fail('You can reopen at most 20 items at once');
+export function saveRequest(v: unknown): SaveRequest {
+  if (!isPlainObject(v)) fail('bad save request');
+  if (!Array.isArray(v.keys) || v.keys.length > 500) fail('items must be a list');
   return {
-    projectId: projectId(v.projectId),
-    snapshotId: snapshotId(v.snapshotId),
-    keys: v.keys.map((k) => str(k, 'item key', 300)),
+    jobId: v.jobId == null ? null : jobId(v.jobId),
+    name: jobName(v.name),
+    note: note(v.note),
+    keys: v.keys.map((k) => str(k, 'item', 4200)),
+    tidy: bool(v.tidy, 'tidy'),
   };
+}
+
+export function openMode(v: unknown): 'needed' | 'all' {
+  if (v !== 'needed' && v !== 'all') fail('bad open mode');
+  return v;
 }
 
 export function apiKey(v: unknown): string {
   const s = str(v, 'API key', 300).trim();
-  if (s !== '' && !/^[A-Za-z0-9_\-]{20,300}$/.test(s)) fail('That does not look like an API key');
+  if (s !== '' && !/^[A-Za-z0-9_-]{20,300}$/.test(s)) fail('That does not look like an API key');
   return s;
 }

@@ -29,10 +29,10 @@ export function childEnv(): NodeJS.ProcessEnv {
 export function run(
   file: string,
   args: string[],
-  opts: { timeoutMs?: number; cwd?: string; maxBuffer?: number } = {},
+  opts: { timeoutMs?: number; cwd?: string; maxBuffer?: number; input?: string } = {},
 ): Promise<RunResult> {
   return new Promise((resolve, reject) => {
-    execFile(
+    const child = execFile(
       file,
       args,
       {
@@ -53,5 +53,8 @@ export function run(
         resolve({ stdout: String(stdout), stderr: String(stderr) });
       },
     );
+    if (opts.input !== undefined) {
+      child.stdin?.end(opts.input);
+    }
   });
 }

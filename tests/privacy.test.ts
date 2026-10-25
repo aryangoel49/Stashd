@@ -1,4 +1,4 @@
-// Privacy guard: only src/main/recap/ai.ts may touch the network.
+// Privacy guard: only src/main/brief/claude.ts may touch the network.
 // This fails if any other source file imports a networking module or calls fetch.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -6,7 +6,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const SRC = path.resolve(__dirname, '../src');
-const ALLOWED = new Set([path.join(SRC, 'main/recap/ai.ts')]);
+const ALLOWED = new Set([path.join(SRC, 'main/brief/claude.ts')]);
 
 const FORBIDDEN: [string, RegExp][] = [
   ['imports a Node networking module', /(from\s+|require\(\s*|import\(\s*)['"](node:)?(http|https|http2|net|tls|dgram|undici)['"]/],
@@ -32,7 +32,7 @@ describe('network access', () => {
 
   it('finds the source files', () => {
     expect(files.length).toBeGreaterThan(10);
-    expect(files).toContain(path.join(SRC, 'main/recap/ai.ts'));
+    expect(files).toContain(path.join(SRC, 'main/brief/claude.ts'));
   });
 
   for (const file of files) {

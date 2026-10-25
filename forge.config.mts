@@ -14,7 +14,7 @@ const config: ForgeConfig = {
     icon: 'assets/icon',
     asar: true,
     // The menu bar icon images live next to the app, outside the code bundle.
-    extraResource: ['assets/tray'],
+    extraResource: ['assets/tray', 'native/build/wwi-helper'],
     extendInfo: {
       NSAppleEventsUsageDescription: 'Where Was I reads the titles and addresses of your open tabs to save your project context.',
       // Menu bar app: no Dock icon, no app menu on launch.

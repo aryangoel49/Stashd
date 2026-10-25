@@ -1,25 +1,29 @@
-// Saves snapshots as JSON files: <base>/<projectId>/<snapshotId>.json
+// Saves jobs as JSON files:
+//   <base>/<jobId>/job.json             name, dates, learned preferences
+//   <base>/<jobId>/history/<id>.json    one file per save
 // Writes are atomic (write a temp file, then rename), so a crash never leaves half a file.
 
 import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import type { Snapshot, SnapshotSummary } from '../shared/types';
-import { projectId as checkProjectId, snapshotId as checkSnapshotId } from '../shared/validate';
+import type { Job, SaveEntry } from '../shared/types';
+import { entryId as checkEntryId, jobId as checkJobId } from '../shared/validate';
 
-/** A stable, filesystem-safe id for a project folder, like "my-app-3f9a1c". */
-export function projectIdFor(folder: string): string {
-  const slug = path
-    .basename(folder)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || 'project';
-  const hash = createHash('sha256').update(folder).digest('hex').slice(0, 6);
+export const MAX_HISTORY = 30;
+
+/** A stable, filesystem-safe id for a job, like "climate-essay-3f9a1c". */
+export function jobIdFor(name: string, seed: string): string {
+  const slug =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'job';
+  const hash = createHash('sha256').update(`${name}|${seed}`).digest('hex').slice(0, 6);
   return `${slug}-${hash}`;
 }
 
-export function snapshotIdFor(date: Date): string {
+export function entryIdFor(date: Date): string {
   return date.toISOString().replace(/[:.]/g, '-');
 }
 
@@ -36,105 +40,124 @@ export async function writeFileAtomic(file: string, data: string): Promise<void>
   await fs.rename(tmp, file);
 }
 
-export interface PruneOptions {
-  count: number;
-  days: number;
-}
-
-/**
- * Which snapshots to delete. Rules: nothing older than `days`, at most `count` per project,
- * and when over the count, automatic snapshots go before manual ones. The newest snapshot is always kept.
- */
-export function planPrune(list: SnapshotSummary[], opts: PruneOptions, now: number): string[] {
-  const sorted = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  if (sorted.length === 0) return [];
-  const rest = sorted.slice(1); // sorted[0] is the newest and is always kept
-  const cutoff = now - opts.days * 86_400_000;
-  const del = new Set<string>();
-  for (const s of rest) if (Date.parse(s.createdAt) < cutoff) del.add(s.id);
-  const remaining = rest.filter((s) => !del.has(s.id));
-  let over = remaining.length + 1 - opts.count;
-  // Oldest first, automatic ones before manual ones.
-  const order = [...remaining.filter((s) => s.auto).reverse(), ...remaining.filter((s) => !s.auto).reverse()];
-  for (const s of order) {
-    if (over <= 0) break;
-    del.add(s.id);
-    over--;
-  }
-  return [...del];
-}
-
-export function summarize(s: Snapshot): SnapshotSummary {
-  return { id: s.id, projectId: s.projectId, createdAt: s.createdAt, auto: s.auto, trigger: s.trigger, note: s.note };
-}
-
-export class SnapshotStore {
+export class JobStore {
   constructor(private readonly base: string) {}
 
-  private dir(projectId: string): string {
-    return path.join(this.base, checkProjectId(projectId));
+  private dir(id: string): string {
+    return path.join(this.base, checkJobId(id));
   }
 
-  private file(projectId: string, id: string): string {
-    return path.join(this.dir(projectId), `${checkSnapshotId(id)}.json`);
+  private entryFile(id: string, entry: string): string {
+    return path.join(this.dir(id), 'history', `${checkEntryId(entry)}.json`);
   }
 
-  async save(s: Snapshot): Promise<void> {
-    await writeFileAtomic(this.file(s.projectId, s.id), JSON.stringify(s, null, 2));
+  async create(name: string, now = new Date()): Promise<Job> {
+    let id = jobIdFor(name, now.toISOString());
+    for (let i = 2; await this.exists(id); i++) id = jobIdFor(`${name} ${i}`, now.toISOString());
+    const job: Job = { id, name, createdAt: now.toISOString(), updatedAt: now.toISOString(), done: false, prefs: { hide: {}, add: {} } };
+    await this.put(job);
+    return job;
   }
 
-  /** A free snapshot id for this time (adds -1, -2 when two saves land in the same millisecond). */
-  async freeId(projectId: string, date: Date): Promise<string> {
-    const base = snapshotIdFor(date);
+  async exists(id: string): Promise<boolean> {
+    try {
+      await fs.access(path.join(this.dir(id), 'job.json'));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async get(id: string): Promise<Job> {
+    return JSON.parse(await fs.readFile(path.join(this.dir(id), 'job.json'), 'utf8')) as Job;
+  }
+
+  async put(job: Job): Promise<void> {
+    await writeFileAtomic(path.join(this.dir(job.id), 'job.json'), JSON.stringify(job, null, 2));
+  }
+
+  /** All jobs, most recently updated first. Unreadable folders are skipped. */
+  async list(): Promise<Job[]> {
+    let names: string[];
+    try {
+      names = await fs.readdir(this.base);
+    } catch {
+      return [];
+    }
+    const jobs: Job[] = [];
+    for (const n of names) {
+      try {
+        jobs.push(await this.get(n));
+      } catch {
+        // not a job folder
+      }
+    }
+    return jobs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  /** A free entry id for this time (adds -1, -2 when two saves land in the same millisecond). */
+  async freeEntryId(jobId: string, date: Date): Promise<string> {
+    const base = entryIdFor(date);
     for (let i = 0; i < 100; i++) {
       const id = i === 0 ? base : `${base}-${i}`;
       try {
-        await fs.access(this.file(projectId, id));
+        await fs.access(this.entryFile(jobId, id));
       } catch {
         return id;
       }
     }
-    throw new Error('Could not pick a snapshot name');
+    throw new Error('Could not pick a save name');
   }
 
-  async load(projectId: string, id: string): Promise<Snapshot> {
-    return JSON.parse(await fs.readFile(this.file(projectId, id), 'utf8')) as Snapshot;
+  async saveEntry(entry: SaveEntry): Promise<void> {
+    await writeFileAtomic(this.entryFile(entry.jobId, entry.id), JSON.stringify(entry, null, 2));
   }
 
-  async list(projectId: string): Promise<SnapshotSummary[]> {
-    const dir = this.dir(projectId); // throws on an unsafe id
-    let names: string[];
+  async entry(jobId: string, id: string): Promise<SaveEntry> {
+    return JSON.parse(await fs.readFile(this.entryFile(jobId, id), 'utf8')) as SaveEntry;
+  }
+
+  /** Entry ids, newest first. */
+  async entryIds(jobId: string): Promise<string[]> {
+    const dir = path.join(this.dir(jobId), 'history');
     try {
-      names = await fs.readdir(dir);
+      return (await fs.readdir(dir))
+        .filter((n) => n.endsWith('.json'))
+        .map((n) => n.slice(0, -5))
+        .filter((n) => {
+          try {
+            checkEntryId(n);
+            return true;
+          } catch {
+            return false;
+          }
+        })
+        .sort()
+        .reverse();
     } catch {
       return [];
     }
-    const out: SnapshotSummary[] = [];
-    for (const n of names) {
-      if (!n.endsWith('.json')) continue;
-      const id = n.slice(0, -5);
+  }
+
+  async latest(jobId: string): Promise<SaveEntry | null> {
+    for (const id of await this.entryIds(jobId)) {
       try {
-        out.push(summarize(await this.load(projectId, id)));
+        return await this.entry(jobId, id);
       } catch {
-        // skip unreadable or hand-edited files
+        // skip a broken file
       }
     }
-    return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return null;
   }
 
-  async latest(projectId: string): Promise<Snapshot | null> {
-    const [top] = await this.list(projectId);
-    return top ? this.load(projectId, top.id) : null;
+  /** Keep only the newest MAX_HISTORY saves of a job. */
+  async prune(jobId: string, keep = MAX_HISTORY): Promise<void> {
+    const ids = await this.entryIds(jobId);
+    for (const id of ids.slice(keep)) await fs.rm(this.entryFile(jobId, id), { force: true });
   }
 
-  async prune(projectId: string, opts: PruneOptions, now = Date.now()): Promise<string[]> {
-    const ids = planPrune(await this.list(projectId), opts, now);
-    for (const id of ids) await fs.rm(this.file(projectId, id), { force: true });
-    return ids;
-  }
-
-  async deleteProject(projectId: string): Promise<void> {
-    await fs.rm(this.dir(projectId), { recursive: true, force: true });
+  async delete(jobId: string): Promise<void> {
+    await fs.rm(this.dir(jobId), { recursive: true, force: true });
   }
 
   async deleteAll(): Promise<void> {

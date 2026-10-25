@@ -1,147 +1,172 @@
 // Types shared by the main process, the preload bridge and the React UI.
 
 export type BrowserName = 'chrome' | 'arc' | 'safari';
-
-export interface Project {
-  id: string;
-  name: string;
-  path: string;
-}
+export type Accent = 'indigo' | 'teal' | 'coral';
+export type Route = 'panel' | 'save' | 'main' | 'overlay' | 'naming';
 
 export interface Settings {
-  projects: Project[];
   browsers: Record<BrowserName, boolean>;
-  /** Entries with a dot are domains (subdomains match too). Entries without a dot are keywords matched anywhere in host + path. */
+  /** Sites never saved at all (privacy). Entries with a dot are domains, others are keywords. */
   excludedDomains: string[];
+  /** Sites that are never part of a job and never closed (Gmail, Calendar…). */
+  lifestyleSites: string[];
+  /** Apps that are never part of a job and never closed (Spotify, Messages…). */
+  lifestyleApps: string[];
   keepQueryStrings: boolean;
-  shellHistory: boolean;
-  lookbackHours: number;
-  retentionCount: number;
-  retentionDays: number;
-  autoSnapshot: boolean;
   launchAtLogin: boolean;
-  openFilesInVSCode: boolean;
   shortcutSave: string;
   shortcutRecap: string;
-  aiRecap: boolean;
+  accent: Accent;
+  /** The last choice of the "Tidy up" toggle. Off until the user turns it on. */
+  tidyUp: boolean;
   aiModel: string;
   aiDisclosureAccepted: boolean;
 }
 
-export type SnapshotTrigger = 'manual' | 'lock' | 'sleep' | 'idle';
-
-export interface FileEntry {
-  /** Path relative to the project folder, always with forward slashes. */
-  path: string;
-  mtime: string;
-  size: number;
-}
-
-export interface Commit {
-  hash: string;
-  subject: string;
-  date: string;
-}
-
-export interface GitState {
-  branch: string;
-  head: string | null;
-  status: string[];
-  diffStat: string;
-  commits: Commit[];
-  stashes: string[];
-}
-
-export interface Tab {
-  browser: BrowserName;
-  window: number;
-  title: string;
-  url: string;
-  active: boolean;
+/** Something a job can hold and reopen. */
+export interface Item {
+  /** Stable identity: "tab:<url>", "doc:<path>", "untitled:<app>:<name>", "folder:<path>", "app:<name>". */
+  key: string;
+  kind: 'tab' | 'doc' | 'folder' | 'app';
+  /** What the user sees: a tab title, a file name, an app name. */
+  label: string;
+  /** Small grey detail: the site, the folder, the app. */
+  detail: string;
+  /** The app this lives in ("Google Chrome", "Microsoft Word"). */
+  app: string;
+  url?: string;
+  path?: string;
+  browser?: BrowserName;
+  /** Browser window number, for tabs. */
+  window?: number;
+  /** For tabs: the active tab of its window. For docs: the front document of its app. */
+  active?: boolean;
+  /** A document that has never been saved (Word "Document1"). */
+  untitled?: boolean;
 }
 
 export interface CollectorError {
   collector: string;
   message: string;
-  /** Set when macOS Automation permission was denied for a browser. */
   permissionDenied?: boolean;
 }
 
-export interface Snapshot {
-  version: 1;
-  id: string;
-  projectId: string;
-  projectName: string;
-  projectPath: string;
-  createdAt: string;
-  auto: boolean;
-  trigger: SnapshotTrigger;
-  note: string;
-  files: FileEntry[];
-  git: GitState | null;
-  tabs: Tab[];
-  shell: string[] | null;
+/** Everything that was open at one moment. */
+export interface Capture {
+  at: string;
+  /** App names from front to back (from window order). */
+  appOrder: string[];
+  frontApp: string | null;
+  items: Item[];
   errors: CollectorError[];
 }
 
-export interface SnapshotSummary {
-  id: string;
-  projectId: string;
+export interface Brief {
+  source: 'claude' | 'apple' | 'basic';
+  /** One or two plain sentences. */
+  sentence: string;
+  /** Short phrases inside the sentence to show in the accent colour. */
+  highlights: string[];
+  /** Item keys for "Pick up where I left off". */
+  needed: string[];
   createdAt: string;
-  auto: boolean;
-  trigger: SnapshotTrigger;
+  /** Why the AI brief failed, when it fell back to a simpler one. */
+  fallbackReason?: string;
+}
+
+export interface Feedback {
+  helpful: boolean;
+  comment?: string;
+  at: string;
+}
+
+/** One save of a job (a history entry). */
+export interface SaveEntry {
+  version: 2;
+  id: string;
+  jobId: string;
+  savedAt: string;
   note: string;
+  items: Item[];
+  /** The item that was in front when you saved: "what you were on last". */
+  frontKey: string | null;
+  /** App names front to back at save time. */
+  appOrder: string[];
+  tidied: boolean;
+  errors: CollectorError[];
+  brief?: Brief;
+  feedback?: Feedback;
 }
 
-export interface ProjectListItem extends Project {
-  lastSnapshotAt: string | null;
-  snapshotCount: number;
-  exists: boolean;
+export interface LearnedPrefs {
+  /** How many saves in a row the user unticked this item. */
+  hide: Record<string, number>;
+  /** How many times the user added this item from "Not sure". */
+  add: Record<string, number>;
 }
 
-export interface Changes {
-  newCommits: Commit[];
-  branchChanged: { from: string; to: string } | null;
-  editedAfter: FileEntry[];
-  missingFiles: string[];
-  stillUncommitted: string[];
-  /** True when there was no git info to compare. */
-  noGit: boolean;
+export interface Job {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  done: boolean;
+  prefs: LearnedPrefs;
 }
 
-export interface RecapItem {
-  kind: 'tab' | 'file';
-  key: string;
-  label: string;
-  detail: string;
-  /** For tabs: the URL. For files: the path relative to the project. */
-  target: string;
-  browser?: BrowserName;
-  suggested: boolean;
+export interface JobSummary {
+  id: string;
+  name: string;
+  updatedAt: string;
+  done: boolean;
+  /** First words of the latest brief, for the menu. */
+  hint: string;
+  itemCount: number;
+  current: boolean;
 }
 
-export interface Recap {
-  source: 'local' | 'ai';
-  text: string;
-  /** Present when an AI recap was asked for but failed. */
-  aiError?: string;
+/** What the save box shows. */
+export interface SavePreview {
+  /** The job this save updates, if any (the open job, or a strong match). */
+  jobId: string | null;
+  jobName: string | null;
+  /** True when jobId came from a match, not from a job you opened. Then the box asks. */
+  isSuggestion: boolean;
+  suggestedName: string;
+  sure: Item[];
+  maybe: Item[];
+  hiddenCount: number;
+  frontKey: string | null;
+  tidyUp: boolean;
+  errors: CollectorError[];
 }
 
-export interface RecapView {
-  snapshot: Snapshot;
-  changes: Changes;
-  recap: Recap;
-  items: RecapItem[];
-}
-
-export interface RestoreRequest {
-  projectId: string;
-  snapshotId: string;
+export interface SaveRequest {
+  /** Update this job, or null for a new job. */
+  jobId: string | null;
+  name: string;
+  note: string;
   keys: string[];
+  tidy: boolean;
 }
 
-export interface RestoreResult {
+export interface SaveResult {
+  jobId: string;
+  entryId: string;
+  /** Untitled documents that need a name before tidying. */
+  needsNaming: Item[];
+}
+
+export interface BriefView {
+  job: Job;
+  entry: SaveEntry;
+  brief: Brief;
+  history: { id: string; savedAt: string; note: string }[];
+}
+
+export interface OpenResult {
   opened: number;
+  alreadyOpen: number;
   missing: string[];
   failed: string[];
 }
@@ -149,8 +174,6 @@ export interface RestoreResult {
 export interface AppInfo {
   version: string;
   hasApiKey: boolean;
-  vscodeAvailable: boolean;
-  platform: string;
+  appleAi: 'available' | 'unavailable' | 'unknown';
+  shortcutErrors: string[];
 }
-
-export type Route = 'main' | 'quicksave' | 'settings';
