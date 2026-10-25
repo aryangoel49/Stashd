@@ -7,6 +7,7 @@ import type { AppInfo, Route, Settings } from './shared/types';
 import { appleWriter } from './main/brief/apple';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
 import { Core } from './main/core';
+import { createMeaning } from './main/meaning';
 import { Helper } from './main/helper';
 import { registerIpc } from './main/ipc';
 import { SecretStore } from './main/secrets';
@@ -112,6 +113,8 @@ function start(): void {
     const fake = !app.isPackaged ? process.env.WWI_FAKE_CAPTURE : undefined;
     core = new Core(settings, new JobStore(path.join(dir, 'jobs')), helper, dir, [app.getName(), 'Where Was I', 'Electron'], fake ? async () => ({ ...JSON.parse(await readFile(fake, 'utf8')), at: new Date().toISOString() }) : undefined);
     void helper.appleStatus().then((s) => (appleStatus = s));
+    core.meaning = createMeaning();
+    setTimeout(() => core.meaning?.warm(), 3000);
     core.writers = [
       claudeWriter({ getKey: () => secrets.get(), getModel: () => settings.get().aiModel, allowed: () => settings.get().aiDisclosureAccepted }),
       appleWriter(helper, () => appleStatus === 'available'),

@@ -20,9 +20,10 @@
     "test:watch": "vitest",
     "icons": "node scripts/make-icons.mjs",
     "native": "mkdir -p native/build && xcrun swiftc -O -swift-version 5 native/wwi-helper.swift -o native/build/wwi-helper",
-    "prestart": "npm run native",
-    "prepackage": "npm run native",
-    "premake": "npm run native"
+    "embedder": "node scripts/prepare-embedder.mjs",
+    "prestart": "npm run native && npm run embedder",
+    "prepackage": "npm run native && npm run embedder",
+    "premake": "npm run native && npm run embedder"
   },
   "devDependencies": {
     "@electron-forge/cli": "^8.0.1",

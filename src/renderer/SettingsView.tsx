@@ -51,7 +51,7 @@ export function SettingsView() {
           Briefs are written by <b>{writerNow(info, s.aiModel)}</b>
           <span className="faint small" style={{ display: 'block' }}>
             {!info.hasApiKey && info.appleAi !== 'available' && 'Connect Claude below, or turn on Apple Intelligence, for smarter briefs. '}
-            Sorting what belongs to which job always happens on your Mac, with no AI.
+            Sorting what belongs to which job always happens on your Mac, using a small built-in model. Free, offline and private.
           </span>
         </span>
       </div>

@@ -6,7 +6,7 @@
 //   hidden  not shown: everyday apps and sites, and things you keep leaving out
 
 import type { Item, Job, LearnedPrefs, Settings } from '../../shared/types';
-import { group, itemTokens, jobProfile, textTokens } from './relevance';
+import { group, hostOf, isGeneralHost, itemTokens, jobProfile, meaningText, textTokens, type MeaningLookup } from './relevance';
 
 const STOP = new Set([
   'the', 'and', 'for', 'with', 'that', 'this', 'from', 'your', 'have', 'what', 'when', 'where', 'will', 'into', 'about',
@@ -75,6 +75,19 @@ export interface ClassifyInput {
   baseline?: Set<string>;
   /** What you were on last (seeds a new job). */
   frontKey?: string | null;
+  /** Meaning vectors from the on-device model, when it's available. */
+  meaning?: MeaningLookup;
+}
+
+/** Sites left out of a job this many saves in a row count against new tabs from them. */
+export const SITE_OUT_AFTER = 2;
+
+/** What a job has learned to avoid, ready for its profile. */
+export function learnedAvoid(prefs: LearnedPrefs | undefined): { avoidTexts: string[]; avoidHosts: string[] } {
+  return {
+    avoidTexts: prefs?.leftOut ?? [],
+    avoidHosts: Object.entries(prefs?.sitesOut ?? {}).filter(([, n]) => n >= SITE_OUT_AFTER).map(([h]) => h),
+  };
 }
 
 /** Sort open items into: in this job / probably related / probably not / everyday (hidden). */
@@ -87,7 +100,7 @@ export function classify(input: ClassifyInput): Classified {
     if (isLifestyle(it, input.settings, input.learnedLifestyleApps) || (prefs.hide[it.key] ?? 0) >= 2) hidden.push(it);
     else candidates.push(it);
   }
-  const profile = job ? jobProfile(input.name || job.name, input.note ?? '', input.previous) : null;
+  const profile = job ? jobProfile(input.name || job.name, input.note ?? '', input.previous, learnedAvoid(prefs)) : null;
   const g = group({
     candidates,
     profile,
@@ -96,6 +109,7 @@ export function classify(input: ClassifyInput): Classified {
     // A brand-new unsaved document is almost always what you're working on, and so is
     // anything you've added to this job by hand twice.
     alwaysSure: (it) => it.untitled === true || (prefs.add[it.key] ?? 0) >= 2,
+    meaning: input.meaning,
   });
   return { sure: g.sure, likely: g.likely, maybe: g.maybe, hidden, why: g.why };
 }
@@ -107,6 +121,29 @@ export function classify(input: ClassifyInput): Classified {
 export function learn(prefs: LearnedPrefs, offered: Classified, chosenKeys: string[]): LearnedPrefs {
   const chosen = new Set(chosenKeys);
   const next: LearnedPrefs = { hide: { ...prefs.hide }, add: { ...prefs.add } };
+  // Titles and sites you leave out teach the job what it isn't about.
+  let leftOut = [...(prefs.leftOut ?? [])];
+  const sitesOut = { ...(prefs.sitesOut ?? {}) };
+  const all = [...offered.sure, ...offered.likely, ...offered.maybe].filter((it) => it.kind !== 'app');
+  // General sites (Google, YouTube…) are used for everything, so leaving one out says nothing.
+  const siteOf = (it: Item) => {
+    const h = hostOf(it);
+    return h && !isGeneralHost(h) ? h : null;
+  };
+  const keptHosts = new Set(all.filter((it) => chosen.has(it.key)).map(siteOf).filter((h): h is string => !!h));
+  for (const it of all) {
+    const text = meaningText(it);
+    if (chosen.has(it.key)) {
+      if (text) leftOut = leftOut.filter((t) => t !== text);
+    } else if (text) {
+      leftOut = [...leftOut.filter((t) => t !== text), text];
+    }
+  }
+  const outHosts = new Set(all.filter((it) => !chosen.has(it.key)).map(siteOf).filter((h): h is string => !!h && !keptHosts.has(h)));
+  for (const h of outHosts) sitesOut[h] = (sitesOut[h] ?? 0) + 1;
+  for (const h of keptHosts) delete sitesOut[h];
+  next.leftOut = leftOut.slice(-40);
+  next.sitesOut = Object.fromEntries(Object.entries(sitesOut).slice(-100));
   const optional = new Set([...offered.maybe, ...offered.likely].map((m) => m.key));
   for (const it of [...offered.sure, ...offered.likely, ...offered.maybe]) {
     if (chosen.has(it.key)) {

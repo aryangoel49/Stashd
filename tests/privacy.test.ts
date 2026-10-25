@@ -28,7 +28,9 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe('network access', () => {
-  const files = sourceFiles(SRC);
+  // Our code, plus the on-device meaning model's runner (it ships next to the app).
+  const EMBEDDER = path.resolve(__dirname, '../embedder');
+  const files = [...sourceFiles(SRC), ...readdirSync(EMBEDDER).filter((f) => /\.(c|m)?js$/.test(f)).map((f) => path.join(EMBEDDER, f))];
 
   it('finds the source files', () => {
     expect(files.length).toBeGreaterThan(10);
@@ -37,7 +39,7 @@ describe('network access', () => {
 
   for (const file of files) {
     if (ALLOWED.has(file)) continue;
-    it(`${path.relative(SRC, file)} does not use the network`, () => {
+    it(`${path.relative(path.dirname(SRC), file)} does not use the network`, () => {
       const text = readFileSync(file, 'utf8');
       for (const [what, re] of FORBIDDEN) {
         expect(re.test(text), `${path.relative(SRC, file)} ${what}`).toBe(false);

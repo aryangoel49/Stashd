@@ -11,12 +11,14 @@ import {
   classify,
   isLifestyle,
   learn,
+  learnedAvoid,
   learnedLifestyleApps,
   recordAppUnticks,
   suggestName,
   type Classified,
 } from './jobs/match';
-import { FIT_SUGGEST, jobFit, jobProfile } from './jobs/relevance';
+import { FIT_SUGGEST, jobFit, jobProfile, meaningText, profileTexts, type MeaningLookup } from './jobs/relevance';
+import type { Meaning } from './meaning';
 import { openItems } from './open';
 import type { SettingsStore } from './settings';
 import { JobStore, writeFileAtomic } from './store';
@@ -43,6 +45,8 @@ export class Core {
   private pending: PendingSave | null = null;
   private writing = new Set<string>();
   writers: BriefWriter[] = [];
+  /** The on-device meaning model (optional: sorting works without it). */
+  meaning?: Meaning;
 
   constructor(
     readonly settings: SettingsStore,
@@ -107,13 +111,27 @@ export class Core {
     const candidates = cap.items.filter((i) => !isLifestyle(i, settings, learned));
     const frontKey = frontItemKey(candidates, cap.appOrder);
 
-    // How well does what's open fit each of your jobs? (Best first, for the "Save to" picker.)
-    const fits: { job: Job; fit: number; latest: SaveEntry | null }[] = [];
+    // Your jobs and what was in each, ready to compare against.
+    const jobs: { job: Job; latest: SaveEntry | null; profile: ReturnType<typeof jobProfile> | null }[] = [];
     for (const j of (await this.store.list()).filter((x) => !x.done).slice(0, 40)) {
       const latest = await this.store.latest(j.id);
-      const fit = latest ? jobFit(candidates, jobProfile(j.name, latest.note, latest.items)) : 0;
-      fits.push({ job: j, fit, latest });
+      jobs.push({ job: j, latest, profile: latest ? jobProfile(j.name, latest.note, latest.items, learnedAvoid(j.prefs)) : null });
     }
+
+    // Meaning vectors from the on-device model, for everything open and every job. (Skipped if it's unavailable.)
+    const vectors = new Map<string, number[]>();
+    const lookup: MeaningLookup = (t) => vectors.get(t);
+    const addVectors = async (texts: string[]) => {
+      const got = await this.meaning?.vectors(texts.filter((t) => !vectors.has(t)));
+      got?.forEach((v, t) => vectors.set(t, v));
+    };
+    await addVectors([
+      ...candidates.map(meaningText).filter((t): t is string => !!t),
+      ...jobs.flatMap((j) => (j.profile ? profileTexts(j.profile) : [])),
+    ]);
+
+    // How well does what's open fit each of your jobs? (Best first, for the "Save to" picker.)
+    const fits = jobs.map((j) => ({ job: j.job, latest: j.latest, fit: j.profile ? jobFit(candidates, j.profile, lookup) : 0 }));
     fits.sort((a, b) => b.fit - a.fit);
 
     // Which job is this? The one you picked, the one you have open, or a clear match. Otherwise new.
@@ -132,6 +150,7 @@ export class Core {
     const latest = job ? (fits.find((f) => f.job.id === job!.id)?.latest ?? (await this.store.latest(job.id))) : null;
     const previous = latest?.items ?? [];
     const baseline = job && this.state.baseline?.jobId === job.id ? new Set(this.state.baseline.keys) : undefined;
+    if (job) await addVectors(profileTexts(jobProfile(job.name, latest?.note ?? '', previous, learnedAvoid(job.prefs))));
     const offered = classify({
       items: cap.items,
       job,
@@ -142,6 +161,7 @@ export class Core {
       learnedLifestyleApps: learned,
       baseline,
       frontKey,
+      meaning: vectors.size ? lookup : undefined,
     });
     // Things that belong to this job but aren't open right now (closed by accident, say) are kept.
     const openKeys = new Set(cap.items.map((i) => i.key));

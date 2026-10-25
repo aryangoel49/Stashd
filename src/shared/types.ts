@@ -107,6 +107,10 @@ export interface LearnedPrefs {
   hide: Record<string, number>;
   /** How many times the user added this item from "Not sure". */
   add: Record<string, number>;
+  /** Titles you left out of this job (newest last), so similar things start unticked. */
+  leftOut?: string[];
+  /** Sites you left out of this job, and how many saves in a row. */
+  sitesOut?: Record<string, number>;
 }
 
 export interface Job {

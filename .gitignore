@@ -148,3 +148,4 @@ out/
 # Where Was I
 assets/icon.iconset/
 native/build/
+embedder/model/model.onnx
