@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Where Was I mockups v2</title>
+<style>
+:root {
+  --accent: #5e6ad2;
+  --text: #1c1c1e;
+  --muted: rgba(28, 28, 30, 0.58);
+  --faint: rgba(28, 28, 30, 0.36);
+  --line: rgba(255, 255, 255, 0.55);
+  --hair: rgba(28, 28, 30, 0.08);
+  --tint: rgba(255, 255, 255, 0.28);
+  --tint-2: rgba(255, 255, 255, 0.12);
+  --well: rgba(255, 255, 255, 0.38);
+  --rim-top: rgba(255, 255, 255, 0.9);
+  --rim-bot: rgba(255, 255, 255, 0.2);
+  --drop: 0 30px 70px rgba(30, 30, 60, 0.18), 0 6px 18px rgba(30, 30, 60, 0.1);
+  --wall: #e9e4f2;
+}
+:root[data-theme='dark'] {
+  --text: #f2f2f7;
+  --muted: rgba(242, 242, 247, 0.6);
+  --faint: rgba(242, 242, 247, 0.35);
+  --line: rgba(255, 255, 255, 0.18);
+  --hair: rgba(255, 255, 255, 0.08);
+  --tint: rgba(255, 255, 255, 0.1);
+  --tint-2: rgba(255, 255, 255, 0.03);
+  --well: rgba(255, 255, 255, 0.08);
+  --rim-top: rgba(255, 255, 255, 0.35);
+  --rim-bot: rgba(255, 255, 255, 0.05);
+  --drop: 0 30px 70px rgba(0, 0, 0, 0.5), 0 6px 18px rgba(0, 0, 0, 0.35);
+  --wall: #0f0f16;
+}
+* { box-sizing: border-box; }
+html { background: var(--wall); }
+body {
+  margin: 0; min-height: 100vh; color: var(--text); padding: 0 16px 90px;
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(700px 520px at 12% 8%, color-mix(in srgb, var(--accent) 55%, transparent), transparent 70%),
+    radial-gradient(800px 600px at 92% 30%, rgba(255, 170, 150, 0.55), transparent 70%),
+    radial-gradient(900px 700px at 40% 85%, color-mix(in srgb, var(--accent) 35%, rgba(120, 200, 255, 0.5)), transparent 70%),
+    var(--wall);
+  background-attachment: fixed;
+}
+:root[data-theme='dark'] body {
+  background:
+    radial-gradient(700px 520px at 12% 8%, color-mix(in srgb, var(--accent) 45%, transparent), transparent 70%),
+    radial-gradient(800px 600px at 92% 30%, rgba(160, 60, 90, 0.45), transparent 70%),
+    radial-gradient(900px 700px at 40% 85%, color-mix(in srgb, var(--accent) 30%, rgba(30, 80, 140, 0.6)), transparent 70%),
+    var(--wall);
+}
+.wrap { max-width: 1060px; margin: 0 auto; }
+.top { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; padding: 40px 0 6px; }
+h1 { font: 600 28px/1.15 -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif; letter-spacing: -0.02em; margin: 0 0 6px; }
+.top p { margin: 0; color: var(--muted); font-size: 14px; max-width: 560px; }
+section { margin-top: 46px; }
+h2 { font: 600 19px/1.2 -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif; letter-spacing: -0.01em; margin: 0 0 4px; }
+.lead { margin: 0 0 18px; color: var(--muted); max-width: 680px; }
+.row { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-start; }
+.opt { display: flex; flex-direction: column; gap: 10px; }
+.tag { font-weight: 600; font-size: 12px; display: flex; gap: 8px; align-items: center; }
+.tag b { min-width: 26px; height: 22px; padding: 0 8px; border-radius: 11px; display: inline-grid; place-items: center; font-size: 11px; }
+.cap { color: var(--muted); font-size: 12px; max-width: 330px; margin: 0; }
+
+/* The glass material: very clear, strong blur, bright rim on top, soft rim on the bottom. */
+.glass {
+  position: relative;
+  background: linear-gradient(160deg, var(--tint), var(--tint-2));
+  -webkit-backdrop-filter: blur(40px) saturate(190%);
+  backdrop-filter: blur(40px) saturate(190%);
+  border-radius: 22px;
+  box-shadow: var(--drop), inset 0 1px 0 var(--rim-top), inset 0 -1px 0 var(--rim-bot), inset 0 0 0 0.5px var(--line);
+}
+.glass::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(120% 60% at 20% 0%, rgba(255, 255, 255, 0.35), transparent 55%);
+  mix-blend-mode: soft-light;
+}
+.glass > * { position: relative; }
+.chip-glass { background: var(--well); border-radius: 12px; box-shadow: inset 0 0.5px 0 var(--rim-top), inset 0 0 0 0.5px var(--hair); }
+
+.swatches { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 99px; }
+.sw { width: 22px; height: 22px; border-radius: 50%; border: none; cursor: pointer; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.6); }
+.sw.on { outline: 2px solid var(--text); outline-offset: 2px; }
+.seg { display: flex; gap: 2px; padding: 3px; border-radius: 99px; margin-left: 6px; }
+.seg button { border: none; background: none; color: var(--text); font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 99px; cursor: pointer; }
+.seg button.on { background: var(--well); box-shadow: inset 0 0.5px 0 var(--rim-top); }
+
+.menubar { height: 28px; border-radius: 12px; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 12px; font-size: 12px; margin-bottom: 8px; }
+.mbi { width: 18px; height: 18px; border-radius: 6px; display: grid; place-items: center; background: var(--accent); color: #fff; font-size: 11px; }
+
+.icon { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: none; background: var(--well); box-shadow: inset 0 0.5px 0 var(--rim-top); }
+.icon svg { width: 16px; height: 16px; stroke: var(--text); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: 0.75; }
+.job { display: flex; gap: 10px; align-items: center; padding: 8px; border-radius: 14px; }
+.job .t { font-weight: 600; }
+.job .s { color: var(--muted); font-size: 12px; }
+.job.on { background: color-mix(in srgb, var(--accent) 18%, transparent); box-shadow: inset 0 0 0 0.5px color-mix(in srgb, var(--accent) 40%, transparent); }
+.live { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.k { color: var(--faint); font-size: 12px; }
+.kbd { font-size: 11px; padding: 1px 7px; border-radius: 6px; background: var(--well); box-shadow: inset 0 0.5px 0 var(--rim-top), inset 0 0 0 0.5px var(--hair); color: var(--muted); }
+.hr { height: 0.5px; background: var(--hair); margin: 8px 4px; }
+.btn { display: inline-flex; justify-content: center; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 12px; font-weight: 500; background: var(--well); box-shadow: inset 0 0.5px 0 var(--rim-top), inset 0 0 0 0.5px var(--hair); }
+.btn.pri { background: var(--accent); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 6px 16px color-mix(in srgb, var(--accent) 35%, transparent); }
+.field { padding: 10px 12px; border-radius: 12px; background: var(--well); box-shadow: inset 0 0.5px 0 var(--rim-top), inset 0 0 0 0.5px var(--hair); color: var(--faint); }
+.toggle { width: 30px; height: 18px; border-radius: 99px; background: var(--well); box-shadow: inset 0 0 0 0.5px var(--hair); position: relative; flex: none; }
+.toggle::after { content: ''; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.count { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; }
+
+.brief { width: 320px; padding: 18px; }
+.bt { font: 600 17px/1.2 -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif; letter-spacing: -0.01em; }
+.bw { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.big { font-size: 15px; line-height: 1.5; margin: 14px 0 0; }
+.big em { font-style: normal; color: var(--accent); font-weight: 600; }
+.tick { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; }
+.tick .c { width: 16px; height: 16px; border-radius: 5px; box-shadow: inset 0 0 0 1.5px var(--faint); flex: none; margin-top: 2px; }
+.step { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+.step .n { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; flex: none; background: var(--well); }
+.step.now .n { background: var(--accent); color: #fff; }
+.trail { position: relative; padding-left: 18px; margin-top: 12px; }
+.trail::before { content: ''; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 1.5px; background: var(--hair); }
+.trail .p { position: relative; padding: 4px 0; }
+.trail .p::before { content: ''; position: absolute; left: -17px; top: 10px; width: 9px; height: 9px; border-radius: 50%; background: var(--well); box-shadow: inset 0 0 0 1.5px var(--faint); }
+.trail .p.now::before { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.trail .p .w { color: var(--muted); font-size: 11px; }
+.foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; color: var(--faint); font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Where Was I: UI ideas v2</h1>
+      <p>Clearer glass, one accent colour, no emoji. Try the colours and light or dark at the right. Section C has four brief shapes to compare.</p>
+    </div>
+    <div class="glass swatches" role="group" aria-label="Accent colour and theme">
+      <button class="sw on" style="background:#5e6ad2" data-c="#5e6ad2" aria-label="Indigo"></button>
+      <button class="sw" style="background:#2a9d8f" data-c="#2a9d8f" aria-label="Teal"></button>
+      <button class="sw" style="background:#e07a5f" data-c="#e07a5f" aria-label="Coral"></button>
+      <div class="glass seg"><button data-t="light" class="on">Light</button><button data-t="dark">Dark</button></div>
+    </div>
+  </div>
+
+  <section>
+    <h2>A. Menu bar dropdown</h2>
+    <p class="lead">One clear glass panel. Your current job is highlighted in the accent colour; everything else stays neutral.</p>
+    <div class="row">
+      <div class="opt">
+        <span class="tag"><b class="chip-glass">A</b>Jobs with a one-line hint</span>
+        <div class="glass menubar"><span>Wi-Fi</span><span>Fri 4:10</span><span class="mbi">◷</span></div>
+        <div class="glass" style="width:340px;padding:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px 8px">
+            <b style="font-size:14px">Where Was I</b><span class="kbd">⇧⌘S  Save</span>
+          </div>
+          <div class="job on">
+            <span class="icon"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg></span>
+            <div style="flex:1;min-width:0"><div class="t">Climate essay</div><div class="s">Paragraph 3 · open now</div></div><span class="live"></span>
+          </div>
+          <div class="job">
+            <span class="icon"><svg viewBox="0 0 24 24"><path d="M2 16l20-8-6 12-3-5z"/></svg></span>
+            <div style="flex:1"><div class="t">Toronto trip</div><div class="s">Comparing 3 flights · 2 days ago</div></div>
+          </div>
+          <div class="job">
+            <span class="icon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+            <div style="flex:1"><div class="t">Resume</div><div class="s">Co-op section · last week</div></div>
+          </div>
+          <div class="hr"></div>
+          <div style="display:flex;gap:8px;padding:2px 4px 4px"><span class="btn">All jobs</span><span class="btn">Settings</span></div>
+        </div>
+        <p class="cap">Same layout as A2 before, but quieter: one accent colour for the job you're in, and simple line icons.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>B. Save box</h2>
+    <p class="lead">Two takes on the glass save box. Both are ⇧⌘S, then Enter.</p>
+    <div class="row">
+      <div class="opt">
+        <span class="tag"><b class="chip-glass">B1</b>Floating bar, centre of screen</span>
+        <div class="glass" style="width:500px;padding:16px">
+          <div style="font:600 20px/1.2 -apple-system,'SF Pro Display','Helvetica Neue',sans-serif;letter-spacing:-0.01em;padding:2px 4px 10px">Climate essay</div>
+          <div class="field">Context for the robot 🤖 &nbsp;halfway through paragraph 3…</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:0 2px">
+            <span class="count"><span class="toggle"></span>Tidy up</span>
+            <span class="count">2 docs · 7 tabs · 2 maybe <span class="kbd">↵</span></span>
+          </div>
+        </div>
+        <p class="cap">The fastest version. "2 maybe" means two "Not sure" items; click it to review them.</p>
+      </div>
+      <div class="opt">
+        <span class="tag"><b class="chip-glass">B2</b>Drops down from the menu bar</span>
+        <div class="glass" style="width:420px;padding:12px 14px;border-radius:28px">
+          <div style="display:flex;align-items:center;gap:10px"><span class="mbi" style="width:24px;height:24px;border-radius:8px">◷</span><b style="font-size:14px">Climate essay</b><span class="count" style="margin-left:auto">2 docs · 7 tabs</span></div>
+          <div class="field" style="margin-top:10px">Context for the robot 🤖</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+            <span class="count"><span class="toggle"></span>Tidy up</span><span class="btn pri" style="padding:6px 16px">Save</span>
+          </div>
+        </div>
+        <p class="cap">Grows out of the menu bar icon like the Dynamic Island, in the same clear glass, then shrinks back in when saved.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>C. Brief shapes (pick the one that feels right)</h2>
+    <p class="lead">Same job, same facts, four ways to say it.</p>
+    <div class="row">
+      <div class="opt">
+        <span class="tag"><b class="chip-glass">C1</b>One sentence, one next step</span>
+        <div class="glass brief">
+          <div class="bt">Climate essay</div><div class="bw">Yesterday, 4:10 PM</div>
+          <p class="big">You were halfway through <em>paragraph 3</em> of your essay. Next, find <em>2 more sources</em> on sea levels.</p>
+          <div style="display:flex;gap:8px;margin-top:16px"><span class="btn pri" style="flex:1">Pick up where I left off</span><span class="btn">All</span></div>
+          <div class="foot"><span>Brief by Claude</span><span>Helpful? Yes · No</span></div>
+        </div>
+        <p class="cap">Reads like a friend telling you. Shortest. One button opens just what you need.</p>
+      </div>
+
+      <div class="opt">
+        <span class="tag"><b class="chip-glass">C2</b>A to-do list</span>
+        <div class="glass brief">
+          <div class="bt">Climate essay</div><div class="bw">Yesterday, 4:10 PM · stopped at paragraph 3</div>
+          <div style="margin-top:12px">
+            <div class="tick"><span class="c"></span><span>Finish paragraph 3</span></div>
+            <div class="tick"><span class="c"></span><span>Find 2 more sea-level sources</span></div>
+            <div class="tick"><span class="c"></span><span>Start the conclusion</span></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px"><span class="btn pri" style="flex:1">Open what I need</span><span class="btn">All</span></div>
+          <div class="foot"><span>From your note and your windows</span><span>Helpful? Yes · No</span></div>
+        </div>
+        <p class="cap">Turns your note into a checklist you can tick off. Good if you like lists; the items carry over to next time.</p>
+      </div>
+
+      <div class="opt">
+        <span class="tag"><b class="chip-glass">C3</b>Steps, in order</span>
+        <div class="glass brief">
+          <div class="bt">Climate essay</div><div class="bw">Yesterday, 4:10 PM</div>
+          <div style="margin-top:12px">
+            <div class="step now"><span class="n">1</span><span><b>Open your essay</b><br><span class="k">You stopped at paragraph 3</span></span></div>
+            <div class="step"><span class="n">2</span><span><b>Read the 2 JSTOR tabs</b><br><span class="k">You hadn't opened these yet</span></span></div>
+            <div class="step"><span class="n">3</span><span><b>Add 2 sea-level sources</b><br><span class="k">From your note</span></span></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px"><span class="btn pri" style="flex:1">Start step 1</span><span class="btn">All</span></div>
+          <div class="foot"><span>Brief by Claude</span><span>Helpful? Yes · No</span></div>
+        </div>
+        <p class="cap">Tells you exactly what to do first, second, third, and opens things one step at a time.</p>
+      </div>
+
+      <div class="opt">
+        <span class="tag"><b class="chip-glass">C4</b>Trail of what you did</span>
+        <div class="glass brief">
+          <div class="bt">Climate essay</div><div class="bw">Yesterday, 4:10 PM</div>
+          <div class="trail">
+            <div class="p now"><b>Writing paragraph 3</b> in Essay.docx<div class="w">The last thing you had open</div></div>
+            <div class="p">Reading <b>JSTOR</b> on sea-level rise<div class="w">4 tabs, 2 not read yet</div></div>
+            <div class="p">Made an <b>outline</b><div class="w">Outline.docx</div></div>
+          </div>
+          <div class="field" style="margin-top:10px;color:var(--muted)">"Need 2 more sea-level sources" <span class="k">your note</span></div>
+          <div style="display:flex;gap:8px;margin-top:12px"><span class="btn pri" style="flex:1">Pick up where I left off</span><span class="btn">All</span></div>
+        </div>
+        <p class="cap">Shows the path that got you here, newest first. Best for jumping back in after a long break.</p>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+document.querySelectorAll('.sw').forEach((b) =>
+  b.addEventListener('click', () => {
+    document.documentElement.style.setProperty('--accent', b.dataset.c);
+    document.querySelectorAll('.sw').forEach((x) => x.classList.toggle('on', x === b));
+  }),
+);
+document.querySelectorAll('.seg button').forEach((b) =>
+  b.addEventListener('click', () => {
+    document.documentElement.dataset.theme = b.dataset.t;
+    document.querySelectorAll('.seg button').forEach((x) => x.classList.toggle('on', x === b));
+  }),
+);
+if (new URLSearchParams(location.search).get('theme') === 'dark') document.querySelector('[data-t="dark"]').click();
+const c = new URLSearchParams(location.search).get('accent');
+if (c) document.querySelector(`.sw[data-c="#${c}"]`)?.click();
+</script>
+</body>
+</html>

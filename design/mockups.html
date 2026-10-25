@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Where Was I mockups</title>
+<style>
+:root {
+  --glass: rgba(255, 255, 255, 0.52);
+  --glass-strong: rgba(255, 255, 255, 0.72);
+  --edge: rgba(255, 255, 255, 0.75);
+  --edge-dark: rgba(0, 0, 0, 0.08);
+  --text: #1d1d1f;
+  --muted: #6e6e73;
+  --faint: #a1a1a6;
+  --accent: #0a84ff;
+  --accent-soft: rgba(10, 132, 255, 0.14);
+  --row: rgba(0, 0, 0, 0.05);
+  --shadow: 0 20px 50px rgba(20, 30, 60, 0.22), 0 2px 8px rgba(20, 30, 60, 0.12);
+  --wall: radial-gradient(1200px 700px at 10% 10%, #ffb8a6 0%, transparent 60%),
+    radial-gradient(900px 600px at 90% 20%, #a6c8ff 0%, transparent 60%),
+    radial-gradient(900px 700px at 60% 100%, #c7b3ff 0%, transparent 60%), #f3eee9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --glass: rgba(40, 40, 46, 0.5);
+    --glass-strong: rgba(44, 44, 50, 0.72);
+    --edge: rgba(255, 255, 255, 0.16);
+    --edge-dark: rgba(0, 0, 0, 0.4);
+    --text: #f5f5f7;
+    --muted: #a1a1a6;
+    --faint: #6e6e73;
+    --accent: #409cff;
+    --accent-soft: rgba(64, 156, 255, 0.2);
+    --row: rgba(255, 255, 255, 0.07);
+    --shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+    --wall: radial-gradient(1200px 700px at 10% 10%, #5b2a4a 0%, transparent 60%),
+      radial-gradient(900px 600px at 90% 20%, #1d3b6e 0%, transparent 60%),
+      radial-gradient(900px 700px at 60% 100%, #3b2a6e 0%, transparent 60%), #121216;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--wall);
+  background-attachment: fixed;
+  color: var(--text);
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  padding: 0 16px 80px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; }
+header.page { padding: 40px 0 8px; }
+header.page h1 { font: 600 28px/1.15 -apple-system, 'SF Pro Display', sans-serif; letter-spacing: -0.02em; margin: 0 0 6px; }
+header.page p { margin: 0; color: var(--muted); font-size: 14px; max-width: 640px; }
+section { margin-top: 48px; }
+section > h2 { font: 600 19px/1.2 -apple-system, 'SF Pro Display', sans-serif; letter-spacing: -0.01em; margin: 0 0 4px; }
+section > p.lead { margin: 0 0 18px; color: var(--muted); max-width: 680px; }
+.row { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+.opt { display: flex; flex-direction: column; gap: 10px; }
+.tag { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 12px; }
+.tag b { display: inline-grid; place-items: center; min-width: 26px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--glass-strong); border: 0.5px solid var(--edge); }
+.cap { color: var(--muted); font-size: 12px; max-width: 320px; }
+
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 0.5px solid var(--edge);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border-radius: 16px;
+}
+.menubar {
+  height: 26px; border-radius: 10px; display: flex; align-items: center; justify-content: flex-end; gap: 14px;
+  padding: 0 12px; font-size: 12px; color: var(--text); margin-bottom: 6px;
+}
+.mb-icon { width: 18px; height: 18px; display: grid; place-items: center; border-radius: 5px; background: var(--accent-soft); }
+.mb-title { font-weight: 600; font-size: 12px; }
+
+/* menu */
+.menu { width: 300px; padding: 6px; border-radius: 14px; }
+.mi { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 8px; }
+.mi.hl { background: var(--accent); color: #fff; }
+.mi.hl .sub, .mi.hl .k { color: rgba(255, 255, 255, 0.8); }
+.mi .grow { flex: 1; min-width: 0; }
+.mi .sub { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k { color: var(--faint); font-size: 12px; }
+.sep { height: 0.5px; background: var(--edge-dark); margin: 5px 8px; }
+.sec { font-size: 11px; font-weight: 600; color: var(--muted); padding: 6px 10px 2px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #30d158; flex: none; }
+.jicon { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; font-size: 14px; flex: none; background: var(--row); }
+
+/* brief card */
+.brief { width: 330px; padding: 16px; }
+.brief h3 { margin: 0; font: 600 16px/1.2 -apple-system, 'SF Pro Display', sans-serif; letter-spacing: -0.01em; }
+.brief .when { color: var(--muted); font-size: 12px; margin: 2px 0 12px; }
+.line { display: grid; grid-template-columns: 82px 1fr; gap: 8px; padding: 6px 0; border-top: 0.5px solid var(--edge-dark); }
+.line:first-of-type { border-top: none; }
+.line .lbl { color: var(--muted); font-size: 12px; }
+.btns { display: flex; gap: 8px; margin-top: 14px; }
+.btn { flex: 1; text-align: center; padding: 7px 10px; border-radius: 9px; font-weight: 500; background: var(--row); border: 0.5px solid var(--edge); }
+.btn.pri { background: var(--accent); color: #fff; border-color: transparent; }
+.by { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; color: var(--faint); font-size: 11px; }
+
+/* save box */
+.field { background: var(--row); border-radius: 9px; padding: 8px 10px; border: 0.5px solid var(--edge-dark); }
+.field.big { font-size: 17px; font-weight: 500; padding: 10px 12px; }
+.ph { color: var(--faint); }
+.chk { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.box { width: 15px; height: 15px; border-radius: 4px; border: 1px solid var(--faint); }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; background: var(--row); font-size: 12px; margin: 0 4px 6px 0; }
+.pill.unsure { border: 1px dashed var(--faint); background: transparent; color: var(--muted); }
+.kbd { font-size: 11px; padding: 1px 6px; border-radius: 5px; background: var(--row); border: 0.5px solid var(--edge-dark); }
+
+/* main window */
+.win { width: 760px; height: 440px; border-radius: 16px; overflow: hidden; display: grid; grid-template-columns: 230px 1fr; }
+.side { padding: 14px 10px; border-right: 0.5px solid var(--edge-dark); background: rgba(255,255,255,0.12); }
+.lights { display: flex; gap: 7px; padding: 2px 6px 16px; }
+.lights i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+.lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+.mainpane { padding: 22px 26px; overflow: hidden; }
+.items { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--row); font-size: 12px; min-width: 150px; }
+.timeline { margin-top: 18px; display: flex; gap: 8px; }
+.tl { padding: 6px 10px; border-radius: 8px; background: var(--row); font-size: 11px; color: var(--muted); }
+.tl.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+/* island */
+.island { width: 420px; padding: 12px 14px; border-radius: 26px; display: flex; flex-direction: column; gap: 10px; }
+.island .top { display: flex; align-items: center; gap: 10px; }
+.toast { width: 360px; padding: 12px 14px; display: flex; gap: 12px; }
+.toast .ic { width: 38px; height: 38px; border-radius: 10px; background: var(--accent-soft); display: grid; place-items: center; font-size: 18px; flex: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page">
+    <h1>Where Was I: UI ideas</h1>
+    <p>Glass, Apple-style mockups to react to. Each option has a letter, so you can say things like "B2 but with A1's colours". These are pictures, not the real app yet.</p>
+  </header>
+
+  <!-- A: MENU BAR -->
+  <section>
+    <h2>A. The menu bar dropdown</h2>
+    <p class="lead">This is the main app. Click the icon in the top right of your screen.</p>
+    <div class="row">
+      <div class="opt">
+        <span class="tag"><b>A1</b> Classic Mac menu</span>
+        <div class="glass menubar"><span>Wi-Fi</span><span>Fri 4:10</span><span class="mb-icon">◷</span></div>
+        <div class="glass menu">
+          <div class="mi"><span class="grow"><b>Save this work…</b></span><span class="k">⇧⌘S</span></div>
+          <div class="sep"></div>
+          <div class="sec">Jobs</div>
+          <div class="mi hl"><span class="dot"></span><span class="grow">Climate essay<span class="sub">Open now · paragraph 3</span></span><span>›</span></div>
+          <div class="mi"><span class="dot" style="background:transparent"></span><span class="grow">Toronto trip<span class="sub">2 days ago</span></span><span class="k">›</span></div>
+          <div class="mi"><span class="dot" style="background:transparent"></span><span class="grow">Resume<span class="sub">last week</span></span><span class="k">›</span></div>
+          <div class="sep"></div>
+          <div class="mi"><span class="grow">Show all jobs…</span></div>
+          <div class="mi"><span class="grow">Settings…</span><span class="k">⌘,</span></div>
+        </div>
+        <p class="cap">Looks exactly like the Mac's own menus. Familiar and fast, but plain.</p>
+      </div>
+
+      <div class="opt">
+        <span class="tag"><b>A2</b> Glass panel with cards</span>
+        <div class="glass menubar"><span>Wi-Fi</span><span>Fri 4:10</span><span class="mb-icon">◷</span></div>
+        <div class="glass menu" style="width:330px;padding:12px;border-radius:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span class="mb-title" style="font-size:14px">Where Was I</span>
+            <span class="kbd">⇧⌘S Save</span>
+          </div>
+          <div class="glass" style="padding:12px;border-radius:14px;box-shadow:none;background:var(--accent-soft);border-color:transparent">
+            <div style="display:flex;align-items:center;gap:8px"><span class="dot"></span><b>Climate essay</b><span class="k" style="margin-left:auto">open now</span></div>
+            <div style="color:var(--muted);margin-top:4px">Writing paragraph 3. 2 sources to find.</div>
+          </div>
+          <div class="mi" style="margin-top:8px"><span class="jicon">✈︎</span><span class="grow"><b>Toronto trip</b><span class="sub">Comparing 3 flights · 2 days ago</span></span></div>
+          <div class="mi"><span class="jicon">✎</span><span class="grow"><b>Resume</b><span class="sub">Updating co-op section · last week</span></span></div>
+          <div class="sep"></div>
+          <div style="display:flex;gap:8px;padding:4px 2px 0"><span class="btn" style="flex:none;padding:6px 12px">All jobs</span><span class="btn" style="flex:none;padding:6px 12px">Settings</span></div>
+        </div>
+        <p class="cap">Each job shows a one-line hint of where you were, so you might not even need to open the brief.</p>
+      </div>
+
+      <div class="opt">
+        <span class="tag"><b>A3</b> Minimal: three jobs and a big button</span>
+        <div class="glass menubar"><span>Wi-Fi</span><span>Fri 4:10</span><span class="mb-icon">◷</span></div>
+        <div class="glass menu" style="width:260px;padding:14px;border-radius:22px;text-align:center">
+          <div class="btn pri" style="padding:10px;font-size:14px">Save this work</div>
+          <div class="k" style="margin:6px 0 12px">or press ⇧⌘S</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <div><div class="jicon" style="width:52px;height:52px;margin:0 auto;font-size:22px;border-radius:14px">✎</div><div style="font-size:11px;margin-top:4px">Essay</div></div>
+            <div><div class="jicon" style="width:52px;height:52px;margin:0 auto;font-size:22px;border-radius:14px">✈︎</div><div style="font-size:11px;margin-top:4px">Toronto</div></div>
+            <div><div class="jicon" style="width:52px;height:52px;margin:0 auto;font-size:22px;border-radius:14px">▤</div><div style="font-size:11px;margin-top:4px">Resume</div></div>
+          </div>
+        </div>
+        <p class="cap">Like Control Center: big tiles, very little text. Pretty, but harder once you have 10 jobs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- B: SAVE BOX -->
+  <section>
+    <h2>B. The save box (after ⇧⌘S)</h2>
+    <p class="lead">Has to be done in two seconds: look, maybe type, press Enter.</p>
+    <div class="row">
+      <div class="opt">
+        <span class="tag"><b>B1</b> Spotlight-style bar</span>
+        <div class="glass" style="width:520px;padding:14px;border-radius:20px">
+          <div class="field big" style="background:transparent;border:none;padding:4px 6px">Climate essay</div>
+          <div class="field" style="margin-top:6px"><span class="ph">Context for the robot 🤖  halfway through paragraph 3…</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+            <span class="chk"><span class="box"></span>Tidy up after saving</span>
+            <span class="k">2 docs · 7 tabs · <span class="kbd">↵</span> to save</span>
+          </div>
+        </div>
+        <p class="cap">Appears in the middle of the screen like Spotlight. Very fast. Shows what's included as a summary, not a list.</p>
+      </div>
+
+      <div class="opt">
+        <span class="tag"><b>B2</b> Card that shows what's included</span>
+        <div class="glass" style="width:380px;padding:16px;border-radius:20px">
+          <div style="font-weight:600;font-size:15px">Save to <span style="color:var(--accent)">Climate essay</span> ▾</div>
+          <div style="margin-top:10px">
+            <span class="pill">📄 Essay.docx</span><span class="pill">📄 Outline.docx</span><span class="pill">🌐 7 tabs</span><span class="pill">📕 lecture.pdf</span>
+          </div>
+          <div class="sec" style="padding:4px 0">Not sure about these</div>
+          <span class="pill unsure">＋ Reddit: sea level maps</span><span class="pill unsure">＋ YouTube: APA citing</span>
+          <div class="field" style="margin-top:10px"><span class="ph">Context for the robot 🤖</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
+            <span class="chk"><span class="box"></span>Tidy up</span>
+            <span class="btn pri" style="flex:none;padding:7px 18px">Save ↵</span>
+          </div>
+        </div>
+        <p class="cap">You see every item as a little pill and can add the "Not sure" ones with one click. More to look at, but more control.</p>
+      </div>
+
+      <div class="opt">
+        <span class="tag"><b>B3</b> Drops out of the menu bar</span>
+        <div class="glass island" style="background:rgba(20,20,24,0.82);color:#fff;border-color:rgba(255,255,255,0.12)">
+          <div class="top"><span class="mb-icon" style="background:rgba(255,255,255,0.15)">◷</span><b>Climate essay</b><span style="margin-left:auto;color:#aaa;font-size:12px">2 docs · 7 tabs</span></div>
+          <div class="field" style="background:rgba(255,255,255,0.1);border-color:transparent;color:#fff"><span style="color:#999">Context for the robot 🤖</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;color:#aaa;font-size:12px"><span>☐ Tidy up</span><span><span class="kbd" style="background:rgba(255,255,255,0.12);color:#fff">↵</span> save</span></div>
+        </div>
+        <p class="cap">Like the iPhone's Dynamic Island: a dark pill slides down from the menu bar, then shrinks back into the icon when saved. Most playful.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- C: BRIEF -->
+  <section>
+    <h2>C. The brief when you come back</h2>
+    <p class="lead">The most important screen. Three plain lines, then one tap to get going.</p>
+    <div class="row">
+      <div class="opt">
+        <span class="tag"><b>C1</b> Card next to the menu</span>
+        <div class="glass brief">
+          <h3>Climate essay</h3>
+          <div class="when">Yesterday, 4:10 PM</div>
+          <div class="line"><span class="lbl">You were</span><span>writing paragraph 3 of your essay.</span></div>
+          <div class="line"><span class="lbl">Still to do</span><span>find 2 more sources on sea levels.</span></div>
+          <div class="line"><span class="lbl">Start with</span><span>your essay, then the 2 JSTOR tabs you hadn't read.</span></div>
+          <div class="btns"><span class="btn pri">Open what I need</span><span class="btn">Open everything</span></div>
+          <div class="by"><span>Brief by Claude</span><span>👍 👎</span></div>
+        </div>
+        <p class="cap">Slides out to the side when you hover a job in the menu. Read, then click.</p>
+      </div>
+
+      <div class="opt">
+        <span class="tag"><b>C2</b> Big and calm, centre of screen</span>
+        <div class="glass" style="width:400px;padding:26px 26px 20px;border-radius:24px;text-align:center">
+          <div class="k">Welcome back to</div>
+          <div style="font:600 22px/1.2 -apple-system,'SF Pro Display',sans-serif;letter-spacing:-0.02em;margin:2px 0 14px">Climate essay</div>
+          <div style="font-size:16px;line-height:1.5">You were writing <b>paragraph 3</b>.<br>Next: find <b>2 sources</b> on sea levels.</div>
+          <div class="btns" style="margin-top:20px"><span class="btn pri">Pick up where I left off</span></div>
+          <div class="k" style="margin-top:8px">Open everything instead</div>
+        </div>
+        <p class="cap">Feels like a "welcome back" moment. Only two lines and one big button. Less detail, more calm.</p>
+      </div>
+
+      <div class="opt">
+        <span class="tag"><b>C3</b> Notification-style, top right</span>
+        <div class="glass toast">
+          <div class="ic">◷</div>
+          <div>
+            <div style="display:flex;justify-content:space-between;gap:12px"><b>Climate essay</b><span class="k">now</span></div>
+            <div>You were on paragraph 3. Next: 2 sea-level sources.</div>
+            <div style="display:flex;gap:6px;margin-top:8px"><span class="btn pri" style="flex:none;padding:4px 10px">Open what I need</span><span class="btn" style="flex:none;padding:4px 10px">Everything</span></div>
+          </div>
+        </div>
+        <p class="cap">Pops in like a Mac notification as the windows reopen. Doesn't get in the way, but easy to miss.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- D: WINDOW -->
+  <section>
+    <h2>D. The app window (a bigger menu)</h2>
+    <p class="lead">For looking through all jobs, fixing what belongs where, and history. You won't open it often.</p>
+    <div class="row">
+      <div class="opt">
+        <span class="tag"><b>D1</b> Sidebar and detail, like Notes or Mail</span>
+        <div class="glass win">
+          <div class="side">
+            <div class="lights"><i></i><i></i><i></i></div>
+            <div class="sec">Jobs</div>
+            <div class="mi hl"><span class="grow">Climate essay<span class="sub">Open now</span></span></div>
+            <div class="mi"><span class="grow">Toronto trip<span class="sub">2 days ago</span></span></div>
+            <div class="mi"><span class="grow">Resume<span class="sub">Last week</span></span></div>
+            <div class="sec" style="margin-top:12px">Done</div>
+            <div class="mi"><span class="grow" style="color:var(--muted)">Stats assignment</span></div>
+          </div>
+          <div class="mainpane">
+            <div style="font:600 22px/1.2 -apple-system,'SF Pro Display',sans-serif;letter-spacing:-0.02em">Climate essay</div>
+            <div class="k" style="margin:2px 0 14px">Saved yesterday, 4:10 PM · 5 saves</div>
+            <div class="line" style="grid-template-columns:90px 1fr"><span class="lbl">You were</span><span>writing paragraph 3 of your essay.</span></div>
+            <div class="line" style="grid-template-columns:90px 1fr"><span class="lbl">Still to do</span><span>find 2 more sources on sea levels.</span></div>
+            <div class="line" style="grid-template-columns:90px 1fr"><span class="lbl">Start with</span><span>your essay, then 2 JSTOR tabs.</span></div>
+            <div class="items">
+              <div class="chip">📄 Essay.docx</div><div class="chip">📄 Outline.docx</div><div class="chip">📕 lecture.pdf</div>
+              <div class="chip">🌐 JSTOR: Sea level rise…</div><div class="chip">🌐 Google Scholar</div><div class="chip">🌐 +5 tabs</div>
+            </div>
+            <div class="timeline"><span class="tl">Mon</span><span class="tl">Tue</span><span class="tl">Wed</span><span class="tl on">Yesterday</span></div>
+          </div>
+        </div>
+        <p class="cap">Familiar Mac layout. Items can be dragged between jobs. History is a row of days at the bottom.</p>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
