@@ -43,6 +43,8 @@ export interface Item {
   active?: boolean;
   /** A document that has never been saved (Word "Document1"). */
   untitled?: boolean;
+  /** Part of the job but not open when it was saved (closed by accident, say). Kept, not closed by Tidy up. */
+  notOpen?: boolean;
 }
 
 export interface CollectorError {
@@ -138,7 +140,11 @@ export interface SavePreview {
   isSuggestion: boolean;
   suggestedName: string;
   sure: Item[];
+  /** Opened since you unpacked this job: likely part of it. Highlighted; the clear matches are in `sure`. */
+  likely: Item[];
   maybe: Item[];
+  /** In the job before but not open now. Kept unless you untick them. */
+  kept: Item[];
   hiddenCount: number;
   frontKey: string | null;
   tidyUp: boolean;

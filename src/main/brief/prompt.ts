@@ -48,6 +48,7 @@ export function buildPromptData(entry: SaveEntry, previous: SaveEntry | null, fe
     if (it.untitled) base.unsaved = true;
     if (it.active) base.activeInItsWindow = true;
     if (it.key === entry.frontKey) base.inFrontWhenSaved = true;
+    if (it.notOpen) base.notOpenWhenSaved = true;
     return base;
   });
 

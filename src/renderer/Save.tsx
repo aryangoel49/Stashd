@@ -58,7 +58,9 @@ export function Save() {
       setPreview(p);
       setName(p.suggestedName);
       setTidy(modeRef.current === 'pack' ? true : modeRef.current === 'save' ? false : p.tidyUp);
-      setPicked(new Set(p.sure.map((i) => i.key)));
+      setPicked(new Set([...p.sure, ...p.kept].map((i) => i.key)));
+      // Show the list straight away when there's something new to look at or something kept.
+      setExpanded(p.likely.length > 0 || p.kept.length > 0);
       setState('ready');
       nameTouched.current = false;
       if (!p.jobId && p.sure.length) {
@@ -115,9 +117,10 @@ export function Save() {
     await api.closeWindow();
   };
 
-  const all = useMemo(() => (preview ? [...preview.sure, ...preview.maybe] : []), [preview]);
+  const all = useMemo(() => (preview ? [...preview.sure, ...preview.likely, ...preview.maybe, ...preview.kept] : []), [preview]);
   const chosen = all.filter((i) => picked.has(i.key));
-  const maybeCount = preview?.maybe.filter((i) => !picked.has(i.key)).length ?? 0;
+  const maybeCount = preview ? [...preview.likely, ...preview.maybe].filter((i) => !picked.has(i.key)).length : 0;
+  const likelyLeft = preview?.likely.filter((i) => !picked.has(i.key)) ?? [];
 
   const save = async () => {
     if (!preview || state !== 'ready') return;
@@ -231,10 +234,29 @@ export function Save() {
           {expanded && preview && (
             <div className="no-drag fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <Pills items={preview.sure} picked={picked} frontKey={preview.frontKey} onToggle={toggle} />
+              {preview.likely.length > 0 && (
+                <div className="likely-box">
+                  <div className="section-label likely-label">
+                    <span>New since you unpacked</span>
+                    {likelyLeft.length > 0 && (
+                      <button type="button" className="link small" onClick={() => setPicked((prev) => new Set([...prev, ...likelyLeft.map((i) => i.key)]))}>
+                        Add all
+                      </button>
+                    )}
+                  </div>
+                  <Pills items={preview.likely} picked={picked} frontKey={preview.frontKey} onToggle={toggle} maybe likely />
+                </div>
+              )}
               {preview.maybe.length > 0 && (
                 <>
                   <div className="section-label">Not sure about these</div>
                   <Pills items={preview.maybe} picked={picked} frontKey={preview.frontKey} onToggle={toggle} maybe />
+                </>
+              )}
+              {preview.kept.length > 0 && (
+                <>
+                  <div className="section-label">Not open right now (kept in the job)</div>
+                  <Pills items={preview.kept} picked={picked} frontKey={null} onToggle={toggle} kept />
                 </>
               )}
               {preview.hiddenCount > 0 && (
@@ -279,14 +301,26 @@ export function Save() {
   );
 }
 
-function Pills({ items, picked, frontKey, onToggle, maybe }: { items: Item[]; picked: Set<string>; frontKey: string | null; onToggle: (k: string) => void; maybe?: boolean }) {
+function Pills(props: {
+  items: Item[];
+  picked: Set<string>;
+  frontKey: string | null;
+  onToggle: (k: string) => void;
+  maybe?: boolean;
+  likely?: boolean;
+  kept?: boolean;
+}) {
+  const { items, picked, frontKey, onToggle, maybe, likely, kept } = props;
   return (
     <div className="pills">
       {items.map((i) => {
         const on = picked.has(i.key);
-        const cls = maybe ? `pill maybe ${on ? 'on' : ''}` : `pill ${on ? '' : 'off'} ${i.key === frontKey ? 'front' : ''}`;
+        const cls = maybe
+          ? `pill maybe ${likely ? 'likely' : ''} ${on ? 'on' : ''}`
+          : `pill ${on ? '' : 'off'} ${kept ? 'kept' : ''} ${i.key === frontKey ? 'front' : ''}`;
+        const why = i.key === frontKey ? '\nYou were on this last' : kept ? '\nNot open right now. Untick to drop it from the job.' : likely ? '\nOpened since you unpacked' : '';
         return (
-          <button key={i.key} type="button" className={cls} onClick={() => onToggle(i.key)} title={`${i.label}\n${i.detail}${i.key === frontKey ? '\nYou were on this last' : ''}`}>
+          <button key={i.key} type="button" className={cls} onClick={() => onToggle(i.key)} title={`${i.label}\n${i.detail}${why}`}>
             {maybe && !on ? <Icon name="plus" /> : <Icon name={i.kind} />}
             <span>{i.label}</span>
           </button>

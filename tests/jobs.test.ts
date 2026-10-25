@@ -54,6 +54,22 @@ describe('classify', () => {
     expect(r.sure).toEqual([yt]);
   });
 
+  it('highlights things opened since the job was unpacked, and always includes new unsaved documents', () => {
+    const docN: Item = { key: 'untitled:Microsoft Word:Document3', kind: 'doc', label: 'Document3', detail: '', app: 'Microsoft Word', untitled: true };
+    const newTab = tab('https://www.bbc.com/news/1', 'Floods in Jakarta');
+    const r = classify({
+      items: [essay, newTab, reddit, docN],
+      job: job(),
+      previous: [essay],
+      name: 'Climate essay',
+      settings: DEFAULT_SETTINGS,
+      baseline: new Set([essay.key, reddit.key]),
+    });
+    expect(r.sure.map((i) => i.key)).toEqual([essay.key, docN.key]);
+    expect(r.likely.map((i) => i.key)).toEqual([newTab.key]);
+    expect(r.maybe.map((i) => i.key)).toEqual([reddit.key]);
+  });
+
   it('treats learned everyday apps like Spotify', () => {
     const notion = appItem('Notion');
     const r = classify({ items: [notion], job: null, previous: [], name: '', settings: DEFAULT_SETTINGS, learnedLifestyleApps: ['Notion'] });
@@ -63,7 +79,7 @@ describe('classify', () => {
 
 describe('learn', () => {
   it('counts unticks in a row and resets when ticked', () => {
-    const offered = { sure: [essay, reddit], maybe: [jstor], hidden: [] };
+    const offered = { sure: [essay, reddit], likely: [], maybe: [jstor], hidden: [] };
     let prefs = learn({ hide: {}, add: {} }, offered, [essay.key, jstor.key]);
     expect(prefs.hide[reddit.key]).toBe(1);
     expect(prefs.add[jstor.key]).toBe(1);

@@ -50,6 +50,8 @@ export function isLifestyle(item: Item, settings: Pick<Settings, 'lifestyleApps'
 
 export interface Classified {
   sure: Item[];
+  /** Opened since the job was unpacked, but not a clear match: highlighted for one-click adding. */
+  likely: Item[];
   maybe: Item[];
   hidden: Item[];
 }
@@ -64,12 +66,14 @@ export interface ClassifyInput {
   name: string;
   settings: Pick<Settings, 'lifestyleApps' | 'lifestyleSites'>;
   learnedLifestyleApps?: string[];
+  /** What was open right after the job was unpacked. Anything not in it was opened since. */
+  baseline?: Set<string>;
 }
 
 export function classify(input: ClassifyInput): Classified {
   const { items, job, previous } = input;
   const prefs: LearnedPrefs = job?.prefs ?? { hide: {}, add: {} };
-  const out: Classified = { sure: [], maybe: [], hidden: [] };
+  const out: Classified = { sure: [], likely: [], maybe: [], hidden: [] };
   const prevKeys = new Set(previous.map((p) => p.key));
   const prevHosts = new Map<string, Set<string>>();
   for (const p of previous) {
@@ -100,7 +104,10 @@ export function classify(input: ClassifyInput): Classified {
     const sameSiteSimilar = h !== null && prevHosts.has(h) && overlap(itWords, prevHosts.get(h)!) >= 1;
     const sameFolder = it.path !== undefined && prevDirs.has(it.path.split('/').slice(0, -1).join('/'));
     const mentions = overlap(itWords, jobWords) >= 1;
-    if (prevKeys.has(it.key) || (prefs.add[it.key] ?? 0) >= 2 || sameSiteSimilar || sameFolder || mentions) out.sure.push(it);
+    const newSinceUnpack = input.baseline !== undefined && !input.baseline.has(it.key);
+    // A brand-new unsaved document is almost always what you're working on right now.
+    if (prevKeys.has(it.key) || (prefs.add[it.key] ?? 0) >= 2 || sameSiteSimilar || sameFolder || mentions || it.untitled) out.sure.push(it);
+    else if (newSinceUnpack) out.likely.push(it);
     else out.maybe.push(it);
   }
   return out;
@@ -119,10 +126,11 @@ function overlap(a: Set<string>, b: Set<string>): number {
 export function learn(prefs: LearnedPrefs, offered: Classified, chosenKeys: string[]): LearnedPrefs {
   const chosen = new Set(chosenKeys);
   const next: LearnedPrefs = { hide: { ...prefs.hide }, add: { ...prefs.add } };
-  for (const it of [...offered.sure, ...offered.maybe]) {
+  const optional = new Set([...offered.maybe, ...offered.likely].map((m) => m.key));
+  for (const it of [...offered.sure, ...offered.likely, ...offered.maybe]) {
     if (chosen.has(it.key)) {
       delete next.hide[it.key];
-      if (offered.maybe.some((m) => m.key === it.key)) next.add[it.key] = (next.add[it.key] ?? 0) + 1;
+      if (optional.has(it.key)) next.add[it.key] = (next.add[it.key] ?? 0) + 1;
     } else {
       next.hide[it.key] = (next.hide[it.key] ?? 0) + 1;
       delete next.add[it.key];

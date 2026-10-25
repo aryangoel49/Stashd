@@ -9,6 +9,7 @@ import { capture, frontItemKey } from './capture';
 import type { Helper, WindowsInfo } from './helper';
 import {
   classify,
+  isLifestyle,
   learn,
   learnedLifestyleApps,
   MATCH_THRESHOLD,
@@ -24,12 +25,16 @@ import { JobStore, writeFileAtomic } from './store';
 interface State {
   currentJobId: string | null;
   appUnticks: Record<string, string[]>;
+  /** What was open just after a job was unpacked, so later additions can be suggested. */
+  baseline: { jobId: string; keys: string[] } | null;
 }
 
 interface PendingSave {
   capture: Promise<Capture>;
   /** What the save box last showed, to learn from what the user changed. */
   offered?: Classified;
+  /** Items from the job that aren't open right now (kept unless unticked). */
+  kept?: Item[];
 }
 
 export class Core {
@@ -59,6 +64,10 @@ export class Core {
     this.state = {
       currentJobId: typeof raw.currentJobId === 'string' ? raw.currentJobId : null,
       appUnticks: raw.appUnticks && typeof raw.appUnticks === 'object' ? raw.appUnticks : {},
+      baseline:
+        raw.baseline && typeof raw.baseline.jobId === 'string' && Array.isArray(raw.baseline.keys)
+          ? { jobId: raw.baseline.jobId, keys: raw.baseline.keys.filter((k): k is string => typeof k === 'string') }
+          : null,
     };
   }
 
@@ -120,9 +129,16 @@ export class Core {
     }
 
     const previous = job ? ((await this.store.latest(job.id))?.items ?? []) : [];
-    const offered = classify({ items: cap.items, job, previous, name: job?.name ?? '', settings, learnedLifestyleApps: learned });
+    const baseline = job && this.state.baseline?.jobId === job.id ? new Set(this.state.baseline.keys) : undefined;
+    const offered = classify({ items: cap.items, job, previous, name: job?.name ?? '', settings, learnedLifestyleApps: learned, baseline });
+    // Things that belong to this job but aren't open right now (closed by accident, say) are kept.
+    const openKeys = new Set(cap.items.map((i) => i.key));
+    const kept = previous
+      .filter((i) => !openKeys.has(i.key) && (job?.prefs.hide[i.key] ?? 0) < 2 && !isLifestyle(i, settings, learned))
+      .map((i) => ({ ...i, notOpen: true, active: false }));
     this.pending!.offered = offered;
-    const visibleItems = [...offered.sure, ...offered.maybe];
+    this.pending!.kept = kept;
+    const visibleItems = [...offered.sure, ...offered.likely, ...offered.maybe];
     const frontKey = frontItemKey(visibleItems, cap.appOrder);
     return {
       jobId: job?.id ?? null,
@@ -130,7 +146,9 @@ export class Core {
       isSuggestion,
       suggestedName: job?.name ?? suggestName(offered.sure, frontKey),
       sure: offered.sure,
+      likely: offered.likely,
       maybe: offered.maybe,
+      kept,
       hiddenCount: offered.hidden.length,
       frontKey,
       tidyUp: settings.tidyUp,
@@ -141,9 +159,11 @@ export class Core {
   async commitSave(req: SaveRequest): Promise<SaveResult> {
     if (!this.pending) throw new Error('Nothing to save. Press the shortcut again.');
     const cap = await this.pending.capture;
-    const offered = this.pending.offered ?? { sure: cap.items, maybe: [], hidden: [] };
+    const offered = this.pending.offered ?? { sure: cap.items, likely: [], maybe: [], hidden: [] };
     const wanted = new Set(req.keys);
-    const items = cap.items.filter((i) => wanted.has(i.key));
+    const open = cap.items.filter((i) => wanted.has(i.key)).map((i) => ({ ...i, notOpen: undefined }));
+    const openKeys = new Set(open.map((i) => i.key));
+    const items = [...open, ...(this.pending.kept ?? []).filter((i) => wanted.has(i.key) && !openKeys.has(i.key))];
     const now = new Date();
 
     let job: Job;
@@ -158,7 +178,7 @@ export class Core {
     job.done = false;
     await this.store.put(job);
 
-    this.state.appUnticks = recordAppUnticks(this.state.appUnticks, job.id, [...offered.sure, ...offered.maybe], req.keys);
+    this.state.appUnticks = recordAppUnticks(this.state.appUnticks, job.id, [...offered.sure, ...offered.likely, ...offered.maybe], req.keys);
     const entry: SaveEntry = {
       version: 2,
       id: await this.store.freeEntryId(job.id, now),
@@ -166,7 +186,7 @@ export class Core {
       savedAt: now.toISOString(),
       note: req.note,
       items,
-      frontKey: frontItemKey(items, cap.appOrder),
+      frontKey: frontItemKey(open, cap.appOrder) ?? frontItemKey(items, cap.appOrder),
       appOrder: cap.appOrder,
       tidied: req.tidy,
       errors: cap.errors,
@@ -175,6 +195,9 @@ export class Core {
     await this.store.prune(job.id);
     await this.settings.update({ tidyUp: req.tidy });
     await this.setCurrent(req.tidy ? null : job.id);
+    // After a save, "new since you unpacked" starts again from what's open now.
+    this.state.baseline = req.tidy ? null : { jobId: job.id, keys: cap.items.map((i) => i.key) };
+    await this.saveState();
     this.pending = null;
     this.notify();
     void this.ensureBrief(job.id, entry.id);
@@ -286,6 +309,8 @@ export class Core {
     const result = await openItems(items, entry.frontKey, this.settings.get());
     await this.setCurrent(jobId);
     this.notify();
+    // A moment later, note what's open, so anything opened after this can be suggested for the job.
+    setTimeout(() => void this.recordBaseline(jobId), 2500);
     return result;
   }
 
@@ -332,6 +357,17 @@ export class Core {
     await this.removeItem(fromJobId, key);
   }
 
+  private async recordBaseline(jobId: string): Promise<void> {
+    try {
+      const cap = await (this.fakeCapture ? this.fakeCapture() : capture(this.settings.get(), this.helper, this.selfNames));
+      if (this.state.currentJobId !== jobId) return;
+      this.state.baseline = { jobId, keys: cap.items.map((i) => i.key) };
+      await this.saveState();
+    } catch {
+      // without a baseline, new things simply show under "Not sure"
+    }
+  }
+
   async rename(jobId: string, name: string): Promise<void> {
     const job = await this.store.get(jobId);
     job.name = name;
@@ -355,7 +391,7 @@ export class Core {
 
   async deleteAll(): Promise<void> {
     await this.store.deleteAll();
-    this.state = { currentJobId: null, appUnticks: {} };
+    this.state = { currentJobId: null, appUnticks: {}, baseline: null };
     await fs.rm(this.stateFile, { force: true });
     this.notify();
   }

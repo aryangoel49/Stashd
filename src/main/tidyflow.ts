@@ -65,7 +65,8 @@ export class TidyFlow {
     }
 
     // 2. Animate and close together: icons start flying, then the windows close behind them.
-    const closable = entry.items.filter((i) => i.kind !== 'app' && !i.untitled);
+    // Only things that are actually open get closed (kept items that were already closed are skipped).
+    const closable = entry.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen);
     if (!closable.length) {
       this.toast({ title: 'Nothing to tidy', detail: `${job.name} is saved. Its windows stay open.`, canUndo: false });
       return;
