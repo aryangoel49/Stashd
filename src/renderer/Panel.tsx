@@ -184,6 +184,17 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
       >
         {busy ? <span className="spinner" /> : 'Unpack'}
       </button>
+      <button
+        className="btn ghost delete-btn"
+        title={`Delete ${job.name}`}
+        aria-label={`Delete ${job.name}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          void api.deleteJob(job.id);
+        }}
+      >
+        <Icon name="trash" />
+      </button>
     </div>
   );
 }

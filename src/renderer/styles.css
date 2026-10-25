@@ -127,6 +127,8 @@ button { cursor: default; }
 .job-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 14px; border: none; background: none; text-align: left; width: 100%; outline: none; }
 .job-row:hover, .job-row:focus-visible { background: var(--well); }
 .unpack-btn { padding: 5px 11px; font-size: 12px; flex: none; opacity: 0.85; }
+.delete-btn { flex: none; width: 28px; height: 28px; padding: 0; border-radius: 8px; color: var(--faint); margin-left: -4px; }
+.delete-btn:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
 .job-row:hover .unpack-btn { opacity: 1; background: var(--accent); color: #fff; box-shadow: none; }
 .pack-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 0 2px 8px; }
 .pack-btn { padding: 9px 14px; font-size: 13px; }
@@ -197,9 +199,12 @@ button { cursor: default; }
   max-width: 110px; font-size: 11px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   background: rgba(0, 0, 0, 0.55); padding: 2px 8px; border-radius: 99px;
 }
-/* Fixed size, matching the toast window (330 × 64), so it never lays out at the wrong width. */
-.toast { display: flex; align-items: center; gap: 10px; width: 330px; height: 64px; padding: 0 12px 0 14px; overflow: hidden; animation: toastIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+/* Fixed size, matching the toast window (360 × 68), so it never lays out at the wrong width.
+   Generous side padding keeps the buttons clear of the window's rounded corners. */
+.toast { display: flex; align-items: center; gap: 12px; width: 360px; height: 68px; padding: 0 18px; overflow: hidden; animation: toastIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .toast .btn { flex: none; }
+.toast .btn:focus, .toast .btn:focus-visible { outline: none; }
+.toast .close { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
 .toast-title { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toast-detail { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }

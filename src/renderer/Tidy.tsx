@@ -198,6 +198,7 @@ export function Toast() {
       {info.canUndo ? (
         <button
           className="btn small"
+          tabIndex={-1}
           disabled={busy}
           onClick={() => {
             setBusy(true);
@@ -207,7 +208,7 @@ export function Toast() {
           Undo
         </button>
       ) : (
-        <button className="btn ghost" aria-label="Close" onClick={() => void api.dismissToast()}>
+        <button className="btn ghost close" tabIndex={-1} aria-label="Close" onClick={() => void api.dismissToast()}>
           ✕
         </button>
       )}

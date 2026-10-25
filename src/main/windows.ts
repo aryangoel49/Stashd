@@ -60,7 +60,7 @@ const OPTIONS: Record<Route, Electron.BrowserWindowConstructorOptions> = {
   panel: { ...GLASS, width: 360, height: 440, alwaysOnTop: true },
   save: { ...GLASS, width: 540, height: 200, alwaysOnTop: true },
   naming: { ...GLASS, width: 460, height: 220, alwaysOnTop: true },
-  toast: { ...GLASS, width: 330, height: 64, alwaysOnTop: true },
+  toast: { ...GLASS, width: 360, height: 68, alwaysOnTop: true },
   main: {
     width: 960,
     height: 640,

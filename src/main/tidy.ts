@@ -12,43 +12,47 @@ import { run } from './exec';
 
 // ---------- browser tabs ----------
 
+// Every AppleScript variable starts with "wwi" so it can never clash with an app's own words.
 const MATCH_HANDLER = `
-on matches(u, targets)
-  repeat with t in targets
-    set t to t as text
-    if u is t or u starts with (t & "?") or u starts with (t & "#") then return true
+on wwiMatches(wwiUrl, wwiTargets)
+  repeat with wwiT in wwiTargets
+    set wwiT to wwiT as text
+    if wwiUrl is wwiT or wwiUrl starts with (wwiT & "?") or wwiUrl starts with (wwiT & "#") then return true
   end repeat
   return false
-end matches`;
+end wwiMatches`;
 
 /** Closes tabs whose address is one of the targets (ignoring ?query and #fragment). Skips private windows. */
 export function closeTabsScript(browser: BrowserName): string {
   const id = BROWSER_APPS[browser].bundleId;
   const skipPrivate =
-    browser === 'chrome' ? `try\n        if mode of w is "incognito" then set skip to true\n      end try` : browser === 'arc' ? `try\n        if incognito of w then set skip to true\n      end try` : '';
-  const urlOf = 'URL of t';
+    browser === 'chrome'
+      ? `try\n        if mode of wwiWin is "incognito" then set wwiSkip to true\n      end try`
+      : browser === 'arc'
+        ? `try\n        if incognito of wwiWin then set wwiSkip to true\n      end try`
+        : '';
   return `${MATCH_HANDLER}
-on run targets
-  set closed to 0
+on run wwiTargets
+  set wwiClosed to 0
   tell application id "${id}"
-    repeat with w in windows
-      set skip to false
+    repeat with wwiWin in windows
+      set wwiSkip to false
       ${skipPrivate}
-      if not skip then
+      if not wwiSkip then
         try
-          set n to count of tabs of w
-          repeat with i from n to 1 by -1
-            set t to tab i of w
-            if my matches((${urlOf}) as text, targets) then
-              close t
-              set closed to closed + 1
+          set wwiCount to count of tabs of wwiWin
+          repeat with wwiI from wwiCount to 1 by -1
+            set wwiTab to tab wwiI of wwiWin
+            if my wwiMatches((URL of wwiTab) as text, wwiTargets) then
+              close wwiTab
+              set wwiClosed to wwiClosed + 1
             end if
           end repeat
         end try
       end if
     end repeat
   end tell
-  return closed
+  return wwiClosed
 end run`;
 }
 
@@ -66,7 +70,7 @@ function family(app: string): DocFamily | null {
 
 const OFFICE_COLLECTION: Record<string, string> = { 'Microsoft Word': 'documents', 'Microsoft Excel': 'workbooks', 'Microsoft PowerPoint': 'presentations' };
 
-/** Closes open documents whose file path is one of the targets. */
+/** Closes open documents whose file path (or file name) is one of the targets. */
 export function closeDocsScript(app: string): string | null {
   const adapter = DOC_ADAPTERS.find((a) => a.app === app);
   const fam = family(app);
@@ -74,82 +78,81 @@ export function closeDocsScript(app: string): string | null {
   const id = adapter.bundleId;
   if (fam === 'finder') {
     return `
-on run targets
-  set closed to 0
+on run wwiTargets
+  set wwiClosed to 0
   tell application id "${id}"
-    repeat with w in (every Finder window)
+    repeat with wwiWin in (every Finder window)
       try
-        set p to POSIX path of ((target of w) as alias)
-        if p ends with "/" and (length of p) > 1 then set p to text 1 thru -2 of p
-        if targets contains p then
-          close w
-          set closed to closed + 1
+        set wwiPosix to POSIX path of ((target of wwiWin) as alias)
+        if wwiPosix ends with "/" and (length of wwiPosix) > 1 then set wwiPosix to text 1 thru -2 of wwiPosix
+        if wwiTargets contains wwiPosix then
+          close wwiWin
+          set wwiClosed to wwiClosed + 1
         end if
       end try
     end repeat
   end tell
-  return closed
+  return wwiClosed
 end run`;
   }
   const collection = fam === 'office' ? OFFICE_COLLECTION[app] : 'documents';
   const pathOf =
     fam === 'office'
-      ? `set fn to (full name of d) as text
-        if fn starts with "/" then
-          set p to fn
-        else if fn contains "://" then
-          set p to fn
-        else if fn contains ":" then
-          set p to POSIX path of fn
+      ? `set wwiFull to (full name of wwiDoc) as text
+        if wwiFull starts with "/" then
+          set wwiPosix to wwiFull
+        else if wwiFull contains "://" then
+          set wwiPosix to wwiFull
+        else if wwiFull contains ":" then
+          set wwiPosix to POSIX path of wwiFull
         end if`
       : fam === 'iwork'
-        ? 'set p to POSIX path of ((file of d) as alias)'
-        : 'set p to (path of d) as text';
-  const close = app === 'Preview' ? 'close d' : 'close d saving ask';
-  // Targets hold both full paths and plain file names, so a document matches either way.
+        ? 'set wwiPosix to POSIX path of ((file of wwiDoc) as alias)'
+        : 'set wwiPosix to (path of wwiDoc) as text';
+  const close = app === 'Preview' ? 'close wwiDoc' : 'close wwiDoc saving ask';
   // Office apps that won't list their documents fall back to closing the window with that name.
   const windowFallback =
     fam === 'office'
       ? `
-    if closed is 0 then
+    if wwiClosed is 0 then
       try
-        repeat with w in windows
-          set wn to name of w
-          if targets contains wn then
-            close w
-            set closed to closed + 1
+        repeat with wwiWin in windows
+          set wwiTitle to name of wwiWin
+          if wwiTargets contains wwiTitle then
+            close wwiWin
+            set wwiClosed to wwiClosed + 1
           end if
         end repeat
       end try
     end if`
       : '';
   return `
-on run targets
-  set closed to 0
+on run wwiTargets
+  set wwiClosed to 0
   tell application id "${id}"
-    set n to 0
+    set wwiCount to 0
     try
-      set n to count of ${collection}
+      set wwiCount to count of ${collection}
     end try
-    repeat with i from n to 1 by -1
+    repeat with wwiI from wwiCount to 1 by -1
       try
-        set d to item i of ${collection}
-        set nm to ""
+        set wwiDoc to item wwiI of ${collection}
+        set wwiName to ""
         try
-          set nm to name of d
+          set wwiName to name of wwiDoc
         end try
-        set p to ""
+        set wwiPosix to ""
         try
           ${pathOf}
         end try
-        if targets contains p or targets contains nm then
+        if wwiTargets contains wwiPosix or wwiTargets contains wwiName then
           ${close}
-          set closed to closed + 1
+          set wwiClosed to wwiClosed + 1
         end if
       end try
     end repeat${windowFallback}
   end tell
-  return closed
+  return wwiClosed
 end run`;
 }
 
@@ -193,7 +196,7 @@ export async function freePath(name: string, app: string, dir = path.join(os.hom
   throw new Error('Could not find a free file name');
 }
 
-/** Saves the untitled document named `docName` in `app` to `target` (a full path). */
+/** Saves the untitled document with this name in `app` to a full path. Arguments: name, path. */
 export function saveAsScript(app: string): string | null {
   const adapter = DOC_ADAPTERS.find((a) => a.app === app);
   if (!adapter || !(app in EXTENSIONS)) return null;
@@ -201,19 +204,19 @@ export function saveAsScript(app: string): string | null {
   const fam = family(app);
   const collection = fam === 'office' ? OFFICE_COLLECTION[app] : 'documents';
   let save: string;
-  if (app === 'Microsoft Word') save = 'save as d file name hfsPath';
-  else if (app === 'Microsoft Excel') save = 'save workbook as d filename hfsPath';
-  else if (app === 'Microsoft PowerPoint') save = 'save d in hfsPath';
-  else save = 'save d in (POSIX file target)';
+  if (app === 'Microsoft Word') save = 'save as wwiDoc file name wwiHfs';
+  else if (app === 'Microsoft Excel') save = 'save workbook as wwiDoc filename wwiHfs';
+  else if (app === 'Microsoft PowerPoint') save = 'save wwiDoc in wwiHfs';
+  else save = 'save wwiDoc in (POSIX file wwiTargetPath)';
   return `
-on run argv
-  set docName to item 1 of argv
-  set target to item 2 of argv
-  set hfsPath to (POSIX file target) as text
+on run wwiArgs
+  set wwiDocName to item 1 of wwiArgs
+  set wwiTargetPath to item 2 of wwiArgs
+  set wwiHfs to (POSIX file wwiTargetPath) as text
   tell application id "${id}"
-    repeat with i from 1 to (count of ${collection})
-      set d to item i of ${collection}
-      if (name of d) is docName then
+    repeat with wwiI from 1 to (count of ${collection})
+      set wwiDoc to item wwiI of ${collection}
+      if (name of wwiDoc) is wwiDocName then
         ${save}
         return "saved"
       end if

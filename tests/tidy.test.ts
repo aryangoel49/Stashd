@@ -35,18 +35,35 @@ describe('naming untitled files', () => {
 describe('close scripts', () => {
   it('match tabs by address while ignoring ?query and #fragment, and skip private windows', () => {
     const s = closeTabsScript('chrome');
-    expect(s).toContain('u starts with (t & "?")');
+    expect(s).toContain('wwiUrl starts with (wwiT & "?")');
     expect(s).toContain('incognito');
     expect(closeTabsScript('safari')).not.toContain('incognito');
   });
 
   it('ask apps to close documents normally, so unsaved changes get a prompt', () => {
-    expect(closeDocsScript('Microsoft Word')).toContain('close d saving ask');
-    expect(closeDocsScript('Microsoft Word')).toContain('fn contains "://"');
-    expect(closeDocsScript('Pages')).toContain('close d saving ask');
-    expect(closeDocsScript('Finder')).toContain('close w');
+    expect(closeDocsScript('Microsoft Word')).toContain('close wwiDoc saving ask');
+    expect(closeDocsScript('Microsoft Word')).toContain('wwiFull contains "://"');
+    expect(closeDocsScript('Pages')).toContain('close wwiDoc saving ask');
+    expect(closeDocsScript('Finder')).toContain('close wwiWin');
     expect(closeDocsScript('Spotify')).toBeNull();
     expect(saveAsScript('Preview')).toBeNull();
-    expect(saveAsScript('Microsoft Word')).toContain('save as d file name hfsPath');
+    expect(saveAsScript('Microsoft Word')).toContain('save as wwiDoc file name wwiHfs');
+  });
+});
+
+describe('AppleScript variable names', () => {
+  it("never use words that apps define themselves (like Word's 'row')", async () => {
+    const { DOC_ADAPTERS } = await import('../src/main/capture/docs');
+    const scripts = [
+      ...DOC_ADAPTERS.map((a) => a.script),
+      ...DOC_ADAPTERS.map((a) => closeDocsScript(a.app) ?? ''),
+      ...DOC_ADAPTERS.map((a) => saveAsScript(a.app) ?? ''),
+      closeTabsScript('chrome'),
+      closeTabsScript('safari'),
+    ];
+    for (const s of scripts) {
+      for (const m of s.matchAll(/\bset (\w+) to\b/g)) expect(m[1], `variable "${m[1]}"`).toMatch(/^wwi[A-Z]/);
+      for (const m of s.matchAll(/\brepeat with (\w+) (in|from)\b/g)) expect(m[1], `loop variable "${m[1]}"`).toMatch(/^wwi[A-Z]/);
+    }
   });
 });

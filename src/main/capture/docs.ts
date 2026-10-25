@@ -18,98 +18,99 @@ const RS = 'character id 30';
  * If the app won't list its documents, its window titles are used instead (marked "window").
  */
 function officeScript(bundleId: string, collection: string, activeName: string): string {
+  // Every variable starts with "wwi" so it can never clash with an app's own words
+  // ("row" is a table row in Word and Excel, which broke an earlier version).
   return `
-set out to ""
+set wwiOut to ""
 tell application id "${bundleId}"
-  set frontName to ""
+  set wwiFront to ""
   try
-    set frontName to name of ${activeName}
+    set wwiFront to name of ${activeName}
   end try
-  set n to 0
+  set wwiCount to 0
   try
-    set n to count of ${collection}
+    set wwiCount to count of ${collection}
   end try
-  set rows to {}
-  repeat with i from 1 to n
+  repeat with wwiI from 1 to wwiCount
     try
-      set d to item i of ${collection}
-      set nm to name of d
-      set p to ""
-      set fn to ""
+      set wwiDoc to item wwiI of ${collection}
+      set wwiName to name of wwiDoc
+      set wwiPosix to ""
+      set wwiFull to ""
       try
-        set fn to (full name of d) as text
-        if fn starts with "/" then
-          set p to fn
-        else if fn contains ":" and fn does not contain "://" then
-          set p to POSIX path of fn
+        set wwiFull to (full name of wwiDoc) as text
+        if wwiFull starts with "/" then
+          set wwiPosix to wwiFull
+        else if wwiFull contains ":" and wwiFull does not contain "://" then
+          set wwiPosix to POSIX path of wwiFull
         end if
       end try
-      set row to nm & ${US} & p & ${US} & fn & ${RS}
-      if nm is frontName then
-        set out to row & out
+      set wwiLine to wwiName & ${US} & wwiPosix & ${US} & wwiFull & ${RS}
+      if wwiName is wwiFront then
+        set wwiOut to wwiLine & wwiOut
       else
-        set out to out & row
+        set wwiOut to wwiOut & wwiLine
       end if
     end try
   end repeat
-  if out is "" then
+  if wwiOut is "" then
     try
-      repeat with w in windows
-        set wn to name of w
-        if wn is not "" then set out to out & wn & ${US} & "" & ${US} & "window" & ${RS}
+      repeat with wwiWin in windows
+        set wwiTitle to name of wwiWin
+        if wwiTitle is not "" then set wwiOut to wwiOut & wwiTitle & ${US} & "" & ${US} & "window" & ${RS}
       end repeat
     end try
   end if
 end tell
-return out`;
+return wwiOut`;
 }
 
 /** iWork apps report a file (or missing value for an unsaved document). */
 function iworkScript(bundleId: string): string {
   return `
-set out to ""
+set wwiOut to ""
 tell application id "${bundleId}"
-  repeat with d in documents
-    set n to name of d
-    set p to ""
+  repeat with wwiDoc in documents
+    set wwiName to name of wwiDoc
+    set wwiPosix to ""
     try
-      set p to POSIX path of ((file of d) as alias)
+      set wwiPosix to POSIX path of ((file of wwiDoc) as alias)
     end try
-    set out to out & n & ${US} & p & ${RS}
+    set wwiOut to wwiOut & wwiName & ${US} & wwiPosix & ${RS}
   end repeat
 end tell
-return out`;
+return wwiOut`;
 }
 
 /** Preview and TextEdit report a POSIX "path" (missing value when unsaved). */
 function pathScript(bundleId: string): string {
   return `
-set out to ""
+set wwiOut to ""
 tell application id "${bundleId}"
-  repeat with d in documents
-    set n to name of d
-    set p to ""
+  repeat with wwiDoc in documents
+    set wwiName to name of wwiDoc
+    set wwiPosix to ""
     try
-      set p to (path of d) as text
+      set wwiPosix to (path of wwiDoc) as text
     end try
-    if p is "missing value" then set p to ""
-    set out to out & n & ${US} & p & ${RS}
+    if wwiPosix is "missing value" then set wwiPosix to ""
+    set wwiOut to wwiOut & wwiName & ${US} & wwiPosix & ${RS}
   end repeat
 end tell
-return out`;
+return wwiOut`;
 }
 
 const FINDER_SCRIPT = `
-set out to ""
+set wwiOut to ""
 tell application id "com.apple.finder"
-  repeat with w in Finder windows
+  repeat with wwiWin in Finder windows
     try
-      set p to POSIX path of ((target of w) as alias)
-      set out to out & (name of w) & ${US} & p & ${RS}
+      set wwiPosix to POSIX path of ((target of wwiWin) as alias)
+      set wwiOut to wwiOut & (name of wwiWin) & ${US} & wwiPosix & ${RS}
     end try
   end repeat
 end tell
-return out`;
+return wwiOut`;
 
 export interface DocAdapter {
   bundleId: string;
