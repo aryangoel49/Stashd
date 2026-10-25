@@ -5,6 +5,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Brief, SaveEntry } from '../../shared/types';
 import type { BriefWriter } from './index';
+import { modelInfo } from '../../shared/models';
 import { acceptAiBrief } from './basic';
 import { buildPromptData, cleanAiName, INSTRUCTIONS, NAME_INSTRUCTIONS, NAME_SCHEMA, namePayload, OUTPUT_SCHEMA } from './prompt';
 
@@ -22,16 +23,22 @@ async function ask(
   apiKey: string,
   model: string,
   content: string,
-  opts: { system?: string; schema?: Record<string, unknown>; maxTokens?: number; timeoutMs?: number } = {},
+  opts: { system?: string; schema?: Record<string, unknown>; maxTokens?: number; quick?: boolean } = {},
 ) {
-  const client = new Anthropic({ apiKey, timeout: opts.timeoutMs ?? 30_000, maxRetries: 1 });
+  // Bigger models think for longer, so they get more room and more time.
+  const slow = modelInfo(model)?.slow ?? true;
+  const timeout = opts.quick ? (slow ? 20_000 : 8_000) : slow ? 60_000 : 30_000;
+  const client = new Anthropic({ apiKey, timeout, maxRetries: 1 });
   try {
-    return await client.messages.create({
+    return await client.beta.messages.create({
       model,
-      max_tokens: opts.maxTokens ?? 2000,
+      max_tokens: (opts.maxTokens ?? 2000) * (slow ? 2 : 1),
       output_config: { effort: 'low', format: { type: 'json_schema', schema: opts.schema ?? OUTPUT_SCHEMA } },
       system: opts.system ?? INSTRUCTIONS,
       messages: [{ role: 'user', content }],
+      // If a bigger model declines (its safety checks can be over-cautious), Anthropic retries on a suitable model.
+      // Haiku has no such fallback; a decline there just moves on to Apple Intelligence or the basic brief.
+      ...(model.startsWith('claude-haiku') ? {} : { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }),
     });
   } catch (e) {
     throw new Error(friendlyError(e));
@@ -63,7 +70,7 @@ export function claudeWriter(opts: { getKey: () => Promise<string | null>; getMo
       if (!opts.allowed()) return null;
       const key = await opts.getKey();
       if (!key) return null;
-      const response = await ask(key, opts.getModel(), namePayload(items), { system: NAME_INSTRUCTIONS, schema: NAME_SCHEMA, maxTokens: 1000, timeoutMs: 8000 });
+      const response = await ask(key, opts.getModel(), namePayload(items), { system: NAME_INSTRUCTIONS, schema: NAME_SCHEMA, maxTokens: 1000, quick: true });
       if (response.stop_reason === 'refusal') return null;
       const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
       try {

@@ -50,3 +50,12 @@ describe('saveRequest', () => {
     expect(() => saveRequest({ jobId: null, name: '   ', note: '', keys: [], tidy: false })).toThrow();
   });
 });
+
+describe('Claude models in Settings', () => {
+  it('every model in the dropdown is accepted as a setting', async () => {
+    const { CLAUDE_MODELS } = await import('../src/shared/models');
+    const { settingsPatch, DEFAULT_SETTINGS } = await import('../src/shared/validate');
+    for (const m of CLAUDE_MODELS) expect(settingsPatch({ aiModel: m.id }, DEFAULT_SETTINGS).aiModel).toBe(m.id);
+    expect(CLAUDE_MODELS.map((m) => m.id)).toContain(DEFAULT_SETTINGS.aiModel);
+  });
+});

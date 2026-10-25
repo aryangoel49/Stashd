@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Accent, AppInfo, Settings } from '../shared/types';
+import { CLAUDE_MODELS, modelInfo } from '../shared/models';
 import { api, errorText, prettyShortcut, useSettings } from './api';
 
 const ACCENTS: { id: Accent; color: string; name: string }[] = [
@@ -44,6 +45,16 @@ export function SettingsView() {
         {saved && <span className="faint small fade-in">Saved</span>}
       </div>
       {error && <div className="banner">{error}</div>}
+
+      <div className="srow card glass-card" style={{ padding: '10px 14px' }}>
+        <span>
+          Briefs are written by <b>{writerNow(info, s.aiModel)}</b>
+          <span className="faint small" style={{ display: 'block' }}>
+            {!info.hasApiKey && info.appleAi !== 'available' && 'Connect Claude below, or turn on Apple Intelligence, for smarter briefs. '}
+            Sorting what belongs to which job always happens on your Mac, with no AI.
+          </span>
+        </span>
+      </div>
 
       <ClaudeCard connected={info.hasApiKey} model={s.aiModel} onChange={refreshInfo} onModel={(m) => void update({ aiModel: m })} />
 
@@ -142,7 +153,7 @@ function ClaudeCard({ connected, model, onChange, onModel }: { connected: boolea
   };
 
   return (
-    <Card title="Claude" hint="Connect your own Claude account for the best briefs. It costs about $0.0003 a brief (roughly 3,000 briefs per dollar).">
+    <Card title="Claude" hint="Connect your own Claude account for the best briefs and job names. You pay Anthropic directly, a tiny amount per brief.">
       {connected ? (
         <div className="srow">
           <span>
@@ -186,8 +197,34 @@ function ClaudeCard({ connected, model, onChange, onModel }: { connected: boolea
         </>
       )}
       {msg && <div className={msg.startsWith('Connected') ? 'small' : 'banner'} style={{ marginTop: 8, color: msg.startsWith('Connected') ? 'var(--accent)' : undefined }}>{msg}</div>}
-      <TextRow label="Model" hint="claude-haiku-5-5 is fast and low cost." value={model} onSave={onModel} />
+      <ModelRow model={model} onModel={onModel} />
     </Card>
+  );
+}
+
+function writerNow(info: AppInfo, model: string): string {
+  if (info.hasApiKey) return `Claude ${modelInfo(model)?.name ?? model}`.trim();
+  if (info.appleAi === 'available') return 'Apple Intelligence';
+  return 'a simple template';
+}
+
+function ModelRow({ model, onModel }: { model: string; onModel: (m: string) => void }) {
+  const info = modelInfo(model);
+  return (
+    <div className="srow">
+      <span>
+        Model
+        <span className="faint small" style={{ display: 'block' }}>{info ? `${info.blurb} ${info.cost[0].toUpperCase()}${info.cost.slice(1)}.` : 'A model you typed in yourself.'}</span>
+      </span>
+      <select className="field save-to-select" aria-label="Claude model" value={model} onChange={(e) => onModel(e.target.value)}>
+        {CLAUDE_MODELS.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.name}
+          </option>
+        ))}
+        {!info && <option value={model}>{model}</option>}
+      </select>
+    </div>
   );
 }
 

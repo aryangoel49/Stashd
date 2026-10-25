@@ -156,7 +156,8 @@ function start(): void {
       togglePanel(tray.bounds());
       setTimeout(() => openSave(), 7500);
       if (process.env.WWI_DEMO_TIDY) setTimeout(() => tidy.demo(), 1000);
-      setTimeout(() => showWindow('main'), 14_000);
+      const toSettings = process.env.WWI_CAPTURE_MAIN === 'settings';
+      setTimeout(() => showWindow('main', toSettings ? { onReady: (w) => w.webContents.send('main:show', 'settings') } : {}), 14_000);
     }
   });
 }
