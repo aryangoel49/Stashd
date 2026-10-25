@@ -3,7 +3,7 @@
 import { promises as fs, readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { BriefView, Capture, Item, Job, JobSummary, OpenResult, SaveEntry, SavePreview, SaveRequest, SaveResult } from '../shared/types';
-import { writeBrief, type BriefWriter } from './brief';
+import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, frontItemKey } from './capture';
 import type { Helper, WindowsInfo } from './helper';
@@ -179,6 +179,15 @@ export class Core {
     this.notify();
     void this.ensureBrief(job.id, entry.id);
     return { jobId: job.id, entryId: entry.id, needsNaming: req.tidy ? items.filter((i) => i.untitled) : [] };
+  }
+
+  /** A better name for a new job from Claude or Apple Intelligence, if either is set up. */
+  async aiName(keys: string[]): Promise<string | null> {
+    if (!this.pending) return null;
+    const cap = await this.pending.capture;
+    const wanted = new Set(keys);
+    const items = cap.items.filter((i) => wanted.has(i.key));
+    return items.length ? aiJobName(this.writers, items) : null;
   }
 
   cancelSave(): void {

@@ -126,8 +126,12 @@ button { cursor: default; }
 .job-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 14px; border: none; background: none; text-align: left; width: 100%; outline: none; }
 .job-row:hover, .job-row:focus-visible { background: var(--well); }
 .unpack-btn { padding: 5px 11px; font-size: 12px; flex: none; opacity: 0.85; }
-.delete-btn { flex: none; width: 28px; height: 28px; padding: 0; border-radius: 8px; color: var(--faint); margin-left: -4px; }
-.delete-btn:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.row-tools { display: flex; flex-direction: column; gap: 2px; flex: none; margin-left: -4px; }
+.tool-btn { width: 24px; height: 22px; padding: 0; border-radius: 7px; color: var(--faint); }
+.tool-btn svg { width: 14px; height: 14px; }
+.tool-btn:hover { color: var(--text); background: var(--well-hover); }
+.tool-btn.delete:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.rename-field { padding: 4px 8px; font-weight: 600; margin: -2px 0 2px; }
 .job-row:hover .unpack-btn, .unpack-btn.pack { opacity: 1; background: var(--accent); color: #fff; box-shadow: none; }
 .pack-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 0 2px 8px; }
 .pack-btn { padding: 9px 14px; font-size: 13px; }

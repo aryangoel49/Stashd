@@ -48,6 +48,9 @@ export function Save() {
   const [example, setExample] = useState(0);
 
   const modeRef = useRef<'save' | 'pack' | 'last'>('last');
+  // Once you type in the name, an AI suggestion never replaces it.
+  const nameTouched = useRef(false);
+  const [aiNaming, setAiNaming] = useState(false);
   const load = async (opts: { asNew?: boolean; jobId?: string } = {}) => {
     setError(null);
     try {
@@ -57,6 +60,18 @@ export function Save() {
       setTidy(modeRef.current === 'pack' ? true : modeRef.current === 'save' ? false : p.tidyUp);
       setPicked(new Set(p.sure.map((i) => i.key)));
       setState('ready');
+      nameTouched.current = false;
+      if (!p.jobId && p.sure.length) {
+        // A new job: ask Claude or Apple Intelligence (if set up) for a better name, in the background.
+        setAiNaming(true);
+        void api
+          .aiName(p.sure.map((i) => i.key))
+          .then((n) => {
+            if (n && !nameTouched.current) setName(n);
+          })
+          .catch(() => undefined)
+          .finally(() => setAiNaming(false));
+      }
       setTimeout(() => noteRef.current?.focus(), 0);
     } catch (e) {
       setError(errorText(e));
@@ -170,10 +185,19 @@ export function Save() {
             className="title-input no-drag"
             value={name}
             maxLength={80}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              nameTouched.current = true;
+              setName(e.target.value);
+            }}
             aria-label="Job name"
             spellCheck={false}
           />
+
+          {aiNaming && (
+            <div className="faint tiny fade-in" style={{ padding: '0 4px', marginTop: -8 }}>
+              Thinking of a name…
+            </div>
+          )}
 
           {preview?.isSuggestion && preview.jobName && (
             <div className="suggest no-drag fade-in">

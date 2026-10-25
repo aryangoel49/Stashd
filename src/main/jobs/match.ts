@@ -155,9 +155,11 @@ export function recordAppUnticks(appUnticks: Record<string, string[]>, jobId: st
   return next;
 }
 
-/** A name for a new job: a saved document's name if there is one (that's usually the work),
- *  otherwise the tab you were on, cut down to a short phrase. */
+/** A name for a new job. First choice: the topic shared by everything in the job (tab titles,
+ *  document and folder names). Otherwise a saved document's name, then the tab you were on. */
 export function suggestName(items: Item[], frontKey: string | null): string {
+  const topic = topicName(items);
+  if (topic) return topic;
   const front = items.find((i) => i.key === frontKey);
   const isDoc = (i?: Item) => !!i && (i.kind === 'doc' || i.kind === 'folder') && !i.untitled;
   const pick = (isDoc(front) ? front : items.find((i) => isDoc(i))) ?? front ?? items[0];
@@ -168,6 +170,76 @@ export function suggestName(items: Item[], frontKey: string | null): string {
   name = name.replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (!name || /^(document|untitled|new tab)\s*\d*$/i.test(name)) return 'New job';
   return name.slice(0, 60);
+}
+
+/** Words that say nothing about the topic. */
+const TOPIC_STOP = new Set([
+  ...STOP,
+  'of', 'to', 'in', 'on', 'an', 'at', 'by', 'is', 'it', 'or', 'as', 'be', 'we', 'us', 'my', 'do', 'go', 'no', 'so', 'up', 'vs', 'how', 'why',
+  'are', 'you', 'our', 'can', 'all', 'its', 'not', 'but', 'out', 'who', 'did', 'has', 'was', 'one', 'two', 'top', 'get', 'use', 'via',
+  'download', 'report', 'guide', 'best', 'latest', 'news', 'analysis', 'official', 'site', 'ebook', 'free', 'online', 'trends', 'blog', 'article',
+  'video', 'youtube', 'wikipedia', 'reddit', 'medium', 'review', 'reviews', 'introduction', 'overview', 'complete', 'ultimate', 'list', 'notes',
+  'draft', 'final', 'copy', 'file', 'files', 'folder', 'downloads', 'desktop', 'documents', 'just', 'exactly', 'really', 'what', 'they', 'them',
+]);
+
+function stem(w: string): string {
+  const l = w.toLowerCase();
+  if (l.length > 4 && l.endsWith('ies')) return `${l.slice(0, -3)}y`;
+  if (l.length > 4 && l.endsWith('s') && !l.endsWith('ss')) return l.slice(0, -1);
+  return l;
+}
+
+/** The meaningful part of an item's title: no site names, no file extension, no "(3)" counters. */
+function topicText(it: Item): string | null {
+  if (it.kind === 'app' || it.untitled) return null;
+  let t = it.label.replace(/^\(\d+\)\s*/, '');
+  if (it.kind === 'doc' || it.kind === 'folder') t = t.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/[_]+/g, ' ');
+  if (it.kind === 'tab') t = t.split(/\s[-–—|·•]\s/)[0];
+  t = t.trim();
+  return t && !/^(document|untitled|new tab|google search)\s*\d*$/i.test(t) ? t : null;
+}
+
+/** "ai augmentation" -> "AI Augmentation". Short words that are acronyms become capitals. */
+function titleCase(phrase: string): string {
+  return phrase
+    .split(/\s+/)
+    .map((w, i) => {
+      if (/^[a-z]{2}$/.test(w) && !TOPIC_STOP.has(w)) return w.toUpperCase();
+      if (i > 0 && ['and', 'of', 'the', 'for', 'in', 'on', 'to', 'a', 'an', 'vs'].includes(w)) return w;
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    })
+    .join(' ');
+}
+
+/** The topic everything in the job shares, like "AI Augmentation", or null if there's no clear one. */
+export function topicName(items: Item[]): string | null {
+  const texts = items.map(topicText).filter((t): t is string => !!t);
+  if (texts.length < 2) return null;
+  const tokenize = (t: string) => t.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  const keep = (w: string) => !TOPIC_STOP.has(w.toLowerCase()) && !/^\d+$/.test(w) && (w.length >= 3 || /^[A-Za-z]{2}$/.test(w));
+
+  // How many different items mention each word.
+  const df = new Map<string, number>();
+  for (const t of texts) for (const w of new Set(tokenize(t).filter(keep).map(stem))) df.set(w, (df.get(w) ?? 0) + 1);
+  const shared = new Set([...df].filter(([, n]) => n >= 2).map(([w]) => w));
+  if (!shared.size) return null;
+
+  // The title that holds the most shared words (shorter wins a tie), and the shortest stretch of it that covers them.
+  const scored = texts
+    .map((t) => ({ t, words: tokenize(t), hits: new Set(tokenize(t).map(stem).filter((w) => shared.has(w))).size }))
+    .filter((x) => x.hits > 0)
+    .sort((a, b) => b.hits - a.hits || a.words.length - b.words.length);
+  const best = scored[0];
+  const idx = best.words.map((w, i) => (shared.has(stem(w)) ? i : -1)).filter((i) => i >= 0);
+  let phrase = best.words.slice(idx[0], idx[idx.length - 1] + 1);
+  if (phrase.length > 5) {
+    const top = [...shared].sort((a, b) => (df.get(b) ?? 0) - (df.get(a) ?? 0)).slice(0, 3);
+    phrase = best.words.filter((w) => top.includes(stem(w))).filter((w, i, a) => a.findIndex((x) => stem(x) === stem(w)) === i);
+  }
+  // A single word is only a good name when almost everything mentions it.
+  if (phrase.length === 1 && (df.get(stem(phrase[0])) ?? 0) < 3) return null;
+  const text = phrase.join(' ');
+  return (text === text.toLowerCase() ? titleCase(text) : text).slice(0, 60);
 }
 
 /** "What exactly is a AI Researcher, are they just Data Scientists? : r/learnprogramming"

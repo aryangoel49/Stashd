@@ -91,6 +91,27 @@ describe('suggestName', () => {
     const inbox = tab('https://x.com', '(3) Toronto flights | Expedia');
     expect(suggestName([inbox], inbox.key)).toBe('Toronto flights');
   });
+  it('names the job after the topic everything shares', () => {
+    const items = [
+      tab('https://www.google.com/search?q=ai', 'ai augmentation - Google Search'),
+      tab('https://www.nvidia.com/x', 'Blueprint for AI Success eBook | Download & Build | NVIDIA'),
+      tab('https://www.microsoft.com/y', 'AI Augmentation: The Key to Uplifting Employees | Microsoft'),
+      { key: 'untitled:Microsoft Word:Document2', kind: 'doc' as const, label: 'Document2', detail: '', app: 'Microsoft Word', untitled: true },
+    ];
+    expect(suggestName(items, items[1].key)).toBe('AI Augmentation');
+    const trip = [
+      tab('https://www.expedia.ca/a', 'Cheap flights to Toronto | Expedia'),
+      tab('https://www.airbnb.ca/b', 'Toronto stays near downtown · Airbnb'),
+      tab('https://www.google.com/c', 'things to do in toronto - Google Search'),
+    ];
+    expect(suggestName(trip, trip[0].key)).toBe('Toronto');
+  });
+
+  it('falls back to a document name when there is no clear shared topic', () => {
+    const reddit = tab('https://www.reddit.com/r/aww', 'Cute dogs : aww');
+    expect(suggestName([reddit, essay, jstor], jstor.key)).toBe('Climate essay');
+  });
+
   it('prefers a saved document over the tab you were on, and shortens long tab titles', () => {
     const reddit = tab('https://www.reddit.com/r/x', 'What exactly is a AI Researcher, are they just Data Scientists? : r/learnprogramming');
     expect(suggestName([reddit, essay], reddit.key)).toBe('Climate essay');

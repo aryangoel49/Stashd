@@ -70,3 +70,32 @@ export function buildPromptData(entry: SaveEntry, previous: SaveEntry | null, fe
   if (feedback) payload.feedbackOnLastBrief = redactCommand(feedback).slice(0, 300);
   return { payload, idToKey, fallbackNeeded: neededItems(entry) };
 }
+
+export const NAME_INSTRUCTIONS = `You name a piece of work someone is doing on their Mac, from the titles of the browser tabs and documents they have open.
+Reply with a short, natural name of 2 to 4 words that says what the work is about, like "AI augmentation essay", "Toronto trip" or "Resume update".
+Use the shared topic across the titles. Ignore unrelated tabs. No quotes, no emoji, no punctuation at the end.`;
+
+export const NAME_SCHEMA = {
+  type: 'object',
+  properties: { name: { type: 'string' } },
+  required: ['name'],
+  additionalProperties: false,
+} as const;
+
+/** Titles only (scrubbed), for naming. */
+export function namePayload(items: SaveEntry['items']): string {
+  return JSON.stringify({
+    titles: items
+      .filter((i) => i.kind !== 'app')
+      .slice(0, 40)
+      .map((i) => ({ kind: i.kind, title: redactCommand(i.label).slice(0, 140) })),
+  });
+}
+
+/** Clean a model's suggested name, or null if it's unusable. */
+export function cleanAiName(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const n = raw.replace(/["“”'`]/g, '').replace(/[.!?]+$/, '').replace(/\s+/g, ' ').trim();
+  if (n.length < 2 || n.length > 60 || n.split(' ').length > 6) return null;
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}

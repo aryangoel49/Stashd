@@ -22,6 +22,7 @@ const api = {
   previewSave: (opts: { asNew?: boolean; jobId?: string } = {}) => invoke<SavePreview>('save:preview', opts),
   commitSave: (req: SaveRequest) => invoke<SaveResult>('save:commit', req),
   cancelSave: () => invoke<boolean>('save:cancel'),
+  aiName: (keys: string[]) => invoke<string | null>('save:aiName', keys),
 
   listJobs: () => invoke<JobSummary[]>('jobs:list'),
   getBrief: (jobId: string, entryId?: string) => invoke<BriefView>('jobs:brief', jobId, entryId ?? null),

@@ -71,10 +71,11 @@ describe('what the AI is sent', () => {
   });
 });
 
+const ok: BriefWriter = { name: 'claude', write: async () => ({ source: 'claude', sentence: 'From Claude.', highlights: [], needed: [], createdAt: '' }), suggestName: async () => 'From Claude' };
+const off: BriefWriter = { name: 'claude', write: async () => null, suggestName: async () => null };
+const broken: BriefWriter = { name: 'apple', write: async () => { throw new Error('model not ready'); }, suggestName: async () => { throw new Error('model not ready'); } };
+
 describe('choosing a writer', () => {
-  const ok: BriefWriter = { name: 'claude', write: async () => ({ source: 'claude', sentence: 'From Claude.', highlights: [], needed: [], createdAt: '' }) };
-  const off: BriefWriter = { name: 'claude', write: async () => null };
-  const broken: BriefWriter = { name: 'apple', write: async () => { throw new Error('model not ready'); } };
 
   it('uses the first writer that answers', async () => {
     expect((await writeBrief([off, ok], entry(), null, null)).sentence).toBe('From Claude.');
@@ -84,6 +85,17 @@ describe('choosing a writer', () => {
     const b = await writeBrief([off, broken], entry(), null, null);
     expect(b.source).toBe('basic');
     expect(b.fallbackReason).toContain('model not ready');
+  });
+});
+
+describe('AI job names', () => {
+  it('uses the first writer that suggests a name, and cleans it', async () => {
+    const { aiJobName } = await import('../src/main/brief');
+    const { cleanAiName } = await import('../src/main/brief/prompt');
+    expect(await aiJobName([off, broken, ok], [essay])).toBe('From Claude');
+    expect(await aiJobName([off, broken], [essay])).toBeNull();
+    expect(cleanAiName('"ai augmentation essay."')).toBe('Ai augmentation essay');
+    expect(cleanAiName('a very long name that is really a whole sentence about things')).toBeNull();
   });
 });
 

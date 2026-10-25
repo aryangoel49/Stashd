@@ -88,6 +88,10 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     hooks.afterSave({ jobId: result.jobId, entryId: result.entryId, tidy: r.tidy });
     return result;
   });
+  handle('save:aiName', (_e, keys) => {
+    if (!Array.isArray(keys) || keys.length > 500) throw new Error('bad items');
+    return core.aiName(keys.map((k) => v.str(k, 'item', 4200)));
+  });
   handle('save:cancel', () => {
     core.cancelSave();
     return true;

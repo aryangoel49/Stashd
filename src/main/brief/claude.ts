@@ -6,7 +6,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Brief, SaveEntry } from '../../shared/types';
 import type { BriefWriter } from './index';
 import { acceptAiBrief } from './basic';
-import { buildPromptData, INSTRUCTIONS, OUTPUT_SCHEMA } from './prompt';
+import { buildPromptData, cleanAiName, INSTRUCTIONS, NAME_INSTRUCTIONS, NAME_SCHEMA, namePayload, OUTPUT_SCHEMA } from './prompt';
 
 function friendlyError(e: unknown): string {
   if (e instanceof Anthropic.AuthenticationError) return 'The API key was not accepted.';
@@ -18,14 +18,19 @@ function friendlyError(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-async function ask(apiKey: string, model: string, content: string, maxTokens = 2000) {
-  const client = new Anthropic({ apiKey, timeout: 30_000, maxRetries: 1 });
+async function ask(
+  apiKey: string,
+  model: string,
+  content: string,
+  opts: { system?: string; schema?: Record<string, unknown>; maxTokens?: number; timeoutMs?: number } = {},
+) {
+  const client = new Anthropic({ apiKey, timeout: opts.timeoutMs ?? 30_000, maxRetries: 1 });
   try {
     return await client.messages.create({
       model,
-      max_tokens: maxTokens,
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
-      system: INSTRUCTIONS,
+      max_tokens: opts.maxTokens ?? 2000,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: opts.schema ?? OUTPUT_SCHEMA } },
+      system: opts.system ?? INSTRUCTIONS,
       messages: [{ role: 'user', content }],
     });
   } catch (e) {
@@ -53,6 +58,19 @@ export function claudeWriter(opts: { getKey: () => Promise<string | null>; getMo
       const brief = acceptAiBrief(parsed, data.idToKey, 'claude', data.fallbackNeeded);
       if (!brief) throw new Error('Claude sent back something unexpected.');
       return brief;
+    },
+    async suggestName(items) {
+      if (!opts.allowed()) return null;
+      const key = await opts.getKey();
+      if (!key) return null;
+      const response = await ask(key, opts.getModel(), namePayload(items), { system: NAME_INSTRUCTIONS, schema: NAME_SCHEMA, maxTokens: 1000, timeoutMs: 8000 });
+      if (response.stop_reason === 'refusal') return null;
+      const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+      try {
+        return cleanAiName((JSON.parse(text) as { name?: unknown }).name);
+      } catch {
+        return null;
+      }
     },
   };
 }
