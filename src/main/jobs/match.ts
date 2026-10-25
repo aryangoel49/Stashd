@@ -208,23 +208,6 @@ const TOPIC_STOP = new Set([
   'draft', 'final', 'copy', 'file', 'files', 'folder', 'downloads', 'desktop', 'documents', 'just', 'exactly', 'really', 'what', 'they', 'them',
 ]);
 
-function stem(w: string): string {
-  const l = w.toLowerCase();
-  if (l.length > 4 && l.endsWith('ies')) return `${l.slice(0, -3)}y`;
-  if (l.length > 4 && l.endsWith('s') && !l.endsWith('ss')) return l.slice(0, -1);
-  return l;
-}
-
-/** The meaningful part of an item's title: no site names, no file extension, no "(3)" counters. */
-function topicText(it: Item): string | null {
-  if (it.kind === 'app' || it.untitled) return null;
-  let t = it.label.replace(/^\(\d+\)\s*/, '');
-  if (it.kind === 'doc' || it.kind === 'folder') t = t.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/[_]+/g, ' ');
-  if (it.kind === 'tab') t = t.split(/\s[-–—|·•]\s/)[0];
-  t = t.trim();
-  return t && !/^(document|untitled|new tab|google search)\s*\d*$/i.test(t) ? t : null;
-}
-
 /** "ai augmentation" -> "AI Augmentation". Short words that are acronyms become capitals. */
 function titleCase(phrase: string): string {
   return phrase

@@ -17,7 +17,7 @@ It's for anyone (students, job hunters, people planning trips), not just coders.
 - You put your work in it, close it, and open it again later.
 - The menu bar lists your jobs, newest first.
 
-### Saving: ⌘⇧S → Enter
+### Saving: ⌃S → Enter
 The save box has:
 - **Name**, pre-filled with a guess (for example from the Word file's name). Edit it or press Enter.
 - **"Context for the robot 🤖"**: an optional note the AI reads. The placeholder text rotates through examples like "halfway through paragraph 3…".

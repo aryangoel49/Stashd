@@ -88,7 +88,7 @@ export function SettingsView() {
         </div>
       </Card>
 
-      <Card title="Keyboard shortcuts" hint="These work from any app. Use names like CommandOrControl, Shift and Alt, joined with +.">
+      <Card title="Keyboard shortcuts" hint="These work from any app. Use names like Control, Alt (Option), Shift and Command, joined with +.">
         <TextRow label={`Save what I'm working on (${prettyShortcut(s.shortcutSave)})`} value={s.shortcutSave} onSave={(v) => void update({ shortcutSave: v })} />
         <TextRow label={`Show my brief (${prettyShortcut(s.shortcutRecap)})`} value={s.shortcutRecap} onSave={(v) => void update({ shortcutRecap: v })} />
         {info.shortcutErrors.map((e) => (

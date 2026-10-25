@@ -61,7 +61,7 @@ function start(): void {
     });
   }
 
-  /** ⇧⌘S: note the window order first (before our box takes the front), then show the box.
+  /** ⌃S: note the window order first (before our box takes the front), then show the box.
    *  "pack" turns Tidy up on for this save. */
   function openSave(mode: 'save' | 'pack' | 'last' = 'last'): void {
     const early = core.helper.windows();

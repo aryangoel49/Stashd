@@ -39,6 +39,14 @@ describe('normalizeStoredSettings', () => {
     expect(s.tidyUp).toBe(true);
     expect(normalizeStoredSettings(null)).toEqual(DEFAULT_SETTINGS);
   });
+
+  it('moves the old three-key default shortcuts to the two-key ones, but keeps custom ones', () => {
+    const old = normalizeStoredSettings({ shortcutSave: 'CommandOrControl+Shift+S', shortcutRecap: 'CommandOrControl+Shift+W' });
+    expect(old.shortcutSave).toBe('Control+S');
+    expect(old.shortcutRecap).toBe('Control+W');
+    const custom = normalizeStoredSettings({ shortcutSave: 'Alt+Shift+K' });
+    expect(custom.shortcutSave).toBe('Alt+Shift+K');
+  });
 });
 
 describe('saveRequest', () => {

@@ -42,12 +42,12 @@
   <text class="title" x="440" y="178" fill="#FFFFFF">Stashd</text>
   <text class="tag" x="444" y="226" fill="#9A9AA3">Put your work away. Pick it up right where you left off.</text>
   <g transform="translate(444 258)" class="key">
-    <rect width="82" height="38" rx="9" fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".12"/>
-    <text x="41" y="26" text-anchor="middle" fill="#FFFFFF">⇧⌘S</text>
-    <text x="96" y="26" fill="#6E6E78">stash</text>
-    <rect x="176" width="86" height="38" rx="9" fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".12"/>
-    <text x="219" y="26" text-anchor="middle" fill="#FFFFFF">⇧⌘W</text>
-    <text x="276" y="26" fill="#6E6E78">pick up</text>
-    <text x="380" y="26" fill="#6E6E78">·  local-first, menu bar, macOS</text>
+    <rect width="60" height="38" rx="9" fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".12"/>
+    <text x="30" y="26" text-anchor="middle" fill="#FFFFFF">⌃S</text>
+    <text x="74" y="26" fill="#6E6E78">stash</text>
+    <rect x="150" width="62" height="38" rx="9" fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".12"/>
+    <text x="181" y="26" text-anchor="middle" fill="#FFFFFF">⌃W</text>
+    <text x="226" y="26" fill="#6E6E78">pick up</text>
+    <text x="330" y="26" fill="#6E6E78">·  local-first, menu bar, macOS</text>
   </g>
 </svg>

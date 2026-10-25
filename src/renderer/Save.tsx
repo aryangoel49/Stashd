@@ -1,4 +1,4 @@
-// The save box (⇧⌘S): a name, "Context for the robot", Tidy up, and Enter.
+// The save box (⌃S): a name, "Context for the robot", Tidy up, and Enter.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CollectorError, Item, SavePreview } from '../shared/types';

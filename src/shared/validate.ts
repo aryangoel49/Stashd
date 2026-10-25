@@ -21,13 +21,16 @@ export const DEFAULT_SETTINGS: Settings = {
   lifestyleApps: DEFAULT_LIFESTYLE_APPS,
   keepQueryStrings: false,
   launchAtLogin: false,
-  shortcutSave: 'CommandOrControl+Shift+S',
-  shortcutRecap: 'CommandOrControl+Shift+W',
+  shortcutSave: 'Control+S',
+  shortcutRecap: 'Control+W',
   accent: 'indigo',
   tidyUp: false,
   aiModel: 'claude-haiku-5-5',
   aiDisclosureAccepted: false,
 };
+
+const OLD_SHORTCUT_SAVE = 'CommandOrControl+Shift+S';
+const OLD_SHORTCUT_RECAP = 'CommandOrControl+Shift+W';
 
 export const BROWSERS: BrowserName[] = ['chrome', 'arc', 'safari'];
 const ACCENTS: Accent[] = ['indigo', 'teal', 'coral'];
@@ -83,7 +86,7 @@ const ACCEL_RE = /^((CommandOrControl|Command|Cmd|Control|Ctrl|Alt|Option|Shift|
 
 export function accelerator(v: unknown, name: string): string {
   const s = str(v, name, 80);
-  if (!ACCEL_RE.test(s)) fail(`${name} should look like CommandOrControl+Shift+S`);
+  if (!ACCEL_RE.test(s)) fail(`${name} should look like Control+S`);
   return s;
 }
 
@@ -146,6 +149,9 @@ export function normalizeStoredSettings(raw: unknown): Settings {
       // keep the default for a field that no longer validates
     }
   }
+  // The shortcuts used to be three keys. Anyone still on those old defaults moves to the new two-key ones.
+  if (out.shortcutSave === OLD_SHORTCUT_SAVE) out.shortcutSave = DEFAULT_SETTINGS.shortcutSave;
+  if (out.shortcutRecap === OLD_SHORTCUT_RECAP) out.shortcutRecap = DEFAULT_SETTINGS.shortcutRecap;
   return out;
 }
 

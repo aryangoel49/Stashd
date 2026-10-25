@@ -1,6 +1,6 @@
 # On-device meaning model
 
-Lets Where Was I? tell that "Watch Real Madrid at Barcelona" belongs with "Soccer Streams" even though
+Lets Stashd tell that "Watch Real Madrid at Barcelona" belongs with "Soccer Streams" even though
 they share no words. Runs entirely on the Mac: free, offline, private.
 
 - `model/model.onnx`: all-MiniLM-L6-v2 (sentence-transformers, Apache-2.0), 8-bit ONNX export from

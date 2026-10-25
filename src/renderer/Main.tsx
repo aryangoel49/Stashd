@@ -90,7 +90,7 @@ export function Main() {
           <div className="empty" style={{ paddingTop: 80 }}>
             <div className="display">Nothing saved yet</div>
             <p>
-              Press <span className="kbd">{settings ? prettyShortcut(settings.shortcutSave) : '⇧⌘S'}</span> while you're working to save your first job.
+              Press <span className="kbd">{settings ? prettyShortcut(settings.shortcutSave) : '⌃S'}</span> while you're working to save your first job.
             </p>
           </div>
         )}

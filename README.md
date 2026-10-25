@@ -9,7 +9,7 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-111114?style=flat-square">
 </p>
 
-**Stashd** is a menu bar app for your Mac. Press **⇧⌘S** and it stashes the work you're in the middle of: your open tabs, documents and apps, plus a quick note. When you come back, pick the job from the menu bar. A short brief tells you where you left off, and one click reopens what you need.
+**Stashd** is a menu bar app for your Mac. Press **⌃S** and it stashes the work you're in the middle of: your open tabs, documents and apps, plus a quick note. When you come back, pick the job from the menu bar. A short brief tells you where you left off, and one click reopens what you need.
 
 Everything stays on your Mac. The only time it goes online is to write Claude briefs, and only after you connect your own Claude key.
 
@@ -22,9 +22,9 @@ Everything stays on your Mac. The only time it goes online is to write Claude br
 
 | | |
 |---|---|
-| **1 · Stash** | Press **⇧⌘S**. Stashd sees what's open and ticks what belongs to this job. Add a note for the robot 🤖 if you like, then press **Enter**. |
+| **1 · Stash** | Press **⌃S**. Stashd sees what's open and ticks what belongs to this job. Add a note for the robot 🤖 if you like, then press **Enter**. |
 | **2 · Tidy (optional)** | Turn on **Tidy up after saving** and your windows fly into the menu bar icon. **Undo** brings them back for 10 seconds. |
-| **3 · Pick up** | Click the menu bar icon or press **⇧⌘W**, then choose a job. Read the brief, then hit **Pick up where I left off**. |
+| **3 · Pick up** | Click the menu bar icon or press **⌃W**, then choose a job. Read the brief, then hit **Pick up where I left off**. |
 
 ## Install
 
@@ -40,9 +40,9 @@ Everything stays on your Mac. The only time it goes online is to write Claude br
 
 | You want to… | Do this |
 |---|---|
-| Stash what you're working on | **⇧⌘S**, optional note, **Enter** |
+| Stash what you're working on | **⌃S**, optional note, **Enter** |
 | Clear your screen too | Tick **Tidy up after saving** |
-| See where you were | Click the menu bar icon, or **⇧⌘W** |
+| See where you were | Click the menu bar icon, or **⌃W** |
 | Get back to work | **Pick up where I left off** (just what you need) or **All** |
 | Fix what's in a job | **All jobs**: remove items with ✕, or drag them onto another job |
 | Rename, finish or delete a job | In the job's brief, click **…** |
@@ -72,6 +72,8 @@ The bottom of each brief says which one wrote it. Click **No** under "Helpful?" 
 Requires Node.js and Xcode command line tools (for the small Swift helper).
 
 ```bash
+git clone https://github.com/aryangoel49/Stashd.git
+cd Stashd
 npm install
 npm start
 ```
@@ -128,4 +130,4 @@ Colours: graphite `#26262C → #0C0C0F` tile, white `#FFFFFF` mark, ink `#0A0A0C
 
 ## License
 
-MIT (see `package.json`)
+MIT. See [LICENSE](LICENSE).

@@ -12,7 +12,7 @@ declare global {
 
 export const api = window.api;
 
-/** "CommandOrControl+Shift+S" becomes "⇧⌘S" (Mac order: Control, Option, Shift, Command). */
+/** "Control+S" becomes "⌃S" and "CommandOrControl+Shift+S" becomes "⇧⌘S" (Mac order: Control, Option, Shift, Command). */
 export function prettyShortcut(accel: string): string {
   const parts = accel.split('+');
   const key = parts.pop() ?? '';
