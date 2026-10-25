@@ -49,45 +49,30 @@ function png(size, rgba) {
 }
 
 // ---------- shapes, in a 0..1 coordinate space ----------
-const TAU = Math.PI * 2;
-function segDist(px, py, ax, ay, bx, by) {
-  const dx = bx - ax, dy = by - ay;
-  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
-  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
-}
-function inTriangle(px, py, [a, b, c]) {
-  const s = (p1, p2, p3) => (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
-  const p = [px, py];
-  const d1 = s(p, a, b), d2 = s(p, b, c), d3 = s(p, c, a);
-  return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+/** Signed distance to a rounded box centred at (cx, cy) with half sizes hx, hy and corner radius rad. */
+function boxDist(x, y, cx, cy, hx, hy, rad) {
+  const qx = Math.abs(x - cx) - (hx - rad), qy = Math.abs(y - cy) - (hy - rad);
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - rad;
 }
 
-/** The glyph: a clock face whose ring is an arrow turning back (counter clockwise), with two hands. */
+/**
+ * The glyph: an open tray with a card tucked into it (your work, stashed).
+ * Returns 'tray', 'card' or null for a point in the 0..1 space.
+ */
 function glyph(x, y, scale = 1) {
-  const cx = 0.5, cy = 0.5;
-  const R = 0.3 * scale, W = 0.065 * scale;
-  const dx = x - cx, dy = y - cy;
-  const r = Math.hypot(dx, dy);
-  // angle measured clockwise from 12 o'clock
-  let a = Math.atan2(dx, -dy);
-  if (a < 0) a += TAU;
-  const gapStart = TAU * 0.83, gapEnd = TAU * 0.97;
-  const onRing = Math.abs(r - R) < W / 2 && !(a > gapStart && a < gapEnd);
-  // Arrowhead at the start of the gap, pointing counter clockwise (toward the gap).
-  const ang = gapStart;
-  const px = cx + Math.sin(ang) * R, py = cy - Math.cos(ang) * R;
-  const tx = Math.cos(ang), ty = Math.sin(ang); // clockwise tangent
-  const nx = Math.sin(ang), ny = -Math.cos(ang); // outward normal
-  const head = 0.11 * scale;
-  const tri = [
-    [px + nx * head * 0.85, py + ny * head * 0.85],
-    [px - nx * head * 0.85, py - ny * head * 0.85],
-    [px - tx * head * 1.05, py - ty * head * 1.05],
-  ];
-  const onHead = inTriangle(x, y, tri);
-  const hand1 = segDist(x, y, cx, cy, cx, cy - R * 0.62) < W / 2;
-  const hand2 = segDist(x, y, cx, cy, cx - R * 0.45, cy + R * 0.12) < W / 2;
-  return onRing || onHead || hand1 || hand2;
+  x = 0.5 + (x - 0.5) / scale;
+  y = 0.5 + (y - 0.5) / scale;
+  // Tray: the bottom of a rounded box outline, cut off at the rim, with round ends.
+  const W = 0.066, rim = 0.488, left = 0.285, right = 0.715, floor = 0.703;
+  const outline = Math.abs(boxDist(x, y, 0.5, (rim - 0.2 + floor) / 2, (right - left) / 2, (floor - rim + 0.2) / 2, 0.09));
+  const ends = Math.min(Math.hypot(x - left, y - rim), Math.hypot(x - right, y - rim));
+  if ((outline < W / 2 && y > rim) || ends < W / 2) return 'tray';
+  // Card: a rounded rectangle tilted 9° counter clockwise, sitting inside the tray.
+  const cx = 0.5, cy = 0.47, t = (9 * Math.PI) / 180;
+  const rx = cx + (x - cx) * Math.cos(t) - (y - cy) * Math.sin(t);
+  const ry = cy + (x - cx) * Math.sin(t) + (y - cy) * Math.cos(t);
+  if (boxDist(rx, ry, cx, cy, 0.1075, 0.1465, 0.043) < 0) return 'card';
+  return null;
 }
 
 function roundedSquare(x, y) {
@@ -127,10 +112,12 @@ function render(size, shade) {
 
 const appShade = (x, y) => {
   if (!roundedSquare(x, y)) return null;
-  if (glyph(x, y, 1)) return [255, 250, 238, 1];
-  // pine green, lighter at the top
-  const t = y;
-  return [Math.round(52 - 22 * t), Math.round(126 - 44 * t), Math.round(106 - 36 * t), 1];
+  const part = glyph(x, y, 1);
+  if (part === 'tray') return [255, 250, 239, 1];
+  if (part === 'card') return [255, 197, 107, 1];
+  // indigo, lighter at the top
+  const t = (y - 100 / 1024) / (824 / 1024);
+  return [Math.round(108 - 41 * t), Math.round(117 - 43 * t), Math.round(230 - 46 * t), 1];
 };
 // Menu bar "template" icon: black on transparent; macOS recolors it for light and dark menu bars.
 const trayShade = (x, y) => (glyph(x, y, 1.45) ? [0, 0, 0, 1] : null);
