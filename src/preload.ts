@@ -27,7 +27,7 @@ const api = {
   getBrief: (jobId: string, entryId?: string) => invoke<BriefView>('jobs:brief', jobId, entryId ?? null),
   rewriteBrief: (jobId: string, entryId: string) => invoke<BriefView>('jobs:rewriteBrief', jobId, entryId),
   sendFeedback: (jobId: string, entryId: string, helpful: boolean, comment?: string) => invoke<void>('jobs:feedback', jobId, entryId, helpful, comment ?? null),
-  openJob: (jobId: string, entryId: string, mode: 'needed' | 'all') => invoke<OpenResult>('jobs:open', jobId, entryId, mode),
+  openJob: (jobId: string, entryId: string | null, mode: 'needed' | 'all') => invoke<OpenResult>('jobs:open', jobId, entryId, mode),
   removeItem: (jobId: string, key: string) => invoke<void>('jobs:removeItem', jobId, key),
   moveItem: (fromJobId: string, key: string, toJobId: string) => invoke<void>('jobs:moveItem', fromJobId, key, toJobId),
   renameJob: (jobId: string, name: string) => invoke<void>('jobs:rename', jobId, name),
@@ -35,7 +35,7 @@ const api = {
   deleteJob: (jobId: string) => invoke<boolean>('jobs:delete', jobId),
   deleteAll: () => invoke<boolean>('data:deleteAll'),
 
-  openWindow: (route: 'save' | 'main' | 'settings') => invoke<boolean>('window:open', route),
+  openWindow: (route: 'save' | 'pack' | 'main' | 'settings') => invoke<boolean>('window:open', route),
   closeWindow: () => invoke<boolean>('window:close'),
   fitWindow: (height: number) => invoke<boolean>('window:fit', height),
   openAutomationSettings: () => invoke<boolean>('system:openAutomationSettings'),
@@ -50,7 +50,8 @@ const api = {
   onJobsChanged: (cb: () => void) => on('jobs:changed', cb),
   onSettingsChanged: (cb: () => void) => on('settings:changed', cb),
   onShowJob: (cb: (jobId: string) => void) => on('panel:show-job', (id) => cb(String(id))),
-  onSaveBegin: (cb: () => void) => on('save:begin', cb),
+  onSaveBegin: (cb: (mode: 'save' | 'pack' | 'last') => void) =>
+    on('save:begin', (m) => cb(m === 'save' || m === 'pack' ? m : 'last')),
   onWindowShown: (cb: () => void) => on('window:shown', cb),
   onWindowBlur: (cb: () => void) => on('window:blur', cb),
   onPayload: (cb: () => void) => on('payload:updated', cb),

@@ -97,8 +97,8 @@ async function ready(imgs: HTMLImageElement[]): Promise<void> {
 
 async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<void> {
   layer.innerHTML = '';
-  const w = window.innerWidth;
-  const h = window.innerHeight;
+  const w = play.size.width;
+  const h = play.size.height;
   const n = play.items.length;
   const perRow = Math.min(6, n);
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

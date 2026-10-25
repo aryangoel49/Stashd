@@ -105,8 +105,16 @@ function JobList(props: {
     <>
       <div className="panel-head">
         <span className="display" style={{ fontSize: 14 }}>Where Was I</span>
-        <button className="btn ghost tiny" onClick={() => void api.openWindow('save')} title="Save what you're working on">
-          <span className="kbd">{prettyShortcut(settings.shortcutSave)}</span> Save
+        <span className="faint tiny">
+          <span className="kbd">{prettyShortcut(settings.shortcutSave)}</span>
+        </span>
+      </div>
+      <div className="pack-actions">
+        <button className="btn primary pack-btn" onClick={() => void api.openWindow('pack')} title="Save what's open and tidy it away">
+          <Icon name="stack" /> Pack up
+        </button>
+        <button className="btn pack-btn" onClick={() => void api.openWindow('save')} title="Save what's open and keep it open">
+          Save only
         </button>
       </div>
 
@@ -150,8 +158,9 @@ function JobList(props: {
 }
 
 function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void }) {
+  const [busy, setBusy] = useState(false);
   return (
-    <button className={`job-row ${job.current ? 'current' : ''}`} onClick={() => onPick(job.id)} style={job.done ? { opacity: 0.6 } : undefined}>
+    <div className={`job-row ${job.current ? 'current' : ''}`} role="button" tabIndex={0} onClick={() => onPick(job.id)} onKeyDown={(e) => e.key === 'Enter' && onPick(job.id)} style={job.done ? { opacity: 0.6 } : undefined}>
       <span className="icon">
         <Icon name={job.icon} />
       </span>
@@ -163,7 +172,19 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
         </span>
       </span>
       {job.current && <span className="live" />}
-    </button>
+      <button
+        className="btn small unpack-btn"
+        disabled={busy}
+        title="Reopen everything in this job"
+        onClick={(e) => {
+          e.stopPropagation();
+          setBusy(true);
+          void api.openJob(job.id, null, 'all').finally(() => setBusy(false));
+        }}
+      >
+        {busy ? <span className="spinner" /> : 'Unpack'}
+      </button>
+    </div>
   );
 }
 

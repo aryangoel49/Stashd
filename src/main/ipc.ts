@@ -37,7 +37,8 @@ export interface IpcHooks {
   dismissToast: () => void;
   overlayDone: () => void;
   testClaude: (key: string) => Promise<void>;
-  openSave: () => void;
+  openSave: (mode: 'save' | 'pack') => void;
+  beforeOpen: (items: import('../shared/types').Item[]) => void;
 }
 
 async function confirm(event: IpcMainInvokeEvent, message: string, detail: string, button: string): Promise<boolean> {
@@ -98,7 +99,9 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('jobs:feedback', (_e, id, entry, helpful, comment) =>
     core.feedback(v.jobId(id), v.entryId(entry), v.bool(helpful, 'helpful'), comment == null ? undefined : v.str(comment, 'comment', 500)),
   );
-  handle('jobs:open', (_e, id, entry, mode) => core.open(v.jobId(id), v.entryId(entry), v.openMode(mode)));
+  handle('jobs:open', (_e, id, entry, mode) =>
+    core.open(v.jobId(id), entry == null ? undefined : v.entryId(entry), v.openMode(mode), hooks.beforeOpen),
+  );
   handle('jobs:removeItem', (_e, id, key) => core.removeItem(v.jobId(id), v.str(key, 'item', 4200)));
   handle('jobs:moveItem', (_e, from, key, to) => core.moveItem(v.jobId(from), v.str(key, 'item', 4200), v.jobId(to)));
   handle('jobs:rename', (_e, id, name) => core.rename(v.jobId(id), v.jobName(name)));
@@ -117,7 +120,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   });
 
   handle('window:open', (_e, route) => {
-    if (route === 'save') hooks.openSave();
+    if (route === 'save' || route === 'pack') hooks.openSave(route);
     else if (route === 'main' || route === 'settings') {
       getWindow('panel')?.hide();
       showWindow('main', { onReady: (w) => w.webContents.send('main:show', route) });

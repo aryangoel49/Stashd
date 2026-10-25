@@ -47,13 +47,14 @@ export function Save() {
   const [error, setError] = useState<string | null>(null);
   const [example, setExample] = useState(0);
 
+  const modeRef = useRef<'save' | 'pack' | 'last'>('last');
   const load = async (opts: { asNew?: boolean; jobId?: string } = {}) => {
     setError(null);
     try {
       const p = await api.previewSave(opts);
       setPreview(p);
       setName(p.suggestedName);
-      setTidy(p.tidyUp);
+      setTidy(modeRef.current === 'pack' ? true : modeRef.current === 'save' ? false : p.tidyUp);
       setPicked(new Set(p.sure.map((i) => i.key)));
       setState('ready');
       setTimeout(() => noteRef.current?.focus(), 0);
@@ -64,7 +65,8 @@ export function Save() {
   };
 
   useEffect(() => {
-    const begin = () => {
+    const begin = (mode: 'save' | 'pack' | 'last' = 'last') => {
+      modeRef.current = mode;
       setState('loading');
       setPreview(null);
       setNote('');
@@ -136,8 +138,7 @@ export function Save() {
             <Icon name="check" />
           </span>
           <span>
-            Saved to <b>{name}</b>
-            {tidy && <span className="muted"> · tidying up</span>}
+            {tidy ? 'Packing up' : 'Saved to'} <b>{name}</b>
           </span>
         </div>
       </form>
@@ -238,11 +239,11 @@ export function Save() {
               <button type="submit" className="btn primary" disabled={state !== 'ready' || chosen.length === 0}>
                 {state === 'saving' ? (
                   <>
-                    <span className="spinner on-accent" /> Saving…
+                    <span className="spinner on-accent" /> {tidy ? 'Packing…' : 'Saving…'}
                   </>
                 ) : (
                   <>
-                    Save <span style={{ opacity: 0.7 }}>↵</span>
+                    {tidy ? 'Pack up' : 'Save'} <span style={{ opacity: 0.7 }}>↵</span>
                   </>
                 )}
               </button>

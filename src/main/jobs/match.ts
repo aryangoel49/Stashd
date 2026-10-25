@@ -155,19 +155,29 @@ export function recordAppUnticks(appUnticks: Record<string, string[]>, jobId: st
   return next;
 }
 
-/** A name for a new job, from the thing you were on last. */
+/** A name for a new job: a saved document's name if there is one (that's usually the work),
+ *  otherwise the tab you were on, cut down to a short phrase. */
 export function suggestName(items: Item[], frontKey: string | null): string {
-  const front = items.find((i) => i.key === frontKey) ?? items.find((i) => i.kind === 'doc' && !i.untitled) ?? items[0];
-  if (!front) return 'New job';
-  let name = front.label;
-  if (front.kind === 'doc' || front.kind === 'folder') name = name.replace(/\.[A-Za-z0-9]{1,5}$/, '');
-  if (front.kind === 'tab') {
-    // "Essay draft - Google Docs" -> "Essay draft"; "(3) Inbox | Site" -> "Inbox"
-    name = name.replace(/^\(\d+\)\s*/, '').split(/\s[-–—|·•]\s/)[0];
-  }
+  const front = items.find((i) => i.key === frontKey);
+  const isDoc = (i?: Item) => !!i && (i.kind === 'doc' || i.kind === 'folder') && !i.untitled;
+  const pick = (isDoc(front) ? front : items.find((i) => isDoc(i))) ?? front ?? items[0];
+  if (!pick) return 'New job';
+  let name = pick.label;
+  if (pick.kind === 'doc' || pick.kind === 'folder') name = name.replace(/\.[A-Za-z0-9]{1,5}$/, '');
+  if (pick.kind === 'tab') name = shortTitle(name);
   name = name.replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (!name || /^(document|untitled|new tab)\s*\d*$/i.test(name)) return 'New job';
   return name.slice(0, 60);
+}
+
+/** "What exactly is a AI Researcher, are they just Data Scientists? : r/learnprogramming"
+ *  becomes "What exactly is a AI Researcher". */
+export function shortTitle(title: string, max = 40): string {
+  let t = title.replace(/^\(\d+\)\s*/, '').split(/\s[-–—|·•]\s|\s:\s/)[0].trim();
+  const firstClause = t.split(/[,?!:;]/)[0].trim();
+  if (firstClause.split(/\s+/).length >= 2) t = firstClause;
+  if (t.length > max) t = t.slice(0, max).replace(/\s+\S*$/, '');
+  return t.replace(/[\s,.;:!?-]+$/, '');
 }
 
 /** How alike two sets of items are (0 to 1), by shared items, files, sites and words. */

@@ -84,3 +84,19 @@ describe('browser tabs', () => {
     expect(isPermissionError(new RunError('other', 1, ''))).toBe(false);
   });
 });
+
+describe('finding a document by name (Spotlight)', () => {
+  it('picks the most recently changed file of the right type with the same name', async () => {
+    const { pickBest } = await import('../src/main/capture/spotlight');
+    const c = [
+      { path: '/Users/a/Old/AI research.docx', mtimeMs: 1 },
+      { path: '/Users/a/Documents/AI research.docx', mtimeMs: 5 },
+      { path: '/Users/a/Documents/AI research.pdf', mtimeMs: 9 },
+      { path: '/Users/a/Documents/~$AI research.docx', mtimeMs: 10 },
+      { path: '/Users/a/Documents/AI research notes.docx', mtimeMs: 11 },
+    ];
+    expect(pickBest('AI research', 'Microsoft Word', c)).toBe('/Users/a/Documents/AI research.docx');
+    expect(pickBest('AI research.docx', 'Microsoft Word', c)).toBe('/Users/a/Documents/AI research.docx');
+    expect(pickBest('Budget', 'Microsoft Word', c)).toBeNull();
+  });
+});

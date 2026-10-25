@@ -77,7 +77,7 @@ export class TidyFlow {
     this.setUndo(closed, entry.frontKey);
     const left = failed.length + entry.items.filter((i) => i.untitled).length;
     this.toast({
-      title: `${job.name} · ${closed.length} ${closed.length === 1 ? 'item' : 'items'} packed`,
+      title: `${shortName(job.name)} · ${closed.length} packed`,
       detail: left ? `${left} stayed open.` : 'Everything else is still open.',
       canUndo: closed.length > 0,
     });
@@ -127,6 +127,7 @@ export class TidyFlow {
     const play: OverlayPlay = {
       items: flies,
       target: { x: tray.x + tray.width / 2 - display.bounds.x, y: tray.y + tray.height / 2 - display.bounds.y },
+      size: { width: display.bounds.width, height: display.bounds.height },
       reverse,
     };
     this.payloads.set('overlay', play);
@@ -142,6 +143,11 @@ export class TidyFlow {
     await finished;
     this.overlayDone = null;
     if (this.payloads.get('overlay') === play) win.hide();
+  }
+
+  /** Unpacking: icons fly out of the menu bar icon while things reopen. */
+  unpackAnimation(items: Item[]): void {
+    void this.play(items.filter((i) => i.kind !== 'app' || items.length <= 3), true);
   }
 
   /** The animation window says it's done. */
@@ -223,6 +229,13 @@ export class TidyFlow {
   dismissToast(): void {
     getWindow('toast')?.hide();
   }
+}
+
+/** Long job names are cut at a word so the toast stays tidy. */
+function shortName(name: string, max = 24): string {
+  if (name.length <= max) return name;
+  const cut = name.slice(0, max).replace(/\s+\S*$/, '');
+  return `${cut || name.slice(0, max)}…`;
 }
 
 function wait(ms: number): Promise<void> {

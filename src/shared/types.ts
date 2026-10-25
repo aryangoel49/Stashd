@@ -49,6 +49,8 @@ export interface CollectorError {
   collector: string;
   message: string;
   permissionDenied?: boolean;
+  /** A short technical reason, to help fix problems. */
+  detail?: string;
 }
 
 /** Everything that was open at one moment. */
@@ -198,6 +200,8 @@ export interface OverlayPlay {
   items: FlyItem[];
   /** Where the menu bar icon is, inside the overlay window. */
   target: { x: number; y: number };
+  /** The screen size, so the layout never depends on a stale window size. */
+  size: { width: number; height: number };
   reverse: boolean;
 }
 

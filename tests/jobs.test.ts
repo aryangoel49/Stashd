@@ -91,6 +91,14 @@ describe('suggestName', () => {
     const inbox = tab('https://x.com', '(3) Toronto flights | Expedia');
     expect(suggestName([inbox], inbox.key)).toBe('Toronto flights');
   });
+  it('prefers a saved document over the tab you were on, and shortens long tab titles', () => {
+    const reddit = tab('https://www.reddit.com/r/x', 'What exactly is a AI Researcher, are they just Data Scientists? : r/learnprogramming');
+    expect(suggestName([reddit, essay], reddit.key)).toBe('Climate essay');
+    expect(suggestName([reddit], reddit.key)).toBe('What exactly is a AI Researcher');
+    const long = tab('https://x.io', 'Artificial Intelligence (AI) | Latest news and analysis | The Economist');
+    expect(suggestName([long], long.key)).toBe('Artificial Intelligence (AI)');
+  });
+
   it('falls back for untitled things', () => {
     const u: Item = { key: 'untitled:Microsoft Word:Document1', kind: 'doc', label: 'Document1', detail: '', app: 'Microsoft Word', untitled: true };
     expect(suggestName([u], u.key)).toBe('New job');

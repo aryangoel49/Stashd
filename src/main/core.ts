@@ -261,11 +261,20 @@ export class Core {
     await this.store.saveEntry(entry);
   }
 
-  async open(jobId: string, entryId: string, mode: 'needed' | 'all'): Promise<OpenResult> {
-    const entry = await this.ensureBrief(jobId, entryId);
+  /** Which items "Unpack" (all) or "Only what I need" would open. */
+  async itemsToOpen(jobId: string, entryId: string | undefined, mode: 'needed' | 'all'): Promise<{ entry: SaveEntry; items: Item[] }> {
+    const id = entryId ?? (await this.store.entryIds(jobId))[0];
+    if (!id) throw new Error('This job has no saves yet.');
+    const entry = mode === 'needed' ? await this.ensureBrief(jobId, id) : await this.store.entry(jobId, id);
     const needed = new Set(entry.brief?.needed ?? []);
-    const items: Item[] = mode === 'all' ? entry.items : entry.items.filter((i) => needed.has(i.key));
-    const result = await openItems(items.length ? items : entry.items, entry.frontKey, this.settings.get());
+    const items = mode === 'all' ? entry.items : entry.items.filter((i) => needed.has(i.key));
+    return { entry, items: items.length ? items : entry.items };
+  }
+
+  async open(jobId: string, entryId: string | undefined, mode: 'needed' | 'all', before?: (items: Item[]) => void): Promise<OpenResult> {
+    const { entry, items } = await this.itemsToOpen(jobId, entryId, mode);
+    before?.(items);
+    const result = await openItems(items, entry.frontKey, this.settings.get());
     await this.setCurrent(jobId);
     this.notify();
     return result;

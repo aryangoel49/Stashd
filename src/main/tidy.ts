@@ -106,24 +106,48 @@ end run`;
         ? 'set p to POSIX path of ((file of d) as alias)'
         : 'set p to (path of d) as text';
   const close = app === 'Preview' ? 'close d' : 'close d saving ask';
+  // Targets hold both full paths and plain file names, so a document matches either way.
+  // Office apps that won't list their documents fall back to closing the window with that name.
+  const windowFallback =
+    fam === 'office'
+      ? `
+    if closed is 0 then
+      try
+        repeat with w in windows
+          set wn to name of w
+          if targets contains wn then
+            close w
+            set closed to closed + 1
+          end if
+        end repeat
+      end try
+    end if`
+      : '';
   return `
 on run targets
   set closed to 0
   tell application id "${id}"
-    set n to count of ${collection}
+    set n to 0
+    try
+      set n to count of ${collection}
+    end try
     repeat with i from n to 1 by -1
-      set d to item i of ${collection}
-      set p to ""
       try
-        ${pathOf}
-      end try
-      if targets contains p then
+        set d to item i of ${collection}
+        set nm to ""
         try
+          set nm to name of d
+        end try
+        set p to ""
+        try
+          ${pathOf}
+        end try
+        if targets contains p or targets contains nm then
           ${close}
           set closed to closed + 1
-        end try
-      end if
-    end repeat
+        end if
+      end try
+    end repeat${windowFallback}
   end tell
   return closed
 end run`;
@@ -187,7 +211,8 @@ on run argv
   set target to item 2 of argv
   set hfsPath to (POSIX file target) as text
   tell application id "${id}"
-    repeat with d in ${collection}
+    repeat with i from 1 to (count of ${collection})
+      set d to item i of ${collection}
       if (name of d) is docName then
         ${save}
         return "saved"
@@ -234,8 +259,10 @@ export async function closeItems(items: Item[]): Promise<TidyResult> {
   await Promise.all(
     [...byApp.entries()].map(async ([key, group]) => {
       const script = key.startsWith('tab:') ? closeTabsScript(key.slice(4) as BrowserName) : closeDocsScript(key);
-      // Tabs and OneDrive documents are matched by address, everything else by file path.
-      const targets = group.map((i) => (i.kind === 'tab' ? i.url : (i.path ?? i.url))).filter((t): t is string => !!t);
+      // Tabs and OneDrive documents are matched by address; documents also by file name.
+      const targets = group
+        .flatMap((i) => (i.kind === 'tab' ? [i.url] : i.kind === 'doc' ? [i.path ?? i.url, i.path ? path.basename(i.path) : i.label] : [i.path]))
+        .filter((t): t is string => !!t);
       if (!script || !targets.length) {
         result.failed.push(...group);
         return;

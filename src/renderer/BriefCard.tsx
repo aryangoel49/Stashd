@@ -56,11 +56,11 @@ export function BriefCard({ view, onOpened }: { view: BriefView; onOpened?: (r: 
       <Sentence brief={brief} />
 
       <div className="actions">
-        <button className="btn primary" disabled={busy !== null} onClick={() => void open('needed')}>
-          {busy === 'needed' ? <span className="spinner" /> : null} Pick up where I left off
+        <button className="btn primary" disabled={busy !== null} onClick={() => void open('all')} title="Reopen everything in this job">
+          {busy === 'all' ? <span className="spinner on-accent" /> : null} Unpack everything
         </button>
-        <button className="btn" disabled={busy !== null} onClick={() => void open('all')} title="Open everything in this job">
-          All
+        <button className="btn" disabled={busy !== null} onClick={() => void open('needed')} title="Reopen just what the brief says you need first">
+          {busy === 'needed' ? <span className="spinner" /> : null} Only what I need
         </button>
       </div>
 

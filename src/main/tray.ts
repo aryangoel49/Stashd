@@ -12,7 +12,7 @@ export class AppTray {
   private tray: Tray;
   private flashTimer: NodeJS.Timeout | null = null;
 
-  constructor(actions: { togglePanel: (anchor: Rectangle) => void; save: () => void; openMain: () => void }) {
+  constructor(actions: { togglePanel: (anchor: Rectangle) => void; save: (mode: 'save' | 'pack') => void; openMain: () => void }) {
     const img = nativeImage.createFromPath(trayIconPath());
     img.setTemplateImage(true);
     this.tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img);
@@ -23,7 +23,8 @@ export class AppTray {
     this.tray.on('right-click', () => {
       this.tray.popUpContextMenu(
         Menu.buildFromTemplate([
-          { label: 'Save what I’m working on…', click: actions.save },
+          { label: 'Pack up what I’m working on…', click: () => actions.save('pack') },
+          { label: 'Save without closing anything…', click: () => actions.save('save') },
           { label: 'Open Where Was I', click: actions.openMain },
           { type: 'separator' },
           { label: 'Quit Where Was I', role: 'quit' },

@@ -59,13 +59,14 @@ function start(): void {
     });
   }
 
-  /** ⇧⌘S: note the window order first (before our box takes the front), then show the box. */
-  function openSave(): void {
+  /** ⇧⌘S: note the window order first (before our box takes the front), then show the box.
+   *  "pack" turns Tidy up on for this save. */
+  function openSave(mode: 'save' | 'pack' | 'last' = 'last'): void {
     const early = core.helper.windows();
     early.catch(() => undefined);
     getWindow('panel')?.hide();
     core.beginSave(early);
-    showWindow('save', { onReady: (win) => win.webContents.send('save:begin') });
+    showWindow('save', { onReady: (win) => win.webContents.send('save:begin', mode) });
   }
 
   async function openBrief(): Promise<void> {
@@ -78,7 +79,7 @@ function start(): void {
     globalShortcut.unregisterAll();
     shortcutErrors = [];
     const pairs: [string, () => void][] = [
-      [s.shortcutSave, openSave],
+      [s.shortcutSave, () => openSave()],
       [s.shortcutRecap, () => void openBrief()],
     ];
     for (const [accel, fn] of pairs) {
@@ -134,6 +135,10 @@ function start(): void {
       overlayDone: () => tidy.finishOverlay(),
       testClaude: (key) => testClaudeKey(key, settings.get().aiModel),
       openSave,
+      beforeOpen: (items) => {
+        getWindow('panel')?.hide();
+        tidy.unpackAnimation(items);
+      },
     });
 
     tidy.prepare();
@@ -149,7 +154,7 @@ function start(): void {
 
     if (!app.isPackaged && process.env.WWI_CAPTURE_DIR) {
       togglePanel(tray.bounds());
-      setTimeout(openSave, 7500);
+      setTimeout(() => openSave(), 7500);
       if (process.env.WWI_DEMO_TIDY) setTimeout(() => tidy.demo(), 1000);
       setTimeout(() => showWindow('main'), 14_000);
     }
