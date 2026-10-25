@@ -1,5 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="314 336 396 352" width="396" height="352">
-  <style>path { fill: #111114; } @media (prefers-color-scheme: dark) { path { fill: #FFFFFF; } }</style>
-  <path d="M456 336H710V500H456a82 82 0 0 1 0-164z"/>
-  <path d="M314 524H568a82 82 0 0 1 0 164H314z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="6 16 84 70" width="84" height="70">
+  <!-- The bare mark: folder outline with sleepy eyes. Black in light mode, white in dark mode. -->
+  <style>g { stroke: #111114; } @media (prefers-color-scheme: dark) { g { stroke: #FFFFFF; } }</style>
+  <g fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 32 Q12 22 22 22 H36 Q41 22 44 26 L47 30 H74 Q84 30 84 40 V72 Q84 82 74 82 H22 Q12 82 12 72 Z"/>
+    <path d="M29 57 Q36 64 43 57"/>
+    <path d="M53 57 Q60 64 67 57"/>
+  </g>
 </svg>

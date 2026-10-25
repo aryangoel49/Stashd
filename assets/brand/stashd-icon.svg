@@ -1,11 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#26262C"/>
-      <stop offset="1" stop-color="#0C0C0F"/>
-    </linearGradient>
-  </defs>
-  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
-  <path d="M456 336H710V500H456a82 82 0 0 1 0-164z" fill="#FFFFFF"/>
-  <path d="M314 524H568a82 82 0 0 1 0 164H314z" fill="#FFFFFF"/>
+  <!-- Stashd: a sleepy folder on a butter-yellow tile. Drawn on a 96-unit grid, scaled into the macOS icon area. -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="#F2CD5C"/>
+  <g transform="translate(100 100) scale(8.5833)">
+    <path d="M16 33 Q16 25 24 25 H37 Q41 25 43.5 28.5 L46.5 32 H72 Q80 32 80 40 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FBEFC6"/>
+    <path d="M16 45 Q16 39 22 39 H74 Q80 39 80 45 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FFFFFF"/>
+    <g fill="none" stroke="#1C1D22" stroke-width="3" stroke-linecap="round">
+      <path d="M32 58 Q37 63 42 58"/>
+      <path d="M54 58 Q59 63 64 58"/>
+    </g>
+  </g>
 </svg>

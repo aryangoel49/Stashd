@@ -82,7 +82,7 @@ npm start
 | `npm run typecheck` | Type-checks the code |
 | `npm run lint` | Lints and checks formatting |
 | `npm run make` | Builds a DMG and zip into `out/make` |
-| `npm run icons` | Redraws the app and menu bar icons from `scripts/make-icons.mjs` |
+| `npm run icons` | Rebuilds the app and menu bar icons from the brand SVGs |
 
 ### Project map
 
@@ -117,11 +117,12 @@ The installed app ignores these.
 
 A geometric **S** made of two stacked, offset blocks: two pieces of work, put away neatly. Black and white only, so it holds up at 16px in the menu bar.
 
-- `assets/brand/stashd-icon.svg`: the app icon (vector)
+- `assets/brand/stashd-icon.svg`: the app icon, a sleepy folder on a butter-yellow tile (vector)
 - `assets/brand/stashd-mark.svg`: the bare mark, black in light mode and white in dark mode
+- `assets/brand/stashd-tray.svg`: the menu bar icon source
 - `assets/brand/stashd-hero.svg`: the animated banner above
-- `design/brand.html`: the icon brought to life with [Motion](https://motion.dev) springs. Open it in a browser and click the icon.
-- `scripts/make-icons.mjs`: draws the same mark into `icon.icns` and the menu bar template
+- `design/brand.html`: the icon brought to life. Its eyes close when work is stashed and open, look around and blink when you pick it up. Open it in a browser.
+- `scripts/make-icons.mjs`: renders those SVGs into `icon.icns` and the menu bar template (via `scripts/render-svg.swift`)
 
 Colours: graphite `#26262C → #0C0C0F` tile, white `#FFFFFF` mark, ink `#0A0A0C` backgrounds.
 

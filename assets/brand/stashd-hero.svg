@@ -1,45 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-label="Stashd: put your work away, pick it up where you left off">
   <style>
-    .top { animation: top 6s cubic-bezier(.2,.8,.2,1) infinite; }
-    .bot { animation: bot 6s cubic-bezier(.2,.8,.2,1) infinite; }
-    @keyframes top {
-      0%   { transform: translateX(260px); opacity: 0; }
-      14%  { transform: translateX(0); opacity: 1; }
-      84%  { transform: translateX(0); opacity: 1; }
-      96%, 100% { transform: translateX(260px); opacity: 0; }
+    .open { animation: open 7s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 70%; }
+    .shut { animation: shut 7s ease-in-out infinite; }
+    @keyframes open {
+      0%, 46% { opacity: 0; transform: scaleY(.06); }
+      52% { opacity: 1; transform: scaleY(1); }
+      66% { transform: scaleY(1); } 68% { transform: scaleY(.08); } 70% { transform: scaleY(1); }
+      86% { opacity: 1; transform: scaleY(1); }
+      91%, 100% { opacity: 0; transform: scaleY(.06); }
     }
-    @keyframes bot {
-      0%, 6% { transform: translateX(-260px); opacity: 0; }
-      20%  { transform: translateX(0); opacity: 1; }
-      80%  { transform: translateX(0); opacity: 1; }
-      92%, 100% { transform: translateX(-260px); opacity: 0; }
-    }
-    @media (prefers-reduced-motion: reduce) { .top, .bot { animation: none; } }
+    @keyframes shut { 0%, 46% { opacity: 1; } 49%, 89% { opacity: 0; } 93%, 100% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .open, .shut { animation: none; } .open { opacity: 0; } }
     .title { font: 650 96px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", sans-serif; letter-spacing: -3.5px; }
     .tag { font: 400 28px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", sans-serif; letter-spacing: -.2px; }
     .key { font: 500 20px -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", sans-serif; }
   </style>
-  <defs>
-    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2A2A31"/>
-      <stop offset="1" stop-color="#0C0C0F"/>
-    </linearGradient>
-    <clipPath id="sq"><rect x="100" y="100" width="824" height="824" rx="186"/></clipPath>
-  </defs>
-
   <rect width="1280" height="360" rx="24" fill="#0A0A0C"/>
   <rect x=".5" y=".5" width="1279" height="359" rx="23.5" fill="none" stroke="#FFFFFF" stroke-opacity=".08"/>
 
   <g transform="translate(64 20) scale(0.3125)">
-    <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#tile)"/>
-    <rect x="101.5" y="101.5" width="821" height="821" rx="184.5" fill="none" stroke="#FFFFFF" stroke-opacity=".10" stroke-width="3"/>
-    <g clip-path="url(#sq)">
-      <path class="top" d="M456 336H710V500H456a82 82 0 0 1 0-164z" fill="#FFFFFF"/>
-      <path class="bot" d="M314 524H568a82 82 0 0 1 0 164H314z" fill="#FFFFFF"/>
+    <rect x="100" y="100" width="824" height="824" rx="186" fill="#F2CD5C"/>
+    <g transform="translate(100 100) scale(8.5833)">
+      <path d="M16 33 Q16 25 24 25 H37 Q41 25 43.5 28.5 L46.5 32 H72 Q80 32 80 40 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FBEFC6"/>
+      <path d="M16 45 Q16 39 22 39 H74 Q80 39 80 45 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FFFFFF"/>
+      <g class="shut" fill="none" stroke="#1C1D22" stroke-width="3" stroke-linecap="round"><path d="M32 58 Q37 63 42 58"/><path d="M54 58 Q59 63 64 58"/></g>
+      <ellipse class="open" cx="37" cy="58" rx="3.8" ry="5" fill="#1C1D22"/>
+      <ellipse class="open" cx="59" cy="58" rx="3.8" ry="5" fill="#1C1D22"/>
     </g>
   </g>
 
-  <text class="title" x="440" y="178" fill="#FFFFFF">Stashd</text>
+  <text class="title" x="440" y="178" fill="#FFFFFF">stashd</text>
   <text class="tag" x="444" y="226" fill="#9A9AA3">Put your work away. Pick it up right where you left off.</text>
   <g transform="translate(444 258)" class="key">
     <rect width="60" height="38" rx="9" fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".12"/>

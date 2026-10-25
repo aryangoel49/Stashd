@@ -1,5 +1,6 @@
 <!doctype html>
-<!-- Stashd icon, live. Springs from Motion (motion.dev). Open in a browser; click the icon or the buttons. -->
+<!-- Stashd icon, live. The sleepy folder closes its eyes when work is stashed and wakes up when you pick it up.
+     Open in a browser. Same geometry as assets/brand/stashd-icon.svg (96-unit grid). -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -11,6 +12,7 @@
         --text: #111114;
         --muted: rgba(17, 17, 20, 0.55);
         --chip: rgba(17, 17, 20, 0.06);
+        --line: rgba(17, 17, 20, 0.12);
       }
       @media (prefers-color-scheme: dark) {
         :root:not([data-theme='light']) {
@@ -18,6 +20,7 @@
           --text: #ffffff;
           --muted: rgba(255, 255, 255, 0.55);
           --chip: rgba(255, 255, 255, 0.08);
+          --line: rgba(255, 255, 255, 0.14);
         }
       }
       :root[data-theme='dark'] {
@@ -25,85 +28,108 @@
         --text: #ffffff;
         --muted: rgba(255, 255, 255, 0.55);
         --chip: rgba(255, 255, 255, 0.08);
+        --line: rgba(255, 255, 255, 0.14);
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         min-height: 100vh;
-        display: grid;
-        place-items: center;
         background: var(--bg);
         color: var(--text);
-        font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, sans-serif;
-        padding: 16px;
+        font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 32px;
+        padding: 48px 16px;
       }
-      main { display: grid; justify-items: center; gap: 28px; text-align: center; }
-      /* 1u = 1/1024 of the canvas, same geometry as assets/brand/stashd-icon.svg */
-      .icon { --u: calc(min(300px, 78vw) / 1024); position: relative; width: calc(1024 * var(--u)); aspect-ratio: 1; cursor: pointer; }
-      .tile {
-        position: absolute; inset: calc(100 * var(--u)); border-radius: calc(186 * var(--u)); overflow: hidden;
-        background: linear-gradient(#26262c, #0c0c0f);
-        box-shadow: inset 0 0 0 calc(3 * var(--u)) rgba(255, 255, 255, 0.1), 0 calc(30 * var(--u)) calc(80 * var(--u)) rgba(0, 0, 0, 0.25);
-      }
-      .block { position: absolute; height: calc(164 * var(--u)); width: calc(336 * var(--u)); background: #fff; }
-      /* Positions are relative to the tile, which starts at 100u. */
-      .top { left: calc(274 * var(--u)); top: calc(236 * var(--u)); border-radius: calc(82 * var(--u)) 0 0 calc(82 * var(--u)); }
-      .bot { left: calc(214 * var(--u)); top: calc(424 * var(--u)); border-radius: 0 calc(82 * var(--u)) calc(82 * var(--u)) 0; }
-      h1 { margin: 0; font-size: 52px; font-weight: 650; letter-spacing: -1.8px; line-height: 1; }
-      p { margin: 6px 0 0; color: var(--muted); }
-      .buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+      .ic { width: min(240px, 60vw); height: auto; cursor: pointer; overflow: visible; }
+      .eye { transform-box: fill-box; transform-origin: 50% 70%; transition: transform 0.28s cubic-bezier(0.55, 0, 0.8, 0.3), opacity 0.08s linear 0.26s; }
+      .sleep .eye { transform: scaleY(0.06); opacity: 0; }
+      .awake .eye { transform: scaleY(1); opacity: 1; transition: transform 0.42s cubic-bezier(0.25, 1.6, 0.45, 1), opacity 0.05s linear; }
+      .lid path { stroke-dasharray: 13; stroke-dashoffset: 13; transition: stroke-dashoffset 0.2s ease-out; }
+      .sleep .lid path { stroke-dashoffset: 0; transition-delay: 0.22s; }
+      .blinker { transform-box: fill-box; transform-origin: 50% 70%; }
+      .awake .blinker { animation: blink 3.4s ease-in-out 0.5s infinite; }
+      .awake .eyes { animation: look 3.4s ease-in-out 0.5s infinite; }
+      .sleep .body { animation: breathe 3.6s ease-in-out infinite; transform-origin: 48px 78px; }
+      .awake .body { animation: pop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
+      @keyframes blink { 0%, 46%, 54%, 90%, 100% { transform: scaleY(1); } 50%, 94% { transform: scaleY(0.08); } }
+      @keyframes look { 0%, 12%, 100% { transform: translateX(0); } 24%, 38% { transform: translateX(-4px); } 62%, 76% { transform: translateX(4px); } }
+      @keyframes breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.02); } }
+      @keyframes pop { 0% { transform: translateY(0); } 40% { transform: translateY(-4px); } 100% { transform: translateY(0); } }
+      @media (prefers-reduced-motion: reduce) { .ic * { animation: none !important; transition: none !important; } }
+      .lockup { display: flex; align-items: center; gap: 16px; }
+      .word { font-size: 52px; font-weight: 600; letter-spacing: -1.8px; line-height: 1; }
+      .bars { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+      .bar { display: flex; align-items: center; gap: 14px; height: 30px; padding: 0 14px; border-radius: 8px; font-size: 13px; }
+      .buttons { display: flex; gap: 10px; }
       button {
-        font: inherit; font-weight: 600; color: var(--text); background: var(--chip);
-        border: 0; border-radius: 10px; padding: 9px 16px; cursor: pointer;
+        font: inherit;
+        color: var(--text);
+        background: var(--chip);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 8px 18px;
+        cursor: pointer;
       }
-      kbd { font: inherit; opacity: 0.55; margin-left: 6px; }
+      .muted { color: var(--muted); font-size: 13px; text-align: center; max-width: 420px; }
     </style>
   </head>
   <body>
-    <main>
-      <div class="icon" id="icon" role="img" aria-label="Stashd icon">
-        <div class="tile">
-          <div class="block top" id="top"></div>
-          <div class="block bot" id="bot"></div>
-        </div>
+    <svg class="ic sleep" id="icon" viewBox="0 0 96 96" role="img" aria-label="Stashd icon">
+      <rect width="96" height="96" rx="22" fill="#F2CD5C" />
+      <g class="body">
+        <path d="M16 33 Q16 25 24 25 H37 Q41 25 43.5 28.5 L46.5 32 H72 Q80 32 80 40 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FBEFC6" />
+        <path d="M16 45 Q16 39 22 39 H74 Q80 39 80 45 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FFFFFF" />
+        <g class="lid" fill="none" stroke="#1C1D22" stroke-width="3" stroke-linecap="round">
+          <path d="M32 58 Q37 63 42 58" />
+          <path d="M54 58 Q59 63 64 58" />
+        </g>
+        <g class="eyes">
+          <g class="blinker">
+            <ellipse class="eye" cx="37" cy="58" rx="3.8" ry="5" fill="#1C1D22" />
+            <ellipse class="eye" cx="59" cy="58" rx="3.8" ry="5" fill="#1C1D22" />
+          </g>
+        </g>
+      </g>
+    </svg>
+
+    <div class="buttons">
+      <button id="stash">Stash it</button>
+      <button id="unpack">Pick up</button>
+    </div>
+
+    <div class="lockup">
+      <img src="../assets/brand/stashd-icon.svg" alt="" width="64" height="64" />
+      <span class="word">stashd</span>
+    </div>
+
+    <div class="bars">
+      <div class="bar" style="background: #1d1d1f; color: #f5f5f7">
+        <span>Wi-Fi</span>
+        <svg width="18" height="18" viewBox="4 10 88 80" aria-hidden="true"><g fill="none" stroke="#f5f5f7" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 32 Q12 22 22 22 H36 Q41 22 44 26 L47 30 H74 Q84 30 84 40 V72 Q84 82 74 82 H22 Q12 82 12 72 Z" /><path d="M29 57 Q36 64 43 57" /><path d="M53 57 Q60 64 67 57" /></g></svg>
+        <span>Mon 9:41</span>
       </div>
-      <div>
-        <h1>Stashd</h1>
-        <p>Put your work away. Pick it up right where you left off.</p>
+      <div class="bar" style="background: #ececee; color: #1d1d1f">
+        <span>Wi-Fi</span>
+        <svg width="18" height="18" viewBox="4 10 88 80" aria-hidden="true"><g fill="none" stroke="#1d1d1f" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 32 Q12 22 22 22 H36 Q41 22 44 26 L47 30 H74 Q84 30 84 40 V72 Q84 82 74 82 H22 Q12 82 12 72 Z" /><path d="M29 57 Q36 64 43 57" /><path d="M53 57 Q60 64 67 57" /></g></svg>
+        <span>Mon 9:41</span>
       </div>
-      <div class="buttons">
-        <button id="stash">Stash<kbd>⌃S</kbd></button>
-        <button id="pickup">Pick up<kbd>⌃W</kbd></button>
-      </div>
-    </main>
+    </div>
 
-    <script type="module">
-      import { animate } from 'https://cdn.jsdelivr.net/npm/motion@12.23.12/+esm';
+    <p class="muted">Asleep while your work is stashed. Wakes up, looks around and blinks when you pick it up. Click the icon to toggle.</p>
 
-      const top = document.getElementById('top');
-      const bot = document.getElementById('bot');
-      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const spring = reduced ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 26 };
-      let stashed = false;
-
-      // Stash: the two blocks slide in from opposite sides and lock into the S.
-      async function stash() {
-        stashed = true;
-        animate(top, { x: ['120%', '0%'], opacity: [0, 1] }, spring);
-        await animate(bot, { x: ['-120%', '0%'], opacity: [0, 1] }, { ...spring, delay: reduced ? 0 : 0.08 });
-      }
-
-      // Pick up: they slide back out the way they came.
-      async function pickUp() {
-        stashed = false;
-        animate(top, { x: '120%', opacity: 0 }, spring);
-        await animate(bot, { x: '-120%', opacity: 0 }, spring);
-      }
-
-      document.getElementById('stash').onclick = () => !stashed && stash();
-      document.getElementById('pickup').onclick = () => stashed && pickUp();
-      document.getElementById('icon').onclick = () => (stashed ? pickUp().then(stash) : stash());
-      stash();
+    <script>
+      const icon = document.getElementById('icon');
+      let hold = 0;
+      const set = (state) => icon.setAttribute('class', `ic ${state}`);
+      const isAwake = () => icon.classList.contains('awake');
+      document.getElementById('stash').onclick = () => { hold = Date.now() + 6000; set('sleep'); };
+      document.getElementById('unpack').onclick = () => { hold = Date.now() + 7000; set('awake'); };
+      icon.onclick = () => { hold = Date.now() + 6000; set(isAwake() ? 'sleep' : 'awake'); };
+      setInterval(() => { if (Date.now() >= hold) set(isAwake() ? 'sleep' : 'awake'); }, 4200);
     </script>
   </body>
 </html>
