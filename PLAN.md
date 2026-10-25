@@ -84,6 +84,9 @@ It learns from corrections. Untick or add something twice and it does that by it
 
 ---
 
+## Prototype 1: built (25 Oct)
+All five phases of `design/BUILD-PROMPT-v1.md` are done and committed (git log shows one save per phase). Still to try on a real Mac: the macOS permission prompts, closing real windows with Tidy up, naming an untitled Word file, a real Claude brief, and Apple Intelligence once it's turned on.
+
 ## Prototype 1 defaults (25 Oct)
 The build prompt is in `design/BUILD-PROMPT-v1.md`. Until we decide otherwise, prototype 1 uses: the save box **B1** (floating bar), brief shape **C1** (one sentence plus next step), accent **indigo** (teal and coral selectable in Settings), and the glass look from `design/mockups-v2.html`. "Where you stopped" is not in prototype 1.
 
