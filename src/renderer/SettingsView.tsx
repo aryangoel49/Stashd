@@ -1,15 +1,12 @@
 // Settings, inside the app window. Changes save as you make them.
 
 import { useEffect, useState, type ReactNode } from 'react';
-import type { Accent, AppInfo, Settings } from '../shared/types';
+import type { AppInfo, Settings } from '../shared/types';
 import { CLAUDE_MODELS, modelInfo } from '../shared/models';
+import { Switch } from './components/ui/switch';
+import { Button } from './ui';
 import { api, errorText, prettyShortcut, useSettings } from './api';
 
-const ACCENTS: { id: Accent; color: string; name: string }[] = [
-  { id: 'indigo', color: '#5e6ad2', name: 'Indigo' },
-  { id: 'teal', color: '#2a9d8f', name: 'Teal' },
-  { id: 'coral', color: '#e07a5f', name: 'Coral' },
-];
 
 export function SettingsView() {
   const s = useSettings();
@@ -51,7 +48,7 @@ export function SettingsView() {
           Briefs are written by <b>{writerNow(info, s.aiModel)}</b>
           <span className="faint small" style={{ display: 'block' }}>
             {!info.hasApiKey && info.appleAi !== 'available' && 'Connect Claude below, or turn on Apple Intelligence, for smarter briefs. '}
-            Sorting what belongs to which job always happens on your Mac, using a small built-in model. Free, offline and private.
+            Sorting what belongs in which folder always happens on your Mac, using a small built-in model. Free, offline and private.
           </span>
         </span>
       </div>
@@ -62,31 +59,14 @@ export function SettingsView() {
         <div className="srow">
           <span>{info.appleAi === 'available' ? 'Ready on this Mac' : info.appleAi === 'unknown' ? 'Checking…' : 'Not available right now'}</span>
           {info.appleAi !== 'available' && (
-            <button className="btn small" onClick={() => void api.openAppleAiSettings()}>
+            <Button size="small" onClick={() => void api.openAppleAiSettings()}>
               Open Apple Intelligence settings
-            </button>
+            </Button>
           )}
         </div>
         {info.appleAi !== 'available' && <p className="faint small" style={{ margin: '4px 0 0' }}>Turn on Apple Intelligence in System Settings. It may need a few minutes to download.</p>}
       </Card>
 
-      <Card title="Look">
-        <div className="srow">
-          <span>Accent colour</span>
-          <span style={{ display: 'inline-flex', gap: 10 }}>
-            {ACCENTS.map((a) => (
-              <button
-                key={a.id}
-                className={`swatch ${s.accent === a.id ? 'on' : ''}`}
-                style={{ background: a.color }}
-                aria-label={a.name}
-                title={a.name}
-                onClick={() => void update({ accent: a.id })}
-              />
-            ))}
-          </span>
-        </div>
-      </Card>
 
       <Card title="Keyboard shortcuts" hint="These work from any app. Use names like Control, Alt (Option), Shift and Command, joined with +.">
         <TextRow label={`Save what I'm working on (${prettyShortcut(s.shortcutSave)})`} value={s.shortcutSave} onSave={(v) => void update({ shortcutSave: v })} />
@@ -98,7 +78,7 @@ export function SettingsView() {
         ))}
       </Card>
 
-      <Card title="Everyday apps and sites" hint="These are never part of a job and are never closed by Tidy up. The app also learns these as you go. One per line.">
+      <Card title="Everyday apps and sites" hint="These never go in a folder and are never closed by Pack up. The app also learns these as you go. One per line.">
         <ListRow label="Apps" value={s.lifestyleApps} onSave={(v) => void update({ lifestyleApps: v })} />
         <ListRow label="Sites" value={s.lifestyleSites} onSave={(v) => void update({ lifestyleSites: v })} />
       </Card>
@@ -111,19 +91,19 @@ export function SettingsView() {
         <Toggle label="Keep the part of addresses after ?" hint="Off by default: only the parts that say which page it is (like a YouTube video) are kept. Secrets are removed either way." on={s.keepQueryStrings} onChange={(v) => void update({ keepQueryStrings: v })} />
         <div className="srow">
           <span>Permission to see your tabs and files</span>
-          <button className="btn small" onClick={() => void api.openAutomationSettings()}>
+          <Button size="small" onClick={() => void api.openAutomationSettings()}>
             Open System Settings
-          </button>
+          </Button>
         </div>
       </Card>
 
       <Card title="General">
         <Toggle label="Open Stashd when I log in" hint="Works in the installed app." on={s.launchAtLogin} onChange={(v) => void update({ launchAtLogin: v })} />
         <div className="srow">
-          <span>Delete every saved job</span>
-          <button className="btn small danger" onClick={() => void api.deleteAll()}>
+          <span>Delete every saved folder</span>
+          <Button variant="danger" size="small" onClick={() => void api.deleteAll()}>
             Delete everything…
-          </button>
+          </Button>
         </div>
       </Card>
 
@@ -153,16 +133,16 @@ function ClaudeCard({ connected, model, onChange, onModel }: { connected: boolea
   };
 
   return (
-    <Card title="Claude" hint="Connect your own Claude account for the best briefs and job names. You pay Anthropic directly, a tiny amount per brief.">
+    <Card title="Claude" hint="Connect your own Claude account for the best briefs and folder names. You pay Anthropic directly, a tiny amount per brief.">
       {connected ? (
         <div className="srow">
           <span>
             <span className="live" style={{ display: 'inline-block', marginRight: 8 }} />
             Connected
           </span>
-          <button className="btn small" disabled={busy} onClick={() => void connect('')}>
+          <Button size="small" disabled={busy} onClick={() => void connect('')}>
             Disconnect
-          </button>
+          </Button>
         </div>
       ) : (
         <>
@@ -183,9 +163,9 @@ function ClaudeCard({ connected, model, onChange, onModel }: { connected: boolea
             }}
           >
             <input className="field" type="password" placeholder="sk-ant-…" value={key} onChange={(e) => setKey(e.target.value)} />
-            <button className="btn primary" type="submit" disabled={busy || !key.trim()}>
+            <Button variant="primary" type="submit" disabled={busy || !key.trim()}>
               {busy ? <span className="spinner" /> : 'Connect'}
-            </button>
+            </Button>
           </form>
           <details className="faint small" style={{ marginTop: 10 }}>
             <summary>What gets sent to Claude</summary>
@@ -246,9 +226,7 @@ function Toggle({ label, hint, on, onChange }: { label: string; hint?: string; o
         {label}
         {hint && <span className="faint small" style={{ display: 'block' }}>{hint}</span>}
       </span>
-      <button className={`switch ${on ? 'on' : ''}`} onClick={() => onChange(!on)} aria-pressed={on} aria-label={label}>
-        <span className="track" />
-      </button>
+      <Switch checked={on} onCheckedChange={onChange} aria-label={label} />
     </div>
   );
 }

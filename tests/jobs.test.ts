@@ -128,6 +128,12 @@ describe('suggestName', () => {
       tab('https://soccerstreams.net/', 'Soccer Streams | Soccer Live Streams Reddit'),
     ];
     expect(suggestName(soccer, soccer[0].key)).toBe('Soccer Streams');
+    const sea = [
+      tab('https://www.jstor.org/stable/1', 'Sea level rise in coastal cities | JSTOR'),
+      tab('https://scholar.google.com/x', 'Coastal flooding projections 2050 - Google Scholar'),
+      tab('https://www.youtube.com/watch?v=abc', 'How sea levels are rising - YouTube'),
+    ];
+    expect(suggestName(sea, sea[0].key)).toBe('Sea level rise');
   });
 
   it('falls back to a document name when there is no clear shared topic', () => {
@@ -138,15 +144,15 @@ describe('suggestName', () => {
   it('prefers a saved document over the tab you were on, and shortens long tab titles', () => {
     const reddit = tab('https://www.reddit.com/r/x', 'What exactly is a AI Researcher, are they just Data Scientists? : r/learnprogramming');
     expect(suggestName([reddit, essay], reddit.key)).toBe('Climate essay');
-    expect(suggestName([reddit], reddit.key)).toBe('What exactly is a AI Researcher');
+    expect(suggestName([reddit], reddit.key)).toBe('AI Researcher');
     const long = tab('https://x.io', 'Artificial Intelligence (AI) | Latest news and analysis | The Economist');
     expect(suggestName([long], long.key)).toBe('Artificial Intelligence (AI)');
   });
 
   it('falls back for untitled things', () => {
     const u: Item = { key: 'untitled:Microsoft Word:Document1', kind: 'doc', label: 'Document1', detail: '', app: 'Microsoft Word', untitled: true };
-    expect(suggestName([u], u.key)).toBe('New job');
-    expect(suggestName([], null)).toBe('New job');
+    expect(suggestName([u], u.key)).toBe('New folder');
+    expect(suggestName([], null)).toBe('New folder');
   });
 });
 

@@ -346,7 +346,10 @@ export class Core {
   async itemsToOpen(jobId: string, entryId: string | undefined, mode: 'needed' | 'all'): Promise<{ entry: SaveEntry; items: Item[] }> {
     const id = entryId ?? (await this.store.entryIds(jobId))[0];
     if (!id) throw new Error('This job has no saves yet.');
-    const entry = mode === 'needed' ? await this.ensureBrief(jobId, id) : await this.store.entry(jobId, id);
+    // Never wait for a brief to be written: Unpack should feel instant. Without one yet, open everything
+    // and let the brief arrive in the background.
+    const entry = await this.store.entry(jobId, id);
+    if (!entry.brief) void this.ensureBrief(jobId, id).catch(() => undefined);
     const needed = new Set(entry.brief?.needed ?? []);
     const items = mode === 'all' ? entry.items : entry.items.filter((i) => needed.has(i.key));
     return { entry, items: items.length ? items : entry.items };

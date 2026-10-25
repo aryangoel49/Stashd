@@ -1,0 +1,24 @@
+/* Tailwind for the shadcn/ui components. No preflight (base reset): the rest of the app keeps its own
+   styles in styles.css. shadcn's colour names point at Stashd's butter-yellow palette. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@source './';
+
+@theme inline {
+  --color-background: var(--tint);
+  --color-foreground: var(--text);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-secondary: var(--well);
+  --color-secondary-foreground: var(--text);
+  --color-accent: var(--well-hover);
+  --color-accent-foreground: var(--text);
+  --color-muted-foreground: var(--muted);
+  --color-destructive: var(--danger);
+  --color-border: var(--hair);
+  --color-input: var(--well);
+  --color-ring: var(--accent-line);
+  --radius-md: 11px;
+  --radius-lg: 14px;
+}

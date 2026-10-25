@@ -1,12 +1,21 @@
-// The glass panel under the menu bar icon: your jobs, and the brief for the one you pick.
+// The panel under the menu bar icon: your folders, and the brief for the one you pick.
 
 import { useCallback, useEffect, useState } from 'react';
 import type { BriefView, JobSummary, Settings } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useFitWindow, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
+import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
 
 export function Panel() {
+  return (
+    <Motion>
+      <PanelView />
+    </Motion>
+  );
+}
+
+function PanelView() {
   const settings = useSettings();
   const ref = useFitWindow<HTMLDivElement>();
   const [jobs, setJobs] = useState<JobSummary[] | null>(null);
@@ -67,25 +76,27 @@ export function Panel() {
 
   return (
     <div ref={ref} className="panel">
-      {selected ? (
-        <div className="slide-in">
-          <div className="panel-head" style={{ paddingBottom: 2 }}>
-            <button className="btn ghost small" onClick={() => setSelected(null)} style={{ paddingLeft: 2 }}>
-              <Icon name="back" /> Jobs
-            </button>
-            {view && <JobMenu view={view} onGone={() => setSelected(null)} />}
-          </div>
-          {view ? (
-            <BriefCard view={view} current={jobs?.find((j) => j.id === view.job.id)?.current ?? false} />
-          ) : (
-            <div className="muted small" style={{ padding: '18px 8px' }}>
-              <span className="spinner" /> Writing your brief…
+      <Swap id={selected ?? 'list'} direction={selected ? 1 : -1}>
+        {selected ? (
+          <div>
+            <div className="panel-head" style={{ paddingBottom: 2 }}>
+              <Button variant="ghost" size="small" onClick={() => setSelected(null)} style={{ paddingLeft: 2 }}>
+                <Icon name="back" /> Folders
+              </Button>
+              {view && <JobMenu view={view} onGone={() => setSelected(null)} />}
             </div>
-          )}
-        </div>
-      ) : (
-        <JobList jobs={jobs} settings={settings} showDone={showDone} setShowDone={setShowDone} onPick={setSelected} />
-      )}
+            {view ? (
+              <BriefCard view={view} current={jobs?.find((j) => j.id === view.job.id)?.current ?? false} />
+            ) : (
+              <div className="muted small" style={{ padding: '18px 8px' }}>
+                <span className="spinner" /> Getting your folder…
+              </div>
+            )}
+          </div>
+        ) : (
+          <JobList jobs={jobs} settings={settings} showDone={showDone} setShowDone={setShowDone} onPick={setSelected} />
+        )}
+      </Swap>
       {error && <div className="banner">{error}</div>}
     </div>
   );
@@ -104,54 +115,56 @@ function JobList(props: {
   return (
     <>
       <div className="panel-head">
-        <span className="display" style={{ fontSize: 14 }}>Stashd</span>
-        <span className="faint tiny">
-          <span className="kbd">{prettyShortcut(settings.shortcutSave)}</span>
+        <span className="brand">
+          <FolderMark size={22} />
+          <span className="display" style={{ fontSize: 14 }}>Stashd</span>
+        </span>
+        <span className="faint tiny" title="Stash and pick up from any app">
+          <Kbd>{prettyShortcut(settings.shortcutSave)}</Kbd> <Kbd>{prettyShortcut(settings.shortcutRecap)}</Kbd>
         </span>
       </div>
       <div className="pack-actions">
-        <button className="btn primary pack-btn" onClick={() => void api.openWindow('pack')} title="Save what's open and tidy it away">
+        <Button variant="primary" className="pack-btn" onClick={() => void api.openWindow('pack')} title="Save what's open and close it">
           <Icon name="stack" /> Pack up
-        </button>
-        <button className="btn pack-btn" onClick={() => void api.openWindow('save')} title="Save what's open and keep it open">
-          Save only
-        </button>
+        </Button>
+        <Button className="pack-btn" onClick={() => void api.openWindow('save')} title="Save what's open and keep it open">
+          Save
+        </Button>
       </div>
 
       {jobs && jobs.length === 0 && (
-        <div className="empty">
-          <div className="display">Nothing saved yet</div>
+        <motion.div className="empty" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+          <FolderMark size={52} />
+          <div className="display" style={{ marginTop: 12 }}>Nothing stashed yet</div>
           <p>
-            When you're in the middle of something, press <span className="kbd">{prettyShortcut(settings.shortcutSave)}</span>. Your tabs and files go into a
-            job, and you get a short brief when you come back.
+            In the middle of something? Press <Kbd>{prettyShortcut(settings.shortcutSave)}</Kbd> and your tabs and files go into a folder, ready for when you come back.
           </p>
-          <button className="btn primary" onClick={() => void api.openWindow('save')}>
-            Save what's open
-          </button>
-        </div>
+        </motion.div>
       )}
 
-      {active.map((j) => (
-        <JobRow key={j.id} job={j} onPick={onPick} />
+      {active.map((j, i) => (
+        <motion.div key={j.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.03 }}>
+          <JobRow job={j} onPick={onPick} />
+        </motion.div>
       ))}
 
       {done.length > 0 && (
         <>
-          <button className="btn ghost small" style={{ justifyContent: 'flex-start' }} onClick={() => setShowDone(!showDone)}>
-            {showDone ? 'Hide' : 'Show'} done ({done.length})
-          </button>
+          <Button variant="ghost" size="small" style={{ justifyContent: 'flex-start' }} onClick={() => setShowDone(!showDone)}>
+            {showDone ? 'Hide' : 'Show'} finished ({done.length})
+          </Button>
           {showDone && done.map((j) => <JobRow key={j.id} job={j} onPick={onPick} />)}
         </>
       )}
 
       <div className="hr" />
       <div className="panel-foot">
-        <button className="btn small" onClick={() => void api.openWindow('main')}>All jobs</button>
-        <button className="btn small" onClick={() => void api.openWindow('settings')} title="Settings">
+        <Button size="small" onClick={() => void api.openWindow('main')}>All folders</Button>
+        <Button size="small" onClick={() => void api.openWindow('settings')} title="Settings">
           <Icon name="gear" /> Settings
-        </button>
+        </Button>
         <span style={{ flex: 1 }} />
-        <button className="btn ghost tiny" onClick={() => void api.quit()}>Quit</button>
+        <Button variant="ghost" className="tiny" onClick={() => void api.quit()}>Quit</Button>
       </div>
     </>
   );
@@ -159,6 +172,7 @@ function JobList(props: {
 
 function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void }) {
   const [busy, setBusy] = useState(false);
+  const [opened, setOpened] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(job.name);
 
@@ -178,9 +192,7 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
       onKeyDown={(e) => e.key === 'Enter' && !renaming && onPick(job.id)}
       style={job.done ? { opacity: 0.6 } : undefined}
     >
-      <span className="icon">
-        <Icon name={job.icon} />
-      </span>
+      <FolderMark size={30} awake={job.current} />
       <span className="grow">
         {renaming ? (
           <input
@@ -188,7 +200,7 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
             autoFocus
             value={name}
             maxLength={80}
-            aria-label="Job name"
+            aria-label="Folder name"
             onFocus={(e) => e.target.select()}
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => setName(e.target.value)}
@@ -203,40 +215,50 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
           <span className="name" style={{ display: 'block' }}>{job.name}</span>
         )}
         <span className="hint" style={{ display: 'block' }}>
-          {renaming ? 'Enter to save, Esc to cancel' : `${job.current ? 'Open now' : timeAgo(job.updatedAt)}${job.hint ? ` · ${job.hint}` : ''}`}
+          {renaming ? 'Enter to save, Esc to cancel' : (opened ?? `${job.current ? 'Open now' : timeAgo(job.updatedAt)}${job.hint ? ` · ${job.hint}` : ''}`)}
         </span>
       </span>
       {!renaming && job.current && <span className="live" />}
       {!renaming &&
         (job.current ? (
-          <button
-            className="btn small unpack-btn pack"
-            title="Save this job and tidy it away"
+          <Button
+            size="small"
+            className="unpack-btn pack"
+            title="Save this folder and close its windows"
             onClick={(e) => {
               e.stopPropagation();
               void api.openWindow('pack');
             }}
           >
             Pack up
-          </button>
+          </Button>
         ) : (
-          <button
-            className="btn small unpack-btn"
+          <Button
+            size="small"
+            className="unpack-btn"
             disabled={busy}
-            title="Reopen everything in this job"
+            title="Open what you need to carry on"
             onClick={(e) => {
               e.stopPropagation();
               setBusy(true);
-              void api.openJob(job.id, null, 'all').finally(() => setBusy(false));
+              void api
+                .openJob(job.id, null, 'needed')
+                .then((r) => {
+                  const missing = r.missing.length + r.failed.length;
+                  setOpened(`Opened ${r.opened + r.alreadyOpen}${missing ? `, ${missing} not found` : ''}`);
+                  setTimeout(() => setOpened(null), 4000);
+                })
+                .catch(() => setOpened("Couldn't open this folder"))
+                .finally(() => setBusy(false));
             }}
           >
             {busy ? <span className="spinner" /> : 'Unpack'}
-          </button>
+          </Button>
         ))}
       {!renaming && (
         <span className="row-tools">
-          <button
-            className="btn ghost tool-btn"
+          <Button variant="ghost" size="small"
+            className="tool-btn"
             title="Rename"
             aria-label={`Rename ${job.name}`}
             onClick={(e) => {
@@ -246,9 +268,9 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
             }}
           >
             <Icon name="pencil" />
-          </button>
-          <button
-            className="btn ghost tool-btn delete"
+          </Button>
+          <Button variant="ghost" size="small"
+            className="tool-btn delete"
             title={`Delete ${job.name}`}
             aria-label={`Delete ${job.name}`}
             onClick={(e) => {
@@ -257,7 +279,7 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
             }}
           >
             <Icon name="trash" />
-          </button>
+          </Button>
         </span>
       )}
     </div>
@@ -278,7 +300,7 @@ function JobMenu({ view, onGone }: { view: BriefView; onGone: () => void }) {
         }}
       >
         <input className="field small" style={{ width: 170, padding: '4px 8px' }} autoFocus value={name} onChange={(e) => setName(e.target.value)} />
-        <button className="btn small" type="submit">Save</button>
+        <Button size="small" type="submit">Save</Button>
       </form>
     );
   }
@@ -286,16 +308,16 @@ function JobMenu({ view, onGone }: { view: BriefView; onGone: () => void }) {
     <div style={{ display: 'flex', gap: 2 }}>
       {open ? (
         <>
-          <button className="btn ghost tiny" onClick={() => setRenaming(true)}>Rename</button>
-          <button className="btn ghost tiny" onClick={() => void api.setDone(view.job.id, !view.job.done).then(onGone)}>
+          <Button variant="ghost" size="small" className="tiny" onClick={() => setRenaming(true)}>Rename</Button>
+          <Button variant="ghost" size="small" className="tiny" onClick={() => void api.setDone(view.job.id, !view.job.done).then(onGone)}>
             {view.job.done ? 'Not done' : 'Mark done'}
-          </button>
-          <button className="btn ghost tiny danger" onClick={() => void api.deleteJob(view.job.id).then((gone) => gone && onGone())}>Delete</button>
+          </Button>
+          <Button variant="danger" size="small" className="tiny" onClick={() => void api.deleteJob(view.job.id).then((gone) => gone && onGone())}>Delete</Button>
         </>
       ) : (
-        <button className="btn ghost" aria-label="More" onClick={() => setOpen(true)}>
+        <Button variant="ghost" aria-label="More" onClick={() => setOpen(true)}>
           <Icon name="more" />
-        </button>
+        </Button>
       )}
     </div>
   );

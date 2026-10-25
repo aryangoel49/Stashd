@@ -189,13 +189,37 @@ export function suggestName(items: Item[], frontKey: string | null): string {
   const front = items.find((i) => i.key === frontKey);
   const isDoc = (i?: Item) => !!i && (i.kind === 'doc' || i.kind === 'folder') && !i.untitled;
   const pick = (isDoc(front) ? front : items.find((i) => isDoc(i))) ?? front ?? items[0];
-  if (!pick) return 'New job';
+  if (!pick) return 'New folder';
   let name = pick.label;
   if (pick.kind === 'doc' || pick.kind === 'folder') name = name.replace(/\.[A-Za-z0-9]{1,5}$/, '');
-  if (pick.kind === 'tab') name = shortTitle(name);
+  if (pick.kind === 'tab') name = conciseTitle(shortTitle(name));
   name = name.replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
-  if (!name || /^(document|untitled|new tab)\s*\d*$/i.test(name)) return 'New job';
+  if (!name || /^(document|untitled|new tab)\s*\d*$/i.test(name)) return 'New folder';
   return name.slice(0, 60);
+}
+
+/**
+ * A tab title is a sentence, not a name: "What exactly is a AI Researcher" becomes "AI Researcher".
+ * Filler words are dropped from both ends and at most four words are kept.
+ */
+const FILLER = new Set(['a', 'an', 'the', 'and', 'for', 'with', 'what', 'when', 'where', 'which', 'is', 'are', 'i', 'me', 'your', 'this', 'that']);
+
+function conciseTitle(title: string): string {
+  const out = trimFiller(title.split(/\s+/).filter(Boolean)).join(' ');
+  return out.charAt(0).toUpperCase() + out.slice(1);
+}
+
+/** Drops filler words from both ends and keeps at most four words. */
+function trimFiller(input: string[]): string[] {
+  let words = input;
+  const filler = (w: string) => {
+    const l = w.toLowerCase().replace(/[^a-z]/g, '');
+    return !l || TOPIC_STOP.has(l) || FILLER.has(l);
+  };
+  while (words.length > 1 && filler(words[0])) words = words.slice(1);
+  words = words.slice(0, 4);
+  while (words.length > 1 && filler(words[words.length - 1])) words = words.slice(0, -1);
+  return words;
 }
 
 /** Words that say nothing about the topic. */
@@ -256,6 +280,8 @@ export function topicName(items: Item[]): string | null {
   let phrase = best.words.slice(idx[0], idx[idx.length - 1] + 1);
   if (phrase.length > 5) phrase = phrase.filter(isHit).slice(0, 4);
   phrase = phrase.map((w) => w.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '')).filter(Boolean);
+  // Folder names stay short: three words at most, never ending on a filler word.
+  phrase = trimFiller(trimFiller(phrase).slice(0, 3));
   // A single word is only a good name when most things mention it.
   if (phrase.length === 1 && (df.get(textTokens(phrase[0])[0] ?? '') ?? 0) < 3) return null;
   const text = phrase.join(' ');

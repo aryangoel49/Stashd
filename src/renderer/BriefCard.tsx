@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Brief, BriefView, OpenResult } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
+import { Button, motion, Reveal } from './ui';
 
 /** Shows the sentence with its key words in the accent colour. */
 export function Sentence({ brief }: { brief: Brief }) {
@@ -57,39 +58,39 @@ export function BriefCard({ view, onOpened, current = false }: { view: BriefView
 
       {current ? (
         <div className="actions">
-          <button className="btn primary" onClick={() => void api.openWindow('pack')} title="Save this job and tidy it away">
-            Pack up
-          </button>
-          <button className="btn" onClick={() => void api.openWindow('save')} title="Save without closing anything">
-            Save only
-          </button>
+          <Button variant="primary" onClick={() => void api.openWindow('pack')} title="Save this folder and close its windows">
+            <Icon name="stack" /> Pack up
+          </Button>
+          <Button onClick={() => void api.openWindow('save')} title="Save without closing anything">
+            Save
+          </Button>
         </div>
       ) : (
       <div className="actions">
-        <button className="btn primary" disabled={busy !== null} onClick={() => void open('all')} title="Reopen everything in this job">
-          {busy === 'all' ? <span className="spinner on-accent" /> : null} Unpack everything
-        </button>
-        <button className="btn" disabled={busy !== null} onClick={() => void open('needed')} title="Reopen just what the brief says you need first">
-          {busy === 'needed' ? <span className="spinner" /> : null} Only what I need
-        </button>
+        <Button variant="primary" disabled={busy !== null} onClick={() => void open('needed')} title="Open what you need to carry on">
+          {busy === 'needed' ? <span className="spinner on-accent" /> : null} Unpack
+        </Button>
+        <Button disabled={busy !== null} onClick={() => void open('all')} title="Open everything in this folder">
+          {busy === 'all' ? <span className="spinner" /> : null} Open everything
+        </Button>
       </div>
       )}
 
       {result && (
-        <div className="muted small fade-in" style={{ marginTop: 10 }}>
+        <motion.div className="muted small" style={{ marginTop: 10 }} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
           Opened {result.opened}
           {result.alreadyOpen ? `, ${result.alreadyOpen} already open` : ''}.
           {result.missing.length > 0 && ` Not found: ${result.missing.join(', ')}.`}
           {result.failed.length > 0 && ` Couldn't open: ${result.failed.join(', ')}.`}
-        </div>
+        </motion.div>
       )}
       {error && <div className="banner" style={{ marginTop: 10 }}>{error}</div>}
 
-      <button className="btn ghost small" style={{ marginTop: 8, paddingLeft: 0 }} onClick={() => setShowItems(!showItems)}>
+      <Button variant="ghost" size="small" style={{ marginTop: 8, paddingLeft: 0 }} onClick={() => setShowItems(!showItems)}>
         {showItems ? 'Hide' : 'Show'} what's inside ({entry.items.length})
-      </button>
-      {showItems && (
-        <div className="items-list fade-in">
+      </Button>
+      <Reveal show={showItems}>
+        <div className="items-list">
           {entry.items.map((it) => (
             <div key={it.key} className={`item-row ${needed.has(it.key) ? 'need' : ''}`} title={it.detail}>
               <Icon name={it.kind} />
@@ -98,7 +99,7 @@ export function BriefCard({ view, onOpened, current = false }: { view: BriefView
             </div>
           ))}
         </div>
-      )}
+      </Reveal>
 
       <div className="foot">
         <span title={brief.fallbackReason}>{SOURCE[brief.source]}</span>
@@ -121,7 +122,7 @@ export function BriefCard({ view, onOpened, current = false }: { view: BriefView
           }}
         >
           <input className="field small" autoFocus placeholder="What was wrong?" value={comment} maxLength={400} onChange={(e) => setComment(e.target.value)} />
-          <button className="btn small" type="submit">Send</button>
+          <Button size="small" type="submit">Send</Button>
         </form>
       )}
     </div>

@@ -73,8 +73,8 @@ export function buildPromptData(entry: SaveEntry, previous: SaveEntry | null, fe
 }
 
 export const NAME_INSTRUCTIONS = `You name a piece of work someone is doing on their Mac, from the titles of the browser tabs and documents they have open.
-Reply with a short, natural name of 2 to 4 words that says what the work is about, like "AI augmentation essay", "Toronto trip" or "Resume update".
-Use the shared topic across the titles. Ignore unrelated tabs. No quotes, no emoji, no punctuation at the end.`;
+Reply with a short folder name of 1 to 3 words that says what the work is about, like "Climate essay", "Toronto trip" or "Resume update".
+Never copy a tab title. Use the shared topic across the titles and ignore unrelated tabs. Sentence case, no quotes, no emoji, no punctuation at the end.`;
 
 export const NAME_SCHEMA = {
   type: 'object',

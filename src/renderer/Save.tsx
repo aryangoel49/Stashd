@@ -1,30 +1,25 @@
-// The save box (⌃S): a name, "Context for the robot", Tidy up, and Enter.
+// The save box (⌃S). A new folder: name it and pick what goes in. An existing folder: one keypress.
+// Pack up saves and closes the windows; Save keeps them open.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CollectorError, Item, SavePreview } from '../shared/types';
 import { api, errorText, useFitWindow, useSettings } from './api';
 import { Icon } from './icons';
+import { AnimatePresence, Button, countText, ease, FolderMark, motion, Motion, Pill, Reveal } from './ui';
 
-const EXAMPLES = [
-  'halfway through paragraph 3…',
-  "waiting on Sam's reply before I send this",
-  'need 2 more sources on sea levels',
-  'flights booked, hotel still to pick',
-  'stuck on question 4, ask in office hours',
-];
+const EXAMPLES = ['halfway through paragraph 3', "waiting on Sam's reply", 'need 2 more sources', 'hotel still to pick', 'stuck on question 4'];
 
-function summary(items: Item[]): string {
-  const docs = items.filter((i) => i.kind === 'doc' || i.kind === 'folder').length;
-  const tabs = items.filter((i) => i.kind === 'tab').length;
-  const apps = items.filter((i) => i.kind === 'app').length;
-  const parts = [];
-  if (docs) parts.push(`${docs} ${docs === 1 ? 'file' : 'files'}`);
-  if (tabs) parts.push(`${tabs} ${tabs === 1 ? 'tab' : 'tabs'}`);
-  if (apps) parts.push(`${apps} ${apps === 1 ? 'app' : 'apps'}`);
-  return parts.join(' · ') || 'nothing selected';
-}
+type Mode = 'save' | 'pack' | 'last';
 
 export function Save() {
+  return (
+    <Motion>
+      <SaveBox />
+    </Motion>
+  );
+}
+
+function SaveBox() {
   useSettings();
   const ref = useFitWindow<HTMLFormElement>();
   const nameRef = useRef<HTMLInputElement>(null);
@@ -32,10 +27,11 @@ export function Save() {
   const [preview, setPreview] = useState<SavePreview | null>(null);
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
-  const [tidy, setTidy] = useState(false);
+  const [packFirst, setPackFirst] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState(false);
   const [state, setState] = useState<'loading' | 'ready' | 'saving' | 'saved'>('loading');
+  const [packing, setPacking] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -48,25 +44,48 @@ export function Save() {
   const [error, setError] = useState<string | null>(null);
   const [example, setExample] = useState(0);
 
-  const modeRef = useRef<'save' | 'pack' | 'last'>('last');
+  const modeRef = useRef<Mode>('last');
   // Once you type in the name, an AI suggestion never replaces it.
   const nameTouched = useRef(false);
   const [aiNaming, setAiNaming] = useState(false);
+
+  const commit = async (p: SavePreview, opts: { name: string; note: string; keys: string[]; tidy: boolean }) => {
+    setPacking(opts.tidy);
+    setState('saving');
+    try {
+      await api.commitSave({ jobId: p.jobId, name: opts.name, note: opts.note, keys: opts.keys, tidy: opts.tidy });
+      setState('saved');
+      // With Pack up, get out of the way quickly so the windows can be seen flying into the menu bar.
+      closeTimer.current = setTimeout(() => void api.closeWindow(), opts.tidy ? 450 : 900);
+    } catch (e) {
+      setError(errorText(e));
+      setState('ready');
+    }
+  };
+
   const load = async (opts: { asNew?: boolean; jobId?: string } = {}) => {
     setError(null);
     try {
       const p = await api.previewSave(opts);
+      const keys = [...p.sure, ...p.kept].map((i) => i.key);
       setPreview(p);
       setName(p.suggestedName);
-      setTidy(modeRef.current === 'pack' ? true : modeRef.current === 'save' ? false : p.tidyUp);
-      setPicked(new Set([...p.sure, ...p.kept].map((i) => i.key)));
-      // Show the list straight away when there's something to decide: related things, kept things,
-      // or when adding to an existing job.
-      setExpanded(p.likely.length > 0 || p.kept.length > 0 || p.jobId !== null);
-      setState('ready');
+      setPicked(new Set(keys));
+      const pack = modeRef.current === 'pack' ? true : modeRef.current === 'save' ? false : p.tidyUp;
+      setPackFirst(pack);
       nameTouched.current = false;
+
+      // Pack up on a folder you already have, with nothing to decide: just do it.
+      if (modeRef.current === 'pack' && p.jobId && keys.length && !p.likely.length && !opts.asNew && !opts.jobId) {
+        await commit(p, { name: p.suggestedName, note: '', keys, tidy: true });
+        return;
+      }
+
+      // A new folder always shows what will go in it. An existing one only when there's something to decide.
+      setExpanded(!p.jobId || p.likely.length > 0 || p.kept.length > 0);
+      setState('ready');
       if (!p.jobId && p.sure.length) {
-        // A new job: ask Claude or Apple Intelligence (if set up) for a better name, in the background.
+        // Ask Claude or Apple Intelligence (if set up) for a short folder name, in the background.
         setAiNaming(true);
         void api
           .aiName(p.sure.map((i) => i.key))
@@ -76,7 +95,7 @@ export function Save() {
           .catch(() => undefined)
           .finally(() => setAiNaming(false));
       }
-      setTimeout(() => noteRef.current?.focus(), 0);
+      setTimeout(() => (p.jobId ? noteRef.current : nameRef.current)?.focus(), 0);
     } catch (e) {
       setError(errorText(e));
       setState('ready');
@@ -84,7 +103,7 @@ export function Save() {
   };
 
   useEffect(() => {
-    const begin = (mode: 'save' | 'pack' | 'last' = 'last') => {
+    const begin = (mode: Mode = 'last') => {
       // A new save started before the last one's box closed: don't let that close this one.
       if (closeTimer.current) clearTimeout(closeTimer.current);
       closeTimer.current = null;
@@ -124,25 +143,16 @@ export function Save() {
 
   const all = useMemo(() => (preview ? [...preview.sure, ...preview.likely, ...preview.maybe, ...preview.kept] : []), [preview]);
   const chosen = all.filter((i) => picked.has(i.key));
-  const maybeCount = preview ? [...preview.likely, ...preview.maybe].filter((i) => !picked.has(i.key)).length : 0;
   const likelyLeft = preview?.likely.filter((i) => !picked.has(i.key)) ?? [];
+  const isNew = !preview?.jobId;
 
-  const save = async () => {
+  const save = (tidy: boolean) => {
     if (!preview || state !== 'ready') return;
     if (!name.trim()) {
       nameRef.current?.focus();
       return;
     }
-    setState('saving');
-    try {
-      await api.commitSave({ jobId: preview.jobId, name: name.trim(), note, keys: chosen.map((i) => i.key), tidy });
-      setState('saved');
-      // With Tidy up, get out of the way quickly so the animation is visible.
-      closeTimer.current = setTimeout(() => void api.closeWindow(), tidy ? 250 : 700);
-    } catch (e) {
-      setError(errorText(e));
-      setState('ready');
-    }
+    void commit(preview, { name: name.trim(), note, keys: chosen.map((i) => i.key), tidy });
   };
 
   const toggle = (key: string) =>
@@ -153,180 +163,181 @@ export function Save() {
       return next;
     });
 
-  if (state === 'saved') {
-    return (
-      <form ref={ref} className="save">
-        <div className="saved fade-in">
-          <span className="saved-check">
-            <Icon name="check" />
-          </span>
-          <span>
-            {tidy ? 'Packing up' : 'Saved to'} <b>{name}</b>
-          </span>
-        </div>
-      </form>
-    );
-  }
-
   return (
     <form
       ref={ref}
       className="save drag"
       onSubmit={(e) => {
         e.preventDefault();
-        void save();
+        save(packFirst);
       }}
     >
-      {state === 'loading' ? (
-        <div className="muted" style={{ padding: '6px 4px' }}>
-          <span className="spinner" /> Looking at what's open…
-          {slow && (
-            <div className="small fade-in" style={{ marginTop: 8 }}>
-              If macOS asks to let Stashd see your apps, click <b>OK</b>. It only asks once per app.
-            </div>
-          )}
-        </div>
-      ) : (
-        <>
-          <input
-            ref={nameRef}
-            className="title-input no-drag"
-            value={name}
-            maxLength={80}
-            onChange={(e) => {
-              nameTouched.current = true;
-              setName(e.target.value);
-            }}
-            aria-label="Job name"
-            spellCheck={false}
-          />
-
-          {aiNaming && (
-            <div className="faint tiny fade-in" style={{ padding: '0 4px', marginTop: -8 }}>
-              Thinking of a name…
-            </div>
-          )}
-
-          {preview && preview.jobOptions.length > 0 && (
-            <div className="save-to no-drag">
-              <span className="muted small">Save to</span>
-              <select
-                className="field small save-to-select"
-                value={preview.jobId ?? 'new'}
-                aria-label="Save to"
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setState('loading');
-                  void load(v === 'new' ? { asNew: true } : { jobId: v });
-                }}
-              >
-                <option value="new">New job</option>
-                {preview.jobOptions.map((j) => (
-                  <option key={j.id} value={j.id}>
-                    {j.name}
-                    {j.current ? '  (open now)' : j.match === 'strong' ? '  (looks like a match)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <input
-            ref={noteRef}
-            className="field no-drag"
-            value={note}
-            maxLength={2000}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={`Context for the robot 🤖  ${EXAMPLES[example]}`}
-            aria-label="Context for the robot"
-          />
-
-          {expanded && preview && (
-            <div className="groups no-drag fade-in">
-              <div className="group">
-                <div className="section-label">In this job</div>
-                <Pills items={[...preview.sure, ...preview.kept]} picked={picked} frontKey={preview.frontKey} why={preview.why} onToggle={toggle} />
-              </div>
-              {preview.likely.length > 0 && (
-                <div className="group likely-box">
-                  <div className="section-label likely-label">
-                    <span>Probably related</span>
-                    {likelyLeft.length > 0 && (
-                      <button type="button" className="link small" onClick={() => setPicked((prev) => new Set([...prev, ...likelyLeft.map((i) => i.key)]))}>
-                        Add all
-                      </button>
-                    )}
-                  </div>
-                  <Pills items={preview.likely} picked={picked} frontKey={preview.frontKey} why={preview.why} onToggle={toggle} />
-                </div>
+      <AnimatePresence mode="wait" initial={false}>
+        {state === 'loading' && (
+          <motion.div key="loading" className="save-status" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={ease}>
+            <motion.span animate={{ y: [0, -3, 0] }} transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}>
+              <FolderMark size={30} />
+            </motion.span>
+            <span>
+              <span className="save-status-title">Looking at what's open…</span>
+              {slow && (
+                <motion.span className="muted small" style={{ display: 'block' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  If macOS asks to let Stashd see your apps, click <b>OK</b>. It only asks once.
+                </motion.span>
               )}
-              {preview.maybe.length > 0 && (
-                <div className="group muted-group">
-                  <div className="section-label">Probably not part of this job</div>
-                  <Pills items={preview.maybe} picked={picked} frontKey={preview.frontKey} why={preview.why} onToggle={toggle} />
-                </div>
-              )}
-              {preview.hiddenCount > 0 && (
-                <div className="faint tiny" style={{ padding: '0 4px' }}>
-                  {preview.hiddenCount} everyday {preview.hiddenCount === 1 ? 'thing' : 'things'} left out (like music and email)
-                </div>
-              )}
-            </div>
-          )}
-
-          {preview && <PermissionNote errors={preview.errors} />}
-          {error && <div className="banner no-drag">{error}</div>}
-
-          <div className="row no-drag">
-            <button type="button" className={`switch ${tidy ? 'on' : ''}`} onClick={() => setTidy(!tidy)} aria-pressed={tidy}>
-              <span className="track" /> Tidy up after saving
-            </button>
-            <span style={{ display: 'inline-flex', gap: 10, alignItems: 'center' }}>
-              <button type="button" className="summary" onClick={() => setExpanded(!expanded)} title="See what's included">
-                {summary(chosen)}
-                {maybeCount > 0 && ` · ${maybeCount} left out`}
-                <span style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(-90deg)', display: 'inline-flex' }}>
-                  <Icon name="back" />
-                </span>
-              </button>
-              <button type="submit" className="btn primary" disabled={state !== 'ready' || chosen.length === 0}>
-                {state === 'saving' ? (
-                  <>
-                    <span className="spinner on-accent" /> {tidy ? 'Packing…' : 'Saving…'}
-                  </>
-                ) : (
-                  <>
-                    {tidy ? 'Pack up' : 'Save'} <span style={{ opacity: 0.7 }}>↵</span>
-                  </>
-                )}
-              </button>
             </span>
-          </div>
-        </>
-      )}
+          </motion.div>
+        )}
+
+        {(state === 'saving' || state === 'saved') && (
+          <motion.div key="done" className="save-status" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+            <motion.span initial={{ scale: 0.6, rotate: -8 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
+              <FolderMark size={30} awake={!packing} />
+            </motion.span>
+            <span>
+              <span className="save-status-title">
+                {state === 'saving' ? (packing ? 'Packing up' : 'Saving') : packing ? 'Packed' : 'Saved'} <b>{name}</b>
+              </span>
+              <span className="muted small" style={{ display: 'block' }}>
+                {packing ? 'Your windows are flying into the menu bar.' : `${countText(chosen)} saved. Everything stays open.`}
+              </span>
+            </span>
+          </motion.div>
+        )}
+
+        {state === 'ready' && (
+          <motion.div key="ready" className="save-body" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={ease}>
+            <div className="save-head">
+              <FolderMark size={34} awake />
+              <div className="grow">
+                <div className="eyebrow">
+                  {isNew ? 'New folder' : 'Adding to'}
+                  {aiNaming && <span className="faint"> · thinking of a name…</span>}
+                </div>
+                <input
+                  ref={nameRef}
+                  className="title-input no-drag"
+                  value={name}
+                  maxLength={60}
+                  onChange={(e) => {
+                    nameTouched.current = true;
+                    setName(e.target.value);
+                  }}
+                  aria-label="Folder name"
+                  spellCheck={false}
+                />
+              </div>
+              {preview && preview.jobOptions.length > 0 && (
+                <select
+                  className="field small save-to-select no-drag"
+                  value={preview.jobId ?? 'new'}
+                  aria-label="Save to"
+                  title="Choose a different folder"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setState('loading');
+                    void load(v === 'new' ? { asNew: true } : { jobId: v });
+                  }}
+                >
+                  <option value="new">New folder</option>
+                  {preview.jobOptions.map((j) => (
+                    <option key={j.id} value={j.id}>
+                      {j.name}
+                      {j.current ? ' (open now)' : j.match === 'strong' ? ' (looks like a match)' : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {isNew && <p className="save-intro">I'll make a new folder for this. Tap anything to leave it out.</p>}
+
+            <input
+              ref={noteRef}
+              className="field no-drag"
+              value={note}
+              maxLength={2000}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={`Note for later, like “${EXAMPLES[example]}”`}
+              aria-label="Note for later"
+            />
+
+            <Reveal show={expanded && !!preview}>
+              {preview && (
+                <div className="groups no-drag">
+                  <Group label={isNew ? 'Going in' : 'In this folder'}>
+                    <Pills items={[...preview.sure, ...preview.kept]} picked={picked} preview={preview} onToggle={toggle} />
+                  </Group>
+                  {preview.likely.length > 0 && (
+                    <div className="likely-box">
+                      <div className="section-label likely-label">
+                        <span>Might belong here</span>
+                        {likelyLeft.length > 0 && (
+                          <button type="button" className="link small" onClick={() => setPicked((prev) => new Set([...prev, ...likelyLeft.map((i) => i.key)]))}>
+                            Add all
+                          </button>
+                        )}
+                      </div>
+                      <Pills items={preview.likely} picked={picked} preview={preview} onToggle={toggle} />
+                    </div>
+                  )}
+                  {preview.maybe.length > 0 && (
+                    <Group label="Probably something else" muted>
+                      <Pills items={preview.maybe} picked={picked} preview={preview} onToggle={toggle} />
+                    </Group>
+                  )}
+                  {preview.hiddenCount > 0 && (
+                    <div className="faint tiny" style={{ padding: '0 4px' }}>
+                      Left out {preview.hiddenCount} everyday {preview.hiddenCount === 1 ? 'thing' : 'things'}, like music and email.
+                    </div>
+                  )}
+                </div>
+              )}
+            </Reveal>
+
+            {preview && <PermissionNote errors={preview.errors} />}
+            {error && <div className="banner no-drag">{error}</div>}
+
+            <div className="save-foot no-drag">
+              <button type="button" className="summary" onClick={() => setExpanded(!expanded)} title={expanded ? 'Hide the list' : "See what's going in"}>
+                {countText(chosen)}
+                <motion.span animate={{ rotate: expanded ? 90 : -90 }} style={{ display: 'inline-flex' }}>
+                  <Icon name="back" />
+                </motion.span>
+              </button>
+              <span className="grow" />
+              <Button variant={packFirst ? 'secondary' : 'primary'} type={packFirst ? 'button' : 'submit'} disabled={!chosen.length} onClick={packFirst ? () => save(false) : undefined} title="Save and keep everything open">
+                Save {!packFirst && <span className="enter">↵</span>}
+              </Button>
+              <Button variant={packFirst ? 'primary' : 'secondary'} type={packFirst ? 'submit' : 'button'} disabled={!chosen.length} onClick={packFirst ? undefined : () => save(true)} title="Save and close these windows">
+                <Icon name="stack" /> Pack up {packFirst && <span className="enter">↵</span>}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </form>
   );
 }
 
-function Pills(props: { items: Item[]; picked: Set<string>; frontKey: string | null; why: Record<string, string>; onToggle: (k: string) => void }) {
-  const { items, picked, frontKey, why, onToggle } = props;
+function Group({ label, muted, children }: { label: string; muted?: boolean; children: React.ReactNode }) {
   return (
-    <div className="pills">
-      {items.map((i) => {
-        const on = picked.has(i.key);
-        const reason = i.notOpen ? 'Not open right now, kept in the job. Click to drop it.' : (why[i.key] ?? '');
-        const tip = [i.label, i.detail, i.key === frontKey ? 'You were on this last' : '', reason].filter(Boolean).join('\n');
-        return (
-          <button key={i.key} type="button" className={`pill ${on ? 'in' : 'out'}`} onClick={() => onToggle(i.key)} title={tip} aria-pressed={on}>
-            <span className="pill-mark">{on ? <Icon name="check" /> : <Icon name="plus" />}</span>
-            <Icon name={i.kind} className="i kind" />
-            <span className="pill-label">{i.label}</span>
-            {i.notOpen && <span className="pill-tag">closed</span>}
-            {i.key === frontKey && <span className="pill-dot" title="You were on this last" />}
-          </button>
-        );
-      })}
+    <div className={`group ${muted ? 'muted-group' : ''}`}>
+      <div className="section-label">{label}</div>
+      {children}
     </div>
+  );
+}
+
+function Pills({ items, picked, preview, onToggle }: { items: Item[]; picked: Set<string>; preview: SavePreview; onToggle: (k: string) => void }) {
+  return (
+    <motion.div layout className="pills">
+      {items.map((i) => {
+        const reason = i.notOpen ? 'Not open right now, kept in the folder. Tap to drop it.' : (preview.why[i.key] ?? '');
+        const tip = [i.label, i.detail, i.key === preview.frontKey ? 'You were on this last' : '', reason].filter(Boolean).join('\n');
+        return <Pill key={i.key} item={i} on={picked.has(i.key)} front={i.key === preview.frontKey} tip={tip} onToggle={() => onToggle(i.key)} />;
+      })}
+    </motion.div>
   );
 }
 
@@ -343,10 +354,10 @@ function PermissionNote({ errors }: { errors: CollectorError[] }) {
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
   return (
     <div className="banner no-drag">
-      <span>Stashd isn't allowed to see inside {list} yet. Turn it on in System Settings, then save again.</span>
-      <button type="button" className="btn small" onClick={() => void api.openAutomationSettings()}>
+      <span>Stashd can't see inside {list} yet. Allow it in System Settings, then try again.</span>
+      <Button size="small" onClick={() => void api.openAutomationSettings()}>
         Open Settings
-      </button>
+      </Button>
     </div>
   );
 }

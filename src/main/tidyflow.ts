@@ -43,7 +43,7 @@ export class TidyFlow {
       try {
         await this.tidy(jobId, entryId);
       } catch {
-        this.toast({ title: 'Could not tidy up', detail: 'Your job is saved. Its windows stay open.', canUndo: false });
+        this.toast({ title: "Couldn't pack up", detail: 'Your folder is saved. Its windows stay open.', canUndo: false });
       }
     });
     return this.queue;
@@ -87,7 +87,7 @@ export class TidyFlow {
     // Only things that are actually open get closed (kept items that were already closed are skipped).
     const closable = entry.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen);
     if (!closable.length) {
-      this.toast({ title: 'Nothing to tidy', detail: `${job.name} is saved. Its windows stay open.`, canUndo: false });
+      this.toast({ title: 'Nothing to close', detail: `${job.name} is saved. Its windows stay open.`, canUndo: false });
       return;
     }
     const animation = this.play(closable, false);
@@ -98,7 +98,7 @@ export class TidyFlow {
     const left = failed.length + entry.items.filter((i) => i.untitled).length;
     this.toast({
       title: `${shortName(job.name)} · ${closed.length} packed`,
-      detail: left ? `${left} stayed open.` : 'Everything else is still open.',
+      detail: left ? `${left} stayed open. Undo brings them all back.` : 'Tucked away. Undo brings them back.',
       canUndo: closed.length > 0,
     });
   }
@@ -201,7 +201,7 @@ export class TidyFlow {
     const animation = this.play(u.items, true);
     await openItems(u.items, u.frontKey, this.core.settings.get());
     await animation;
-    this.toast({ title: 'Brought back', detail: `${u.items.length} ${u.items.length === 1 ? 'item' : 'items'} reopened.`, canUndo: false });
+    this.toast({ title: 'Unpacked', detail: `${u.items.length} ${u.items.length === 1 ? 'item' : 'items'} reopened.`, canUndo: false });
   }
 
   /** Development only: show the tidy screens with pretend data, without touching any real window. */

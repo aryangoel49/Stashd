@@ -23,8 +23,8 @@ export class AppTray {
     this.tray.on('right-click', () => {
       this.tray.popUpContextMenu(
         Menu.buildFromTemplate([
-          { label: 'Pack up what I’m working on…', click: () => actions.save('pack') },
-          { label: 'Save without closing anything…', click: () => actions.save('save') },
+          { label: 'Pack up…', click: () => actions.save('pack') },
+          { label: 'Save and keep open…', click: () => actions.save('save') },
           { label: 'Open Stashd', click: actions.openMain },
           { type: 'separator' },
           { label: 'Quit Stashd', role: 'quit' },

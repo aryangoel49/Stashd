@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NamingRequest, OverlayPlay, ToastInfo } from '../shared/types';
 import { api, useFitWindow, useSettings } from './api';
-import { Icon } from './icons';
+import { Button, FolderMark, motion } from './ui';
 
 function usePayload<T>(): T | null {
   const [p, setP] = useState<T | null>(null);
@@ -72,12 +72,12 @@ export function Naming() {
       <div className="row no-drag">
         <span className="faint small">Saved in {req.folder}</span>
         <span style={{ display: 'inline-flex', gap: 8 }}>
-          <button type="button" className="btn" onClick={() => void api.finishNaming(req.items.map(() => null))} title="Leave these windows open">
+          <Button onClick={() => void api.finishNaming(req.items.map(() => null))} title="Leave these windows open">
             Skip
-          </button>
-          <button type="submit" className="btn primary">
-            Save and tidy <span style={{ opacity: 0.7 }}>↵</span>
-          </button>
+          </Button>
+          <Button variant="primary" type="submit">
+            Save and pack <span style={{ opacity: 0.7 }}>↵</span>
+          </Button>
         </span>
       </div>
     </form>
@@ -188,16 +188,16 @@ export function Toast() {
   if (!info) return null;
   return (
     <div className="toast" key={key}>
-      <span className="icon" style={{ width: 34, height: 34, color: 'var(--accent)' }}>
-        <Icon name={info.canUndo ? 'stack' : 'check'} />
-      </span>
+      <motion.span initial={{ scale: 0.6, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
+        <FolderMark size={34} awake={!info.canUndo} />
+      </motion.span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span className="toast-title">{info.title}</span>
         <span className="muted small toast-detail">{info.detail}</span>
       </span>
       {info.canUndo ? (
-        <button
-          className="btn small"
+        <Button
+          size="small"
           tabIndex={-1}
           disabled={busy}
           onClick={() => {
@@ -206,11 +206,11 @@ export function Toast() {
           }}
         >
           Undo
-        </button>
+        </Button>
       ) : (
-        <button className="btn ghost close" tabIndex={-1} aria-label="Close" onClick={() => void api.dismissToast()}>
+        <Button variant="ghost" className="close" tabIndex={-1} aria-label="Close" onClick={() => void api.dismissToast()}>
           ✕
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 // The app window: a bigger version of the menu bar panel. Jobs on the left; the brief, what's
-// inside and the history on the right. Drag an item onto another job to move it.
+// inside and the history on the right. Drag an item onto another folder to move it.
 
 import { useCallback, useEffect, useState } from 'react';
 import type { BriefView, JobSummary } from '../shared/types';
@@ -64,12 +64,12 @@ export function Main() {
     <div className="main-grid">
       <aside className="side">
         <div className="drag" style={{ height: 46 }} />
-        <div className="side-title">Jobs</div>
+        <div className="side-title">Folders</div>
         <div className="side-list">
           {active.map(row)}
           {done.length > 0 && <div className="side-title" style={{ marginTop: 14 }}>Done</div>}
           {done.map(row)}
-          {jobs.length === 0 && <div className="faint small" style={{ padding: '6px 12px' }}>No jobs yet</div>}
+          {jobs.length === 0 && <div className="faint small" style={{ padding: '6px 12px' }}>No folders yet</div>}
         </div>
         <div className="side-foot">
           <button className={`side-row ${selected === 'settings' ? 'on' : ''}`} onClick={() => setSelected('settings')}>
@@ -133,7 +133,7 @@ function JobDetail({ jobId, jobs }: { jobId: string; jobs: JobSummary[] }) {
       <section>
         <div className="section-head">
           <h3>What's inside</h3>
-          {latest && others.length > 0 && <span className="faint tiny">Drag an item onto another job to move it</span>}
+          {latest && others.length > 0 && <span className="faint tiny">Drag an item onto another folder to move it</span>}
         </div>
         <div className="chips">
           {view.entry.items.map((it) => (

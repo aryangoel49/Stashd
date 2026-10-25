@@ -113,12 +113,12 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('jobs:delete', async (event, id) => {
     const jobId = v.jobId(id);
     const job = await core.store.get(jobId);
-    if (!(await confirm(event, `Delete "${job.name}"?`, 'Its saves and history are removed. Your files and tabs are not touched.', 'Delete job'))) return false;
+    if (!(await confirm(event, `Delete "${job.name}"?`, 'Its saves and history are removed. Your files and tabs are not touched.', 'Delete folder'))) return false;
     await core.deleteJob(jobId);
     return true;
   });
   handle('data:deleteAll', async (event) => {
-    if (!(await confirm(event, 'Delete everything Stashd has saved?', 'All jobs, their history, what Stashd has learned and your Claude key are removed, including the copy left by Where Was I. Your settings are kept. This cannot be undone.', 'Delete everything'))) return false;
+    if (!(await confirm(event, 'Delete everything Stashd has saved?', 'All folders, their history, what Stashd has learned and your Claude key are removed, including the copy left by Where Was I. Your settings are kept. This cannot be undone.', 'Delete everything'))) return false;
     await core.deleteAll();
     return true;
   });
