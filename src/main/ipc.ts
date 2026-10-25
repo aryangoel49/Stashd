@@ -6,7 +6,7 @@ import type { AppInfo } from '../shared/types';
 import * as v from '../shared/validate';
 import type { Core } from './core';
 import type { SecretStore } from './secrets';
-import { fitHeight, holdWindow, isAppUrl, routeOf, showWindow } from './windows';
+import { fitHeight, getWindow, holdWindow, isAppUrl, routeOf, showWindow } from './windows';
 
 const AUTOMATION_SETTINGS = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Automation';
 const APPLE_AI_SETTINGS = 'x-apple.systempreferences:com.apple.Siri-Settings.extension';
@@ -29,7 +29,7 @@ function handle(channel: string, fn: Handler): void {
 
 export interface IpcHooks {
   shortcutErrors: () => string[];
-  appleStatus: () => AppInfo['appleAi'];
+  appleStatus: () => Promise<AppInfo['appleAi']>;
   afterSave: (result: { jobId: string; entryId: string; tidy: boolean }) => void;
   payload: (route: string) => unknown;
   finishNaming: (names: (string | null)[]) => void;
@@ -56,7 +56,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('app:info', async (): Promise<AppInfo> => ({
     version: app.getVersion(),
     hasApiKey: await secrets.has(),
-    appleAi: hooks.appleStatus(),
+    appleAi: await hooks.appleStatus(),
     shortcutErrors: hooks.shortcutErrors(),
   }));
 
@@ -67,6 +67,8 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     const k = v.apiKey(key);
     if (k) await hooks.testClaude(k);
     await secrets.set(k);
+    // Connecting (after reading what gets sent) is the user's go-ahead for Claude briefs.
+    await core.settings.update({ aiDisclosureAccepted: k !== '' });
     return secrets.has();
   });
   handle('claude:openKeysPage', async () => {
@@ -96,6 +98,8 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     core.feedback(v.jobId(id), v.entryId(entry), v.bool(helpful, 'helpful'), comment == null ? undefined : v.str(comment, 'comment', 500)),
   );
   handle('jobs:open', (_e, id, entry, mode) => core.open(v.jobId(id), v.entryId(entry), v.openMode(mode)));
+  handle('jobs:removeItem', (_e, id, key) => core.removeItem(v.jobId(id), v.str(key, 'item', 4200)));
+  handle('jobs:moveItem', (_e, from, key, to) => core.moveItem(v.jobId(from), v.str(key, 'item', 4200), v.jobId(to)));
   handle('jobs:rename', (_e, id, name) => core.rename(v.jobId(id), v.jobName(name)));
   handle('jobs:done', (_e, id, done) => core.setDone(v.jobId(id), v.bool(done, 'done')));
   handle('jobs:delete', async (event, id) => {
@@ -113,8 +117,10 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
 
   handle('window:open', (_e, route) => {
     if (route === 'save') hooks.openSave();
-    else if (route === 'main') showWindow('main');
-    else throw new Error('bad window');
+    else if (route === 'main' || route === 'settings') {
+      getWindow('panel')?.hide();
+      showWindow('main', { onReady: (w) => w.webContents.send('main:show', route) });
+    } else throw new Error('bad window');
     return true;
   });
   handle('window:close', (event) => {

@@ -139,7 +139,7 @@ function JobList(props: {
       <div className="hr" />
       <div className="panel-foot">
         <button className="btn small" onClick={() => void api.openWindow('main')}>All jobs</button>
-        <button className="btn small" onClick={() => void api.openWindow('main')} title="Settings">
+        <button className="btn small" onClick={() => void api.openWindow('settings')} title="Settings">
           <Icon name="gear" /> Settings
         </button>
         <span style={{ flex: 1 }} />

@@ -282,6 +282,38 @@ export class Core {
     return entry;
   }
 
+  /** Take an item out of a job's latest save, and remember not to suggest it again. */
+  async removeItem(jobId: string, key: string): Promise<void> {
+    const latest = await this.store.latest(jobId);
+    if (!latest) return;
+    latest.items = latest.items.filter((i) => i.key !== key);
+    if (latest.frontKey === key) latest.frontKey = latest.items[0]?.key ?? null;
+    if (latest.brief) latest.brief.needed = latest.brief.needed.filter((k) => k !== key);
+    await this.store.saveEntry(latest);
+    const job = await this.store.get(jobId);
+    job.prefs.hide[key] = 2;
+    delete job.prefs.add[key];
+    await this.store.put(job);
+    this.notify();
+  }
+
+  /** Move an item from one job to another (both learn from it). */
+  async moveItem(fromJobId: string, key: string, toJobId: string): Promise<void> {
+    if (fromJobId === toJobId) return;
+    const from = await this.store.latest(fromJobId);
+    const item = from?.items.find((i) => i.key === key);
+    if (!item) throw new Error('That item is no longer in this job.');
+    const to = await this.store.latest(toJobId);
+    if (!to) throw new Error('The other job has no saves yet.');
+    if (!to.items.some((i) => i.key === key)) to.items.push(item);
+    await this.store.saveEntry(to);
+    const toJob = await this.store.get(toJobId);
+    toJob.prefs.add[key] = 2;
+    delete toJob.prefs.hide[key];
+    await this.store.put(toJob);
+    await this.removeItem(fromJobId, key);
+  }
+
   async rename(jobId: string, name: string): Promise<void> {
     const job = await this.store.get(jobId);
     job.name = name;

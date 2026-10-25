@@ -1,51 +1,48 @@
 # Where Was I?
 
-A menu bar app for your Mac. When you stop working on a project, it saves a **snapshot**: what you were about to do next (your note), which files you just edited, your git status, and your open browser tabs. When you come back, it tells you where you were, what changed since, and reopens your tabs and files in one click.
+A menu bar app for your Mac. Press **⇧⌘S** to save the work you're in the middle of: your open tabs, documents and apps, plus a quick note. Later, click the menu bar icon and pick the job. A short brief tells you where you left off, and one click reopens what you need.
 
-Everything stays on your Mac. The only time it uses the internet is the optional AI recap, and only after you add your own Claude API key.
+Everything stays on your Mac. The only time it uses the internet is for Claude briefs, and only after you connect your own Claude key.
 
 ---
 
-## Install it (the normal way)
+## Install it
 
-1. Open the `out/make/dmg/arm64` folder in Finder and double-click **Where Was I.dmg**.
-2. Drag **Where Was I** into **Applications**.
-3. **The first time only:** open Applications, **right-click** (or Control-click) Where Was I, choose **Open**, then click **Open** again.
-   The app isn't signed with a paid Apple developer certificate, so a normal double-click shows "can't be opened because Apple cannot check it". Right-click → Open tells macOS you trust it. After the first time, it opens normally.
-   If macOS still won't open it, go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway** next to Where Was I.
-4. A small clock-with-an-arrow icon appears in your menu bar (top right of the screen). There's no Dock icon. That's on purpose.
+1. In Finder, open `out/make/dmg/arm64` inside this folder and double-click **Where Was I.dmg**.
+2. Drag **Where Was I** into **Applications**. If it asks, click **Replace** to update the older version.
+3. **First time only:** in Applications, **right-click** Where Was I, choose **Open**, then click **Open** again.
+   The app isn't signed with a paid Apple developer certificate, so a normal double-click is blocked the first time. If macOS still refuses, go to **System Settings → Privacy & Security** and click **Open Anyway**.
+4. A small clock-with-an-arrow icon appears in your menu bar. There's no Dock icon, on purpose.
 
-## First-time setup
-
-1. Click the menu bar icon → **Settings…** → **Add a project folder…** and pick a coding folder. Add as many as you like.
-2. The first time you save while Chrome, Arc or Safari is open, macOS asks **"Where Was I wants to control Google Chrome"**. Click **OK** so it can read your tab titles and addresses. (It never reads passwords, history, cookies or page contents.)
-   If you clicked "Don't Allow" by mistake, the app shows a yellow banner with an **Open System Settings** button. Turn Where Was I on under **Privacy & Security → Automation**.
-
-## Everyday use
+## Using it
 
 | You want to… | Do this |
 |---|---|
-| Save where you are | Press **⌘⇧S** (Command + Shift + S), type what you were about to do next, press **Enter**. Esc cancels. |
-| See where you were | Press **⌘⇧W**, or click the menu bar icon → **Where was I?** → pick a project. |
-| Get your tabs and files back | In the recap, tick what you want under **Reopen** and click **Reopen selected** (up to 20 at a time). |
-| Look at an older snapshot | Click it in the **Timeline**. |
-| Delete a project's snapshots | Settings → Project folders → **Delete snapshots** (it asks to confirm). |
+| Save what you're working on | Press **⇧⌘S**, add a note in "Context for the robot 🤖" if you like, press **Enter**. |
+| Also clear your screen | Turn on **Tidy up after saving** in that box. Your tabs and files fly into the menu bar icon. **Undo** brings them back for 10 seconds. |
+| See where you were | Click the menu bar icon and pick a job, or press **⇧⌘W**. |
+| Get back to work | Click **Pick up where I left off** (just what you need) or **All**. |
+| Fix what's in a job | Click **All jobs**. Remove items with ✕, or drag them onto another job. |
+| Rename, finish or delete a job | In the job's brief, click **…** |
 
-Note: ⌘⇧S and ⌘⇧W work from every app, so they replace those keys' normal job in other apps. For example, ⌘⇧W normally closes a whole Chrome window. You can change both shortcuts in Settings.
+**The first time** you save with Chrome, Safari, Word and so on open, macOS asks *"Where Was I wants to control Google Chrome"* (once per app). Click **OK**. That's how it reads tab addresses and which files are open. If you clicked "Don't Allow", the save box shows a button that opens the right System Settings page.
 
-## Optional extras (all off by default, in Settings)
+**What it learns:** everyday apps and sites (Spotify, Messages, Gmail…) are never part of a job and are never closed. If you keep leaving something out, it stops suggesting it. If you keep adding something, it starts ticking it for you.
 
-- **Automatic snapshots:** saves by itself when the screen locks, the Mac sleeps, or you've been idle 15 minutes. It only does this if a project file changed in the last hour, and at most once per project every 30 minutes.
-- **Recent terminal commands:** includes your last few zsh commands, with passwords and tokens removed.
-- **AI recap:** paste a Claude API key (from console.anthropic.com) and turn it on. Then **Ask Claude** appears on the recap. The first time, it shows exactly what will be sent. It sends file names, git status, tab titles and addresses, and your note, all with secrets removed. It never sends file contents. The default model is `claude-haiku-5-5`, which is fast and cheap. The key is stored encrypted in your Mac keychain. If anything fails, you still get the offline recap.
+## Briefs
+
+The brief is written by, in order:
+1. **Claude**, if you connected it (Settings → Claude). It costs about $0.0003 a brief. It gets file names, tab titles and addresses with secrets removed, and your note. Never what's inside your files.
+2. **Apple Intelligence** on your Mac, if it's turned on. Free and offline.
+3. A **basic brief** written from a template, so there's always something.
+
+The bottom of each brief says which one wrote it. Clicking **No** under "Helpful?" lets you say what was wrong, and the next brief for that job takes it into account.
 
 ---
 
 ## For working on the code
 
-You need Node.js. It's installed in `~/.local/node`, and new Terminal windows find it automatically.
-
-Open **Terminal**, then:
+Node.js is in `~/.local/node`, and new Terminal windows find it automatically. Open Terminal:
 
 ```bash
 cd ~/Documents/where-was-i
@@ -53,23 +50,25 @@ cd ~/Documents/where-was-i
 
 | Command | What it does |
 |---|---|
-| `npm start` | Runs the app from the code (a test copy). Close it with the menu bar icon → Quit. |
-| `npm test` | Runs the automatic checks (111 tests: privacy, password scrubbing, saving, recap…). |
+| `npm start` | Runs a test copy from the code (it builds the small Swift helper first). |
+| `npm test` | Runs the automatic checks. |
 | `npm run typecheck` | Checks the code for type mistakes. |
-| `npm run make` | Builds a new **DMG** and **zip** into `out/make`. |
-| `npm run icons` | Redraws the app icon and menu bar icon. |
-| `npx where-was-i` | Opens the installed app (or the built test copy). |
+| `npm run make` | Builds a new DMG and zip into `out/make`. |
+| `npm run icons` | Redraws the app and menu bar icons. |
 
 ### Where things are
+- `src/main/capture/`: what's open (apps and window order via the helper, documents via AppleScript, tabs via `collectors/browsers.ts`)
+- `src/main/jobs/match.ts`: deciding what belongs to a job (Sure / Not sure / everyday) and learning
+- `src/main/brief/`: the three brief writers and exactly what is sent (`prompt.ts`)
+- `src/main/tidy.ts`, `tidyflow.ts`: closing safely, naming untitled files, the animation and Undo
+- `src/main/store.ts`: jobs on disk, at `~/Library/Application Support/Where Was I/jobs/<job>/`
+- `native/wwi-helper.swift`: the small Mac helper (window order, app icons, Apple Intelligence)
+- `src/renderer/`: the screens (`Panel`, `Save`, `Tidy`, `Main`, `SettingsView`)
+- `tests/privacy.test.ts` fails if anything except `src/main/brief/claude.ts` tries to use the internet.
+- `PLAN.md` is the product plan; `design/` has the mockups and the build prompt.
 
-- `src/main/` is the "background" part: collectors (`collectors/files.ts`, `git.ts`, `browsers.ts`, `shell.ts`), saving (`store.ts`), password scrubbing (`redact.ts`), recap (`recap/`), reopening (`restore.ts`), automatic saves (`autosnap.ts`), menu bar (`tray.ts`).
-- `src/renderer/` holds the screens (React): `MainWindow.tsx`, `QuickSave.tsx`, `SettingsWindow.tsx`, `styles.css`.
-- `src/preload.ts` is the only bridge between the screens and the background part.
-- `tests/` holds the automatic checks. `tests/privacy.test.ts` fails if any file except `src/main/recap/ai.ts` tries to use the internet.
-- Your snapshots are saved in `~/Library/Application Support/Where Was I/snapshots/<project>/<time>.json`.
-
-### Security choices (in case your CS friend asks)
-
-`contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`. Typed preload API via `contextBridge`. Every `ipcMain.handle` checks the sender and validates its input. Strict CSP (`connect-src 'none'` in the built app). `window.open`, navigation and webviews are blocked, and all permission requests are denied. Every external command goes through `execFile` with a timeout (never `exec` or a shell). The API key is kept with `safeStorage`. Electron fuses turn off `RunAsNode` and the Node CLI flags.
-
-Development-only test switches (ignored by the installed app): `WWI_USER_DATA=<folder>` uses a separate data folder, and `WWI_CAPTURE_DIR=<folder>` saves screenshots of each window.
+### Development-only switches (ignored by the installed app)
+- `WWI_USER_DATA=<folder>`: a separate data folder, so a test copy can run next to the installed app
+- `WWI_FAKE_CAPTURE=<file.json>`: pretend "what's open", so testing never asks your real apps anything
+- `WWI_CAPTURE_DIR=<folder>`: saves pictures of each window
+- `WWI_DEMO_TIDY=1`: shows the tidy-up screens with pretend data

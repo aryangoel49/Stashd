@@ -122,7 +122,7 @@ function start(): void {
 
     registerIpc(core, secrets, {
       shortcutErrors: () => shortcutErrors,
-      appleStatus: () => appleStatus,
+      appleStatus: async () => (appleStatus = await helper.appleStatus()),
       afterSave: ({ jobId, entryId, tidy: tidyUp }) => {
         if (tidyUp) void tidy.run(jobId, entryId);
         else tray.flash('Saved');
@@ -149,6 +149,7 @@ function start(): void {
       togglePanel(tray.bounds());
       setTimeout(openSave, 7500);
       if (process.env.WWI_DEMO_TIDY) setTimeout(() => tidy.demo(), 1000);
+      setTimeout(() => showWindow('main'), 14_000);
     }
   });
 }

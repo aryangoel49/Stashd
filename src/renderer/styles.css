@@ -53,8 +53,8 @@ body {
 }
 body.overlay { background: transparent; }
 /* Development screenshots only: stands in for the macOS glass the page capture can't see. */
-body.test-capture { background: linear-gradient(160deg, #ecebf3, #e3e6ef); }
-@media (prefers-color-scheme: dark) { body.test-capture { background: linear-gradient(160deg, #2b2b33, #24252c); } }
+body.test-capture { background: linear-gradient(160deg, #ecebf3, #e3e6ef) !important; }
+@media (prefers-color-scheme: dark) { body.test-capture { background: linear-gradient(160deg, #2b2b33, #24252c) !important; } }
 body.main { overflow: auto; }
 
 button, input, textarea { font: inherit; color: inherit; }
@@ -192,3 +192,47 @@ button { cursor: default; }
   background: rgba(0, 0, 0, 0.45); padding: 2px 8px; border-radius: 99px;
 }
 .toast { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px; height: 100%; }
+
+/* ---------- App window ---------- */
+body.main { overflow: hidden; background: transparent; }
+.main-grid { display: grid; grid-template-columns: 230px minmax(0, 1fr); height: 100%; }
+.side { display: flex; flex-direction: column; min-height: 0; padding: 0 10px 10px; }
+.side-title { font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 10px 6px; }
+.side-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.side-row { display: flex; align-items: center; gap: 10px; width: 100%; border: none; background: none; border-radius: 9px; padding: 7px 10px; text-align: left; }
+.side-row:hover { background: var(--well); }
+.side-row.on { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.side-row.drop { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.side-row svg { flex: none; opacity: 0.7; }
+.side-row .grow { flex: 1; min-width: 0; }
+.side-row .t { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-row .s { display: block; font-size: 11px; color: var(--muted); }
+.side-foot { border-top: 0.5px solid var(--hair); padding-top: 8px; }
+.content { overflow-y: auto; background: var(--content-bg); box-shadow: inset 0.5px 0 0 var(--hair); }
+:root { --content-bg: rgba(255, 255, 255, 0.55); }
+@media (prefers-color-scheme: dark) { :root { --content-bg: rgba(28, 28, 32, 0.55); } }
+body.main.test-capture .main-grid { background: transparent; }
+.detail { padding: 0 32px 40px; display: grid; gap: 22px; max-width: 760px; }
+.glass-card { padding: 16px 18px; border-radius: 16px; background: var(--well); box-shadow: inset 0 0.5px 0 var(--rim), inset 0 0 0 0.5px var(--hair), 0 10px 30px rgba(0, 0, 0, 0.06); }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.section-head h3, .card h3 { font-size: 13px; font-weight: 600; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; max-width: 280px; padding: 6px 8px 6px 10px; border-radius: 10px; font-size: 12px; background: var(--well); box-shadow: inset 0 0.5px 0 var(--rim), inset 0 0 0 0.5px var(--hair); }
+.chip[draggable='true'] { cursor: grab; }
+.chip.front { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent); }
+.chip .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip .x { border: none; background: none; color: var(--faint); font-size: 10px; padding: 2px 4px; border-radius: 6px; }
+.chip .x:hover { color: var(--text); background: var(--well-hover); }
+.history { display: flex; flex-wrap: wrap; gap: 6px; }
+.hist { display: flex; flex-direction: column; align-items: flex-start; border: none; border-radius: 10px; padding: 6px 10px; font-size: 12px; background: var(--well); box-shadow: inset 0 0 0 0.5px var(--hair); }
+.hist.on { background: color-mix(in srgb, var(--accent) 18%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+.hist span:last-child { font-size: 11px; }
+.settings { max-width: 640px; }
+.srow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 7px 0; }
+.srow + .srow { border-top: 0.5px solid var(--hair); }
+.swatch { width: 22px; height: 22px; border-radius: 50%; border: none; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5); }
+.swatch.on { outline: 2px solid var(--text); outline-offset: 2px; }
+.steps { margin: 0 0 10px; padding-left: 18px; color: var(--muted); font-size: 12px; display: grid; gap: 4px; }
+.steps b { color: var(--text); }
+textarea.field { resize: vertical; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; }
+details summary { cursor: default; }

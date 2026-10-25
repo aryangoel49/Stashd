@@ -203,7 +203,7 @@ async function captureForTests(win: BrowserWindow, route: Route): Promise<void> 
   };
   await shot(route);
   // A second picture after one click, to check the next state too.
-  const next: Partial<Record<Route, string>> = { save: '.summary', panel: '.job-row' };
+  const next: Partial<Record<Route, string>> = { save: '.summary', panel: '.job-row', main: '.side-foot .side-row' };
   if (next[route]) {
     await win.webContents.executeJavaScript(`document.querySelector('${next[route]}')?.click()`);
     await new Promise((r) => setTimeout(r, 1800));

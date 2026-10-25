@@ -28,12 +28,14 @@ const api = {
   rewriteBrief: (jobId: string, entryId: string) => invoke<BriefView>('jobs:rewriteBrief', jobId, entryId),
   sendFeedback: (jobId: string, entryId: string, helpful: boolean, comment?: string) => invoke<void>('jobs:feedback', jobId, entryId, helpful, comment ?? null),
   openJob: (jobId: string, entryId: string, mode: 'needed' | 'all') => invoke<OpenResult>('jobs:open', jobId, entryId, mode),
+  removeItem: (jobId: string, key: string) => invoke<void>('jobs:removeItem', jobId, key),
+  moveItem: (fromJobId: string, key: string, toJobId: string) => invoke<void>('jobs:moveItem', fromJobId, key, toJobId),
   renameJob: (jobId: string, name: string) => invoke<void>('jobs:rename', jobId, name),
   setDone: (jobId: string, done: boolean) => invoke<void>('jobs:done', jobId, done),
   deleteJob: (jobId: string) => invoke<boolean>('jobs:delete', jobId),
   deleteAll: () => invoke<boolean>('data:deleteAll'),
 
-  openWindow: (route: 'save' | 'main') => invoke<boolean>('window:open', route),
+  openWindow: (route: 'save' | 'main' | 'settings') => invoke<boolean>('window:open', route),
   closeWindow: () => invoke<boolean>('window:close'),
   fitWindow: (height: number) => invoke<boolean>('window:fit', height),
   openAutomationSettings: () => invoke<boolean>('system:openAutomationSettings'),
@@ -51,6 +53,7 @@ const api = {
   onWindowShown: (cb: () => void) => on('window:shown', cb),
   onWindowBlur: (cb: () => void) => on('window:blur', cb),
   onPayload: (cb: () => void) => on('payload:updated', cb),
+  onMainShow: (cb: (view: 'main' | 'settings') => void) => on('main:show', (v) => cb(v === 'settings' ? 'settings' : 'main')),
 };
 
 export type Api = typeof api;
