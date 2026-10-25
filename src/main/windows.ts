@@ -171,9 +171,10 @@ export function fitHeight(win: BrowserWindow, height: number): void {
   const route = [...windows.entries()].find(([, w]) => w === win)?.[0];
   if (!route || route === 'main' || route === 'overlay' || route === 'toast') return;
   const area = screen.getDisplayMatching(win.getBounds()).workArea;
-  const h = Math.round(Math.min(Math.max(height, 80), area.height - 40));
-  const b = win.getBounds();
-  if (b.height !== h) win.setBounds({ ...b, height: h }, false);
+  // Size the inside of the window (not its outer frame), plus a little room so nothing is clipped.
+  const h = Math.round(Math.min(Math.max(height + 2, 80), area.height - 40));
+  const [w, current] = win.getContentSize();
+  if (current !== h) win.setContentSize(w, h, false);
 }
 
 export function getWindow(route: Route): BrowserWindow | undefined {
