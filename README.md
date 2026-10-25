@@ -13,9 +13,6 @@
 
 Everything stays on your Mac. The only time it goes online is to write Claude briefs, and only after you connect your own Claude key.
 
-> [!NOTE]
-> **Coming from Where Was I?** Stashd is its new name. On first launch, Stashd copies your jobs, settings and what it has learned from the old app, and leaves the old copy untouched. Two things to redo once: reconnect Claude in Settings, and click **OK** again when macOS asks to let Stashd control your apps. After that you can delete *Where Was I* from Applications.
-
 ---
 
 ## How it works
