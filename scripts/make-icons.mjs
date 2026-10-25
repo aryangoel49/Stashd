@@ -49,30 +49,22 @@ function png(size, rgba) {
 }
 
 // ---------- shapes, in a 0..1 coordinate space ----------
-/** Signed distance to a rounded box centred at (cx, cy) with half sizes hx, hy and corner radius rad. */
-function boxDist(x, y, cx, cy, hx, hy, rad) {
-  const qx = Math.abs(x - cx) - (hx - rad), qy = Math.abs(y - cy) - (hy - rad);
-  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - rad;
-}
-
 /**
- * The glyph: an open tray with a card tucked into it (your work, stashed).
- * Returns 'tray', 'card' or null for a point in the 0..1 space.
+ * The glyph: a geometric S made of two stacked half-pills (two pieces of work, stashed).
+ * Measured in 1024ths of the canvas; `gap` widens the slit between the blocks for tiny sizes.
  */
-function glyph(x, y, scale = 1) {
-  x = 0.5 + (x - 0.5) / scale;
-  y = 0.5 + (y - 0.5) / scale;
-  // Tray: the bottom of a rounded box outline, cut off at the rim, with round ends.
-  const W = 0.066, rim = 0.488, left = 0.285, right = 0.715, floor = 0.703;
-  const outline = Math.abs(boxDist(x, y, 0.5, (rim - 0.2 + floor) / 2, (right - left) / 2, (floor - rim + 0.2) / 2, 0.09));
-  const ends = Math.min(Math.hypot(x - left, y - rim), Math.hypot(x - right, y - rim));
-  if ((outline < W / 2 && y > rim) || ends < W / 2) return 'tray';
-  // Card: a rounded rectangle tilted 9° counter clockwise, sitting inside the tray.
-  const cx = 0.5, cy = 0.47, t = (9 * Math.PI) / 180;
-  const rx = cx + (x - cx) * Math.cos(t) - (y - cy) * Math.sin(t);
-  const ry = cy + (x - cx) * Math.sin(t) + (y - cy) * Math.cos(t);
-  if (boxDist(rx, ry, cx, cy, 0.1075, 0.1465, 0.043) < 0) return 'card';
-  return null;
+function glyph(x, y, scale = 1, gap = 24) {
+  x = (0.5 + (x - 0.5) / scale) * 1024;
+  y = (0.5 + (y - 0.5) / scale) * 1024;
+  const h = 164, r = h / 2, w = 336, shift = 30;
+  const topY = 512 - gap / 2 - h, botY = 512 + gap / 2;
+  // Top block: round on the left, nudged right.
+  const tl = 512 - w / 2 + shift;
+  if (y >= topY && y <= topY + h && ((x >= tl + r && x <= tl + w) || Math.hypot(x - (tl + r), y - (topY + r)) <= r)) return true;
+  // Bottom block: round on the right, nudged left.
+  const bl = 512 - w / 2 - shift;
+  if (y >= botY && y <= botY + h && ((x >= bl && x <= bl + w - r) || Math.hypot(x - (bl + w - r), y - (botY + r)) <= r)) return true;
+  return false;
 }
 
 function roundedSquare(x, y) {
@@ -112,15 +104,13 @@ function render(size, shade) {
 
 const appShade = (x, y) => {
   if (!roundedSquare(x, y)) return null;
-  const part = glyph(x, y, 1);
-  if (part === 'tray') return [255, 250, 239, 1];
-  if (part === 'card') return [255, 197, 107, 1];
-  // indigo, lighter at the top
+  if (glyph(x, y, 1)) return [255, 255, 255, 1];
+  // near black, a touch lighter at the top
   const t = (y - 100 / 1024) / (824 / 1024);
-  return [Math.round(108 - 41 * t), Math.round(117 - 43 * t), Math.round(230 - 46 * t), 1];
+  return [Math.round(38 - 26 * t), Math.round(38 - 26 * t), Math.round(44 - 29 * t), 1];
 };
 // Menu bar "template" icon: black on transparent; macOS recolors it for light and dark menu bars.
-const trayShade = (x, y) => (glyph(x, y, 1.45) ? [0, 0, 0, 1] : null);
+const trayShade = (x, y) => (glyph(x, y, 1.6, 64) ? [0, 0, 0, 1] : null);
 
 // ---------- write files ----------
 mkdirSync(path.join(assets, 'tray'), { recursive: true });

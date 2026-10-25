@@ -1,4 +1,4 @@
-// Where Was I: main process entry point.
+// Stashd: main process entry point.
 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -12,6 +12,7 @@ import { Helper } from './main/helper';
 import { registerIpc } from './main/ipc';
 import { SecretStore } from './main/secrets';
 import { SettingsStore } from './main/settings';
+import { LEGACY_NAME, migrateLegacyData } from './main/legacy';
 import { JobStore } from './main/store';
 import { TidyFlow } from './main/tidyflow';
 import { AppTray } from './main/tray';
@@ -107,11 +108,18 @@ function start(): void {
     );
 
     const dir = app.getPath('userData');
+    if (!process.env.WWI_USER_DATA) {
+      try {
+        migrateLegacyData(path.join(app.getPath('appData'), LEGACY_NAME), dir);
+      } catch {
+        // Starting fresh is better than not starting.
+      }
+    }
     const settings = new SettingsStore(dir);
     const secrets = new SecretStore(dir);
     const helper = new Helper(helperPath());
     const fake = !app.isPackaged ? process.env.WWI_FAKE_CAPTURE : undefined;
-    core = new Core(settings, new JobStore(path.join(dir, 'jobs')), helper, dir, [app.getName(), 'Where Was I', 'Electron'], fake ? async () => ({ ...JSON.parse(await readFile(fake, 'utf8')), at: new Date().toISOString() }) : undefined);
+    core = new Core(settings, new JobStore(path.join(dir, 'jobs')), helper, dir, [app.getName(), 'Stashd', LEGACY_NAME, 'Electron'], fake ? async () => ({ ...JSON.parse(await readFile(fake, 'utf8')), at: new Date().toISOString() }) : undefined);
     void helper.appleStatus().then((s) => (appleStatus = s));
     core.meaning = createMeaning();
     setTimeout(() => core.meaning?.warm(), 3000);

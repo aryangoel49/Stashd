@@ -50,28 +50,28 @@ describe('helper output', () => {
 
 describe('assemble and front item', () => {
   const win = {
-    front: 'Where Was I',
+    front: 'Stashd',
     frontBundleId: null,
-    apps: ['Where Was I', 'Microsoft Word', 'Google Chrome', 'Spotify', 'Figma', 'Finder'].map((name) => ({ name, bundleId: '', path: '', hidden: false })),
-    order: ['Where Was I', 'Microsoft Word', 'Dock', 'Google Chrome', 'Spotify'],
+    apps: ['Stashd', 'Microsoft Word', 'Google Chrome', 'Spotify', 'Figma', 'Finder'].map((name) => ({ name, bundleId: '', path: '', hidden: false })),
+    order: ['Stashd', 'Microsoft Word', 'Dock', 'Google Chrome', 'Spotify'],
   };
   const tabs = parseTabOutput('chrome', `1${US}false${US}https://a.io/${US}A${RS}1${US}true${US}https://b.io/${US}B${RS}2${US}true${US}https://c.io/${US}C${RS}`);
   const docs = parseDocOutput({ app: 'Microsoft Word', kind: 'doc' }, `Essay.docx${US}/Users/a/Essay.docx${RS}`);
 
   it('orders items front to back, skips itself and Finder, and adds plain apps', () => {
-    const r = assemble(win, tabs, docs, ['Where Was I']);
+    const r = assemble(win, tabs, docs, ['Stashd']);
     expect(r.frontApp).toBe('Microsoft Word');
     expect(r.appOrder).toEqual(['Microsoft Word', 'Google Chrome', 'Spotify', 'Figma']);
     expect(r.items.map((i) => i.key)).toEqual(['doc:/Users/a/Essay.docx', 'tab:https://a.io/', 'tab:https://b.io/', 'tab:https://c.io/', 'app:Spotify', 'app:Figma']);
   });
 
   it('leaves out document apps that answered with nothing open', () => {
-    const r = assemble(win, tabs, [], ['Where Was I'], new Set(['Microsoft Word']));
+    const r = assemble(win, tabs, [], ['Stashd'], new Set(['Microsoft Word']));
     expect(r.items.some((i) => i.app === 'Microsoft Word')).toBe(false);
   });
 
   it('picks the front document, or the active tab of the front browser window', () => {
-    const r = assemble(win, tabs, docs, ['Where Was I']);
+    const r = assemble(win, tabs, docs, ['Stashd']);
     expect(frontItemKey(r.items, r.appOrder)).toBe('doc:/Users/a/Essay.docx');
     expect(frontItemKey(r.items, ['Google Chrome'])).toBe('tab:https://b.io/');
     expect(frontItemKey([], [])).toBeNull();

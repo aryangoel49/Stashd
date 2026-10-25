@@ -103,7 +103,7 @@ export function SettingsView() {
         <ListRow label="Sites" value={s.lifestyleSites} onSave={(v) => void update({ lifestyleSites: v })} />
       </Card>
 
-      <Card title="Privacy" hint="Where Was I only looks when you press the shortcut. It never reads page contents, document text, passwords, cookies or private windows.">
+      <Card title="Privacy" hint="Stashd only looks when you press the shortcut. It never reads page contents, document text, passwords, cookies or private windows.">
         <ListRow label="Never save tabs from" value={s.excludedDomains} onSave={(v) => void update({ excludedDomains: v })} />
         {(['chrome', 'arc', 'safari'] as const).map((b) => (
           <Toggle key={b} label={`Read tabs from ${{ chrome: 'Google Chrome', arc: 'Arc', safari: 'Safari' }[b]}`} on={s.browsers[b]} onChange={(v) => void update({ browsers: { ...s.browsers, [b]: v } })} />
@@ -118,7 +118,7 @@ export function SettingsView() {
       </Card>
 
       <Card title="General">
-        <Toggle label="Open Where Was I when I log in" hint="Works in the installed app." on={s.launchAtLogin} onChange={(v) => void update({ launchAtLogin: v })} />
+        <Toggle label="Open Stashd when I log in" hint="Works in the installed app." on={s.launchAtLogin} onChange={(v) => void update({ launchAtLogin: v })} />
         <div className="srow">
           <span>Delete every saved job</span>
           <button className="btn small danger" onClick={() => void api.deleteAll()}>
@@ -127,7 +127,7 @@ export function SettingsView() {
         </div>
       </Card>
 
-      <p className="faint small" style={{ textAlign: 'center' }}>Where Was I {info.version}. Everything is stored on this Mac.</p>
+      <p className="faint small" style={{ textAlign: 'center' }}>Stashd {info.version}. Everything is stored on this Mac.</p>
     </div>
   );
 }

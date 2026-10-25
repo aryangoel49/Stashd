@@ -41,7 +41,7 @@ export function createMeaning(dir = embedderDir()): Meaning {
   const start = (): UtilityProcess => {
     if (child) return child;
     tokenizer ??= new WordPiece(readFileSync(path.join(dir, 'model', 'vocab.txt'), 'utf8'));
-    const c = utilityProcess.fork(path.join(dir, 'worker.cjs'), [path.join(dir, 'model')], { serviceName: 'Where Was I meaning model', stdio: 'ignore' });
+    const c = utilityProcess.fork(path.join(dir, 'worker.cjs'), [path.join(dir, 'model')], { serviceName: 'Stashd meaning model', stdio: 'ignore' });
     c.on('message', (m: { id: number; vectors?: number[][]; error?: string }) => {
       const w = waiting.get(m.id);
       if (!w) return;

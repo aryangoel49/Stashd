@@ -4,7 +4,7 @@ import { defineConfig, type Plugin } from 'vite';
 // During `npm start` it also allows the local Vite dev server (for live reload).
 function csp(dev: boolean): Plugin {
   return {
-    name: 'where-was-i-csp',
+    name: 'stashd-csp',
     transformIndexHtml: (html) => html.replace('__CSP_CONNECT__', dev ? "'self' ws://localhost:* http://localhost:*" : "'none'"),
   };
 }

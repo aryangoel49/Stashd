@@ -7,27 +7,23 @@
     <title>Stashd Brand</title>
     <style>
       :root {
-        --bg: #f4f4f7;
-        --text: #1c1c1e;
-        --muted: rgba(28, 28, 30, 0.6);
-        --chip: rgba(28, 28, 30, 0.06);
-        --tile-top: #6c75e6;
-        --tile-bottom: #434ab8;
-        --tray: #fffaef;
-        --card: #ffc56b;
+        --bg: #f5f5f7;
+        --text: #111114;
+        --muted: rgba(17, 17, 20, 0.55);
+        --chip: rgba(17, 17, 20, 0.06);
       }
       @media (prefers-color-scheme: dark) {
         :root:not([data-theme='light']) {
-          --bg: #0e0f1f;
-          --text: #fffaef;
-          --muted: rgba(255, 250, 239, 0.6);
+          --bg: #0a0a0c;
+          --text: #ffffff;
+          --muted: rgba(255, 255, 255, 0.55);
           --chip: rgba(255, 255, 255, 0.08);
         }
       }
       :root[data-theme='dark'] {
-        --bg: #0e0f1f;
-        --text: #fffaef;
-        --muted: rgba(255, 250, 239, 0.6);
+        --bg: #0a0a0c;
+        --text: #ffffff;
+        --muted: rgba(255, 255, 255, 0.55);
         --chip: rgba(255, 255, 255, 0.08);
       }
       * { box-sizing: border-box; }
@@ -42,46 +38,34 @@
         padding: 16px;
       }
       main { display: grid; justify-items: center; gap: 28px; text-align: center; }
-      /* The icon is sized in "u" units: 1u = 1/1024 of the canvas, same geometry as assets/brand/stashd-icon.svg */
-      .icon { --u: calc(min(320px, 80vw) / 1024); position: relative; width: calc(1024 * var(--u)); aspect-ratio: 1; cursor: pointer; }
+      /* 1u = 1/1024 of the canvas, same geometry as assets/brand/stashd-icon.svg */
+      .icon { --u: calc(min(300px, 78vw) / 1024); position: relative; width: calc(1024 * var(--u)); aspect-ratio: 1; cursor: pointer; }
       .tile {
         position: absolute; inset: calc(100 * var(--u)); border-radius: calc(186 * var(--u)); overflow: hidden;
-        background: linear-gradient(var(--tile-top), var(--tile-bottom));
-        box-shadow: 0 calc(40 * var(--u)) calc(90 * var(--u)) rgba(67, 74, 184, 0.35);
+        background: linear-gradient(#26262c, #0c0c0f);
+        box-shadow: inset 0 0 0 calc(3 * var(--u)) rgba(255, 255, 255, 0.1), 0 calc(30 * var(--u)) calc(80 * var(--u)) rgba(0, 0, 0, 0.25);
       }
-      .card {
-        position: absolute; left: calc(302 * var(--u)); top: calc(231 * var(--u));
-        width: calc(220 * var(--u)); height: calc(300 * var(--u)); border-radius: calc(44 * var(--u));
-        background: var(--card); rotate: -9deg;
-      }
-      .tray {
-        position: absolute; left: calc(258 * var(--u)); top: calc(500 * var(--u));
-        width: calc(508 * var(--u)); height: calc(254 * var(--u));
-        border: calc(68 * var(--u)) solid var(--tray); border-top: 0;
-        border-radius: 0 0 calc(126 * var(--u)) calc(126 * var(--u));
-        transform-origin: 50% 100%;
-      }
-      .tray::before, .tray::after {
-        content: ''; position: absolute; top: calc(-34 * var(--u)); width: calc(68 * var(--u)); height: calc(68 * var(--u));
-        border-radius: 50%; background: var(--tray);
-      }
-      .tray::before { left: calc(-68 * var(--u)); }
-      .tray::after { right: calc(-68 * var(--u)); }
-      h1 { margin: 0; font-size: 56px; letter-spacing: -1.5px; line-height: 1; }
-      p { margin: 0; color: var(--muted); }
+      .block { position: absolute; height: calc(164 * var(--u)); width: calc(336 * var(--u)); background: #fff; }
+      /* Positions are relative to the tile, which starts at 100u. */
+      .top { left: calc(274 * var(--u)); top: calc(236 * var(--u)); border-radius: calc(82 * var(--u)) 0 0 calc(82 * var(--u)); }
+      .bot { left: calc(214 * var(--u)); top: calc(424 * var(--u)); border-radius: 0 calc(82 * var(--u)) calc(82 * var(--u)) 0; }
+      h1 { margin: 0; font-size: 52px; font-weight: 650; letter-spacing: -1.8px; line-height: 1; }
+      p { margin: 6px 0 0; color: var(--muted); }
       .buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
       button {
         font: inherit; font-weight: 600; color: var(--text); background: var(--chip);
         border: 0; border-radius: 10px; padding: 9px 16px; cursor: pointer;
       }
-      kbd { font: inherit; opacity: 0.6; margin-left: 6px; }
+      kbd { font: inherit; opacity: 0.55; margin-left: 6px; }
     </style>
   </head>
   <body>
     <main>
       <div class="icon" id="icon" role="img" aria-label="Stashd icon">
-        <div class="tile"><div class="card" id="card"></div></div>
-        <div class="tray" id="tray"></div>
+        <div class="tile">
+          <div class="block top" id="top"></div>
+          <div class="block bot" id="bot"></div>
+        </div>
       </div>
       <div>
         <h1>Stashd</h1>
@@ -96,30 +80,28 @@
     <script type="module">
       import { animate } from 'https://cdn.jsdelivr.net/npm/motion@12.23.12/+esm';
 
-      const card = document.getElementById('card');
-      const tray = document.getElementById('tray');
+      const top = document.getElementById('top');
+      const bot = document.getElementById('bot');
       const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      let stashed = true;
+      const spring = reduced ? { duration: 0 } : { type: 'spring', stiffness: 320, damping: 26 };
+      let stashed = false;
 
+      // Stash: the two blocks slide in from opposite sides and lock into the S.
       async function stash() {
-        if (reduced) return animate(card, { y: 0, opacity: 1 }, { duration: 0 });
         stashed = true;
-        const fall = animate(card, { y: ['-180%', '0%'], opacity: [1, 1] }, { type: 'spring', stiffness: 420, damping: 17, mass: 0.9 });
-        // The tray gives a little as the card lands.
-        setTimeout(() => {
-          animate(tray, { scaleX: [1, 1.04, 1], scaleY: [1, 0.92, 1] }, { duration: 0.35, ease: 'easeOut' });
-        }, 170);
-        await fall;
+        animate(top, { x: ['120%', '0%'], opacity: [0, 1] }, spring);
+        await animate(bot, { x: ['-120%', '0%'], opacity: [0, 1] }, { ...spring, delay: reduced ? 0 : 0.08 });
       }
 
+      // Pick up: they slide back out the way they came.
       async function pickUp() {
-        if (!stashed) return;
         stashed = false;
-        await animate(card, { y: '-150%', opacity: 0 }, reduced ? { duration: 0 } : { type: 'spring', stiffness: 260, damping: 24 });
+        animate(top, { x: '120%', opacity: 0 }, spring);
+        await animate(bot, { x: '-120%', opacity: 0 }, spring);
       }
 
-      document.getElementById('stash').onclick = stash;
-      document.getElementById('pickup').onclick = pickUp;
+      document.getElementById('stash').onclick = () => !stashed && stash();
+      document.getElementById('pickup').onclick = () => stashed && pickUp();
       document.getElementById('icon').onclick = () => (stashed ? pickUp().then(stash) : stash());
       stash();
     </script>

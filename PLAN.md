@@ -1,4 +1,4 @@
-# Where Was I: the plan
+# Stashd (formerly Where Was I): the plan
 
 A living document. We add to it as we decide things, and build step by step once it's settled.
 Last updated: 24 Oct 2026 (evening).

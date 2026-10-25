@@ -104,7 +104,7 @@ function JobList(props: {
   return (
     <>
       <div className="panel-head">
-        <span className="display" style={{ fontSize: 14 }}>Where Was I</span>
+        <span className="display" style={{ fontSize: 14 }}>Stashd</span>
         <span className="faint tiny">
           <span className="kbd">{prettyShortcut(settings.shortcutSave)}</span>
         </span>

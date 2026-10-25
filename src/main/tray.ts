@@ -16,8 +16,8 @@ export class AppTray {
     const img = nativeImage.createFromPath(trayIconPath());
     img.setTemplateImage(true);
     this.tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img);
-    if (img.isEmpty()) this.tray.setTitle('WWI');
-    this.tray.setToolTip('Where Was I');
+    if (img.isEmpty()) this.tray.setTitle('Stashd');
+    this.tray.setToolTip('Stashd');
     this.tray.setIgnoreDoubleClickEvents(true);
     this.tray.on('click', () => actions.togglePanel(this.tray.getBounds()));
     this.tray.on('right-click', () => {
@@ -25,9 +25,9 @@ export class AppTray {
         Menu.buildFromTemplate([
           { label: 'Pack up what I’m working on…', click: () => actions.save('pack') },
           { label: 'Save without closing anything…', click: () => actions.save('save') },
-          { label: 'Open Where Was I', click: actions.openMain },
+          { label: 'Open Stashd', click: actions.openMain },
           { type: 'separator' },
-          { label: 'Quit Where Was I', role: 'quit' },
+          { label: 'Quit Stashd', role: 'quit' },
         ]),
       );
     });

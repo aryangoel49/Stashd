@@ -1,4 +1,4 @@
-// Where Was I helper: a tiny command-line tool the app runs for two Mac-only jobs.
+// Stashd helper: a tiny command-line tool the app runs for two Mac-only jobs.
 //
 //   wwi-helper windows   Prints which app is in front and the order of app windows, front to back.
 //                        Uses only app names and window order (no window titles, no screen pictures).

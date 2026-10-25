@@ -9,7 +9,7 @@ import { displayUrl } from '../urls';
 import { collectDocs } from './docs';
 
 /** Apps that are never items themselves (their content is captured instead, or they are us). */
-const NOT_APP_ITEMS = new Set(['Finder', 'Where Was I', 'Electron', 'loginwindow']);
+const NOT_APP_ITEMS = new Set(['Finder', 'Stashd', 'Where Was I', 'Electron', 'loginwindow']);
 
 export function tabToItem(t: Tab): Item {
   return {

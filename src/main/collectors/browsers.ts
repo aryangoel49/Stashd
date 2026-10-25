@@ -140,7 +140,7 @@ export async function collectTabs(
       errors.push({
         collector: `browser:${b}`,
         message: denied
-          ? `Where Was I is not allowed to read ${BROWSER_APPS[b].label} tabs yet.`
+          ? `Stashd is not allowed to read ${BROWSER_APPS[b].label} tabs yet.`
           : `Could not read ${BROWSER_APPS[b].label} tabs: ${e instanceof Error ? e.message : String(e)}`.slice(0, 300),
         permissionDenied: denied || undefined,
       });

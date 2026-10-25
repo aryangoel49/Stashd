@@ -9,16 +9,16 @@ import path from 'node:path';
 
 const config: ForgeConfig = {
   packagerConfig: {
-    name: 'Where Was I',
-    executableName: 'where-was-i',
-    appBundleId: 'com.aryangoel.wherewasi',
+    name: 'Stashd',
+    executableName: 'stashd',
+    appBundleId: 'com.aryangoel.stashd',
     appCategoryType: 'public.app-category.productivity',
     icon: 'assets/icon',
     asar: true,
     // The menu bar icon images live next to the app, outside the code bundle.
     extraResource: ['assets/tray', 'native/build/wwi-helper', 'embedder'],
     extendInfo: {
-      NSAppleEventsUsageDescription: 'Where Was I reads the titles and addresses of your open tabs and the names of your open documents, so it can save where you left off and reopen them later.',
+      NSAppleEventsUsageDescription: 'Stashd reads the titles and addresses of your open tabs and the names of your open documents, so it can save where you left off and reopen them later.',
       // Menu bar app: no Dock icon, no app menu on launch.
       LSUIElement: true,
     },
@@ -31,13 +31,13 @@ const config: ForgeConfig = {
     postPackage: async (_config, result) => {
       if (result.platform !== 'darwin') return;
       for (const dir of result.outputPaths) {
-        const appPath = path.join(dir, 'Where Was I.app');
-        execFileSync('codesign', ['--force', '--deep', '--sign', '-', '--identifier', 'com.aryangoel.wherewasi', appPath], { stdio: 'inherit' });
+        const appPath = path.join(dir, 'Stashd.app');
+        execFileSync('codesign', ['--force', '--deep', '--sign', '-', '--identifier', 'com.aryangoel.stashd', appPath], { stdio: 'inherit' });
         execFileSync('codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'inherit' });
       }
     },
   },
-  makers: [new MakerDMG({ name: 'Where Was I', icon: 'assets/icon.icns', format: 'ULFO' }), new MakerZIP({}, ['darwin'])],
+  makers: [new MakerDMG({ name: 'Stashd', icon: 'assets/icon.icns', format: 'ULFO' }), new MakerZIP({}, ['darwin'])],
   plugins: [
     new VitePlugin({
       build: [

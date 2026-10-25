@@ -145,7 +145,7 @@ vite.config.ts.timestamp-*
 # Electron-Forge
 out/
 
-# Where Was I
+# Stashd
 assets/icon.iconset/
 native/build/
 embedder/model/model.onnx

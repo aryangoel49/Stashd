@@ -178,7 +178,7 @@ export function Save() {
           <span className="spinner" /> Looking at what's open…
           {slow && (
             <div className="small fade-in" style={{ marginTop: 8 }}>
-              If macOS asks to let Where Was I see your apps, click <b>OK</b>. It only asks once per app.
+              If macOS asks to let Stashd see your apps, click <b>OK</b>. It only asks once per app.
             </div>
           )}
         </div>
@@ -339,7 +339,7 @@ function PermissionNote({ errors }: { errors: CollectorError[] }) {
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
   return (
     <div className="banner no-drag">
-      <span>Where Was I isn't allowed to see inside {list} yet. Turn it on in System Settings, then save again.</span>
+      <span>Stashd isn't allowed to see inside {list} yet. Turn it on in System Settings, then save again.</span>
       <button type="button" className="btn small" onClick={() => void api.openAutomationSettings()}>
         Open Settings
       </button>

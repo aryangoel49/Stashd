@@ -1,9 +1,9 @@
 {
-  "name": "where-was-i",
-  "productName": "Where Was I",
+  "name": "stashd",
+  "productName": "Stashd",
   "version": "1.0.0",
   "private": true,
-  "description": "Saves where you were in a project and helps you pick up again.",
+  "description": "Stashes where you were in a project and helps you pick up again.",
   "keywords": [],
   "license": "MIT",
   "author": "aryangoel",
@@ -44,7 +44,7 @@
     "vitest": "^5.0.5"
   },
   "bin": {
-    "where-was-i": "bin/where-was-i.js"
+    "stashd": "bin/stashd.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",

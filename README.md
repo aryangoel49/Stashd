@@ -3,10 +3,10 @@
 </p>
 
 <p align="center">
-  <img alt="macOS" src="https://img.shields.io/badge/macOS-Apple%20silicon-434AB8?style=flat-square&logo=apple&logoColor=white">
-  <img alt="Local first" src="https://img.shields.io/badge/data-stays%20on%20your%20Mac-FFC56B?style=flat-square">
-  <img alt="Briefs" src="https://img.shields.io/badge/briefs-Claude%20%C2%B7%20Apple%20Intelligence-6C75E6?style=flat-square">
-  <img alt="License" src="https://img.shields.io/badge/license-MIT-1B1C36?style=flat-square">
+  <img alt="macOS" src="https://img.shields.io/badge/macOS-Apple%20silicon-111114?style=flat-square&logo=apple&logoColor=white">
+  <img alt="Local first" src="https://img.shields.io/badge/data-stays%20on%20your%20Mac-111114?style=flat-square">
+  <img alt="Briefs" src="https://img.shields.io/badge/briefs-Claude%20%C2%B7%20Apple%20Intelligence-111114?style=flat-square">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-111114?style=flat-square">
 </p>
 
 **Stashd** is a menu bar app for your Mac. Press **⇧⌘S** and it stashes the work you're in the middle of: your open tabs, documents and apps, plus a quick note. When you come back, pick the job from the menu bar. A short brief tells you where you left off, and one click reopens what you need.
@@ -14,7 +14,7 @@
 Everything stays on your Mac. The only time it goes online is to write Claude briefs, and only after you connect your own Claude key.
 
 > [!NOTE]
-> Stashd is the new name for **Where Was I?**. The app itself still installs and shows up as *Where Was I* until the in-app rename ships.
+> **Coming from Where Was I?** Stashd is its new name. On first launch, Stashd copies your jobs, settings and what it has learned from the old app, and leaves the old copy untouched. Two things to redo once: reconnect Claude in Settings, and click **OK** again when macOS asks to let Stashd control your apps. After that you can delete *Where Was I* from Applications.
 
 ---
 
@@ -28,10 +28,10 @@ Everything stays on your Mac. The only time it goes online is to write Claude br
 
 ## Install
 
-1. Build or download the DMG, open it, and drag the app into **Applications**. If it asks, click **Replace** to update an older version.
-2. **First launch only:** in Applications, **right-click** the app, choose **Open**, then click **Open** again.
+1. Open **Stashd.dmg** (after `npm run make` it's in `out/make/`) and drag **Stashd** into **Applications**. If it asks, click **Replace** to update an older version.
+2. **First launch only:** in Applications, **right-click** Stashd, choose **Open**, then click **Open** again.
    The app isn't signed with a paid Apple developer certificate, so a normal double-click is blocked the first time. If macOS still refuses, go to **System Settings → Privacy & Security** and click **Open Anyway**.
-3. The tray icon appears in your menu bar. There's no Dock icon, on purpose.
+3. The Stashd mark appears in your menu bar. There's no Dock icon, on purpose.
 
 > [!TIP]
 > The first time you stash with Chrome, Safari, Word and so on open, macOS asks for permission to control that app (once per app). Click **OK**. That's how Stashd reads tab addresses and which files are open. If you clicked "Don't Allow", the save box shows a button that opens the right System Settings page.
@@ -61,7 +61,7 @@ The bottom of each brief says which one wrote it. Click **No** under "Helpful?" 
 
 ## Privacy
 
-- Jobs live on disk in `~/Library/Application Support/Where Was I/jobs/`.
+- Jobs live on disk in `~/Library/Application Support/Stashd/jobs/`.
 - Your Claude key is stored encrypted in the macOS keychain.
 - `tests/privacy.test.ts` fails the build if anything except `src/main/brief/claude.ts` tries to use the internet.
 
@@ -94,6 +94,7 @@ src/main/meaning/      on-device meaning model for job sorting
 src/main/brief/        the three brief writers, and exactly what is sent (prompt.ts)
 src/main/tidy*.ts      closing safely, naming untitled files, the fly-in animation and Undo
 src/main/store.ts      jobs on disk
+src/main/legacy.ts     one-time move of data from the old Where Was I folder
 src/renderer/          the screens: Panel, Save, Tidy, Main, SettingsView
 native/wwi-helper.swift  window order, app icons, Apple Intelligence
 ```
@@ -115,13 +116,15 @@ The installed app ignores these.
 
 <img src="assets/brand/stashd-icon.svg" alt="Stashd icon" width="96" align="right">
 
-A card tucked into an open tray: your work, put away safely and ready to pick back up.
+A geometric **S** made of two stacked, offset blocks: two pieces of work, put away neatly. Black and white only, so it holds up at 16px in the menu bar.
 
 - `assets/brand/stashd-icon.svg`: the app icon (vector)
+- `assets/brand/stashd-mark.svg`: the bare mark, black in light mode and white in dark mode
 - `assets/brand/stashd-hero.svg`: the animated banner above
 - `design/brand.html`: the icon brought to life with [Motion](https://motion.dev) springs. Open it in a browser and click the icon.
+- `scripts/make-icons.mjs`: draws the same mark into `icon.icns` and the menu bar template
 
-Colours: indigo `#6C75E6 → #434AB8`, amber `#FFC56B`, cream `#FFFAEF`, ink `#0E0F1F`.
+Colours: graphite `#26262C → #0C0C0F` tile, white `#FFFFFF` mark, ink `#0A0A0C` backgrounds.
 
 ## License
 

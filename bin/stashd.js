@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// `npx where-was-i` launcher. Opens the installed app if it is in /Applications,
+// `npx stashd` launcher. Opens the installed app if it is in /Applications,
 // otherwise runs the app from this folder with the local Electron.
 
 const { execFileSync, spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const installed = ['/Applications/Where Was I.app', path.join(require('node:os').homedir(), 'Applications/Where Was I.app')].find((p) =>
+const installed = ['/Applications/Stashd.app', path.join(require('node:os').homedir(), 'Applications/Stashd.app')].find((p) =>
   fs.existsSync(p),
 );
 
@@ -21,7 +21,7 @@ let electron;
 try {
   electron = require('electron');
 } catch {
-  console.error('Where Was I is not installed. Install the DMG, or run "npm install" in the project folder first.');
+  console.error('Stashd is not installed. Install the DMG, or run "npm install" in the project folder first.');
   process.exit(1);
 }
 if (!fs.existsSync(built)) {

@@ -245,7 +245,7 @@ export async function collectDocs(runningBundleIds: Set<string>): Promise<{ item
         errors.push({
           collector: `docs:${a.app}`,
           message: denied
-            ? `Where Was I is not allowed to see which files are open in ${a.app} yet.`
+            ? `Stashd is not allowed to see which files are open in ${a.app} yet.`
             : `Could not read open files in ${a.app}.`,
           detail: errorDetail(e),
           permissionDenied: denied || undefined,

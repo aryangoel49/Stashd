@@ -1,7 +1,7 @@
 {
   "name": "wwi-embedder",
   "private": true,
-  "description": "Runs the small on-device meaning model (all-MiniLM-L6-v2) for Where Was I?. Shipped as-is next to the app.",
+  "description": "Runs the small on-device meaning model (all-MiniLM-L6-v2) for Stashd. Shipped as-is next to the app.",
   "dependencies": {
     "onnxruntime-node": "1.30.0"
   }

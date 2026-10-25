@@ -66,7 +66,7 @@ const OPTIONS: Record<Route, Electron.BrowserWindowConstructorOptions> = {
     height: 640,
     minWidth: 720,
     minHeight: 460,
-    title: 'Where Was I',
+    title: 'Stashd',
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 18 },
     vibrancy: 'sidebar',
