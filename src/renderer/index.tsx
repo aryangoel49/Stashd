@@ -1,19 +1,20 @@
 import { StrictMode, type ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Route } from '../shared/types';
-import { MainWindow } from './MainWindow';
-import { QuickSave } from './QuickSave';
-import { SettingsWindow } from './SettingsWindow';
+import { Main } from './Main';
+import { Panel } from './Panel';
+import { Save } from './Save';
 import './styles.css';
 
-const route = (window.location.hash.replace(/^#\/?/, '') || 'main') as Route;
+const route = (window.location.hash.replace(/^#\/?/, '') || 'panel') as Route;
+document.body.classList.add(route);
 
-const views: Record<Route, ComponentType> = {
-  main: MainWindow,
-  quicksave: QuickSave,
-  settings: SettingsWindow,
+const views: Partial<Record<Route, ComponentType>> = {
+  panel: Panel,
+  save: Save,
+  main: Main,
 };
-const View = views[route] ?? MainWindow;
+const View = views[route] ?? Panel;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -123,6 +123,8 @@ export interface JobSummary {
   hint: string;
   itemCount: number;
   current: boolean;
+  /** What the job holds most of, for its icon. */
+  icon: 'doc' | 'tab' | 'folder' | 'app' | 'stack';
 }
 
 /** What the save box shows. */

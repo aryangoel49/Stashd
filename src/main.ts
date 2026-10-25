@@ -1,16 +1,23 @@
 // Where Was I: main process entry point.
 
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { app, globalShortcut, Menu } from 'electron';
-import type { Settings } from './shared/types';
-import { AutoSnapshotter } from './main/autosnap';
+import { app, globalShortcut, Menu, type Rectangle } from 'electron';
+import type { AppInfo, Settings } from './shared/types';
+import { appleWriter } from './main/brief/apple';
+import { claudeWriter, testClaudeKey } from './main/brief/claude';
 import { Core } from './main/core';
+import { Helper } from './main/helper';
 import { registerIpc } from './main/ipc';
 import { SecretStore } from './main/secrets';
 import { SettingsStore } from './main/settings';
-import { SnapshotStore } from './main/store';
+import { JobStore } from './main/store';
 import { AppTray } from './main/tray';
-import { broadcast, hardenWebContents, showWindow } from './main/windows';
+import { broadcast, getWindow, hardenWebContents, showWindow } from './main/windows';
+
+// Development-only: a separate data folder (set before the single-instance check, so a test copy
+// can run next to the installed app).
+if (!app.isPackaged && process.env.WWI_USER_DATA) app.setPath('userData', process.env.WWI_USER_DATA);
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -18,41 +25,60 @@ if (!app.requestSingleInstanceLock()) {
   start();
 }
 
+function helperPath(): string {
+  return app.isPackaged ? path.join(process.resourcesPath, 'wwi-helper') : path.join(app.getAppPath(), 'native', 'build', 'wwi-helper');
+}
+
 function start(): void {
-  // Development-only test hooks: a separate data folder, and window screenshots for checking the UI.
-  if (!app.isPackaged && process.env.WWI_USER_DATA) app.setPath('userData', process.env.WWI_USER_DATA);
+  // Development-only test hooks: window screenshots for checking the UI (WWI_CAPTURE_DIR),
+  // and WWI_FAKE_CAPTURE (a JSON file) so UI tests never ask other apps anything.
 
   let core: Core;
   let tray: AppTray;
   let shortcutErrors: string[] = [];
+  let appleStatus: AppInfo['appleAi'] = 'unknown';
 
   app.on('web-contents-created', (_e, contents) => hardenWebContents(contents));
   // Keep running in the menu bar when every window is closed.
   app.on('window-all-closed', () => undefined);
-  app.on('second-instance', () => openMain());
-  app.on('activate', () => openMain());
+  app.on('second-instance', () => showWindow('main'));
   app.on('will-quit', () => globalShortcut.unregisterAll());
 
-  function openMain(projectId?: string): void {
-    showWindow('main', (win) => {
-      if (projectId) win.webContents.send('show-project', projectId);
+  function togglePanel(anchor: Rectangle, showJob?: string): void {
+    const panel = getWindow('panel');
+    if (panel?.isVisible() && !showJob) {
+      panel.hide();
+      return;
+    }
+    showWindow('panel', {
+      near: anchor,
+      onReady: (win) => {
+        if (showJob) win.webContents.send('panel:show-job', showJob);
+      },
     });
   }
 
-  async function openRecent(): Promise<void> {
-    openMain((await core.mostRecentlyActive()) ?? undefined);
+  /** ⇧⌘S: note the window order first (before our box takes the front), then show the box. */
+  function openSave(): void {
+    const early = core.helper.windows();
+    early.catch(() => undefined);
+    getWindow('panel')?.hide();
+    core.beginSave(early);
+    showWindow('save', { onReady: (win) => win.webContents.send('save:begin') });
   }
 
-  function quickSave(): void {
-    showWindow('quicksave');
+  async function openBrief(): Promise<void> {
+    const jobs = await core.listJobs();
+    const target = jobs.find((j) => j.current) ?? jobs.find((j) => !j.done);
+    togglePanel(tray.bounds(), target?.id);
   }
 
   function applyShortcuts(s: Settings): void {
     globalShortcut.unregisterAll();
     shortcutErrors = [];
     const pairs: [string, () => void][] = [
-      [s.shortcutSave, quickSave],
-      [s.shortcutRecap, () => void openRecent()],
+      [s.shortcutSave, openSave],
+      [s.shortcutRecap, () => void openBrief()],
     ];
     for (const [accel, fn] of pairs) {
       try {
@@ -74,52 +100,45 @@ function start(): void {
     app.dock?.hide();
     // A minimal app menu so Copy, Paste and Select All work in text boxes.
     Menu.setApplicationMenu(
-      Menu.buildFromTemplate([
-        { role: 'appMenu' },
-        { role: 'editMenu' },
-        { label: 'Window', submenu: [{ role: 'close' }, { role: 'minimize' }] },
-      ]),
+      Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { label: 'Window', submenu: [{ role: 'close' }, { role: 'minimize' }] }]),
     );
 
     const dir = app.getPath('userData');
     const settings = new SettingsStore(dir);
-    const store = new SnapshotStore(path.join(dir, 'snapshots'));
-    core = new Core(settings, store, new SecretStore(dir));
+    const secrets = new SecretStore(dir);
+    const helper = new Helper(helperPath());
+    const fake = !app.isPackaged ? process.env.WWI_FAKE_CAPTURE : undefined;
+    core = new Core(settings, new JobStore(path.join(dir, 'jobs')), helper, dir, [app.getName(), 'Where Was I', 'Electron'], fake ? async () => ({ ...JSON.parse(await readFile(fake, 'utf8')), at: new Date().toISOString() }) : undefined);
+    void helper.appleStatus().then((s) => (appleStatus = s));
+    core.writers = [
+      claudeWriter({ getKey: () => secrets.get(), getModel: () => settings.get().aiModel, allowed: () => settings.get().aiDisclosureAccepted }),
+      appleWriter(helper, () => appleStatus === 'available'),
+    ];
 
-    tray = new AppTray(core, {
-      quickSave,
-      openRecap: (id) => openMain(id),
-      openMain: () => void openRecent(),
-      openSettings: () => showWindow('settings'),
+    tray = new AppTray({ togglePanel: (b) => togglePanel(b), save: openSave, openMain: () => showWindow('main') });
+    core.onChanged(() => broadcast('jobs:changed'));
+
+    registerIpc(core, secrets, {
+      shortcutErrors: () => shortcutErrors,
+      appleStatus: () => appleStatus,
+      afterSave: () => tray.flash('Saved'),
+      testClaude: (key) => testClaudeKey(key, settings.get().aiModel),
+      openSave,
     });
-
-    const auto = new AutoSnapshotter(settings, store, () => core.notifyChanged());
-    core.onSnapshotsChanged(() => {
-      void tray.refresh();
-      broadcast('snapshots:changed');
-    });
-
-    registerIpc(core, { shortcutErrors: () => shortcutErrors, saved: () => tray.flash('Saved') });
 
     const initial = settings.get();
     applyShortcuts(initial);
     applyLoginItem(initial);
-    auto.apply(initial.autoSnapshot);
 
     settings.onChange((next, prev) => {
       if (next.shortcutSave !== prev.shortcutSave || next.shortcutRecap !== prev.shortcutRecap) applyShortcuts(next);
       if (next.launchAtLogin !== prev.launchAtLogin) applyLoginItem(next);
-      if (next.autoSnapshot !== prev.autoSnapshot) auto.apply(next.autoSnapshot);
-      void tray.refresh();
       broadcast('settings:changed');
     });
 
-    // First run: open the main window so there is something to see.
-    if (initial.projects.length === 0) openMain();
     if (!app.isPackaged && process.env.WWI_CAPTURE_DIR) {
-      void openRecent();
-      showWindow('settings');
-      setTimeout(() => showWindow('quicksave'), 4000);
+      togglePanel(tray.bounds());
+      setTimeout(openSave, 7500);
     }
   });
 }

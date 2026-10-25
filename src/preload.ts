@@ -2,17 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type {
-  AppInfo,
-  CollectorError,
-  Project,
-  ProjectListItem,
-  RecapView,
-  RestoreRequest,
-  RestoreResult,
-  Settings,
-  SnapshotSummary,
-} from './shared/types';
+import type { AppInfo, BriefView, Job, JobSummary, OpenResult, SavePreview, SaveRequest, SaveResult, Settings } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -23,33 +13,42 @@ function on(channel: string, cb: (...args: unknown[]) => void): () => void {
 }
 
 const api = {
-  appInfo: () => invoke<AppInfo & { shortcutErrors: string[] }>('app:info'),
+  appInfo: () => invoke<AppInfo>('app:info'),
   getSettings: () => invoke<Settings>('settings:get'),
   updateSettings: (patch: Partial<Settings>) => invoke<Settings>('settings:update', patch),
-  setApiKey: (key: string) => invoke<boolean>('settings:setApiKey', key),
+  connectClaude: (key: string) => invoke<boolean>('claude:connect', key),
+  openClaudeKeysPage: () => invoke<boolean>('claude:openKeysPage'),
 
-  addProject: () => invoke<Project | null>('projects:add'),
-  removeProject: (id: string, deleteSnapshots: boolean) => invoke<boolean>('projects:remove', id, deleteSnapshots),
-  listProjects: () => invoke<ProjectListItem[]>('projects:list'),
-  suggestedProject: () => invoke<string | null>('projects:suggested'),
+  previewSave: (opts: { asNew?: boolean; jobId?: string } = {}) => invoke<SavePreview>('save:preview', opts),
+  commitSave: (req: SaveRequest) => invoke<SaveResult>('save:commit', req),
+  cancelSave: () => invoke<boolean>('save:cancel'),
 
-  saveSnapshot: (projectId: string, note: string) => invoke<{ id: string; errors: CollectorError[] }>('snapshot:save', projectId, note),
-  listSnapshots: (projectId: string) => invoke<SnapshotSummary[]>('snapshot:list', projectId),
-  getRecap: (projectId: string, snapshotId: string | null, ai: boolean) => invoke<RecapView>('recap:get', projectId, snapshotId, ai),
-  aiPayload: (projectId: string, snapshotId: string | null) => invoke<string>('recap:aiPayload', projectId, snapshotId),
-  restore: (req: RestoreRequest) => invoke<RestoreResult>('restore:run', req),
-  deleteProjectSnapshots: (projectId: string) => invoke<boolean>('snapshots:deleteProject', projectId),
+  listJobs: () => invoke<JobSummary[]>('jobs:list'),
+  getBrief: (jobId: string, entryId?: string) => invoke<BriefView>('jobs:brief', jobId, entryId ?? null),
+  rewriteBrief: (jobId: string, entryId: string) => invoke<BriefView>('jobs:rewriteBrief', jobId, entryId),
+  sendFeedback: (jobId: string, entryId: string, helpful: boolean, comment?: string) => invoke<void>('jobs:feedback', jobId, entryId, helpful, comment ?? null),
+  openJob: (jobId: string, entryId: string, mode: 'needed' | 'all') => invoke<OpenResult>('jobs:open', jobId, entryId, mode),
+  renameJob: (jobId: string, name: string) => invoke<void>('jobs:rename', jobId, name),
+  setDone: (jobId: string, done: boolean) => invoke<void>('jobs:done', jobId, done),
+  deleteJob: (jobId: string) => invoke<boolean>('jobs:delete', jobId),
+  deleteAll: () => invoke<boolean>('data:deleteAll'),
 
-  openWindow: (route: 'main' | 'settings' | 'quicksave') => invoke<boolean>('window:open', route),
+  openWindow: (route: 'save' | 'main') => invoke<boolean>('window:open', route),
   closeWindow: () => invoke<boolean>('window:close'),
+  fitWindow: (height: number) => invoke<boolean>('window:fit', height),
   openAutomationSettings: () => invoke<boolean>('system:openAutomationSettings'),
+  openAppleAiSettings: () => invoke<boolean>('system:openAppleAiSettings'),
+  quit: () => invoke<boolean>('app:quit'),
 
-  onSnapshotsChanged: (cb: () => void) => on('snapshots:changed', cb),
+  onJobsChanged: (cb: () => void) => on('jobs:changed', cb),
   onSettingsChanged: (cb: () => void) => on('settings:changed', cb),
-  onShowProject: (cb: (projectId: string) => void) => on('show-project', (id) => cb(String(id))),
-  onQuickSaveReset: (cb: () => void) => on('quicksave:reset', cb),
+  onShowJob: (cb: (jobId: string) => void) => on('panel:show-job', (id) => cb(String(id))),
+  onSaveBegin: (cb: () => void) => on('save:begin', cb),
+  onWindowShown: (cb: () => void) => on('window:shown', cb),
+  onWindowBlur: (cb: () => void) => on('window:blur', cb),
 };
 
 export type Api = typeof api;
+export type { Job };
 
 contextBridge.exposeInMainWorld('api', api);

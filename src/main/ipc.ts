@@ -5,10 +5,12 @@ import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } f
 import type { AppInfo } from '../shared/types';
 import * as v from '../shared/validate';
 import type { Core } from './core';
-import { findVSCode } from './restore';
-import { isAppUrl, showWindow } from './windows';
+import type { SecretStore } from './secrets';
+import { fitHeight, holdWindow, isAppUrl, routeOf, showWindow } from './windows';
 
 const AUTOMATION_SETTINGS = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Automation';
+const APPLE_AI_SETTINGS = 'x-apple.systempreferences:com.apple.Siri-Settings.extension';
+const CLAUDE_KEYS_PAGE = 'https://console.anthropic.com/settings/keys';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
 
@@ -25,83 +27,114 @@ function handle(channel: string, fn: Handler): void {
   });
 }
 
-export function registerIpc(core: Core, hooks: { shortcutErrors: () => string[]; saved: () => void }): void {
-  handle('app:info', async (): Promise<AppInfo & { shortcutErrors: string[] }> => ({
+export interface IpcHooks {
+  shortcutErrors: () => string[];
+  appleStatus: () => AppInfo['appleAi'];
+  afterSave: (result: { jobId: string; tidy: boolean }) => void;
+  testClaude: (key: string) => Promise<void>;
+  openSave: () => void;
+}
+
+async function confirm(event: IpcMainInvokeEvent, message: string, detail: string, button: string): Promise<boolean> {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const route = routeOf(win);
+  if (route) holdWindow(route, true);
+  try {
+    const opts: Electron.MessageBoxOptions = { type: 'warning', buttons: [button, 'Cancel'], defaultId: 1, cancelId: 1, message, detail };
+    const res = win ? await dialog.showMessageBox(win, opts) : await dialog.showMessageBox(opts);
+    return res.response === 0;
+  } finally {
+    if (route) holdWindow(route, false);
+  }
+}
+
+export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): void {
+  handle('app:info', async (): Promise<AppInfo> => ({
     version: app.getVersion(),
-    hasApiKey: await core.secrets.has(),
-    vscodeAvailable: (await findVSCode()) !== null,
-    platform: process.platform,
+    hasApiKey: await secrets.has(),
+    appleAi: hooks.appleStatus(),
     shortcutErrors: hooks.shortcutErrors(),
   }));
 
   handle('settings:get', () => core.settings.get());
   handle('settings:update', (_e, patch) => core.settings.update(patch));
-  handle('settings:setApiKey', async (_e, key) => {
-    await core.secrets.set(v.apiKey(key));
-    return core.secrets.has();
-  });
 
-  handle('projects:add', async (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    const opts: Electron.OpenDialogOptions = { title: 'Choose a project folder', properties: ['openDirectory', 'createDirectory'] };
-    const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
-    if (res.canceled || !res.filePaths[0]) return null;
-    return core.addProject(v.absolutePath(res.filePaths[0]));
+  handle('claude:connect', async (_e, key) => {
+    const k = v.apiKey(key);
+    if (k) await hooks.testClaude(k);
+    await secrets.set(k);
+    return secrets.has();
   });
-  handle('projects:remove', async (event, id, deleteSnapshots) => {
-    const projectId = v.projectId(id);
-    const del = v.bool(deleteSnapshots, 'deleteSnapshots');
-    await core.removeProject(projectId, del);
+  handle('claude:openKeysPage', async () => {
+    await shell.openExternal(CLAUDE_KEYS_PAGE);
     return true;
   });
-  handle('projects:list', () => core.listProjects());
-  handle('projects:suggested', () => core.suggestedProject());
 
-  handle('snapshot:save', async (_e, id, note) => {
-    const snap = await core.save(v.projectId(id), v.note(note));
-    hooks.saved();
-    return { id: snap.id, errors: snap.errors };
+  handle('save:preview', (_e, opts) => {
+    const o = v.isPlainObject(opts) ? opts : {};
+    return core.preview({ asNew: o.asNew === true, jobId: o.jobId == null ? undefined : v.jobId(o.jobId) });
   });
-  handle('snapshot:list', (_e, id) => core.store.list(v.projectId(id)));
+  handle('save:commit', async (_e, req) => {
+    const r = v.saveRequest(req);
+    const result = await core.commitSave(r);
+    hooks.afterSave({ jobId: result.jobId, tidy: r.tidy });
+    return result;
+  });
+  handle('save:cancel', () => {
+    core.cancelSave();
+    return true;
+  });
 
-  handle('recap:get', (_e, id, snapshotId, ai) =>
-    core.recap(v.projectId(id), snapshotId == null ? undefined : v.snapshotId(snapshotId), v.bool(ai ?? false, 'ai')),
+  handle('jobs:list', () => core.listJobs());
+  handle('jobs:brief', (_e, id, entry) => core.briefView(v.jobId(id), entry == null ? undefined : v.entryId(entry)));
+  handle('jobs:rewriteBrief', (_e, id, entry) => core.rewriteBrief(v.jobId(id), v.entryId(entry)));
+  handle('jobs:feedback', (_e, id, entry, helpful, comment) =>
+    core.feedback(v.jobId(id), v.entryId(entry), v.bool(helpful, 'helpful'), comment == null ? undefined : v.str(comment, 'comment', 500)),
   );
-  handle('recap:aiPayload', (_e, id, snapshotId) =>
-    core.aiPayloadPreview(v.projectId(id), snapshotId == null ? undefined : v.snapshotId(snapshotId)),
-  );
-
-  handle('restore:run', (_e, req) => core.restore(v.restoreRequest(req)));
-
-  handle('snapshots:deleteProject', async (event, id) => {
-    const projectId = v.projectId(id);
-    const project = core.project(projectId);
-    const win = BrowserWindow.fromWebContents(event.sender);
-    const opts: Electron.MessageBoxOptions = {
-      type: 'warning',
-      buttons: ['Delete snapshots', 'Cancel'],
-      defaultId: 1,
-      cancelId: 1,
-      message: `Delete all saved snapshots for ${project.name}?`,
-      detail: 'This cannot be undone. Your project files are not touched.',
-    };
-    const res = win ? await dialog.showMessageBox(win, opts) : await dialog.showMessageBox(opts);
-    if (res.response !== 0) return false;
-    await core.deleteProjectSnapshots(projectId);
+  handle('jobs:open', (_e, id, entry, mode) => core.open(v.jobId(id), v.entryId(entry), v.openMode(mode)));
+  handle('jobs:rename', (_e, id, name) => core.rename(v.jobId(id), v.jobName(name)));
+  handle('jobs:done', (_e, id, done) => core.setDone(v.jobId(id), v.bool(done, 'done')));
+  handle('jobs:delete', async (event, id) => {
+    const jobId = v.jobId(id);
+    const job = await core.store.get(jobId);
+    if (!(await confirm(event, `Delete "${job.name}"?`, 'Its saves and history are removed. Your files and tabs are not touched.', 'Delete job'))) return false;
+    await core.deleteJob(jobId);
+    return true;
+  });
+  handle('data:deleteAll', async (event) => {
+    if (!(await confirm(event, 'Delete everything Where Was I has saved?', 'All jobs and their history are removed. This cannot be undone.', 'Delete everything'))) return false;
+    await core.deleteAll();
     return true;
   });
 
   handle('window:open', (_e, route) => {
-    if (route !== 'main' && route !== 'settings' && route !== 'quicksave') throw new Error('bad window');
-    showWindow(route);
+    if (route === 'save') hooks.openSave();
+    else if (route === 'main') showWindow('main');
+    else throw new Error('bad window');
     return true;
   });
   handle('window:close', (event) => {
-    BrowserWindow.fromWebContents(event.sender)?.close();
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (routeOf(win) === 'panel') win?.hide();
+    else win?.close();
+    return true;
+  });
+  handle('window:fit', (event, height) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win && typeof height === 'number' && Number.isFinite(height)) fitHeight(win, height);
     return true;
   });
   handle('system:openAutomationSettings', async () => {
     await shell.openExternal(AUTOMATION_SETTINGS);
     return true;
   });
+  handle('system:openAppleAiSettings', async () => {
+    await shell.openExternal(APPLE_AI_SETTINGS);
+    return true;
+  });
+  handle('app:quit', () => {
+    app.quit();
+    return true;
+  });
 }
+
