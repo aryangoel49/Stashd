@@ -6,6 +6,7 @@
 //   hidden  not shown: everyday apps and sites, and things you keep leaving out
 
 import type { Item, Job, LearnedPrefs, Settings } from '../../shared/types';
+import { group, itemTokens, jobProfile, textTokens } from './relevance';
 
 const STOP = new Set([
   'the', 'and', 'for', 'with', 'that', 'this', 'from', 'your', 'have', 'what', 'when', 'where', 'will', 'into', 'about',
@@ -50,10 +51,12 @@ export function isLifestyle(item: Item, settings: Pick<Settings, 'lifestyleApps'
 
 export interface Classified {
   sure: Item[];
-  /** Opened since the job was unpacked, but not a clear match: highlighted for one-click adding. */
+  /** Probably related (opened since unpacking, or a partial match): highlighted for one-click adding. */
   likely: Item[];
   maybe: Item[];
   hidden: Item[];
+  /** Why each item was placed where it was, in plain words (for tooltips). */
+  why: Record<string, string>;
 }
 
 export interface ClassifyInput {
@@ -62,61 +65,39 @@ export interface ClassifyInput {
   job: Job | null;
   /** Items from the job's latest save. */
   previous: Item[];
-  /** The job name and note so far, to match titles against. */
+  /** The job name so far, to match titles against. */
   name: string;
+  /** The job's last note. */
+  note?: string;
   settings: Pick<Settings, 'lifestyleApps' | 'lifestyleSites'>;
   learnedLifestyleApps?: string[];
   /** What was open right after the job was unpacked. Anything not in it was opened since. */
   baseline?: Set<string>;
+  /** What you were on last (seeds a new job). */
+  frontKey?: string | null;
 }
 
+/** Sort open items into: in this job / probably related / probably not / everyday (hidden). */
 export function classify(input: ClassifyInput): Classified {
-  const { items, job, previous } = input;
+  const { items, job } = input;
   const prefs: LearnedPrefs = job?.prefs ?? { hide: {}, add: {} };
-  const out: Classified = { sure: [], likely: [], maybe: [], hidden: [] };
-  const prevKeys = new Set(previous.map((p) => p.key));
-  const prevHosts = new Map<string, Set<string>>();
-  for (const p of previous) {
-    const h = host(p);
-    if (!h) continue;
-    const set = prevHosts.get(h) ?? new Set<string>();
-    for (const w of words(p.label)) set.add(w);
-    prevHosts.set(h, set);
-  }
-  const prevDirs = new Set(previous.filter((p) => p.path).map((p) => p.path!.split('/').slice(0, -1).join('/')));
-  const jobWords = words(input.name);
-
+  const hidden: Item[] = [];
+  const candidates: Item[] = [];
   for (const it of items) {
-    if (isLifestyle(it, input.settings, input.learnedLifestyleApps)) {
-      out.hidden.push(it);
-      continue;
-    }
-    if ((prefs.hide[it.key] ?? 0) >= 2) {
-      out.hidden.push(it);
-      continue;
-    }
-    if (!job) {
-      out.sure.push(it);
-      continue;
-    }
-    const itWords = words(it.label);
-    const h = host(it);
-    const sameSiteSimilar = h !== null && prevHosts.has(h) && overlap(itWords, prevHosts.get(h)!) >= 1;
-    const sameFolder = it.path !== undefined && prevDirs.has(it.path.split('/').slice(0, -1).join('/'));
-    const mentions = overlap(itWords, jobWords) >= 1;
-    const newSinceUnpack = input.baseline !== undefined && !input.baseline.has(it.key);
-    // A brand-new unsaved document is almost always what you're working on right now.
-    if (prevKeys.has(it.key) || (prefs.add[it.key] ?? 0) >= 2 || sameSiteSimilar || sameFolder || mentions || it.untitled) out.sure.push(it);
-    else if (newSinceUnpack) out.likely.push(it);
-    else out.maybe.push(it);
+    if (isLifestyle(it, input.settings, input.learnedLifestyleApps) || (prefs.hide[it.key] ?? 0) >= 2) hidden.push(it);
+    else candidates.push(it);
   }
-  return out;
-}
-
-function overlap(a: Set<string>, b: Set<string>): number {
-  let n = 0;
-  for (const w of a) if (b.has(w)) n++;
-  return n;
+  const profile = job ? jobProfile(input.name || job.name, input.note ?? '', input.previous) : null;
+  const g = group({
+    candidates,
+    profile,
+    frontKey: input.frontKey ?? null,
+    baseline: job ? input.baseline : undefined,
+    // A brand-new unsaved document is almost always what you're working on, and so is
+    // anything you've added to this job by hand twice.
+    alwaysSure: (it) => it.untitled === true || (prefs.add[it.key] ?? 0) >= 2,
+  });
+  return { sure: g.sure, likely: g.likely, maybe: g.maybe, hidden, why: g.why };
 }
 
 /**
@@ -219,34 +200,46 @@ function titleCase(phrase: string): string {
     .join(' ');
 }
 
-/** The topic everything in the job shares, like "AI Augmentation", or null if there's no clear one. */
+/** The topic everything in the job shares, like "AI Augmentation" or "Soccer Streams", or null if there's no clear one.
+ *  Uses the same word matching as the relevance engine; looks at every part of every title. */
 export function topicName(items: Item[]): string | null {
-  const texts = items.map(topicText).filter((t): t is string => !!t);
-  if (texts.length < 2) return null;
-  const tokenize = (t: string) => t.split(/[^A-Za-z0-9]+/).filter(Boolean);
-  const keep = (w: string) => !TOPIC_STOP.has(w.toLowerCase()) && !/^\d+$/.test(w) && (w.length >= 3 || /^[A-Za-z]{2}$/.test(w));
+  const content = items.filter((i) => i.kind !== 'app' && !i.untitled);
+  if (content.length < 2) return null;
 
-  // How many different items mention each word.
+  // How many items mention each word.
   const df = new Map<string, number>();
-  for (const t of texts) for (const w of new Set(tokenize(t).filter(keep).map(stem))) df.set(w, (df.get(w) ?? 0) + 1);
-  const shared = new Set([...df].filter(([, n]) => n >= 2).map(([w]) => w));
+  for (const it of content) for (const t of itemTokens(it)) df.set(t, (df.get(t) ?? 0) + 1);
+  const shared = new Set([...df].filter(([, n]) => n >= 2).map(([t]) => t));
   if (!shared.size) return null;
 
-  // The title that holds the most shared words (shorter wins a tie), and the shortest stretch of it that covers them.
-  const scored = texts
-    .map((t) => ({ t, words: tokenize(t), hits: new Set(tokenize(t).map(stem).filter((w) => shared.has(w))).size }))
-    .filter((x) => x.hits > 0)
-    .sort((a, b) => b.hits - a.hits || a.words.length - b.words.length);
-  const best = scored[0];
-  const idx = best.words.map((w, i) => (shared.has(stem(w)) ? i : -1)).filter((i) => i >= 0);
-  let phrase = best.words.slice(idx[0], idx[idx.length - 1] + 1);
-  if (phrase.length > 5) {
-    const top = [...shared].sort((a, b) => (df.get(b) ?? 0) - (df.get(a) ?? 0)).slice(0, 3);
-    phrase = best.words.filter((w) => top.includes(stem(w))).filter((w, i, a) => a.findIndex((x) => stem(x) === stem(w)) === i);
+  // Candidate phrases: each part of each title ("Site - Part | Part"), as original words.
+  type Cand = { words: string[]; hits: number; weight: number };
+  const cands: Cand[] = [];
+  for (const it of content) {
+    let label = it.label.replace(/^\(\d+\)\s*/, '');
+    if (it.kind !== 'tab') label = label.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/_+/g, ' ');
+    for (const part of label.split(/\s[-–—|·•:]\s|:\s/)) {
+      const words = part.split(/\s+/).filter(Boolean);
+      const toks = new Set(words.flatMap((w) => textTokens(w)));
+      const hit = [...toks].filter((t) => shared.has(t));
+      if (!hit.length) continue;
+      cands.push({ words, hits: hit.length, weight: hit.reduce((a, t) => a + (df.get(t) ?? 0), 0) });
+    }
   }
-  // A single word is only a good name when almost everything mentions it.
-  if (phrase.length === 1 && (df.get(stem(phrase[0])) ?? 0) < 3) return null;
+  if (!cands.length) return null;
+  cands.sort((a, b) => b.hits - a.hits || b.weight - a.weight || a.words.length - b.words.length);
+  const best = cands[0];
+
+  // The shortest stretch of that part that covers its shared words.
+  const isHit = (w: string) => textTokens(w).some((t) => shared.has(t));
+  const idx = best.words.map((w, i) => (isHit(w) ? i : -1)).filter((i) => i >= 0);
+  let phrase = best.words.slice(idx[0], idx[idx.length - 1] + 1);
+  if (phrase.length > 5) phrase = phrase.filter(isHit).slice(0, 4);
+  phrase = phrase.map((w) => w.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '')).filter(Boolean);
+  // A single word is only a good name when most things mention it.
+  if (phrase.length === 1 && (df.get(textTokens(phrase[0])[0] ?? '') ?? 0) < 3) return null;
   const text = phrase.join(' ');
+  if (!text) return null;
   return (text === text.toLowerCase() ? titleCase(text) : text).slice(0, 60);
 }
 
@@ -260,19 +253,3 @@ export function shortTitle(title: string, max = 40): string {
   return t.replace(/[\s,.;:!?-]+$/, '');
 }
 
-/** How alike two sets of items are (0 to 1), by shared items, files, sites and words. */
-export function similarity(a: Item[], b: Item[]): number {
-  if (!a.length || !b.length) return 0;
-  const keysB = new Set(b.map((i) => i.key));
-  const hostsB = new Set(b.map(host).filter(Boolean));
-  const wordsB = new Set(b.flatMap((i) => [...words(i.label)]));
-  let score = 0;
-  for (const it of a) {
-    if (keysB.has(it.key)) score += 1;
-    else if (host(it) && hostsB.has(host(it))) score += 0.4;
-    else if ([...words(it.label)].some((w) => wordsB.has(w))) score += 0.3;
-  }
-  return Math.min(1, score / Math.min(a.length, b.length));
-}
-
-export const MATCH_THRESHOLD = 0.6;

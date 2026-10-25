@@ -59,8 +59,9 @@ export function Save() {
       setName(p.suggestedName);
       setTidy(modeRef.current === 'pack' ? true : modeRef.current === 'save' ? false : p.tidyUp);
       setPicked(new Set([...p.sure, ...p.kept].map((i) => i.key)));
-      // Show the list straight away when there's something new to look at or something kept.
-      setExpanded(p.likely.length > 0 || p.kept.length > 0);
+      // Show the list straight away when there's something to decide: related things, kept things,
+      // or when adding to an existing job.
+      setExpanded(p.likely.length > 0 || p.kept.length > 0 || p.jobId !== null);
       setState('ready');
       nameTouched.current = false;
       if (!p.jobId && p.sure.length) {
@@ -202,22 +203,27 @@ export function Save() {
             </div>
           )}
 
-          {preview?.isSuggestion && preview.jobName && (
-            <div className="suggest no-drag fade-in">
-              <span style={{ flex: 1 }}>
-                Looks like <b>{preview.jobName}</b>. Adding to it.
-              </span>
-              <button type="button" className="btn small" onClick={() => void load({ asNew: true })}>
-                Make a new job
-              </button>
-            </div>
-          )}
-          {preview && !preview.isSuggestion && preview.jobId && (
-            <div className="muted small" style={{ padding: '0 4px', marginTop: -6 }}>
-              Updating this job
-              <button type="button" className="link small" style={{ marginLeft: 8 }} onClick={() => void load({ asNew: true })}>
-                Save as a new job instead
-              </button>
+          {preview && preview.jobOptions.length > 0 && (
+            <div className="save-to no-drag">
+              <span className="muted small">Save to</span>
+              <select
+                className="field small save-to-select"
+                value={preview.jobId ?? 'new'}
+                aria-label="Save to"
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setState('loading');
+                  void load(v === 'new' ? { asNew: true } : { jobId: v });
+                }}
+              >
+                <option value="new">New job</option>
+                {preview.jobOptions.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.name}
+                    {j.current ? '  (open now)' : j.match === 'strong' ? '  (looks like a match)' : ''}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
@@ -232,32 +238,29 @@ export function Save() {
           />
 
           {expanded && preview && (
-            <div className="no-drag fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <Pills items={preview.sure} picked={picked} frontKey={preview.frontKey} onToggle={toggle} />
+            <div className="groups no-drag fade-in">
+              <div className="group">
+                <div className="section-label">In this job</div>
+                <Pills items={[...preview.sure, ...preview.kept]} picked={picked} frontKey={preview.frontKey} why={preview.why} onToggle={toggle} />
+              </div>
               {preview.likely.length > 0 && (
-                <div className="likely-box">
+                <div className="group likely-box">
                   <div className="section-label likely-label">
-                    <span>New since you unpacked</span>
+                    <span>Probably related</span>
                     {likelyLeft.length > 0 && (
                       <button type="button" className="link small" onClick={() => setPicked((prev) => new Set([...prev, ...likelyLeft.map((i) => i.key)]))}>
                         Add all
                       </button>
                     )}
                   </div>
-                  <Pills items={preview.likely} picked={picked} frontKey={preview.frontKey} onToggle={toggle} maybe likely />
+                  <Pills items={preview.likely} picked={picked} frontKey={preview.frontKey} why={preview.why} onToggle={toggle} />
                 </div>
               )}
               {preview.maybe.length > 0 && (
-                <>
-                  <div className="section-label">Not sure about these</div>
-                  <Pills items={preview.maybe} picked={picked} frontKey={preview.frontKey} onToggle={toggle} maybe />
-                </>
-              )}
-              {preview.kept.length > 0 && (
-                <>
-                  <div className="section-label">Not open right now (kept in the job)</div>
-                  <Pills items={preview.kept} picked={picked} frontKey={null} onToggle={toggle} kept />
-                </>
+                <div className="group muted-group">
+                  <div className="section-label">Probably not part of this job</div>
+                  <Pills items={preview.maybe} picked={picked} frontKey={preview.frontKey} why={preview.why} onToggle={toggle} />
+                </div>
               )}
               {preview.hiddenCount > 0 && (
                 <div className="faint tiny" style={{ padding: '0 4px' }}>
@@ -277,7 +280,7 @@ export function Save() {
             <span style={{ display: 'inline-flex', gap: 10, alignItems: 'center' }}>
               <button type="button" className="summary" onClick={() => setExpanded(!expanded)} title="See what's included">
                 {summary(chosen)}
-                {maybeCount > 0 && ` · ${maybeCount} maybe`}
+                {maybeCount > 0 && ` · ${maybeCount} left out`}
                 <span style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(-90deg)', display: 'inline-flex' }}>
                   <Icon name="back" />
                 </span>
@@ -301,28 +304,21 @@ export function Save() {
   );
 }
 
-function Pills(props: {
-  items: Item[];
-  picked: Set<string>;
-  frontKey: string | null;
-  onToggle: (k: string) => void;
-  maybe?: boolean;
-  likely?: boolean;
-  kept?: boolean;
-}) {
-  const { items, picked, frontKey, onToggle, maybe, likely, kept } = props;
+function Pills(props: { items: Item[]; picked: Set<string>; frontKey: string | null; why: Record<string, string>; onToggle: (k: string) => void }) {
+  const { items, picked, frontKey, why, onToggle } = props;
   return (
     <div className="pills">
       {items.map((i) => {
         const on = picked.has(i.key);
-        const cls = maybe
-          ? `pill maybe ${likely ? 'likely' : ''} ${on ? 'on' : ''}`
-          : `pill ${on ? '' : 'off'} ${kept ? 'kept' : ''} ${i.key === frontKey ? 'front' : ''}`;
-        const why = i.key === frontKey ? '\nYou were on this last' : kept ? '\nNot open right now. Untick to drop it from the job.' : likely ? '\nOpened since you unpacked' : '';
+        const reason = i.notOpen ? 'Not open right now, kept in the job. Click to drop it.' : (why[i.key] ?? '');
+        const tip = [i.label, i.detail, i.key === frontKey ? 'You were on this last' : '', reason].filter(Boolean).join('\n');
         return (
-          <button key={i.key} type="button" className={cls} onClick={() => onToggle(i.key)} title={`${i.label}\n${i.detail}${why}`}>
-            {maybe && !on ? <Icon name="plus" /> : <Icon name={i.kind} />}
-            <span>{i.label}</span>
+          <button key={i.key} type="button" className={`pill ${on ? 'in' : 'out'}`} onClick={() => onToggle(i.key)} title={tip} aria-pressed={on}>
+            <span className="pill-mark">{on ? <Icon name="check" /> : <Icon name="plus" />}</span>
+            <Icon name={i.kind} className="i kind" />
+            <span className="pill-label">{i.label}</span>
+            {i.notOpen && <span className="pill-tag">closed</span>}
+            {i.key === frontKey && <span className="pill-dot" title="You were on this last" />}
           </button>
         );
       })}

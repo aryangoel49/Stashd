@@ -2,7 +2,7 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { classify, learn, learnedLifestyleApps, recordAppUnticks, similarity, suggestName, words } from '../src/main/jobs/match';
+import { classify, learn, learnedLifestyleApps, recordAppUnticks, suggestName, words } from '../src/main/jobs/match';
 import { entryIdFor, JobStore, jobIdFor } from '../src/main/store';
 import type { Item, Job, SaveEntry } from '../src/shared/types';
 import { DEFAULT_SETTINGS, entryId as checkEntryId, jobId as checkJobId } from '../src/shared/validate';
@@ -79,7 +79,7 @@ describe('classify', () => {
 
 describe('learn', () => {
   it('counts unticks in a row and resets when ticked', () => {
-    const offered = { sure: [essay, reddit], likely: [], maybe: [jstor], hidden: [] };
+    const offered = { sure: [essay, reddit], likely: [], maybe: [jstor], hidden: [], why: {} };
     let prefs = learn({ hide: {}, add: {} }, offered, [essay.key, jstor.key]);
     expect(prefs.hide[reddit.key]).toBe(1);
     expect(prefs.add[jstor.key]).toBe(1);
@@ -121,6 +121,13 @@ describe('suggestName', () => {
       tab('https://www.google.com/c', 'things to do in toronto - Google Search'),
     ];
     expect(suggestName(trip, trip[0].key)).toBe('Toronto');
+    const soccer = [
+      tab('https://streamking.cc/', 'StreamKing - Free NBA, NFL, NHL, MLB, Soccer Streams'),
+      tab('https://totalsportek.pro/x', 'Watch Real Madrid at Barcelona Live Stream | TotalSportek'),
+      tab('https://streameast.zip/', 'StreamEast.zip'),
+      tab('https://soccerstreams.net/', 'Soccer Streams | Soccer Live Streams Reddit'),
+    ];
+    expect(suggestName(soccer, soccer[0].key)).toBe('Soccer Streams');
   });
 
   it('falls back to a document name when there is no clear shared topic', () => {
@@ -143,12 +150,7 @@ describe('suggestName', () => {
   });
 });
 
-describe('similarity', () => {
-  it('scores overlapping work high and unrelated work low', () => {
-    expect(similarity([essay, jstor], [essay, jstor])).toBe(1);
-    expect(similarity([essay, tab('https://www.jstor.org/stable/9', 'Ocean warming')], [essay, jstor])).toBeGreaterThanOrEqual(0.6);
-    expect(similarity([reddit], [essay, jstor])).toBeLessThan(0.6);
-  });
+describe('words', () => {
   it('finds meaningful words', () => {
     expect([...words('The Climate Essay.docx')]).toEqual(['climate', 'essay']);
   });

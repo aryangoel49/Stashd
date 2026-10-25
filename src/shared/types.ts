@@ -149,6 +149,18 @@ export interface SavePreview {
   frontKey: string | null;
   tidyUp: boolean;
   errors: CollectorError[];
+  /** Why each item is where it is, in plain words (tooltips). */
+  why: Record<string, string>;
+  /** Your jobs for the "Save to" picker, best match first. */
+  jobOptions: JobOption[];
+}
+
+export interface JobOption {
+  id: string;
+  name: string;
+  /** How well what's open fits this job. */
+  match: 'strong' | 'some' | 'none';
+  current: boolean;
 }
 
 export interface SaveRequest {

@@ -12,12 +12,11 @@ import {
   isLifestyle,
   learn,
   learnedLifestyleApps,
-  MATCH_THRESHOLD,
   recordAppUnticks,
-  similarity,
   suggestName,
   type Classified,
 } from './jobs/match';
+import { FIT_SUGGEST, jobFit, jobProfile } from './jobs/relevance';
 import { openItems } from './open';
 import type { SettingsStore } from './settings';
 import { JobStore, writeFileAtomic } from './store';
@@ -105,32 +104,45 @@ export class Core {
     const cap = await this.pending!.capture;
     const settings = this.settings.get();
     const learned = learnedLifestyleApps(this.state.appUnticks);
+    const candidates = cap.items.filter((i) => !isLifestyle(i, settings, learned));
+    const frontKey = frontItemKey(candidates, cap.appOrder);
 
-    // Which job is this? The one you opened, or one that looks the same, or a new one.
+    // How well does what's open fit each of your jobs? (Best first, for the "Save to" picker.)
+    const fits: { job: Job; fit: number; latest: SaveEntry | null }[] = [];
+    for (const j of (await this.store.list()).filter((x) => !x.done).slice(0, 40)) {
+      const latest = await this.store.latest(j.id);
+      const fit = latest ? jobFit(candidates, jobProfile(j.name, latest.note, latest.items)) : 0;
+      fits.push({ job: j, fit, latest });
+    }
+    fits.sort((a, b) => b.fit - a.fit);
+
+    // Which job is this? The one you picked, the one you have open, or a clear match. Otherwise new.
     let job: Job | null = null;
     let isSuggestion = false;
     if (!opts.asNew) {
       const wanted = opts.jobId ?? this.state.currentJobId;
       if (wanted && (await this.store.exists(wanted))) job = await this.store.get(wanted);
-      if (job?.done) job = null;
-      if (!job) {
-        const visible = classify({ items: cap.items, job: null, previous: [], name: '', settings, learnedLifestyleApps: learned }).sure;
-        let best: { job: Job; score: number } | null = null;
-        for (const j of (await this.store.list()).filter((x) => !x.done).slice(0, 25)) {
-          const latest = await this.store.latest(j.id);
-          const score = latest ? similarity(visible, latest.items) : 0;
-          if (score >= MATCH_THRESHOLD && (!best || score > best.score)) best = { job: j, score };
-        }
-        if (best) {
-          job = best.job;
-          isSuggestion = true;
-        }
+      if (job?.done && !opts.jobId) job = null;
+      if (!job && fits[0] && fits[0].fit >= FIT_SUGGEST) {
+        job = fits[0].job;
+        isSuggestion = true;
       }
     }
 
-    const previous = job ? ((await this.store.latest(job.id))?.items ?? []) : [];
+    const latest = job ? (fits.find((f) => f.job.id === job!.id)?.latest ?? (await this.store.latest(job.id))) : null;
+    const previous = latest?.items ?? [];
     const baseline = job && this.state.baseline?.jobId === job.id ? new Set(this.state.baseline.keys) : undefined;
-    const offered = classify({ items: cap.items, job, previous, name: job?.name ?? '', settings, learnedLifestyleApps: learned, baseline });
+    const offered = classify({
+      items: cap.items,
+      job,
+      previous,
+      name: job?.name ?? '',
+      note: latest?.note ?? '',
+      settings,
+      learnedLifestyleApps: learned,
+      baseline,
+      frontKey,
+    });
     // Things that belong to this job but aren't open right now (closed by accident, say) are kept.
     const openKeys = new Set(cap.items.map((i) => i.key));
     const kept = previous
@@ -139,27 +151,34 @@ export class Core {
     this.pending!.offered = offered;
     this.pending!.kept = kept;
     const visibleItems = [...offered.sure, ...offered.likely, ...offered.maybe];
-    const frontKey = frontItemKey(visibleItems, cap.appOrder);
+    const front = frontItemKey(visibleItems, cap.appOrder);
     return {
       jobId: job?.id ?? null,
       jobName: job?.name ?? null,
       isSuggestion,
-      suggestedName: job?.name ?? suggestName(offered.sure, frontKey),
+      suggestedName: job?.name ?? suggestName(offered.sure, front),
       sure: offered.sure,
       likely: offered.likely,
       maybe: offered.maybe,
       kept,
       hiddenCount: offered.hidden.length,
-      frontKey,
+      frontKey: front,
       tidyUp: settings.tidyUp,
       errors: cap.errors,
+      why: offered.why,
+      jobOptions: fits.map((f) => ({
+        id: f.job.id,
+        name: f.job.name,
+        match: f.fit >= FIT_SUGGEST ? 'strong' : f.fit > 0.1 ? 'some' : 'none',
+        current: f.job.id === this.state.currentJobId,
+      })),
     };
   }
 
   async commitSave(req: SaveRequest): Promise<SaveResult> {
     if (!this.pending) throw new Error('Nothing to save. Press the shortcut again.');
     const cap = await this.pending.capture;
-    const offered = this.pending.offered ?? { sure: cap.items, likely: [], maybe: [], hidden: [] };
+    const offered = this.pending.offered ?? { sure: cap.items, likely: [], maybe: [], hidden: [], why: {} };
     const wanted = new Set(req.keys);
     const open = cap.items.filter((i) => wanted.has(i.key)).map((i) => ({ ...i, notOpen: undefined }));
     const openKeys = new Set(open.map((i) => i.key));
