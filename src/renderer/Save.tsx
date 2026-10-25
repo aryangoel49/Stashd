@@ -244,14 +244,20 @@ function Pills({ items, picked, frontKey, onToggle, maybe }: { items: Item[]; pi
   );
 }
 
+const BROWSER_NAMES: Record<string, string> = { chrome: 'Chrome', arc: 'Arc', safari: 'Safari' };
+
+function appName(collector: string): string {
+  const [kind, name] = collector.split(':');
+  return kind === 'browser' ? (BROWSER_NAMES[name] ?? name) : (name ?? collector).replace('Microsoft ', '');
+}
+
 function PermissionNote({ errors }: { errors: CollectorError[] }) {
-  const denied = errors.filter((e) => e.permissionDenied);
-  if (!denied.length) return null;
+  const names = [...new Set(errors.filter((e) => e.permissionDenied).map((e) => appName(e.collector)))];
+  if (!names.length) return null;
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
   return (
     <div className="banner no-drag">
-      <span>
-        {denied.length === 1 ? denied[0].message : `Where Was I can't see inside ${denied.length} apps yet.`} Allow it in System Settings, then save again.
-      </span>
+      <span>Where Was I isn't allowed to see inside {list} yet. Turn it on in System Settings, then save again.</span>
       <button type="button" className="btn small" onClick={() => void api.openAutomationSettings()}>
         Open Settings
       </button>

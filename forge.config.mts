@@ -4,6 +4,8 @@ import { MakerZIP } from '@electron-forge/maker-zip';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -22,6 +24,19 @@ const config: ForgeConfig = {
     },
   },
   rebuildConfig: {},
+  hooks: {
+    // Packaging edits Info.plist after Electron was signed, which breaks the signature. macOS then
+    // silently refuses Automation (talking to Chrome, Word…) without asking. Re-sign the whole app
+    // ad hoc (no paid certificate needed) with our own identifier, then check it.
+    postPackage: async (_config, result) => {
+      if (result.platform !== 'darwin') return;
+      for (const dir of result.outputPaths) {
+        const appPath = path.join(dir, 'Where Was I.app');
+        execFileSync('codesign', ['--force', '--deep', '--sign', '-', '--identifier', 'com.aryangoel.wherewasi', appPath], { stdio: 'inherit' });
+        execFileSync('codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'inherit' });
+      }
+    },
+  },
   makers: [new MakerDMG({ name: 'Where Was I', icon: 'assets/icon.icns', format: 'ULFO' }), new MakerZIP({}, ['darwin'])],
   plugins: [
     new VitePlugin({
