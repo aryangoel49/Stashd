@@ -108,7 +108,7 @@ export function SettingsView() {
         {(['chrome', 'arc', 'safari'] as const).map((b) => (
           <Toggle key={b} label={`Read tabs from ${{ chrome: 'Google Chrome', arc: 'Arc', safari: 'Safari' }[b]}`} on={s.browsers[b]} onChange={(v) => void update({ browsers: { ...s.browsers, [b]: v } })} />
         ))}
-        <Toggle label="Keep the part of addresses after ?" hint="Off by default. Secrets are removed either way." on={s.keepQueryStrings} onChange={(v) => void update({ keepQueryStrings: v })} />
+        <Toggle label="Keep the part of addresses after ?" hint="Off by default: only the parts that say which page it is (like a YouTube video) are kept. Secrets are removed either way." on={s.keepQueryStrings} onChange={(v) => void update({ keepQueryStrings: v })} />
         <div className="srow">
           <span>Permission to see your tabs and files</span>
           <button className="btn small" onClick={() => void api.openAutomationSettings()}>

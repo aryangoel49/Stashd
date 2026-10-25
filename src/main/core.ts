@@ -42,9 +42,12 @@ export class Core {
   private listeners: (() => void)[] = [];
   private state: State;
   private readonly stateFile: string;
+  private readonly keyFile: string;
   private pending: PendingSave | null = null;
   private writing = new Set<string>();
   writers: BriefWriter[] = [];
+  /** The old Where Was I data folder, so Delete everything removes that copy too. */
+  legacyDir?: string;
   /** The on-device meaning model (optional: sorting works without it). */
   meaning?: Meaning;
 
@@ -58,6 +61,7 @@ export class Core {
     private readonly fakeCapture?: () => Promise<Capture>,
   ) {
     this.stateFile = path.join(dataDir, 'state.json');
+    this.keyFile = path.join(dataDir, 'api-key.bin');
     let raw: Partial<State> = {};
     try {
       raw = JSON.parse(readFileSync(this.stateFile, 'utf8')) as Partial<State>;
@@ -105,7 +109,9 @@ export class Core {
 
   async preview(opts: { asNew?: boolean; jobId?: string } = {}): Promise<SavePreview> {
     if (!this.pending) this.beginSave();
-    const cap = await this.pending!.capture;
+    // Hold on to this save: Escape or a new shortcut press may replace this.pending while we work.
+    const pending = this.pending!;
+    const cap = await pending.capture;
     const settings = this.settings.get();
     const learned = learnedLifestyleApps(this.state.appUnticks);
     const candidates = cap.items.filter((i) => !isLifestyle(i, settings, learned));
@@ -168,8 +174,8 @@ export class Core {
     const kept = previous
       .filter((i) => !openKeys.has(i.key) && (job?.prefs.hide[i.key] ?? 0) < 2 && !isLifestyle(i, settings, learned))
       .map((i) => ({ ...i, notOpen: true, active: false }));
-    this.pending!.offered = offered;
-    this.pending!.kept = kept;
+    pending.offered = offered;
+    pending.kept = kept;
     const visibleItems = [...offered.sure, ...offered.likely, ...offered.maybe];
     const front = frontItemKey(visibleItems, cap.appOrder);
     return {
@@ -196,13 +202,14 @@ export class Core {
   }
 
   async commitSave(req: SaveRequest): Promise<SaveResult> {
-    if (!this.pending) throw new Error('Nothing to save. Press the shortcut again.');
-    const cap = await this.pending.capture;
-    const offered = this.pending.offered ?? { sure: cap.items, likely: [], maybe: [], hidden: [], why: {} };
+    const pending = this.pending;
+    if (!pending) throw new Error('Nothing to save. Press the shortcut again.');
+    const cap = await pending.capture;
+    const offered = pending.offered ?? { sure: cap.items, likely: [], maybe: [], hidden: [], why: {} };
     const wanted = new Set(req.keys);
     const open = cap.items.filter((i) => wanted.has(i.key)).map((i) => ({ ...i, notOpen: undefined }));
     const openKeys = new Set(open.map((i) => i.key));
-    const items = [...open, ...(this.pending.kept ?? []).filter((i) => wanted.has(i.key) && !openKeys.has(i.key))];
+    const items = [...open, ...(pending.kept ?? []).filter((i) => wanted.has(i.key) && !openKeys.has(i.key))];
     const now = new Date();
 
     let job: Job;
@@ -217,7 +224,9 @@ export class Core {
     job.done = false;
     await this.store.put(job);
 
-    this.state.appUnticks = recordAppUnticks(this.state.appUnticks, job.id, [...offered.sure, ...offered.likely, ...offered.maybe], req.keys);
+    // Only apps that were ticked for you and that you unticked count. Bare apps start unticked, so
+    // leaving them alone says nothing (otherwise Xcode or Figma would soon be treated as everyday).
+    this.state.appUnticks = recordAppUnticks(this.state.appUnticks, job.id, offered.sure, req.keys);
     const entry: SaveEntry = {
       version: 2,
       id: await this.store.freeEntryId(job.id, now),
@@ -237,7 +246,8 @@ export class Core {
     // After a save, "new since you unpacked" starts again from what's open now.
     this.state.baseline = req.tidy ? null : { jobId: job.id, keys: cap.items.map((i) => i.key) };
     await this.saveState();
-    this.pending = null;
+    // Only clear it if no newer save box has started in the meantime.
+    if (this.pending === pending) this.pending = null;
     this.notify();
     void this.ensureBrief(job.id, entry.id);
     return { jobId: job.id, entryId: entry.id, needsNaming: req.tidy ? items.filter((i) => i.untitled) : [] };
@@ -432,6 +442,8 @@ export class Core {
     await this.store.deleteAll();
     this.state = { currentJobId: null, appUnticks: {}, baseline: null };
     await fs.rm(this.stateFile, { force: true });
+    await fs.rm(this.keyFile, { force: true });
+    if (this.legacyDir) await fs.rm(this.legacyDir, { recursive: true, force: true });
     this.notify();
   }
 }

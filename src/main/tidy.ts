@@ -6,9 +6,10 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { BrowserName, Item } from '../shared/types';
-import { BROWSER_APPS } from './collectors/browsers';
+import { BROWSER_APPS, rawTabUrls } from './collectors/browsers';
 import { DOC_ADAPTERS } from './capture/docs';
 import { run } from './exec';
+import { cleanTabUrl, type UrlOptions } from './urls';
 
 // ---------- browser tabs ----------
 
@@ -17,7 +18,7 @@ const MATCH_HANDLER = `
 on wwiMatches(wwiUrl, wwiTargets)
   repeat with wwiT in wwiTargets
     set wwiT to wwiT as text
-    if wwiUrl is wwiT or wwiUrl starts with (wwiT & "?") or wwiUrl starts with (wwiT & "#") then return true
+    if wwiUrl is wwiT then return true
   end repeat
   return false
 end wwiMatches`;
@@ -148,7 +149,7 @@ on run wwiTargets
         try
           ${pathOf}
         end try
-        if wwiTargets contains wwiPosix or wwiTargets contains wwiName then
+        if wwiTargets contains wwiPosix or (wwiPosix is "" and wwiTargets contains wwiName) then
           ${close}
           set wwiClosed to wwiClosed + 1
         end if
@@ -233,7 +234,7 @@ end run`;
 export async function saveUntitled(item: Item, target: string): Promise<boolean> {
   const script = saveAsScript(item.app);
   if (!script) return false;
-  const r = await run('osascript', ['-e', script, item.label, target], { timeoutMs: 20_000 });
+  const r = await run('osascript', ['-e', script, '--', item.label, target], { timeoutMs: 20_000 });
   if (r.stdout.trim() !== 'saved') return false;
   // Give the app a moment to finish writing.
   for (let i = 0; i < 20; i++) {
@@ -254,8 +255,24 @@ export interface TidyResult {
   failed: Item[];
 }
 
+/**
+ * Saved addresses are cleaned (tracking parts dropped, secrets removed), so they can't be compared with
+ * open tabs directly. Read the open tabs, clean each the same way, and return the exact addresses of
+ * the ones that match. A tab is never closed just because its address looks similar.
+ */
+async function openTabTargets(browser: BrowserName, group: Item[], opts: UrlOptions): Promise<{ targets: string[]; open: Item[] }> {
+  const raw = await rawTabUrls(browser);
+  const byClean = new Map<string, string[]>();
+  for (const u of raw) {
+    const c = cleanTabUrl(u, opts);
+    if (c) byClean.set(c, [...(byClean.get(c) ?? []), u]);
+  }
+  const open = group.filter((i) => i.url && byClean.has(i.url));
+  return { targets: [...new Set(open.flatMap((i) => byClean.get(i.url ?? '') ?? []))], open };
+}
+
 /** Closes the given items, one AppleScript per app. Items that are still untitled are skipped. */
-export async function closeItems(items: Item[]): Promise<TidyResult> {
+export async function closeItems(items: Item[], opts: UrlOptions): Promise<TidyResult> {
   const result: TidyResult = { closed: [], failed: [] };
   const byApp = new Map<string, Item[]>();
   for (const it of items) {
@@ -264,19 +281,37 @@ export async function closeItems(items: Item[]): Promise<TidyResult> {
     byApp.set(key, [...(byApp.get(key) ?? []), it]);
   }
   await Promise.all(
-    [...byApp.entries()].map(async ([key, group]) => {
-      const script = key.startsWith('tab:') ? closeTabsScript(key.slice(4) as BrowserName) : closeDocsScript(key);
-      // Tabs and OneDrive documents are matched by address; documents also by file name.
-      const targets = group
-        .flatMap((i) => (i.kind === 'tab' ? [i.url] : i.kind === 'doc' ? [i.path ?? i.url, i.path ? path.basename(i.path) : i.label] : [i.path]))
-        .filter((t): t is string => !!t);
+    [...byApp.entries()].map(async ([key, initial]) => {
+      let group = initial;
+      const browser = key.startsWith('tab:') ? (key.slice(4) as BrowserName) : null;
+      const script = browser ? closeTabsScript(browser) : closeDocsScript(key);
+      // Tabs are matched by exact address; documents by path (or address), and by file name only
+      // when the app can't say where a document is saved.
+      let targets: string[];
+      if (browser) {
+        try {
+          const live = await openTabTargets(browser, group, opts);
+          targets = live.targets;
+          result.failed.push(...group.filter((i) => !live.open.includes(i)));
+          group = live.open;
+        } catch {
+          result.failed.push(...group);
+          return;
+        }
+        if (!group.length) return;
+      } else {
+        targets = group
+          .flatMap((i) => (i.kind === 'doc' ? [i.path ?? i.url, i.path ? path.basename(i.path) : i.label] : [i.path]))
+          .filter((t): t is string => !!t);
+      }
       if (!script || !targets.length) {
         result.failed.push(...group);
         return;
       }
       try {
         // A long timeout: the app may be showing its "Save changes?" prompt.
-        await run('osascript', ['-e', script, ...targets], { timeoutMs: 120_000 });
+        // '--' so a target that starts with '-' (a document named "-e …") is never read as an option.
+        await run('osascript', ['-e', script, '--', ...targets], { timeoutMs: 120_000 });
         result.closed.push(...group);
       } catch {
         result.failed.push(...group);

@@ -35,7 +35,8 @@ describe('naming untitled files', () => {
 describe('close scripts', () => {
   it('match tabs by address while ignoring ?query and #fragment, and skip private windows', () => {
     const s = closeTabsScript('chrome');
-    expect(s).toContain('wwiUrl starts with (wwiT & "?")');
+    expect(s).toContain('if wwiUrl is wwiT then return true');
+    expect(s).not.toContain('starts with (wwiT');
     expect(s).toContain('incognito');
     expect(closeTabsScript('safari')).not.toContain('incognito');
   });

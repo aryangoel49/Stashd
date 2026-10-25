@@ -25,10 +25,20 @@ Everything stays on your Mac. The only time it goes online is to write Claude br
 
 ## Install
 
-1. Open **Stashd.dmg** (after `npm run make` it's in `out/make/`) and drag **Stashd** into **Applications**. If it asks, click **Replace** to update an older version.
-2. **First launch only:** in Applications, **right-click** Stashd, choose **Open**, then click **Open** again.
-   The app isn't signed with a paid Apple developer certificate, so a normal double-click is blocked the first time. If macOS still refuses, go to **System Settings → Privacy & Security** and click **Open Anyway**.
-3. The Stashd folder appears in your menu bar. There's no Dock icon, on purpose.
+Needs a Mac with Apple silicon (M1 or later).
+
+1. **[Download Stashd.dmg](https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg)** from the latest release.
+2. Open it and drag **Stashd** into **Applications**. If it asks, click **Replace** to update an older version.
+3. **First launch only:** open Stashd. macOS says it can't check it for malware, because the app isn't signed with a paid Apple developer certificate yet. Click **Done**, go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**, then confirm.
+4. The Stashd folder appears in your menu bar. There's no Dock icon, on purpose.
+
+<details>
+<summary>Prefer the Terminal for step 3?</summary>
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Stashd.app
+```
+</details>
 
 > [!TIP]
 > The first time you stash with Chrome, Safari, Word and so on open, macOS asks for permission to control that app (once per app). Click **OK**. That's how Stashd reads tab addresses and which files are open. If you clicked "Don't Allow", the save box shows a button that opens the right System Settings page.
@@ -81,8 +91,18 @@ npm start
 | `npm test` | Runs the test suite |
 | `npm run typecheck` | Type-checks the code |
 | `npm run lint` | Lints and checks formatting |
-| `npm run make` | Builds a DMG and zip into `out/make` |
+| `npm run make` | Builds `Stashd.dmg` and a zip into `out/make` |
 | `npm run icons` | Rebuilds the app and menu bar icons from the brand SVGs |
+
+### Releasing
+
+`.github/workflows/release.yml` builds the DMG on a GitHub Mac runner. Bump `version` in `package.json`, then:
+
+```bash
+git tag v1.0.1 && git push origin v1.0.1
+```
+
+That publishes a GitHub Release with `Stashd.dmg` attached, which the download link above always points to. Running the workflow by hand from the Actions tab builds the DMG without publishing.
 
 ### Project map
 

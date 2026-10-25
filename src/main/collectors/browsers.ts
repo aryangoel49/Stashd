@@ -117,6 +117,12 @@ export function isPermissionError(e: unknown): boolean {
   return /-1743|not authori[sz]ed to send apple events/i.test(text);
 }
 
+/** Every open tab's address in one browser, before cleaning. Used to close exactly the right tabs. */
+export async function rawTabUrls(browser: BrowserName): Promise<string[]> {
+  const r = await run('osascript', ['-e', SCRIPTS[browser]], { timeoutMs: 60_000 });
+  return parseTabOutput(browser, r.stdout).map((t) => t.url);
+}
+
 export async function collectTabs(
   browsers: BrowserName[],
   opts: UrlOptions,

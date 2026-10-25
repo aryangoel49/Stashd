@@ -8,6 +8,7 @@ import type { FlyItem, Item, NamingRequest, OverlayPlay, Route, ToastInfo } from
 import type { Core } from './core';
 import { openItems } from './open';
 import { canName, cleanFileName, closeItems, freePath, saveUntitled, suggestedFileName } from './tidy';
+import type { UrlOptions } from './urls';
 import { getWindow, prepareWindow, showWindow } from './windows';
 
 const UNDO_MS = 10_000;
@@ -18,6 +19,8 @@ export class TidyFlow {
   private undo: { items: Item[]; frontKey: string | null; timer: NodeJS.Timeout } | null = null;
   private toastTimer: NodeJS.Timeout | null = null;
   private overlayDone: (() => void) | null = null;
+  /** Tidies run one after another, so a second Pack up never takes over the first one's naming box. */
+  private queue: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly core: Core,
@@ -35,7 +38,23 @@ export class TidyFlow {
   }
 
   /** Called right after a save with Tidy up on. */
-  async run(jobId: string, entryId: string): Promise<void> {
+  run(jobId: string, entryId: string): Promise<void> {
+    this.queue = this.queue.then(async () => {
+      try {
+        await this.tidy(jobId, entryId);
+      } catch {
+        this.toast({ title: 'Could not tidy up', detail: 'Your job is saved. Its windows stay open.', canUndo: false });
+      }
+    });
+    return this.queue;
+  }
+
+  private urlOptions(): UrlOptions {
+    const s = this.core.settings.get();
+    return { keepQueryStrings: s.keepQueryStrings, excludedDomains: s.excludedDomains };
+  }
+
+  private async tidy(jobId: string, entryId: string): Promise<void> {
     let entry = await this.core.store.entry(jobId, entryId);
     const job = await this.core.store.get(jobId);
 
@@ -73,7 +92,7 @@ export class TidyFlow {
     }
     const animation = this.play(closable, false);
     await wait(250);
-    const { closed, failed } = await closeItems(closable);
+    const { closed, failed } = await closeItems(closable, this.urlOptions());
     await animation;
     this.setUndo(closed, entry.frontKey);
     const left = failed.length + entry.items.filter((i) => i.untitled).length;

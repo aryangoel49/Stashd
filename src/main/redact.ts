@@ -3,6 +3,10 @@
 
 export const REDACTED = '[REDACTED]';
 
+// Long ids in an address's path are almost always documents (Google Docs, Drive, Notion), not secrets.
+// They are only blanked on routes that carry one-time links: password resets, invites, magic sign-ins.
+const SECRET_ROUTE = /\/(reset|password|invite|invitation|verify|verification|confirm|magic|login|signin|sign-in|auth|token|activate)(\/|$|[-_])/i;
+
 const SECRET_NAME = /(pass(word|wd)?|secret|token|api[_-]?key|apikey|access[_-]?key|auth|credential|session|sig(nature)?|private[_-]?key|client[_-]?secret)/i;
 
 // Commands where "-p <value>" means a password (for others, like mkdir -p or docker -p, it does not).
@@ -89,7 +93,7 @@ export function redactUrlString(raw: string): string {
   u.search = '';
   for (const [k, v] of params) u.searchParams.append(k, v);
   if (u.hash) u.hash = redactLongSecrets(u.hash);
-  u.pathname = redactLongSecrets(decodeSafe(u.pathname));
+  if (SECRET_ROUTE.test(u.pathname)) u.pathname = redactLongSecrets(decodeSafe(u.pathname));
   return u.toString().replace(/%5BREDACTED%5D/g, REDACTED);
 }
 

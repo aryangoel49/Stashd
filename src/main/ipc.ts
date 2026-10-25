@@ -118,7 +118,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     return true;
   });
   handle('data:deleteAll', async (event) => {
-    if (!(await confirm(event, 'Delete everything Stashd has saved?', 'All jobs and their history are removed. This cannot be undone.', 'Delete everything'))) return false;
+    if (!(await confirm(event, 'Delete everything Stashd has saved?', 'All jobs, their history, what Stashd has learned and your Claude key are removed, including the copy left by Where Was I. Your settings are kept. This cannot be undone.', 'Delete everything'))) return false;
     await core.deleteAll();
     return true;
   });

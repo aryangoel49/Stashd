@@ -21,6 +21,27 @@ async function openUrl(item: Item): Promise<void> {
   await shell.openExternal(u.toString());
 }
 
+// Bundles look like folders but launch when opened.
+const BUNDLE_RE = /\.(app|bundle|framework|plugin|kext|pkg|mpkg|workflow|prefpane)$/i;
+
+/**
+ * Reopens a document or folder in the app that had it open, never with the file's default handler:
+ * a .command or .app that was only being read or browsed must not run on Unpack.
+ * If that app is gone, the file is shown in Finder instead.
+ */
+async function openPath(item: Item): Promise<void> {
+  const p = item.path ?? '';
+  if (item.kind === 'folder' && BUNDLE_RE.test(p)) {
+    await run('open', ['-R', p], { timeoutMs: 10_000 });
+    return;
+  }
+  try {
+    await run('open', ['-a', item.kind === 'folder' ? 'Finder' : item.app, p], { timeoutMs: 15_000 });
+  } catch {
+    await run('open', ['-R', p], { timeoutMs: 10_000 });
+  }
+}
+
 async function exists(p: string): Promise<boolean> {
   try {
     await fs.access(p);
@@ -69,8 +90,7 @@ export async function openItems(items: Item[], frontKey: string | null, settings
           result.missing.push(item.label);
           continue;
         }
-        const err = await shell.openPath(item.path);
-        if (err) throw new Error(err);
+        await openPath(item);
       } else {
         await run('open', ['-a', item.app], { timeoutMs: 10_000 });
       }

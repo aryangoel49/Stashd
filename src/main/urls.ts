@@ -19,6 +19,10 @@ export function isExcluded(url: URL, excluded: string[]): boolean {
   });
 }
 
+// Query parts that say which page it is: a YouTube video, a search, a forum thread. They are kept even
+// with query strings off, so two different videos are never saved as the same address.
+const PAGE_PARAMS = new Set(['v', 'list', 'id', 'p', 'page', 'q', 'query', 'search', 'item', 'story', 'article', 'doc', 'docid', 'pid', 'product', 'tab', 'topic', 'thread', 't']);
+
 /**
  * Returns a cleaned URL to save, or null if the tab should be dropped.
  * Only http and https pages are kept (no chrome://, file://, about: and so on).
@@ -35,7 +39,9 @@ export function cleanTabUrl(raw: string, opts: UrlOptions): string | null {
   u.username = '';
   u.password = '';
   if (!opts.keepQueryStrings) {
+    const kept = [...u.searchParams].filter(([k]) => PAGE_PARAMS.has(k.toLowerCase()));
     u.search = '';
+    for (const [k, v] of kept) u.searchParams.append(k, v);
     u.hash = '';
   }
   return redactUrlString(u.toString());

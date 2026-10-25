@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { REDACTED, redactCommand, redactLongSecrets, redactUrlString } from '../src/main/redact';
 
+describe('document addresses', () => {
+  it('keeps long document ids, but blanks one-time links', () => {
+    const doc = 'https://docs.google.com/document/d/1aBcD3fGhIjKlMnOpQrStUvWxYz0123456789AbCdEf/edit';
+    expect(redactUrlString(doc)).toBe(doc);
+    expect(redactUrlString('https://x.io/reset/aZ9bY8cX7dW6eV5fU4gT3hS2iR1jQ0kP9oN8mL7')).toBe(`https://x.io/reset/${REDACTED}`);
+  });
+});
+
 describe('redactCommand', () => {
   it.each([
     ['mysql -u root --password hunter2 db', 'mysql -u root --password [REDACTED] db'],

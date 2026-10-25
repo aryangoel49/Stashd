@@ -36,6 +36,7 @@ export function Save() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState(false);
   const [state, setState] = useState<'loading' | 'ready' | 'saving' | 'saved'>('loading');
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
   const [slow, setSlow] = useState(false);
@@ -84,6 +85,9 @@ export function Save() {
 
   useEffect(() => {
     const begin = (mode: 'save' | 'pack' | 'last' = 'last') => {
+      // A new save started before the last one's box closed: don't let that close this one.
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+      closeTimer.current = null;
       modeRef.current = mode;
       setState('loading');
       setPreview(null);
@@ -134,7 +138,7 @@ export function Save() {
       await api.commitSave({ jobId: preview.jobId, name: name.trim(), note, keys: chosen.map((i) => i.key), tidy });
       setState('saved');
       // With Tidy up, get out of the way quickly so the animation is visible.
-      setTimeout(() => void api.closeWindow(), tidy ? 250 : 700);
+      closeTimer.current = setTimeout(() => void api.closeWindow(), tidy ? 250 : 700);
     } catch (e) {
       setError(errorText(e));
       setState('ready');

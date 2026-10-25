@@ -9,6 +9,11 @@ describe('cleanTabUrl', () => {
     expect(cleanTabUrl('https://github.com/me/repo/pull/3?diff=split#r123', opts)).toBe('https://github.com/me/repo/pull/3');
   });
 
+  it('keeps the parts that say which page it is', () => {
+    expect(cleanTabUrl('https://www.youtube.com/watch?v=abc123&t=42s&utm_source=x&si=zz', opts)).toBe('https://www.youtube.com/watch?v=abc123&t=42s');
+    expect(cleanTabUrl('https://www.youtube.com/watch?v=other', opts)).not.toBe(cleanTabUrl('https://www.youtube.com/watch?v=abc123', opts));
+  });
+
   it('keeps query strings when asked, but redacts secrets', () => {
     expect(cleanTabUrl('https://x.io/s?q=react&token=abc', { ...opts, keepQueryStrings: true })).toBe('https://x.io/s?q=react&token=[REDACTED]');
   });

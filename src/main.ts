@@ -108,9 +108,10 @@ function start(): void {
     );
 
     const dir = app.getPath('userData');
-    if (!process.env.WWI_USER_DATA) {
+    const legacyDir = process.env.WWI_USER_DATA ? undefined : path.join(app.getPath('appData'), LEGACY_NAME);
+    if (legacyDir) {
       try {
-        migrateLegacyData(path.join(app.getPath('appData'), LEGACY_NAME), dir);
+        migrateLegacyData(legacyDir, dir);
       } catch {
         // Starting fresh is better than not starting.
       }
@@ -121,6 +122,7 @@ function start(): void {
     const fake = !app.isPackaged ? process.env.WWI_FAKE_CAPTURE : undefined;
     core = new Core(settings, new JobStore(path.join(dir, 'jobs')), helper, dir, [app.getName(), 'Stashd', LEGACY_NAME, 'Electron'], fake ? async () => ({ ...JSON.parse(await readFile(fake, 'utf8')), at: new Date().toISOString() }) : undefined);
     void helper.appleStatus().then((s) => (appleStatus = s));
+    core.legacyDir = legacyDir;
     core.meaning = createMeaning();
     setTimeout(() => core.meaning?.warm(), 3000);
     core.writers = [
