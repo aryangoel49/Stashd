@@ -28,7 +28,7 @@ Everything stays on your Mac. The only time it goes online is to write Claude br
 1. Open **Stashd.dmg** (after `npm run make` it's in `out/make/`) and drag **Stashd** into **Applications**. If it asks, click **Replace** to update an older version.
 2. **First launch only:** in Applications, **right-click** Stashd, choose **Open**, then click **Open** again.
    The app isn't signed with a paid Apple developer certificate, so a normal double-click is blocked the first time. If macOS still refuses, go to **System Settings → Privacy & Security** and click **Open Anyway**.
-3. The Stashd mark appears in your menu bar. There's no Dock icon, on purpose.
+3. The Stashd folder appears in your menu bar. There's no Dock icon, on purpose.
 
 > [!TIP]
 > The first time you stash with Chrome, Safari, Word and so on open, macOS asks for permission to control that app (once per app). Click **OK**. That's how Stashd reads tab addresses and which files are open. If you clicked "Don't Allow", the save box shows a button that opens the right System Settings page.
@@ -115,16 +115,16 @@ The installed app ignores these.
 
 <img src="assets/brand/stashd-icon.svg" alt="Stashd icon" width="96" align="right">
 
-A geometric **S** made of two stacked, offset blocks: two pieces of work, put away neatly. Black and white only, so it holds up at 16px in the menu bar.
+A sleepy white folder on a butter-yellow tile: your work, tucked away and resting until you come back for it. The menu bar version is a simple folder outline so it stays clear at 16px.
 
 - `assets/brand/stashd-icon.svg`: the app icon, a sleepy folder on a butter-yellow tile (vector)
-- `assets/brand/stashd-mark.svg`: the bare mark, black in light mode and white in dark mode
+- `assets/brand/stashd-mark.svg`: the folder as a line drawing, black in light mode and white in dark mode
 - `assets/brand/stashd-tray.svg`: the menu bar icon source
 - `assets/brand/stashd-hero.svg`: the animated banner above
 - `design/brand.html`: the icon brought to life. Its eyes close when work is stashed and open, look around and blink when you pick it up. Open it in a browser.
 - `scripts/make-icons.mjs`: renders those SVGs into `icon.icns` and the menu bar template (via `scripts/render-svg.swift`)
 
-Colours: graphite `#26262C → #0C0C0F` tile, white `#FFFFFF` mark, ink `#0A0A0C` backgrounds.
+Colours: butter yellow `#F2CD5C` tile, white `#FFFFFF` and cream `#FBEFC6` folder, ink `#1C1D22` eyes.
 
 ## License
 
