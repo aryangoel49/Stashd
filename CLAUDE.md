@@ -13,6 +13,30 @@ Node lives at `~/.local/node/bin` (`export PATH=~/.local/node/bin:$PATH`).
 - **Push after each commit** unless Aryan says to hold. Report back with the commit and the new version.
 - **Then put it on Aryan's Mac.** After pushing any app change, run `npm run install-local`. It builds Stashd, replaces `/Applications/Stashd.app`, and opens it, so he can see the change himself. Tell him it's updated and where to look. macOS may ask for Automation permission again after a new build.
 
+## Which skill for which task
+
+Load the matching skill (Skill tool) before doing the task. Use only the ones that fit; one or two is usually enough. Don't load skills for trivial edits.
+
+| Task | Skills |
+|---|---|
+| UI look, layout, simplifying a screen, polish | `impeccable`, `emil-design-eng`, `apple-design`, `frontend-design` |
+| Any animation or motion | `animate` (build), `animation-performance` (smoothness), `review-animations` / `improve-animations` (audit) |
+| Final UI check, accessibility | `web-design-guidelines`, `break-ui` (worst-case data) |
+| React components, performance | `react-best-practices`, `composition-patterns` |
+| TypeScript types | `typescript-advanced-types` |
+| Swift helper (`native/`) | `write-swift` |
+| Reviewing a change before handing it to Release | `code-review` |
+| Claude API (briefs, naming) | `claude-api` |
+| Writing or fixing tests, UI tests of the app | `webapp-testing`, `playwright-best-practices` |
+| Before saying anything is fixed or done | `verification-before-completion` (cheaply: run the real check once) |
+| Commits, versions, changelog | `git-workflow-and-versioning` |
+| Before a public release | `shipping-and-launch` |
+| Taglines, landing page, App Store/website copy | `copywriting` |
+| Launch plan (Product Hunt, socials) | `launch` |
+| Who the users are, what they need | `customer-research`, `marketing-psychology` |
+
+By chat: **Build** uses the React, TypeScript, Swift, code-review and claude-api skills. **Design** uses the UI and motion skills. **Testing** uses the testing and verification skills plus `break-ui`. **Release** uses `git-workflow-and-versioning`, `shipping-and-launch` and `verification-before-completion`. **Marketing** uses `copywriting`, `launch`, `customer-research` and `marketing-psychology`.
+
 ## Working style
 
 - Aryan is not a programmer: plain words, short replies, screenshots when they help.
