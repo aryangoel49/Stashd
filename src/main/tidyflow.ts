@@ -91,7 +91,7 @@ export class TidyFlow {
       return;
     }
     const animation = this.play(closable, false);
-    await wait(250);
+    await wait(120);
     const { closed, failed } = await closeItems(closable, this.urlOptions());
     await animation;
     this.setUndo(closed, entry.frontKey);
@@ -127,16 +127,22 @@ export class TidyFlow {
 
   // ---------- animation ----------
 
+  /** App and file icons, kept once fetched so the next animation can start straight away. */
+  private iconCache = new Map<string, string | null>();
+
   private async withIcons(items: Item[]): Promise<FlyItem[]> {
     const shown = items.slice(0, 12);
-    const base: FlyItem[] = shown.map((it) => ({ label: it.label, icon: null }));
-    try {
-      const icons = await this.core.helper.icons(shown.map((it) => (it.kind === 'tab' ? browserAppPath(it.app) : it.path) ?? ''));
-      icons.forEach((icon, i) => (base[i].icon = icon));
-    } catch {
-      // plain cards
+    const paths = shown.map((it) => (it.kind === 'tab' ? browserAppPath(it.app) : it.path) ?? '');
+    const missing = [...new Set(paths.filter((p) => p && !this.iconCache.has(p)))];
+    if (missing.length) {
+      // Don't hold the animation up for long: whatever isn't back in time flies as a plain card.
+      const fetch = this.core.helper.icons(missing).then(
+        (icons) => missing.forEach((p, i) => this.iconCache.set(p, icons[i] ?? null)),
+        () => undefined,
+      );
+      await Promise.race([fetch, wait(120)]);
     }
-    return base;
+    return shown.map((it, i) => ({ label: it.label, icon: this.iconCache.get(paths[i]) ?? null }));
   }
 
   /** Plays the fly-in (or fly-out) animation. Resolves when it has finished. */
@@ -149,6 +155,7 @@ export class TidyFlow {
       target: { x: tray.x + tray.width / 2 - display.bounds.x, y: tray.y + tray.height / 2 - display.bounds.y },
       size: { width: display.bounds.width, height: display.bounds.height },
       reverse,
+      sound: this.core.settings.get().sounds,
     };
     this.payloads.set('overlay', play);
     const win = prepareWindow('overlay');

@@ -27,6 +27,8 @@ export const DEFAULT_SETTINGS: Settings = {
   tidyUp: false,
   aiModel: 'claude-haiku-5-5',
   aiDisclosureAccepted: false,
+  appearance: 'light',
+  sounds: true,
 };
 
 const OLD_SHORTCUT_SAVE = 'CommandOrControl+Shift+S';
@@ -124,6 +126,12 @@ export function settingsPatch(v: unknown, current: Settings): Settings {
         break;
       }
       case 'tidyUp': next.tidyUp = bool(val, k); break;
+      case 'sounds': next.sounds = bool(val, k); break;
+      case 'appearance': {
+        if (val !== 'light' && val !== 'dark' && val !== 'system') fail('unknown appearance');
+        next.appearance = val;
+        break;
+      }
       case 'aiModel': {
         const m = str(val, 'model name', 100).trim();
         if (!/^[a-z0-9][a-z0-9.-]{1,99}$/.test(m)) fail('model name looks wrong');

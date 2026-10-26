@@ -298,3 +298,62 @@ details summary { cursor: default; }
 .brand { display: inline-flex; align-items: center; gap: 8px; }
 .empty { display: flex; flex-direction: column; align-items: center; }
 .job-row { transition: background 0.2s var(--ease); }
+
+/* ---------- Light glass (v3): panel "now" card, stash card, main window ---------- */
+.panel { gap: 6px; }
+.panel-head { padding: 2px 4px 4px; }
+.icon-btn { width: 28px; padding: 0 !important; }
+.now-card {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 16px;
+  background: linear-gradient(160deg, rgba(255, 245, 205, 0.75), rgba(255, 255, 255, 0.55));
+  box-shadow: inset 0 0.5px 0 var(--rim), inset 0 0 0 0.5px var(--accent-line), 0 8px 24px rgba(180, 140, 30, 0.12);
+}
+.now-main { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border: none; background: none; padding: 0 2px; text-align: left; min-width: 0; }
+.now-eyebrow { display: inline-flex; align-items: center; gap: 6px; padding: 0; }
+.now-name { font: 600 16px/1.25 -apple-system, 'SF Pro Display', sans-serif; letter-spacing: -0.01em; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.now-hint { color: var(--muted); font-size: 12px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.now-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.stash-card {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; border-radius: 16px; text-align: left;
+  border: 1px dashed var(--accent-line); background: rgba(255, 255, 255, 0.38); transition: background 0.2s var(--ease);
+}
+.stash-card:hover { background: rgba(255, 255, 255, 0.7); }
+.stash-plus { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); flex: none; }
+.stash-plus svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; }
+.stash-title { display: block; font-weight: 600; }
+.stash-sub { display: block; font-size: 12px; color: var(--muted); }
+.list-label { padding: 8px 8px 0; }
+.panel .empty { padding: 10px 12px 4px; }
+.panel .empty p { margin: 0; font-size: 12px; }
+@media (prefers-color-scheme: dark) {
+  .now-card { background: linear-gradient(160deg, rgba(242, 205, 92, 0.16), rgba(255, 255, 255, 0.04)); box-shadow: inset 0 0.5px 0 var(--rim), inset 0 0 0 0.5px var(--accent-line); }
+  .stash-card { background: rgba(255, 255, 255, 0.04); }
+  .stash-card:hover { background: rgba(255, 255, 255, 0.08); }
+}
+
+/* Main window: the sidebar is native glass; content sits on a soft cream wash with frosted cards. */
+.side-brand { display: flex; align-items: center; gap: 10px; padding: 2px 10px 14px; }
+.side-row { gap: 9px; transition: background 0.2s var(--ease); }
+.content { background: linear-gradient(180deg, rgba(255, 252, 243, 0.72), rgba(255, 249, 232, 0.6)); }
+.glass-card {
+  border-radius: 18px; padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.62);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5); backdrop-filter: blur(24px) saturate(1.5);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 0.5px rgba(28, 29, 34, 0.06), 0 10px 30px rgba(150, 120, 40, 0.08);
+}
+.detail { padding: 6px 36px 48px; gap: 18px; }
+.chip { border-radius: 12px; background: rgba(255, 255, 255, 0.7); }
+.hist { background: rgba(255, 255, 255, 0.6); }
+@media (prefers-color-scheme: dark) {
+  .content { background: rgba(30, 28, 24, 0.55); }
+  .glass-card { background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.1), inset 0 0 0 0.5px rgba(255, 255, 255, 0.06); }
+  .chip, .hist { background: var(--well); }
+}
+
+/* Segmented control (Light / Dark / Match Mac) with a sliding thumb. */
+.segmented { display: inline-flex; padding: 2px; border-radius: 10px; background: rgba(28, 29, 34, 0.06); box-shadow: inset 0 0 0 0.5px var(--hair); }
+.segmented button { position: relative; border: none; background: none; padding: 5px 12px; font-size: 12px; font-weight: 500; color: var(--muted); border-radius: 8px; }
+.segmented button.on { color: var(--text); }
+.seg-thumb { position: absolute; inset: 0; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px var(--hair); }
+.seg-label { position: relative; }
+@media (prefers-color-scheme: dark) { .segmented { background: rgba(255, 255, 255, 0.06); } .seg-thumb { background: rgba(255, 255, 255, 0.16); } }

@@ -110,34 +110,58 @@ function JobList(props: {
   onPick: (id: string) => void;
 }) {
   const { jobs, settings, showDone, setShowDone, onPick } = props;
-  const active = (jobs ?? []).filter((j) => !j.done);
+  const current = (jobs ?? []).find((j) => j.current && !j.done) ?? null;
+  const active = (jobs ?? []).filter((j) => !j.done && j !== current);
   const done = (jobs ?? []).filter((j) => j.done);
   return (
     <>
       <div className="panel-head">
         <span className="brand">
-          <FolderMark size={22} />
-          <span className="display" style={{ fontSize: 14 }}>Stashd</span>
+          <FolderMark size={24} awake />
+          <span className="display" style={{ fontSize: 15 }}>Stashd</span>
         </span>
-        <span className="faint tiny" title="Stash and pick up from any app">
-          <Kbd>{prettyShortcut(settings.shortcutSave)}</Kbd> <Kbd>{prettyShortcut(settings.shortcutRecap)}</Kbd>
-        </span>
-      </div>
-      <div className="pack-actions">
-        <Button variant="primary" className="pack-btn" onClick={() => void api.openWindow('pack')} title="Save what's open and close it">
-          <Icon name="stack" /> Pack up
-        </Button>
-        <Button className="pack-btn" onClick={() => void api.openWindow('save')} title="Save what's open and keep it open">
-          Save
+        <Button variant="ghost" size="small" className="icon-btn" onClick={() => void api.openWindow('settings')} title="Settings" aria-label="Settings">
+          <Icon name="gear" />
         </Button>
       </div>
 
+      {current ? (
+        <motion.div layout className="now-card" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+          <button className="now-main" onClick={() => onPick(current.id)} title="See the brief">
+            <span className="eyebrow now-eyebrow">
+              <span className="live" /> Open now
+            </span>
+            <span className="now-name">{current.name}</span>
+            {current.hint && <span className="now-hint">{current.hint}</span>}
+          </button>
+          <div className="now-actions">
+            <Button variant="primary" onClick={() => void api.openWindow('pack')} title="Save this folder and close its windows">
+              <Icon name="stack" /> Pack up <span className="enter">{prettyShortcut(settings.shortcutSave)}</span>
+            </Button>
+            <Button onClick={() => void api.openWindow('save')} title="Save without closing anything">
+              Save
+            </Button>
+          </div>
+        </motion.div>
+      ) : (
+        <motion.button layout className="stash-card" onClick={() => void api.openWindow('save')} whileTap={{ scale: 0.98 }} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+          <span className="stash-plus">
+            <Icon name="plus" />
+          </span>
+          <span className="grow">
+            <span className="stash-title">Stash what's open</span>
+            <span className="stash-sub">Your tabs and files go into a folder</span>
+          </span>
+          <Kbd>{prettyShortcut(settings.shortcutSave)}</Kbd>
+        </motion.button>
+      )}
+
+      {active.length > 0 && <div className="eyebrow list-label">Folders</div>}
+
       {jobs && jobs.length === 0 && (
         <motion.div className="empty" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-          <FolderMark size={52} />
-          <div className="display" style={{ marginTop: 12 }}>Nothing stashed yet</div>
           <p>
-            In the middle of something? Press <Kbd>{prettyShortcut(settings.shortcutSave)}</Kbd> and your tabs and files go into a folder, ready for when you come back.
+            Nothing stashed yet. Press <Kbd>{prettyShortcut(settings.shortcutSave)}</Kbd> when you're in the middle of something, and <Kbd>{prettyShortcut(settings.shortcutRecap)}</Kbd> to pick it back up.
           </p>
         </motion.div>
       )}
@@ -159,10 +183,7 @@ function JobList(props: {
 
       <div className="hr" />
       <div className="panel-foot">
-        <Button size="small" onClick={() => void api.openWindow('main')}>All folders</Button>
-        <Button size="small" onClick={() => void api.openWindow('settings')} title="Settings">
-          <Icon name="gear" /> Settings
-        </Button>
+        <Button variant="ghost" size="small" onClick={() => void api.openWindow('main')}>Open Stashd</Button>
         <span style={{ flex: 1 }} />
         <Button variant="ghost" className="tiny" onClick={() => void api.quit()}>Quit</Button>
       </div>

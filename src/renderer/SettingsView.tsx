@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { AppInfo, Settings } from '../shared/types';
 import { CLAUDE_MODELS, modelInfo } from '../shared/models';
 import { Switch } from './components/ui/switch';
-import { Button } from './ui';
+import { Button, motion, spring } from './ui';
 import { api, errorText, prettyShortcut, useSettings } from './api';
 
 
@@ -67,6 +67,27 @@ export function SettingsView() {
         {info.appleAi !== 'available' && <p className="faint small" style={{ margin: '4px 0 0' }}>Turn on Apple Intelligence in System Settings. It may need a few minutes to download.</p>}
       </Card>
 
+
+      <Card title="Look and sound">
+        <div className="srow">
+          <span>Appearance</span>
+          <span className="segmented" role="radiogroup" aria-label="Appearance">
+            {(
+              [
+                ['light', 'Light'],
+                ['dark', 'Dark'],
+                ['system', 'Match Mac'],
+              ] as const
+            ).map(([id, label]) => (
+              <button key={id} role="radio" aria-checked={s.appearance === id} className={s.appearance === id ? 'on' : ''} onClick={() => void update({ appearance: id })}>
+                {s.appearance === id && <motion.span layoutId="seg" className="seg-thumb" transition={spring} />}
+                <span className="seg-label">{label}</span>
+              </button>
+            ))}
+          </span>
+        </div>
+        <Toggle label="Sounds" hint="A soft whoosh when your windows fly into the menu bar." on={s.sounds} onChange={(v) => void update({ sounds: v })} />
+      </Card>
 
       <Card title="Keyboard shortcuts" hint="These work from any app. Use names like Control, Alt (Option), Shift and Command, joined with +.">
         <TextRow label={`Save what I'm working on (${prettyShortcut(s.shortcutSave)})`} value={s.shortcutSave} onSave={(v) => void update({ shortcutSave: v })} />

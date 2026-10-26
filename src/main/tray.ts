@@ -3,19 +3,22 @@
 import path from 'node:path';
 import { app, Menu, nativeImage, Tray, type Rectangle } from 'electron';
 
-function trayIconPath(): string {
+function trayImage(name: string): Electron.NativeImage {
   const base = app.isPackaged ? path.join(process.resourcesPath, 'tray') : path.join(app.getAppPath(), 'assets', 'tray');
-  return path.join(base, 'trayTemplate.png');
+  const img = nativeImage.createFromPath(path.join(base, `${name}.png`));
+  img.setTemplateImage(true);
+  return img;
 }
 
 export class AppTray {
   private tray: Tray;
   private flashTimer: NodeJS.Timeout | null = null;
+  private blinkTimer: NodeJS.Timeout | null = null;
 
   constructor(actions: { togglePanel: (anchor: Rectangle) => void; save: (mode: 'save' | 'pack') => void; openMain: () => void }) {
-    const img = nativeImage.createFromPath(trayIconPath());
-    img.setTemplateImage(true);
+    const img = trayImage('trayTemplate');
     this.tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img);
+    this.blink(img, trayImage('trayBlinkTemplate'));
     if (img.isEmpty()) this.tray.setTitle('Stashd');
     this.tray.setToolTip('Stashd');
     this.tray.setIgnoreDoubleClickEvents(true);
@@ -31,6 +34,23 @@ export class AppTray {
         ]),
       );
     });
+  }
+
+  /** Every few seconds the folder blinks (now and then twice), like it's dozing in the menu bar. */
+  private blink(open: Electron.NativeImage, closed: Electron.NativeImage): void {
+    if (open.isEmpty() || closed.isEmpty()) return;
+    const close = (ms: number) => {
+      this.tray.setImage(closed);
+      setTimeout(() => this.tray.setImage(open), ms);
+    };
+    const next = () => {
+      this.blinkTimer = setTimeout(() => {
+        close(140);
+        if (Math.random() < 0.25) setTimeout(() => close(120), 320);
+        next();
+      }, 4000 + Math.random() * 5000);
+    };
+    next();
   }
 
   bounds(): Rectangle {

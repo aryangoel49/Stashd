@@ -3,7 +3,7 @@
 // spring and one ease used everywhere.
 
 import { AnimatePresence, motion, MotionConfig, type HTMLMotionProps, type Transition } from 'motion/react';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { Item } from '../shared/types';
 import { Button as ShadcnButton } from './components/ui/button';
 import { Icon } from './icons';
@@ -36,8 +36,10 @@ export function Kbd({ children }: { children: ReactNode }) {
   return <span className="kbd">{children}</span>;
 }
 
-/** The app icon in miniature: a white folder on butter yellow. Eyes closed while things are stashed. */
+/** The app icon in miniature: a white folder on butter yellow. Eyes closed while things are stashed;
+ *  awake, it blinks every few seconds. */
 export function FolderMark({ size = 28, awake = false }: { size?: number; awake?: boolean }) {
+  const blinking = useBlink(awake);
   return (
     <svg className="folder-mark" width={size} height={size} viewBox="0 0 96 96" aria-hidden="true">
       <rect width="96" height="96" rx="22" fill="#F2CD5C" />
@@ -45,8 +47,18 @@ export function FolderMark({ size = 28, awake = false }: { size?: number; awake?
       <path d="M16 45 Q16 39 22 39 H74 Q80 39 80 45 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FFFFFF" />
       {awake ? (
         <g fill="#1C1D22">
-          <circle cx="37" cy="59" r="3.6" />
-          <circle cx="59" cy="59" r="3.6" />
+          {[37, 59].map((cx) => (
+            <motion.ellipse
+              key={cx}
+              cx={cx}
+              cy="59"
+              rx="3.6"
+              ry="4.2"
+              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+              animate={{ scaleY: blinking ? 0.12 : 1 }}
+              transition={{ duration: 0.08 }}
+            />
+          ))}
         </g>
       ) : (
         <g fill="none" stroke="#1C1D22" strokeWidth="3.4" strokeLinecap="round">
@@ -56,6 +68,28 @@ export function FolderMark({ size = 28, awake = false }: { size?: number; awake?
       )}
     </svg>
   );
+}
+
+/** True for a moment every 3 to 7 seconds (and now and then twice in a row). */
+function useBlink(on: boolean): boolean {
+  const [closed, setClosed] = useState(false);
+  useEffect(() => {
+    if (!on) return;
+    let t: ReturnType<typeof setTimeout>;
+    const blink = (then: () => void) => {
+      setClosed(true);
+      t = setTimeout(() => {
+        setClosed(false);
+        then();
+      }, 130);
+    };
+    const schedule = () => {
+      t = setTimeout(() => blink(() => (Math.random() < 0.25 ? (t = setTimeout(() => blink(schedule), 180)) : schedule())), 3000 + Math.random() * 4000);
+    };
+    schedule();
+    return () => clearTimeout(t);
+  }, [on]);
+  return closed;
 }
 
 /** Content that slides open and closed, height and all. */

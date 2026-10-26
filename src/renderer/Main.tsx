@@ -6,6 +6,7 @@ import type { BriefView, JobSummary } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
+import { FolderMark } from './ui';
 import { SettingsView } from './SettingsView';
 
 export function Main() {
@@ -51,7 +52,7 @@ export function Main() {
         void api.moveItem(from, key, j.id);
       }}
     >
-      <Icon name={j.icon} />
+      <FolderMark size={22} awake={j.current} />
       <span className="grow">
         <span className="t">{j.name}</span>
         <span className="s">{j.current ? 'Open now' : timeAgo(j.updatedAt)}</span>
@@ -63,7 +64,11 @@ export function Main() {
   return (
     <div className="main-grid">
       <aside className="side">
-        <div className="drag" style={{ height: 46 }} />
+        <div className="drag" style={{ height: 44 }} />
+        <div className="side-brand drag">
+          <FolderMark size={26} awake />
+          <span className="display" style={{ fontSize: 16 }}>Stashd</span>
+        </div>
         <div className="side-title">Folders</div>
         <div className="side-list">
           {active.map(row)}
@@ -87,10 +92,11 @@ export function Main() {
         ) : selected ? (
           <JobDetail key={selected} jobId={selected} jobs={jobs} />
         ) : (
-          <div className="empty" style={{ paddingTop: 80 }}>
-            <div className="display">Nothing saved yet</div>
+          <div className="empty" style={{ paddingTop: 90 }}>
+            <FolderMark size={64} />
+            <div className="display" style={{ marginTop: 14 }}>Nothing stashed yet</div>
             <p>
-              Press <span className="kbd">{settings ? prettyShortcut(settings.shortcutSave) : '⌃S'}</span> while you're working to save your first job.
+              Press <span className="kbd">{settings ? prettyShortcut(settings.shortcutSave) : '⌃S'}</span> while you're working to make your first folder.
             </p>
           </div>
         )}

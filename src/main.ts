@@ -2,7 +2,7 @@
 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { app, globalShortcut, Menu, type Rectangle } from 'electron';
+import { app, globalShortcut, Menu, nativeTheme, type Rectangle } from 'electron';
 import type { AppInfo, Route, Settings } from './shared/types';
 import { appleWriter } from './main/brief/apple';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
@@ -156,12 +156,14 @@ function start(): void {
 
     tidy.prepare();
     const initial = settings.get();
+    nativeTheme.themeSource = initial.appearance;
     applyShortcuts(initial);
     applyLoginItem(initial);
 
     settings.onChange((next, prev) => {
       if (next.shortcutSave !== prev.shortcutSave || next.shortcutRecap !== prev.shortcutRecap) applyShortcuts(next);
       if (next.launchAtLogin !== prev.launchAtLogin) applyLoginItem(next);
+      if (next.appearance !== prev.appearance) nativeTheme.themeSource = next.appearance;
       broadcast('settings:changed');
     });
 

@@ -21,7 +21,13 @@ export interface Settings {
   tidyUp: boolean;
   aiModel: string;
   aiDisclosureAccepted: boolean;
+  /** Light glass by default; dark, or follow the Mac. */
+  appearance: Appearance;
+  /** The soft whoosh when windows fly into the menu bar. */
+  sounds: boolean;
 }
+
+export type Appearance = 'light' | 'dark' | 'system';
 
 /** Something a job can hold and reopen. */
 export interface Item {
@@ -225,6 +231,7 @@ export interface OverlayPlay {
   /** The screen size, so the layout never depends on a stale window size. */
   size: { width: number; height: number };
   reverse: boolean;
+  sound: boolean;
 }
 
 export interface ToastInfo {

@@ -86,13 +86,68 @@ export function Naming() {
 
 // ---------- the fly-in animation ----------
 
-const POP_MS = 200;
-const FLY_MS = 560;
-const STAGGER_MS = 70;
+const POP_MS = 140;
+const FLY_MS = 420;
+const STAGGER_MS = 40;
 
-/** Wait for icons to be decoded before animating, so nothing pops in half-drawn. */
+/** Wait (briefly) for icons to be decoded, so nothing pops in half-drawn. */
 async function ready(imgs: HTMLImageElement[]): Promise<void> {
-  await Promise.race([Promise.all(imgs.map((i) => i.decode().catch(() => undefined))), new Promise((r) => setTimeout(r, 250))]);
+  await Promise.race([Promise.all(imgs.map((i) => i.decode().catch(() => undefined))), new Promise((r) => setTimeout(r, 80))]);
+}
+
+// ---------- sound ----------
+// Made on the fly with Web Audio, so there are no sound files: a soft whoosh as things fly,
+// then a small wooden "tock" as they land in the folder.
+
+let audio: AudioContext | null = null;
+
+function whoosh(ctx: AudioContext, at: number, length: number, reverse: boolean): void {
+  const n = Math.floor(ctx.sampleRate * length);
+  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const band = ctx.createBiquadFilter();
+  band.type = 'bandpass';
+  band.Q.value = 0.9;
+  band.frequency.setValueAtTime(reverse ? 2400 : 500, at);
+  band.frequency.exponentialRampToValueAtTime(reverse ? 500 : 2400, at + length);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(0.09, at + length * 0.45);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
+  src.connect(band).connect(gain).connect(ctx.destination);
+  src.start(at);
+  src.stop(at + length);
+}
+
+function tock(ctx: AudioContext, at: number): void {
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(880, at);
+  osc.frequency.exponentialRampToValueAtTime(330, at + 0.12);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(0.16, at + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.16);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(at);
+  osc.stop(at + 0.18);
+}
+
+function playSound(count: number, reverse: boolean): void {
+  try {
+    audio ??= new AudioContext();
+    const ctx = audio;
+    void ctx.resume();
+    const t = ctx.currentTime + 0.02;
+    const total = (POP_MS + FLY_MS + STAGGER_MS * Math.max(0, count - 1)) / 1000;
+    whoosh(ctx, t + (reverse ? 0 : POP_MS / 1000), total - (reverse ? 0.1 : POP_MS / 1000), reverse);
+    if (!reverse) tock(ctx, t + total - 0.04);
+  } catch {
+    // no sound, no problem
+  }
 }
 
 async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<void> {
@@ -130,6 +185,7 @@ async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<
   });
   await ready(imgs);
   await new Promise((r) => requestAnimationFrame(r));
+  if (play.sound && !reduce) playSound(n, play.reverse);
 
   const tx = play.target.x - 50;
   const ty = play.target.y - 46;
@@ -143,9 +199,9 @@ async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<
           { transform: `${at} scale(1)`, opacity: 0 },
         ]
       : [
-          { transform: `${at} scale(0.8)`, opacity: 0, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' },
-          { transform: `${at} scale(1)`, opacity: 1, offset: POP_MS / (POP_MS + FLY_MS), easing: 'cubic-bezier(0.55, 0, 0.8, 0.2)' },
-          { transform: `${home} scale(0.12)`, opacity: 0.3 },
+          { transform: `${at} scale(0.85)`, opacity: 0, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+          { transform: `${at} scale(1)`, opacity: 1, offset: POP_MS / (POP_MS + FLY_MS), easing: 'cubic-bezier(0.6, 0, 0.75, 0.25)' },
+          { transform: `${home} scale(0.1)`, opacity: 0.2 },
         ];
     const timing: KeyframeAnimationOptions = { duration: reduce ? 1 : POP_MS + FLY_MS, delay: reduce ? 0 : i * STAGGER_MS, fill: 'both' };
     // Labels fade out as the icons start to fly, so the motion stays clean.
