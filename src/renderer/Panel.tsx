@@ -1,7 +1,7 @@
 // The panel under the menu bar icon: your folders, and the brief for the one you pick.
 
 import { useCallback, useEffect, useState } from 'react';
-import type { BriefView, JobSummary, OpenState, Settings } from '../shared/types';
+import { mostlyOpen, type BriefView, type JobSummary, type OpenState, type Settings } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useFitWindow, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
@@ -90,7 +90,7 @@ function PanelView() {
               {view && <JobMenu view={view} onGone={() => setSelected(null)} />}
             </div>
             {view ? (
-              <BriefCard view={view} current={jobs?.find((j) => j.id === view.job.id)?.current ?? false} />
+              <BriefCard view={view} current={!view.job.done && (!!jobs?.find((j) => j.id === view.job.id)?.current || mostlyOpen(openMap[view.job.id]))} />
             ) : (
               <div className="muted small" style={{ padding: '18px 8px' }}>
                 <span className="spinner" /> Getting your folder…
@@ -199,20 +199,22 @@ function JobList(props: {
 function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; onPick: (id: string) => void }) {
   const allOpen = !!state && state.total > 0 && state.open === state.total;
   const someOpen = !!state && state.open > 0 && !allOpen;
+  // Open now: you unpacked it here, or most of its tabs and files are open anyway.
+  const openNow = !job.done && (job.current || mostlyOpen(state));
   const [busy, setBusy] = useState(false);
   const [opened, setOpened] = useState<string | null>(null);
 
   // Renaming happens in the app window (click a folder's title there); here a click just opens it.
   return (
     <div
-      className={`job-row ${job.current ? 'current' : ''}`}
+      className={`job-row ${openNow ? 'current' : ''}`}
       style={{ ...toneStyle(folderTone(job.id)), ...(job.done ? { opacity: 0.6 } : {}) }}
       role="button"
       tabIndex={0}
       onClick={() => onPick(job.id)}
       onKeyDown={(e) => e.key === 'Enter' && onPick(job.id)}
     >
-      <FolderMark size={30} awake={job.current} tone={folderTone(job.id)} />
+      <FolderMark size={30} awake={openNow} tone={folderTone(job.id)} />
       <span className="grow">
         <span className="name" style={{ display: 'block' }}>{job.name}</span>
         <span className="hint" style={{ display: 'block' }}>
@@ -224,8 +226,8 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
           )}
         </span>
       </span>
-      {job.current && <span className="live" />}
-      {job.current ? (
+      {openNow && <span className="live" />}
+      {openNow ? (
         <Button
           size="small"
           className="unpack-btn pack"
@@ -237,10 +239,6 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
         >
           Pack up
         </Button>
-      ) : allOpen ? (
-        <span className="open-tag" title="Everything in this folder is already open">
-          <Icon name="check" /> Open
-        </span>
       ) : (
         <Button
           size="small"

@@ -23,6 +23,7 @@ import type { Meaning } from './meaning';
 import { openItems } from './open';
 import type { SettingsStore } from './settings';
 import { JobStore, writeFileAtomic } from './store';
+import { looseKey } from './urls';
 
 interface State {
   currentJobId: string | null;
@@ -307,11 +308,11 @@ export class Core {
     if (this.openCache && Date.now() - this.openCache.at < 4000) return this.openCache.result;
     const result = (async () => {
       const cap = this.fakeCapture ? await this.fakeCapture() : await capture(this.settings.get(), this.helper, this.selfNames);
-      const open = new Set(cap.items.map((i) => i.key));
+      const open = new Set(cap.items.map(looseKey));
       const out: Record<string, OpenState> = {};
       for (const j of await this.store.list()) {
         const items = ((await this.store.latest(j.id))?.items ?? []).filter((i) => i.kind !== 'app');
-        out[j.id] = { open: items.filter((i) => open.has(i.key)).length, total: items.length };
+        out[j.id] = { open: items.filter((i) => open.has(looseKey(i))).length, total: items.length };
       }
       return out;
     })();
@@ -567,3 +568,4 @@ export function hintFrom(entry: SaveEntry): string {
   const first = text.split(/(?<=[.!?])\s/)[0] ?? '';
   return first.replace(/^You were (last )?(on |working on |writing )?/i, '').replace(/\.$/, '').slice(0, 70);
 }
+

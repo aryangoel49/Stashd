@@ -1,5 +1,6 @@
 // Decides which browser tab addresses are kept, and cleans the ones that are.
 
+import type { Item } from '../shared/types';
 import { redactUrlString } from './redact';
 
 export interface UrlOptions {
@@ -63,5 +64,21 @@ export function displayUrl(raw: string): string {
     return (u.hostname.replace(/^www\./, '') + path).slice(0, 80);
   } catch {
     return raw.slice(0, 80);
+  }
+}
+
+/**
+ * The same tab or file, even if its address changed a little after reopening (http → https, www.,
+ * a trailing slash or #section), so a folder you opened yourself still shows as open.
+ */
+export function looseKey(item: Item): string {
+  if (item.kind !== 'tab' || !item.url) return item.key;
+  try {
+    const u = new URL(item.url);
+    const host = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
+    const path = u.pathname.replace(/\/+$/, '') || '/';
+    return `tab:${host}${path}${u.search}`;
+  } catch {
+    return item.key;
   }
 }

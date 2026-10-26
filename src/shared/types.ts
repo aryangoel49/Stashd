@@ -155,6 +155,11 @@ export interface OpenState {
   total: number;
 }
 
+/** Most of a folder's tabs and files are open right now (you opened them yourself, say), so it counts as open. */
+export function mostlyOpen(state: OpenState | undefined): boolean {
+  return !!state && state.total > 0 && state.open / state.total >= 0.6;
+}
+
 /** What the save box shows. */
 export interface SavePreview {
   /** The job this save updates, if any (the open job, or a strong match). */

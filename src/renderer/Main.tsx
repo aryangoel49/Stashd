@@ -3,7 +3,7 @@
 // the sidebar to move it. The layout reflows to any window size, full screen included.
 
 import { useCallback, useEffect, useState } from 'react';
-import type { BriefView, Item, JobSummary, OpenState, Suggestion } from '../shared/types';
+import { mostlyOpen, type BriefView, type Item, type JobSummary, type OpenState, type Suggestion } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
@@ -29,16 +29,22 @@ function MainView() {
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [showFinished, setShowFinished] = useState(false);
 
+  // What's open right now, so a folder you opened yourself shows as open (not "Unpack").
+  const [openMap, setOpenMap] = useState<Record<string, OpenState>>({});
   const load = useCallback(() => {
     void api.listJobs().then((list) => {
       setJobs(list);
       setView((cur) => (cur === 'home' || cur === 'settings' || list.some((j) => j.id === cur) ? cur : 'home'));
     });
+    api.openState().then(setOpenMap, () => undefined);
   }, []);
+  const isOpen = (j: JobSummary) => !j.done && (j.current || mostlyOpen(openMap[j.id]));
 
   useEffect(() => {
     load();
-    const offs = [
+    // Coming back to the window: check again, in case you opened or closed things meanwhile.
+    window.addEventListener('focus', load);
+    const offs = [() => window.removeEventListener('focus', load),
       api.onJobsChanged(load),
       api.onMainShow((v) => {
         // "Open Stashd" always lands on your folders; only the gear opens Settings.
@@ -74,12 +80,12 @@ function MainView() {
         void api.moveItem(from, key, j.id);
       }}
     >
-      <FolderMark size={22} awake={j.current} tone={folderTone(j.id)} />
+      <FolderMark size={22} awake={isOpen(j)} tone={folderTone(j.id)} />
       <span className="grow">
         <span className="t">{j.name}</span>
-        <span className="s">{j.current ? 'Open now' : timeAgo(j.updatedAt)}</span>
+        <span className="s">{isOpen(j) ? 'Open now' : timeAgo(j.updatedAt)}</span>
       </span>
-      {j.current && <span className="live" />}
+      {isOpen(j) && <span className="live" />}
     </button>
   );
 
@@ -143,7 +149,7 @@ function MainView() {
             {view === 'settings' ? (
               <SettingsView />
             ) : view === 'home' ? (
-              <Home jobs={jobs} onOpen={setView} shortcut={settings ? prettyShortcut(settings.shortcutSave) : '⌃S'} />
+              <Home jobs={jobs} openMap={openMap} onOpen={setView} shortcut={settings ? prettyShortcut(settings.shortcutSave) : '⌃S'} />
             ) : (
               <JobDetail jobId={view} jobs={jobs} />
             )}
@@ -156,19 +162,16 @@ function MainView() {
 
 // ---------- all folders ----------
 
-function Home({ jobs, onOpen, shortcut }: { jobs: JobSummary[]; onOpen: (id: string) => void; shortcut: string }) {
+function Home({ jobs, openMap, onOpen, shortcut }: { jobs: JobSummary[]; openMap: Record<string, OpenState>; onOpen: (id: string) => void; shortcut: string }) {
   const [query, setQuery] = useState('');
-  const [openMap, setOpenMap] = useState<Record<string, OpenState>>({});
-  useEffect(() => {
-    api.openState().then(setOpenMap, () => undefined);
-  }, [jobs]);
   const [showFinished, setShowFinished] = useState(false);
 
   const q = query.trim().toLowerCase();
   const matches = (j: JobSummary) => !q || j.name.toLowerCase().includes(q) || j.hint.toLowerCase().includes(q) || j.preview.some((i) => i.label.toLowerCase().includes(q));
   const order = (list: JobSummary[]) => [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  const current = jobs.filter((j) => j.current && !j.done && matches(j));
-  const active = order(jobs.filter((j) => !j.current && !j.done && matches(j)));
+  const isOpen = (j: JobSummary) => j.current || mostlyOpen(openMap[j.id]);
+  const current = jobs.filter((j) => isOpen(j) && !j.done && matches(j));
+  const active = order(jobs.filter((j) => !isOpen(j) && !j.done && matches(j)));
   const done = order(jobs.filter((j) => j.done && matches(j)));
 
   return (
@@ -257,7 +260,8 @@ function Section({ title, count, children }: { title: string; count?: number; ch
 }
 
 function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: number; state?: OpenState; onOpen: () => void }) {
-  const allOpen = !!state && state.total > 0 && state.open === state.total;
+  // Open now: you unpacked it here, or most of its tabs and files are open anyway.
+  const openNow = !job.done && (job.current || mostlyOpen(state));
   const tone = folderTone(job.id);
   const [hover, setHover] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -296,10 +300,10 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
     >
       <div className="folder-card-top">
         <motion.span animate={{ rotate: hover ? -6 : 0, scale: hover ? 1.06 : 1 }}>
-          <FolderMark size={44} awake={hover || job.current} tone={tone} />
+          <FolderMark size={44} awake={hover || openNow} tone={tone} />
         </motion.span>
         <span className="card-tools">
-          {job.current && <span className="tag-live">Open now</span>}
+          {openNow && <span className="tag-live">Open now</span>}
           <button
             className="card-more"
             aria-label={`More for ${job.name}`}
@@ -354,12 +358,20 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
       </div>
       {job.hint && <div className="folder-card-hint">{job.hint}</div>}
       <div className="folder-card-foot">
-        {!job.current && allOpen && (
-          <span className="open-tag" title="Everything in this folder is already open">
-            <Icon name="check" /> Open
-          </span>
+        {openNow && !job.done && (
+          <Button
+            size="small"
+            className="tone-btn"
+            title="Save this folder and close its windows"
+            onClick={(e) => {
+              e.stopPropagation();
+              void api.openWindow('pack');
+            }}
+          >
+            Pack up
+          </Button>
         )}
-        {!job.current && !allOpen && (
+        {!openNow && (
           <Button
             size="small"
             className="tone-btn"
