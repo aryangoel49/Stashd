@@ -70,6 +70,15 @@ async function sort(items: Item[], profile: Profile | null, frontKey: string) {
 }
 
 describe.skipIf(!ready)('with the meaning model', () => {
+  it('a TV episode next to soccer tabs stays out, despite sharing "Season" and the window', async () => {
+    const espn = tab('https://www.espn.com/soccer/scoreboard', 'Soccer Scores - 2026 Season - ESPN');
+    const pl = tab('https://www.premierleague.com/en/matches', 'Premier League Fixtures, Results & Live Matches on TV Season 2026/27');
+    const shark = tab('https://www.youtube.com/watch?v=x', '(117) Shark Tank India S5 | Full Episode 12 | Season 5 Live on TV - YouTube');
+    const r = await sort([espn, pl, premier, shark], null, espn.key);
+    expect(r.sure).toEqual(expect.arrayContaining(labels([espn, pl, premier])));
+    expect(r.maybe).toContain(shark.label);
+  });
+
   beforeAll(() => {
     vectors = new Map();
   });
@@ -80,7 +89,9 @@ describe.skipIf(!ready)('with the meaning model', () => {
     // NBA shares "NBA" with the StreamKing tab you were on, so it's in too, and the Premier League
     // table is close in meaning to the matches being streamed.
     expect(r.sure).toEqual(expect.arrayContaining(labels([streamKing, madrid, streamEast, nba])));
-    expect(r.sure.concat(r.likely)).toEqual(expect.arrayContaining(labels([ovo, premier])));
+    expect(r.sure.concat(r.likely)).toContain(premier.label);
+    // "ovo goal" shares only the browser window, and the meaning model calls it a different topic, so it isn't suggested.
+    expect(r.maybe).toContain(ovo.label);
     for (const c of [...clutter, preview, textEdit]) expect(r.sure.concat(r.likely)).not.toContain(c.label);
   });
 
@@ -144,7 +155,7 @@ describe.skipIf(!ready)('with the meaning model', () => {
       await embedAll(texts([aiDoc, aiTab1, linkedin]));
       job.prefs = learn(job.prefs, offered, [aiDoc.key, aiTab1.key]);
     }
-    expect(job.prefs.leftOut).toContain('Jobs | LinkedIn');
+    expect(job.prefs.leftOut).toContain('Jobs LinkedIn');
     expect(learnedAvoid(job.prefs).avoidHosts).toEqual(['linkedin.com']);
     const p = jobProfile('ai research', '', [aiDoc, aiTab1], learnedAvoid(job.prefs));
     const r = await sort([aiDoc, aiTab1, indeed, linkedin2], p, aiDoc.key);

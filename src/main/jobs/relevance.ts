@@ -29,7 +29,8 @@ const STOP = new Set(
   free watch live online official site website blog article video videos youtube wikipedia reddit medium quora news latest
   best top guide guides complete ultimate list review reviews report reports download downloads ebook pdf overview introduction intro
   key things thing way ways tips help app apps login sign account dashboard inbox settings
-  draft final copy file files folder desktop notes note untitled`.split(/\s+/).filter(Boolean),
+  draft final copy file files folder desktop notes note untitled
+  season seasons episode episodes ep full tv show shows series part trailer clip clips`.split(/\s+/).filter(Boolean),
 );
 
 /** Websites used for everything; sharing one says nothing about the topic. */
@@ -100,6 +101,12 @@ export function meaningText(item: Item): string | null {
   let t = item.label;
   if (item.kind === 'doc' || item.kind === 'folder') t = t.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/[_-]+/g, ' ');
   t = t.replace(/\s+[-–|·]\s+(Google Search|Bing|DuckDuckGo)$/i, '').trim();
+  // Drop filler ("Full Episode", "Live on TV", "Season") so the model compares what it's actually about.
+  const kept = t.split(/\s+/).filter((w) => {
+    const bare = w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    return bare && !STOP.has(bare);
+  });
+  if (kept.length) t = kept.join(' ');
   return t.length >= 2 ? t : null;
 }
 
@@ -111,6 +118,9 @@ function similarity(a: number[], b: number[]): number {
   for (let i = 0; i < a.length; i++) s += a[i] * b[i];
   return s;
 }
+
+/** Below this similarity the meaning model counts two titles as different topics. */
+const UNRELATED = 0.25;
 
 /** Below this, two titles are no more alike than random ones (measured: unrelated titles score -0.05 to 0.21,
  *  related ones 0.29 to 0.65). */
@@ -217,7 +227,8 @@ export function scoreItem(item: Item, p: Profile, df: Map<string, number>, front
     score += 2;
     why.push('same folder');
   }
-  if (frontWindow !== null && item.kind === 'tab' && item.window === frontWindow) {
+  const sameWindow = frontWindow !== null && item.kind === 'tab' && item.window === frontWindow;
+  if (sameWindow) {
     score += 1;
     why.push('same browser window');
   }
@@ -244,6 +255,14 @@ export function scoreItem(item: Item, p: Profile, df: Map<string, number>, front
     if (pts > 0) score += pts;
     if (pts >= 0.5 && !shared.length) why.push(`about the same thing as “${short(bestLabel)}”`);
     else if (pts >= 0.5) why.push('similar topic');
+
+    // The meaning model says it's a different topic: being in the same browser window isn't
+    // enough on its own (a Shark Tank episode next to soccer scores).
+    if (bestLabel && best < UNRELATED && sameWindow) {
+      score -= 1;
+      why.splice(why.indexOf('same browser window'), 1);
+      if (!shared.length) why.push('different topic');
+    }
 
     // Learned: much more like something you left out of this job before.
     let avoid = 0;
