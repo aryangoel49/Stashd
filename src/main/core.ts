@@ -190,10 +190,13 @@ export class Core {
     pending.kept = kept;
     const visibleItems = [...offered.sure, ...offered.likely, ...offered.maybe];
     const front = frontItemKey(visibleItems, cap.appOrder);
+    const before = new Set(previous.map(looseKey));
     return {
       jobId: job?.id ?? null,
       jobName: job?.name ?? null,
       isSuggestion,
+      lastSavedAt: latest?.savedAt ?? null,
+      newCount: job ? offered.sure.filter((i) => !before.has(looseKey(i))).length : 0,
       suggestedName: job?.name ?? suggestName(offered.sure, front),
       sure: offered.sure,
       likely: offered.likely,

@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { CollectorError, Item, SavePreview } from '../shared/types';
+import { timeAgo } from '../shared/time';
 import { api, errorText, useFitWindow, useSettings } from './api';
 import { Icon } from './icons';
 import { AnimatePresence, Button, countText, ease, FolderMark, motion, Motion, Pill, Reveal } from './ui';
@@ -58,7 +59,7 @@ function SaveBox() {
       await api.commitSave({ jobId: p.jobId, name: opts.name, note: opts.note, keys: opts.keys, tidy: opts.tidy });
       setState('saved');
       // With Pack up, get out of the way quickly so the windows can be seen flying into the menu bar.
-      closeTimer.current = setTimeout(() => void api.closeWindow(), opts.tidy ? 450 : 1200);
+      closeTimer.current = setTimeout(() => void api.closeWindow(), opts.tidy ? 450 : p.jobId ? 600 : 1200);
     } catch (e) {
       setError(errorText(e));
       setState('ready');
@@ -256,11 +257,12 @@ function SaveBox() {
 
         {state === 'ready' && (
           <motion.div key="ready" className="save-body" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={ease}>
-            <div className="save-head">
-              <FolderMark size={34} alive mood={aiNaming ? 'curious' : 'awake'} lookAt={glance} />
+            <div className={`save-head${isNew ? '' : ' existing'}`}>
+              <FolderMark size={34} alive mood={aiNaming ? 'curious' : isNew ? 'awake' : 'happy'} lookAt={glance} />
               <div className="grow">
                 <div className="eyebrow">
-                  {isNew ? 'New folder' : 'Adding to'}
+                  {isNew ? 'New folder' : preview?.isSuggestion ? 'Looks like your folder' : 'Your folder'}
+                  {!isNew && preview?.lastSavedAt && <span className="faint"> · saved {timeAgo(preview.lastSavedAt)}</span>}
                   {aiNaming && <span className="faint"> · thinking of a name…</span>}
                 </div>
                 <input
@@ -305,8 +307,15 @@ function SaveBox() {
               <p className="save-intro">
                 {likelyLeft.length === 1 ? '1 more thing looks related.' : `${likelyLeft.length} more things look related.`} Want {likelyLeft.length === 1 ? 'it' : 'them'} in?
               </p>
+            ) : isNew ? (
+              <p className="save-intro">I'll make a new folder for this. Tap anything to leave it out.</p>
             ) : (
-              isNew && <p className="save-intro">I'll make a new folder for this. Tap anything to leave it out.</p>
+              preview && (
+                <p className="save-intro">
+                  {preview.isSuggestion ? 'Same work as before, so this goes into it. Pick New folder if it isn’t. ' : 'Picking up where you left off. '}
+                  {preview.newCount === 0 ? 'Nothing new since last time.' : preview.newCount === 1 ? '1 new thing since last time.' : `${preview.newCount} new things since last time.`}
+                </p>
+              )
             )}
 
             <input

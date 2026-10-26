@@ -167,6 +167,9 @@ export interface SavePreview {
   jobName: string | null;
   /** True when jobId came from a match, not from a job you opened. Then the box asks. */
   isSuggestion: boolean;
+  /** When that job was last saved, and how many ticked things weren't in it then. */
+  lastSavedAt: string | null;
+  newCount: number;
   suggestedName: string;
   sure: Item[];
   /** Opened since you unpacked this job: likely part of it. Highlighted; the clear matches are in `sure`. */
