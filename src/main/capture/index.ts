@@ -78,10 +78,14 @@ export function assemble(
   return { appOrder, frontApp, items: items.slice(0, MAX_ITEMS) };
 }
 
-/** The item you were on last: the front document or active tab of the front app. */
+/**
+ * The item you were on last: the front document or active tab of the front app.
+ * A bare app (Notion, Terminal) says nothing about what you're working on, so it's skipped
+ * for the next app that has a tab or document; only if nothing has one does a bare app count.
+ */
 export function frontItemKey(items: Item[], appOrder: string[]): string | null {
   for (const app of appOrder) {
-    const inApp = items.filter((i) => i.app === app);
+    const inApp = items.filter((i) => i.app === app && i.kind !== 'app');
     if (!inApp.length) continue;
     const tabs = inApp.filter((i) => i.kind === 'tab');
     if (tabs.length) {
@@ -91,6 +95,10 @@ export function frontItemKey(items: Item[], appOrder: string[]): string | null {
       return active.key;
     }
     return (inApp.find((i) => i.active) ?? inApp[0]).key;
+  }
+  for (const app of appOrder) {
+    const bare = items.find((i) => i.app === app);
+    if (bare) return bare.key;
   }
   return null;
 }

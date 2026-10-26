@@ -76,6 +76,12 @@ describe('assemble and front item', () => {
     expect(frontItemKey(r.items, ['Google Chrome'])).toBe('tab:https://b.io/');
     expect(frontItemKey([], [])).toBeNull();
   });
+
+  it('skips a bare front app (like Notion) for the tab you were reading', () => {
+    const r = assemble(win, tabs, docs, ['Stashd']);
+    expect(frontItemKey(r.items, ['Spotify', 'Google Chrome'])).toBe('tab:https://b.io/');
+    expect(frontItemKey(r.items.filter((i) => i.kind === 'app'), ['Spotify', 'Figma'])).toBe('app:Spotify');
+  });
 });
 
 describe('browser tabs', () => {
