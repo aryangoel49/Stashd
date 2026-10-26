@@ -41,7 +41,7 @@ const api = {
   setDone: (jobId: string, done: boolean) => invoke<void>('jobs:done', jobId, done),
   deleteJob: (jobId: string) => invoke<boolean>('jobs:delete', jobId),
 
-  openWindow: (route: 'save' | 'pack' | 'main' | 'settings') => invoke<boolean>('window:open', route),
+  openWindow: (route: 'save' | 'pack' | 'main' | 'settings', jobId?: string) => invoke<boolean>('window:open', route, jobId),
   closeWindow: () => invoke<boolean>('window:close'),
   fitWindow: (height: number) => invoke<boolean>('window:fit', height),
   openAutomationSettings: () => invoke<boolean>('system:openAutomationSettings'),

@@ -154,7 +154,7 @@ function JobList(props: {
             <span className="now-name">{current.name}</span>
           </button>
           <div className="now-actions">
-            <Button variant="primary" size="small" onClick={() => void api.openWindow('pack')} title="Save this folder and close its windows">
+            <Button variant="primary" size="small" onClick={() => void api.openWindow('pack', current.id)} title="Save this folder and close its windows">
               <Icon name="stack" /> Pack up <span className="enter">{prettyShortcut(settings.shortcutSave)}</span>
             </Button>
             <Button size="small" onClick={() => void api.openWindow('save')} title="Save without closing anything">
@@ -230,7 +230,7 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
           title="Save this folder and close its windows"
           onClick={(e) => {
             e.stopPropagation();
-            void api.openWindow('pack');
+            void api.openWindow('pack', job.id);
           }}
         >
           Pack up

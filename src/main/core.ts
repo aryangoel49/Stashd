@@ -40,6 +40,8 @@ interface PendingSave {
   offered?: Classified;
   /** Items from the job that aren't open right now (kept unless unticked). */
   kept?: Item[];
+  /** The folder you pressed Pack up on, so the box doesn't have to guess. */
+  target?: string;
 }
 
 export class Core {
@@ -109,8 +111,8 @@ export class Core {
   // ---------- saving ----------
 
   /** Called the moment the shortcut is pressed. `early` is the window order taken before our box appeared. */
-  beginSave(early?: Promise<WindowsInfo>): void {
-    this.pending = { capture: this.fakeCapture ? this.fakeCapture() : capture(this.settings.get(), this.helper, this.selfNames, early) };
+  beginSave(early?: Promise<WindowsInfo>, target?: string): void {
+    this.pending = { capture: this.fakeCapture ? this.fakeCapture() : capture(this.settings.get(), this.helper, this.selfNames, early), target };
     this.pending.capture.catch(() => undefined);
   }
 
@@ -151,7 +153,7 @@ export class Core {
     let job: Job | null = null;
     let isSuggestion = false;
     if (!opts.asNew) {
-      const wanted = opts.jobId ?? this.state.currentJobId;
+      const wanted = opts.jobId ?? pending.target ?? this.state.currentJobId;
       if (wanted && (await this.store.exists(wanted))) job = await this.store.get(wanted);
       if (job?.done && !opts.jobId) job = null;
       if (!job && fits[0] && fits[0].fit >= FIT_SUGGEST) {

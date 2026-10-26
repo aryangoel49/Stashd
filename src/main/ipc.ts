@@ -37,7 +37,7 @@ export interface IpcHooks {
   dismissToast: () => void;
   overlayDone: () => void;
   testClaude: (key: string) => Promise<void>;
-  openSave: (mode: 'save' | 'pack') => void;
+  openSave: (mode: 'save' | 'pack', jobId?: string) => void;
   beforeOpen: (items: import('../shared/types').Item[]) => void;
 }
 
@@ -124,8 +124,9 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     return true;
   });
 
-  handle('window:open', (_e, route) => {
-    if (route === 'save' || route === 'pack') hooks.openSave(route);
+  handle('window:open', (_e, route, jobId) => {
+    // Pack up on a folder names it, so the box packs that folder instead of guessing.
+    if (route === 'save' || route === 'pack') hooks.openSave(route, jobId == null ? undefined : v.jobId(jobId));
     else if (route === 'main' || route === 'settings') {
       getWindow('panel')?.hide();
       showWindow('main', { onReady: (w) => w.webContents.send('main:show', route) });

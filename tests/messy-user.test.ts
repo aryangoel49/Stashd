@@ -239,3 +239,21 @@ describe('Pack up with an unsaved document', () => {
     await vi.waitFor(() => expect(shown).toContain('toast:show'), { timeout: 3000 });
   });
 });
+
+describe('Pack up on a folder that holds only an app', () => {
+  it('packs that folder (not a new one) and includes the app', async () => {
+    const terminal: Item = { key: 'app:Terminal', kind: 'app', label: 'Terminal', detail: 'App', app: 'Terminal' };
+    open = [terminal];
+    const core = makeCore();
+    core.beginSave();
+    await core.preview({ asNew: true });
+    const first = await core.commitSave({ jobId: null, name: 'Server work', note: '', keys: [terminal.key], tidy: false });
+    // Later, with nothing marking it current, Pack up is pressed on that folder.
+    await core.setDone(first.jobId, false);
+    (core as unknown as { state: { currentJobId: string | null } }).state.currentJobId = null;
+    core.beginSave(undefined, first.jobId);
+    const p = await core.preview();
+    expect(p.jobId).toBe(first.jobId);
+    expect(p.sure.map((i) => i.key)).toContain(terminal.key);
+  });
+});

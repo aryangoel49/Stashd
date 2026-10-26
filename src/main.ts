@@ -66,11 +66,11 @@ function start(): void {
 
   /** ⌃S: note the window order first (before our box takes the front), then show the box.
    *  "pack" turns Tidy up on for this save. */
-  function openSave(mode: 'save' | 'pack' | 'last' = 'last'): void {
+  function openSave(mode: 'save' | 'pack' | 'last' = 'last', jobId?: string): void {
     const early = core.helper.windows();
     early.catch(() => undefined);
     getWindow('panel')?.hide();
-    core.beginSave(early);
+    core.beginSave(early, jobId);
     showWindow('save', { onReady: (win) => win.webContents.send('save:begin', mode) });
   }
 

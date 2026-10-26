@@ -365,7 +365,7 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
             title="Save this folder and close its windows"
             onClick={(e) => {
               e.stopPropagation();
-              void api.openWindow('pack');
+              void api.openWindow('pack', job.id);
             }}
           >
             Pack up
