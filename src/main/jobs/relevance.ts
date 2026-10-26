@@ -15,6 +15,7 @@
 // when it isn't, everything above still works on its own.
 
 import type { Item } from '../../shared/types';
+import { looseKey } from '../urls';
 
 // ---------- tokens ----------
 
@@ -138,6 +139,8 @@ function dirOf(item: Item): string | null {
 export interface Profile {
   tokens: Map<string, number>;
   keys: Set<string>;
+  /** The same items, matched loosely (a tab whose address changed a little after reopening). */
+  loose: Set<string>;
   hosts: Set<string>;
   dirs: Set<string>;
   /** Texts to compare meaning against (the job name, your note, titles in the job), with a label for tooltips. */
@@ -148,7 +151,7 @@ export interface Profile {
 }
 
 export function emptyProfile(): Profile {
-  return { tokens: new Map(), keys: new Set(), hosts: new Set(), dirs: new Set(), refs: new Map(), avoidTexts: [], avoidHosts: new Set() };
+  return { tokens: new Map(), keys: new Set(), loose: new Set(), hosts: new Set(), dirs: new Set(), refs: new Map(), avoidTexts: [], avoidHosts: new Set() };
 }
 
 function addTokens(p: Profile, tokens: string[], weight: number, cap = 4): void {
@@ -157,7 +160,10 @@ function addTokens(p: Profile, tokens: string[], weight: number, cap = 4): void 
 
 /** Add an item (its words, site, folder) to a profile. `asMember: false` adds what it's about, without saying it was in the job. */
 export function addItem(p: Profile, item: Item, weight = 1, asMember = true): void {
-  if (asMember) p.keys.add(item.key);
+  if (asMember) {
+    p.keys.add(item.key);
+    p.loose.add(looseKey(item));
+  }
   addTokens(p, itemTokens(item), weight);
   const h = hostOf(item);
   if (h && !isGeneralHost(h)) p.hosts.add(h);
@@ -206,7 +212,7 @@ export interface Score {
 }
 
 export function scoreItem(item: Item, p: Profile, df: Map<string, number>, frontWindow: number | null = null, meaning?: MeaningLookup): Score {
-  if (p.keys.has(item.key)) return { score: 10, why: ['was in this job'] };
+  if (p.keys.has(item.key) || p.loose.has(looseKey(item))) return { score: 10, why: ['was in this job'] };
   let score = 0;
   const why: string[] = [];
   const shared: string[] = [];

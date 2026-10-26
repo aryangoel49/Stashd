@@ -276,3 +276,24 @@ describe('second round (known bugs)', () => {
     expect(new Set(names).size).toBe(2);
   });
 });
+
+describe('closing a tab by accident after Unpack', () => {
+  it('Pack up keeps the closed tab in the folder', async () => {
+    const a = tab(1, 'Climate essay notes');
+    const b = tab(2, 'Climate essay sources');
+    open = [a, b];
+    const core = makeCore();
+    core.beginSave();
+    await core.preview({ asNew: true });
+    const first = await core.commitSave({ jobId: null, name: 'Climate essay', note: '', keys: [a.key, b.key], tidy: false });
+    // Tab b is closed by mistake; then Pack up is pressed on the folder (auto-commit uses sure + kept).
+    open = [a];
+    core.beginSave(undefined, first.jobId);
+    const p = await core.preview();
+    const keys = [...p.sure, ...p.kept].map((i) => i.key);
+    expect(keys).toContain(b.key);
+    await core.commitSave({ jobId: p.jobId, name: p.suggestedName, note: '', keys, tidy: false });
+    const latest = await core.store.latest(first.jobId);
+    expect(latest!.items.map((i) => i.key)).toEqual(expect.arrayContaining([a.key, b.key]));
+  });
+});

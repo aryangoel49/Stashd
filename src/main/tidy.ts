@@ -9,7 +9,7 @@ import type { BrowserName, Item } from '../shared/types';
 import { BROWSER_APPS, rawTabUrls } from './collectors/browsers';
 import { DOC_ADAPTERS } from './capture/docs';
 import { run } from './exec';
-import { cleanTabUrl, type UrlOptions } from './urls';
+import { looseKey, cleanTabUrl, type UrlOptions } from './urls';
 
 // ---------- browser tabs ----------
 
@@ -271,13 +271,15 @@ export interface TidyResult {
  */
 async function openTabTargets(browser: BrowserName, group: Item[], opts: UrlOptions): Promise<{ targets: string[]; open: Item[] }> {
   const raw = await rawTabUrls(browser);
+  // Matched loosely, so a tab that redirected after Unpack (https, www., trailing slash) still closes.
+  const loose = (url: string) => looseKey({ key: `tab:${url}`, kind: 'tab', label: '', detail: '', app: '', url });
   const byClean = new Map<string, string[]>();
   for (const u of raw) {
     const c = cleanTabUrl(u, opts);
-    if (c) byClean.set(c, [...(byClean.get(c) ?? []), u]);
+    if (c) byClean.set(loose(c), [...(byClean.get(loose(c)) ?? []), u]);
   }
-  const open = group.filter((i) => i.url && byClean.has(i.url));
-  return { targets: [...new Set(open.flatMap((i) => byClean.get(i.url ?? '') ?? []))], open };
+  const open = group.filter((i) => i.url && byClean.has(loose(i.url)));
+  return { targets: [...new Set(open.flatMap((i) => byClean.get(loose(i.url ?? '')) ?? []))], open };
 }
 
 /** Closes the given items, one AppleScript per app. Items that are still untitled are skipped. */

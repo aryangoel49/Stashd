@@ -253,7 +253,7 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
             e.stopPropagation();
             setBusy(true);
             void api
-              .openJob(job.id, null, 'needed')
+              .openJob(job.id, null, 'all')
               .then((r) => {
                 const missing = r.missing.length + r.failed.length;
                 setOpened(

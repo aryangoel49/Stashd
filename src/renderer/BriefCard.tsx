@@ -68,11 +68,11 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
         </div>
       ) : (
       <div className="actions">
-        <Button variant="primary" size="small" disabled={busy !== null} onClick={() => void open('needed')} title="Open what you need to carry on">
-          {busy === 'needed' ? <span className="spinner on-accent" /> : null} Unpack
+        <Button variant="primary" size="small" disabled={busy !== null} onClick={() => void open('all')} title="Reopen everything in this folder">
+          {busy === 'all' ? <span className="spinner on-accent" /> : null} Unpack
         </Button>
-        <Button size="small" disabled={busy !== null} onClick={() => void open('all')} title="Open everything in this folder">
-          {busy === 'all' ? <span className="spinner" /> : null} Open everything
+        <Button size="small" disabled={busy !== null} onClick={() => void open('needed')} title="Open only the few things you were working on">
+          {busy === 'needed' ? <span className="spinner" /> : null} Just the essentials
         </Button>
       </div>
       )}

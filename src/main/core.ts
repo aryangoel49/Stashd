@@ -182,9 +182,9 @@ export class Core {
       meaning: vectors.size ? lookup : undefined,
     });
     // Things that belong to this job but aren't open right now (closed by accident, say) are kept.
-    const openKeys = new Set(cap.items.map((i) => i.key));
+    const openKeys = new Set(cap.items.map(looseKey));
     const kept = previous
-      .filter((i) => !openKeys.has(i.key) && (job?.prefs.hide[i.key] ?? 0) < 2 && !isLifestyle(i, settings, learned))
+      .filter((i) => !openKeys.has(looseKey(i)) && (job?.prefs.hide[i.key] ?? 0) < 2 && !isLifestyle(i, settings, learned))
       .map((i) => ({ ...i, notOpen: true, active: false }));
     pending.offered = offered;
     pending.kept = kept;
@@ -323,15 +323,22 @@ export class Core {
       const jobs = await this.store.list();
       const latest = await Promise.all(jobs.map((j) => this.store.latest(j.id)));
       const apps = new Set(latest.flatMap((e) => (e?.items ?? []).map((i) => i.app)));
-      const cap = this.fakeCapture ? await this.fakeCapture() : await capture(this.settings.get(), this.helper, this.selfNames, undefined, apps);
+      const win = this.fakeCapture ? null : await this.helper.windows().catch(() => null);
+      const cap = this.fakeCapture
+        ? await this.fakeCapture()
+        : await capture(this.settings.get(), this.helper, this.selfNames, win ? Promise.resolve(win) : undefined, apps);
       const open = new Set(cap.items.map(looseKey));
+      // An app counts as open only with a window showing, not just running in the background or hidden.
+      const hidden = new Set(win?.apps.filter((a) => a.hidden).map((a) => a.name) ?? []);
+      const showing = win ? new Set(win.order.filter((n) => !hidden.has(n))) : null;
+      const isOpen = (i: Item) => (i.kind === 'app' && showing ? showing.has(i.app) : open.has(looseKey(i)));
       const out: Record<string, OpenState> = {};
       for (const [n, j] of jobs.entries()) {
         // Apps don't count (Slack being open doesn't mean a folder is), unless a folder holds only apps.
         const all = latest[n]?.items ?? [];
         const content = all.filter((i) => i.kind !== 'app');
         const items = content.length ? content : all;
-        out[j.id] = { open: items.filter((i) => open.has(looseKey(i))).length, total: items.length };
+        out[j.id] = { open: items.filter(isOpen).length, total: items.length };
       }
       return out;
     })();

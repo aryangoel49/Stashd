@@ -383,7 +383,7 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
             onClick={(e) => {
               e.stopPropagation();
               setBusy(true);
-              void api.openJob(job.id, null, 'needed').finally(() => setBusy(false));
+              void api.openJob(job.id, null, 'all').finally(() => setBusy(false));
             }}
           >
             {busy ? <span className="spinner" /> : 'Unpack'}

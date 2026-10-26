@@ -6,10 +6,12 @@ import type { Item, OpenResult, Settings } from '../shared/types';
 import { BROWSERS } from '../shared/validate';
 import { BROWSER_APPS, collectTabs } from './collectors/browsers';
 import { run } from './exec';
+import { looseKey } from './urls';
 
 async function openUrl(item: Item): Promise<void> {
   const u = new URL(item.url ?? '');
-  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Only web addresses can be reopened');
+  const pdf = u.protocol === 'file:' && /\.pdf$/i.test(u.pathname);
+  if (u.protocol !== 'http:' && u.protocol !== 'https:' && !pdf) throw new Error('Only web addresses can be reopened');
   if (item.browser) {
     try {
       await run('open', ['-a', BROWSER_APPS[item.browser].appName, u.toString()], { timeoutMs: 10_000 });
@@ -63,21 +65,49 @@ export async function openItems(items: Item[], frontKey: string | null, settings
         BROWSERS.filter((b) => settings.browsers[b]),
         { keepQueryStrings: settings.keepQueryStrings, excludedDomains: settings.excludedDomains },
       );
-      openUrls = new Set(tabs.map((t) => t.url));
+      // Matched loosely: a tab that redirected (https, www., trailing slash) still counts as open.
+      openUrls = new Set(tabs.map((t) => looseKey({ key: `tab:${t.url}`, kind: 'tab', label: '', detail: '', app: '', url: t.url })));
     } catch {
       // can't tell: open everything
     }
   }
 
   const ordered = [...items.filter((i) => i.key !== frontKey), ...items.filter((i) => i.key === frontKey)];
+
+  // Tabs go to each browser in one go (one `open` per browser, not one per tab), so Unpack is quick.
+  const tabsByBrowser = new Map<string, Item[]>();
+  for (const item of ordered) {
+    if (item.kind !== 'tab') continue;
+    if (item.url && openUrls.has(looseKey(item))) {
+      result.alreadyOpen++;
+      continue;
+    }
+    const b = item.browser ? BROWSER_APPS[item.browser].appName : '';
+    tabsByBrowser.set(b, [...(tabsByBrowser.get(b) ?? []), item]);
+  }
+  for (const [app, group] of tabsByBrowser) {
+    const urls = group.map((i) => i.url).filter((u): u is string => !!u && /^(https?:|file:.*\.pdf$)/i.test(u));
+    try {
+      if (!app || !urls.length) throw new Error('one by one');
+      await run('open', ['-a', app, ...urls], { timeoutMs: 20_000 });
+      result.opened += urls.length;
+      result.failed.push(...group.filter((i) => !i.url || !urls.includes(i.url)).map((i) => i.label));
+    } catch {
+      for (const item of group) {
+        try {
+          await openUrl(item);
+          result.opened++;
+        } catch {
+          result.failed.push(item.label);
+        }
+      }
+    }
+  }
+
   for (const item of ordered) {
     try {
       if (item.kind === 'tab') {
-        if (item.url && openUrls.has(item.url)) {
-          result.alreadyOpen++;
-          continue;
-        }
-        await openUrl(item);
+        continue;
       } else if (item.kind === 'doc' && !item.path && item.url) {
         // A OneDrive or SharePoint document: ask its app to open the address.
         await run('open', ['-a', item.app, item.url], { timeoutMs: 15_000 });
