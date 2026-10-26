@@ -144,6 +144,12 @@ export interface JobSummary {
   counts: { tabs: number; files: number; apps: number };
 }
 
+/** How much of a folder is open right now (tabs and files; apps don't count). */
+export interface OpenState {
+  open: number;
+  total: number;
+}
+
 /** What the save box shows. */
 export interface SavePreview {
   /** The job this save updates, if any (the open job, or a strong match). */

@@ -98,6 +98,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   });
 
   handle('jobs:list', () => core.listJobs());
+  handle('jobs:openState', () => core.openState());
   handle('jobs:brief', (_e, id, entry) => core.briefView(v.jobId(id), entry == null ? undefined : v.entryId(entry)));
   handle('jobs:rewriteBrief', (_e, id, entry) => core.rewriteBrief(v.jobId(id), v.entryId(entry)));
   handle('jobs:feedback', (_e, id, entry, helpful, comment) =>

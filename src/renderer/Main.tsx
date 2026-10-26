@@ -3,7 +3,7 @@
 // the sidebar to move it. The layout reflows to any window size, full screen included.
 
 import { useCallback, useEffect, useState } from 'react';
-import type { BriefView, Item, JobSummary } from '../shared/types';
+import type { BriefView, Item, JobSummary, OpenState } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
@@ -157,6 +157,10 @@ function MainView() {
 
 function Home({ jobs, onOpen, shortcut }: { jobs: JobSummary[]; onOpen: (id: string) => void; shortcut: string }) {
   const [query, setQuery] = useState('');
+  const [openMap, setOpenMap] = useState<Record<string, OpenState>>({});
+  useEffect(() => {
+    api.openState().then(setOpenMap, () => undefined);
+  }, [jobs]);
   const [showFinished, setShowFinished] = useState(false);
 
   const q = query.trim().toLowerCase();
@@ -203,13 +207,13 @@ function Home({ jobs, onOpen, shortcut }: { jobs: JobSummary[]; onOpen: (id: str
           {current.length > 0 && (
             <Section title="Open now">
               {current.map((j, i) => (
-                <FolderCard key={j.id} job={j} index={i} onOpen={() => onOpen(j.id)} />
+                <FolderCard key={j.id} job={j} index={i} state={openMap[j.id]} onOpen={() => onOpen(j.id)} />
               ))}
             </Section>
           )}
           <Section title="Folders" count={active.length}>
             {active.map((j, i) => (
-              <FolderCard key={j.id} job={j} index={i} onOpen={() => onOpen(j.id)} />
+              <FolderCard key={j.id} job={j} index={i} state={openMap[j.id]} onOpen={() => onOpen(j.id)} />
             ))}
           </Section>
           {active.length === 0 && current.length === 0 && <p className="muted small">{q ? `Nothing matches “${query}”.` : 'Every folder is finished.'}</p>}
@@ -224,7 +228,7 @@ function Home({ jobs, onOpen, shortcut }: { jobs: JobSummary[]; onOpen: (id: str
               {showFinished && (
                 <div className="folder-grid" style={{ marginTop: 12 }}>
                   {done.map((j, i) => (
-                    <FolderCard key={j.id} job={j} index={i} onOpen={() => onOpen(j.id)} />
+                    <FolderCard key={j.id} job={j} index={i} state={openMap[j.id]} onOpen={() => onOpen(j.id)} />
                   ))}
                 </div>
               )}
@@ -249,7 +253,8 @@ function Section({ title, count, children }: { title: string; count?: number; ch
   );
 }
 
-function FolderCard({ job, index, onOpen }: { job: JobSummary; index: number; onOpen: () => void }) {
+function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: number; state?: OpenState; onOpen: () => void }) {
+  const allOpen = !!state && state.total > 0 && state.open === state.total;
   const tone = folderTone(job.id);
   const [hover, setHover] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -347,7 +352,12 @@ function FolderCard({ job, index, onOpen }: { job: JobSummary; index: number; on
       {job.hint && <div className="folder-card-hint">{job.hint}</div>}
       <div className="folder-card-foot">
         <BadgeStrip items={job.preview} />
-        {!job.current && (
+        {!job.current && allOpen && (
+          <span className="open-tag" title="Everything in this folder is already open">
+            <Icon name="check" /> Open
+          </span>
+        )}
+        {!job.current && !allOpen && (
           <Button
             size="small"
             className="tone-btn"

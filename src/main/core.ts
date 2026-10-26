@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import type { BriefView, Capture, Item, Job, JobSummary, OpenResult, SaveEntry, SavePreview, SaveRequest, SaveResult } from '../shared/types';
+import type { BriefView, Capture, Item, Job, JobSummary, OpenResult, OpenState, SaveEntry, SavePreview, SaveRequest, SaveResult } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, frontItemKey } from './capture';
@@ -45,6 +45,7 @@ export class Core {
   private pending: PendingSave | null = null;
   private writing = new Set<string>();
   writers: BriefWriter[] = [];
+  private openCache: { at: number; result: Promise<Record<string, OpenState>> } | null = null;
   /** The on-device meaning model (optional: sorting works without it). */
   meaning?: Meaning;
 
@@ -79,6 +80,7 @@ export class Core {
   }
 
   notify(): void {
+    this.openCache = null;
     for (const l of this.listeners) l();
   }
 
@@ -286,6 +288,28 @@ export class Core {
       });
     }
     return out;
+  }
+
+  /**
+   * How much of each folder is open right now, from one quick look at what's open. Used so a folder
+   * whose tabs and files are all open says so instead of offering an Unpack that would do nothing.
+   * Apps don't count (Slack being open doesn't mean a folder is). Kept for a few seconds.
+   */
+  openState(): Promise<Record<string, OpenState>> {
+    if (this.openCache && Date.now() - this.openCache.at < 4000) return this.openCache.result;
+    const result = (async () => {
+      const cap = this.fakeCapture ? await this.fakeCapture() : await capture(this.settings.get(), this.helper, this.selfNames);
+      const open = new Set(cap.items.map((i) => i.key));
+      const out: Record<string, OpenState> = {};
+      for (const j of await this.store.list()) {
+        const items = ((await this.store.latest(j.id))?.items ?? []).filter((i) => i.kind !== 'app');
+        out[j.id] = { open: items.filter((i) => open.has(i.key)).length, total: items.length };
+      }
+      return out;
+    })();
+    this.openCache = { at: Date.now(), result };
+    result.catch(() => (this.openCache = null));
+    return result;
   }
 
   /** The brief for a save, writing it first if it doesn't exist yet. */

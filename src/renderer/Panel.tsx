@@ -1,7 +1,7 @@
 // The panel under the menu bar icon: your folders, and the brief for the one you pick.
 
 import { useCallback, useEffect, useState } from 'react';
-import type { BriefView, JobSummary, Settings } from '../shared/types';
+import type { BriefView, JobSummary, OpenState, Settings } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useFitWindow, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
@@ -25,8 +25,11 @@ function PanelView() {
   const [error, setError] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
 
+  const [openMap, setOpenMap] = useState<Record<string, OpenState>>({});
   const loadJobs = useCallback(() => {
     api.listJobs().then(setJobs, (e) => setError(errorText(e)));
+    // A moment later: which folders are already open (so they don't offer an Unpack that does nothing).
+    api.openState().then(setOpenMap, () => undefined);
   }, []);
 
   useEffect(() => {
@@ -95,7 +98,7 @@ function PanelView() {
             )}
           </div>
         ) : (
-          <JobList jobs={jobs} settings={settings} showDone={showDone} setShowDone={setShowDone} onPick={setSelected} />
+          <JobList jobs={jobs} openMap={openMap} settings={settings} showDone={showDone} setShowDone={setShowDone} onPick={setSelected} />
         )}
       </Swap>
       {error && <div className="banner">{error}</div>}
@@ -105,12 +108,13 @@ function PanelView() {
 
 function JobList(props: {
   jobs: JobSummary[] | null;
+  openMap: Record<string, OpenState>;
   settings: Settings;
   showDone: boolean;
   setShowDone: (v: boolean) => void;
   onPick: (id: string) => void;
 }) {
-  const { jobs, settings, showDone, setShowDone, onPick } = props;
+  const { jobs, openMap, settings, showDone, setShowDone, onPick } = props;
   const current = (jobs ?? []).find((j) => j.current && !j.done) ?? null;
   const active = (jobs ?? []).filter((j) => !j.done && j !== current);
   const done = (jobs ?? []).filter((j) => j.done);
@@ -175,7 +179,7 @@ function JobList(props: {
 
       {active.map((j, i) => (
         <motion.div key={j.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.03 }}>
-          <JobRow job={j} onPick={onPick} />
+          <JobRow job={j} state={openMap[j.id]} onPick={onPick} />
         </motion.div>
       ))}
 
@@ -192,7 +196,9 @@ function JobList(props: {
   );
 }
 
-function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void }) {
+function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; onPick: (id: string) => void }) {
+  const allOpen = !!state && state.total > 0 && state.open === state.total;
+  const someOpen = !!state && state.open > 0 && !allOpen;
   const [busy, setBusy] = useState(false);
   const [opened, setOpened] = useState<string | null>(null);
 
@@ -213,7 +219,7 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
           {opened ?? (
             <>
               <BadgeStrip items={job.preview} size={14} max={4} />
-              <span>{job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
+              <span>{allOpen ? 'All open' : someOpen ? `${state!.open} of ${state!.total} open` : job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
             </>
           )}
         </span>
@@ -231,12 +237,16 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
         >
           Pack up
         </Button>
+      ) : allOpen ? (
+        <span className="open-tag" title="Everything in this folder is already open">
+          <Icon name="check" /> Open
+        </span>
       ) : (
         <Button
           size="small"
           className="unpack-btn"
           disabled={busy}
-          title="Open what you need to carry on"
+          title={someOpen ? `Open the other ${state!.total - state!.open}` : 'Open what you need to carry on'}
           onClick={(e) => {
             e.stopPropagation();
             setBusy(true);
@@ -244,7 +254,11 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
               .openJob(job.id, null, 'needed')
               .then((r) => {
                 const missing = r.missing.length + r.failed.length;
-                setOpened(`Opened ${r.opened + r.alreadyOpen}${missing ? `, ${missing} not found` : ''}`);
+                setOpened(
+                  r.opened === 0 && r.alreadyOpen > 0
+                    ? 'Already open'
+                    : `Opened ${r.opened}${r.alreadyOpen ? `, ${r.alreadyOpen} already open` : ''}${missing ? `, ${missing} not found` : ''}`,
+                );
                 setTimeout(() => setOpened(null), 4000);
               })
               .catch(() => setOpened("Couldn't open this folder"))
