@@ -40,6 +40,7 @@ const api = {
   renameJob: (jobId: string, name: string) => invoke<void>('jobs:rename', jobId, name),
   setDone: (jobId: string, done: boolean) => invoke<void>('jobs:done', jobId, done),
   deleteJob: (jobId: string) => invoke<boolean>('jobs:delete', jobId),
+  confirmDelete: (jobId: string) => invoke<boolean>('jobs:confirmDelete', jobId),
 
   openWindow: (route: 'save' | 'pack' | 'main' | 'settings', jobId?: string) => invoke<boolean>('window:open', route, jobId),
   closeWindow: () => invoke<boolean>('window:close'),
@@ -59,6 +60,7 @@ const api = {
   onSaveBegin: (cb: (mode: 'save' | 'pack' | 'last') => void) =>
     on('save:begin', (m) => cb(m === 'save' || m === 'pack' ? m : 'last')),
   onWindowShown: (cb: () => void) => on('window:shown', cb),
+  onWindowHidden: (cb: () => void) => on('window:hidden', cb),
   onWindowBlur: (cb: () => void) => on('window:blur', cb),
   onPayload: (cb: () => void) => on('payload:updated', cb),
   onOverlayPlay: (cb: (play: OverlayPlay) => void) => on('overlay:play', (p) => cb(p as OverlayPlay)),

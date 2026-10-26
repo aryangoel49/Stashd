@@ -89,6 +89,12 @@ const OPTIONS: Record<Route, Electron.BrowserWindowConstructorOptions> = {
 
 /** Floating windows close when you click elsewhere, like a menu. Paused while a dialog is open. */
 const holdOpen = new Set<Route>();
+const hiddenAt = new Map<Route, number>();
+/** True right after a window hid itself because you clicked away. Clicking the menu bar icon to close
+ *  the panel blurs it first, so without this the same click would open it again. */
+export function justHidden(route: Route, ms = 300): boolean {
+  return Date.now() - (hiddenAt.get(route) ?? 0) < ms;
+}
 export function holdWindow(route: Route, hold: boolean): void {
   if (hold) holdOpen.add(route);
   else holdOpen.delete(route);
@@ -124,9 +130,14 @@ export function showWindow(
   if (route === 'panel' || route === 'save' || route === 'naming') {
     win.setAlwaysOnTop(true, route === 'panel' ? 'pop-up-menu' : 'floating');
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    // However it was hidden, let the page reset itself while nobody is looking.
+    if (route === 'panel') win.on('hide', () => win.webContents.send('window:hidden'));
     win.on('blur', () => {
       if (win.isDestroyed() || holdOpen.has(route) || win.webContents.isDevToolsOpened()) return;
-      if (route === 'panel') win.hide();
+      if (route === 'panel') {
+        win.hide();
+        hiddenAt.set(route, Date.now());
+      }
       else if (route === 'save') win.webContents.send('window:blur');
     });
   }

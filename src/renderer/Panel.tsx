@@ -38,10 +38,12 @@ function PanelView() {
     const offs = [
       api.onJobsChanged(loadJobs),
       api.onShowJob((id) => setSelected(id)),
-      api.onWindowShown(() => {
+      // Reset while hidden, so the panel opens already showing the list: no swap or resize as you watch.
+      api.onWindowHidden(() => {
         setSelected(null);
         loadJobs();
       }),
+      api.onWindowShown(loadJobs),
     ];
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {

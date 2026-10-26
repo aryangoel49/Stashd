@@ -19,7 +19,7 @@ import { runLiveTest } from './main/livetest';
 import { runScenarios } from './main/scenarios';
 import { runSuggestTest } from './main/suggesttest';
 import { AppTray } from './main/tray';
-import { broadcast, getWindow, hardenWebContents, showWindow } from './main/windows';
+import { broadcast, getWindow, hardenWebContents, justHidden, prepareWindow, showWindow } from './main/windows';
 
 // Development-only: a separate data folder (set before the single-instance check, so a test copy
 // can run next to the installed app).
@@ -56,6 +56,7 @@ function start(): void {
       panel.hide();
       return;
     }
+    if (!showJob && justHidden('panel')) return;
     showWindow('panel', {
       near: anchor,
       onReady: (win) => {
@@ -133,6 +134,8 @@ function start(): void {
     ];
 
     tray = new AppTray({ togglePanel: (b) => togglePanel(b), save: openSave, openMain: () => showWindow('main') });
+    // Build the panel now, hidden, so the first click on the icon shows it at once.
+    prepareWindow('panel');
     core.onChanged(() => broadcast('jobs:changed'));
     const tidy = new TidyFlow(core, () => tray.bounds());
 

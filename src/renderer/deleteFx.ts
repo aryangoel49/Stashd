@@ -1,8 +1,8 @@
 // Deleting a folder, with a little feeling that stays in the small folder face: it flinches wide-eyed
 // before the "Delete?" question and squints with relief if you cancel. On Delete it shuts its eyes,
-// gives a tiny shrug, folds down to a dot and goes "poof"; the card around it just fades, fast.
-// It plays on a copy laid over the page (the real card is gone by then), with WAAPI on transform
-// and opacity only. Reduce Motion: no flinch, the card simply fades.
+// gives a tiny shrug, folds down to a dot and goes "poof", while its card or row just fades, fast.
+// It plays on the real element (the question is asked first, the folder is removed after), with WAAPI
+// on transform and opacity only, so text is never scaled or squashed. Reduce Motion: a quick fade.
 
 import { api } from './api';
 
@@ -11,68 +11,35 @@ export type Reaction = 'startled' | 'relieved' | null;
 const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const done = (a: Animation) =>
+  a.finished.then(
+    () => undefined,
+    () => undefined,
+  );
 
 /** Ask to delete a folder. `el` is the card or row that goes; `react` shows the folder's face. Resolves true if deleted. */
 export async function deleteWithFeel(jobId: string, el: HTMLElement | null, react: (r: Reaction) => void): Promise<boolean> {
   const reduce = reduced();
   react('startled');
   if (!reduce) await wait(320);
-  // Copy it now, while the startled face is showing: once deleted, the real one disappears.
-  const snap = el?.isConnected ? { copy: el.cloneNode(true) as HTMLElement, rect: el.getBoundingClientRect() } : null;
-  // Leave out the menu that was just open over it.
-  snap?.copy.querySelectorAll('.card-menu').forEach((m) => m.remove());
-  const gone = await api.deleteJob(jobId).catch(() => false);
-  if (!gone) {
+  const yes = await api.confirmDelete(jobId).catch(() => false);
+  if (!yes) {
     react('relieved');
     setTimeout(() => react(null), 900);
     return false;
   }
-  react(null);
-  if (snap) void farewell(snap.copy, snap.rect, el, reduce);
-  return true;
+  if (el?.isConnected) await goodbye(el, reduce);
+  return api.deleteJob(jobId).catch(() => false);
 }
 
-async function farewell(copy: HTMLElement, rect: DOMRect, original: HTMLElement | null, reduce: boolean): Promise<void> {
-  if (original?.isConnected) original.style.opacity = '0';
-  const layer = document.createElement('div');
-  layer.setAttribute('aria-hidden', 'true');
-  Object.assign(layer.style, { position: 'fixed', inset: '0', pointerEvents: 'none', zIndex: '1000' });
-  Object.assign(copy.style, {
-    position: 'fixed',
-    left: `${rect.left}px`,
-    top: `${rect.top}px`,
-    width: `${rect.width}px`,
-    height: `${rect.height}px`,
-    margin: '0',
-    opacity: '1',
-    transform: 'none',
-  });
-  layer.appendChild(copy);
-  document.body.appendChild(layer);
-  const done = (a: Animation) => a.finished.catch(() => undefined);
-  const fadeCard = () =>
-    done(
-      copy.animate(
-        [
-          { opacity: 1, transform: 'none' },
-          { opacity: 0, transform: 'scale(0.98)' },
-        ],
-        { duration: 200, easing: EASE_OUT, fill: 'forwards' },
-      ),
-    );
-
-  const mark = copy.querySelector<SVGSVGElement>('.folder-mark');
-  if (reduce || !mark) {
-    await fadeCard();
-    layer.remove();
-    return;
-  }
+async function goodbye(el: HTMLElement, reduce: boolean): Promise<void> {
+  const fade = (delay: number) => done(el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, delay, easing: EASE_OUT, fill: 'forwards' }));
+  const mark = el.querySelector<SVGSVGElement>('.folder-mark');
+  if (reduce || !mark) return fade(0);
 
   // The folder: eyes shut (80ms), a tiny shrug, then it folds down to a dot (400ms in all).
   mark.style.transformOrigin = '50% 50%';
   mark.querySelectorAll('ellipse').forEach((eye) => {
-    eye.style.transformBox = 'fill-box';
-    eye.style.transformOrigin = '50% 70%';
     eye.animate([{ transform: 'scaleY(1)' }, { transform: 'scaleY(0.06)' }], { duration: 80, easing: 'ease-in', fill: 'forwards' });
   });
   const fold = mark.animate(
@@ -84,38 +51,44 @@ async function farewell(copy: HTMLElement, rect: DOMRect, original: HTMLElement 
     ],
     { duration: 400, easing: EASE_OUT, fill: 'forwards' },
   );
+  setTimeout(() => poof(mark), 300);
+  // The card or row fades as the folder finishes; nothing on it is scaled.
+  await Promise.all([done(fold), fade(240)]);
+}
 
-  // Poof: a few specks in the folder's colour puff out from where it was.
+/** A few specks in the folder's colour puff out from where it was. */
+function poof(mark: SVGSVGElement): void {
   const m = mark.getBoundingClientRect();
   const tint = mark.querySelector('rect')?.getAttribute('fill') ?? '#F2CD5C';
-  setTimeout(() => {
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2 + 0.3;
-      const speck = document.createElement('div');
-      Object.assign(speck.style, {
-        position: 'fixed',
-        left: `${m.left + m.width / 2 - 2.5}px`,
-        top: `${m.top + m.height / 2 - 2.5}px`,
-        width: '5px',
-        height: '5px',
-        borderRadius: '50%',
-        background: tint,
-      });
-      layer.appendChild(speck);
-      const r = m.width * 0.45;
+  const layer = document.createElement('div');
+  layer.setAttribute('aria-hidden', 'true');
+  Object.assign(layer.style, { position: 'fixed', inset: '0', pointerEvents: 'none', zIndex: '1000' });
+  document.body.appendChild(layer);
+  const specks = Array.from({ length: 6 }, (_, i) => {
+    const a = (i / 6) * Math.PI * 2 + 0.3;
+    const r = m.width * 0.45;
+    const speck = document.createElement('div');
+    Object.assign(speck.style, {
+      position: 'fixed',
+      left: `${m.left + m.width / 2 - 2.5}px`,
+      top: `${m.top + m.height / 2 - 2.5}px`,
+      width: '5px',
+      height: '5px',
+      borderRadius: '50%',
+      background: tint,
+    });
+    layer.appendChild(speck);
+    return done(
       speck.animate(
         [
           { transform: 'scale(1)', opacity: 1 },
           { transform: `translate(${Math.cos(a) * r}px, ${Math.sin(a) * r}px) scale(0.4)`, opacity: 0 },
         ],
         { duration: 260, easing: EASE_OUT, fill: 'forwards' },
-      );
-    }
-  }, 300);
-
-  await done(fold);
-  await fadeCard();
-  layer.remove();
+      ),
+    );
+  });
+  void Promise.all(specks).then(() => layer.remove());
 }
 
 /** The folder's face while you decide: wide-eyed at the question, a happy squint of relief on Cancel. */

@@ -116,10 +116,24 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('jobs:moveItem', (_e, from, key, to) => core.moveItem(v.jobId(from), v.itemKey(key), v.jobId(to)));
   handle('jobs:rename', (_e, id, name) => core.rename(v.jobId(id), v.jobName(name)));
   handle('jobs:done', (_e, id, done) => core.setDone(v.jobId(id), v.bool(done, 'done')));
+  // Deleting can be asked first (so the page can play its goodbye before the folder disappears), then
+  // done within a few seconds without asking twice. A delete with no recent yes still asks.
+  const confirmedDelete = new Map<string, number>();
+  const askDelete = async (event: IpcMainInvokeEvent, jobId: string) => {
+    const job = await core.store.get(jobId);
+    return confirm(event, `Delete "${job.name}"?`, 'Its saves and history are removed. Your files and tabs are not touched.', 'Delete folder');
+  };
+  handle('jobs:confirmDelete', async (event, id) => {
+    const jobId = v.jobId(id);
+    if (!(await askDelete(event, jobId))) return false;
+    confirmedDelete.set(jobId, Date.now());
+    return true;
+  });
   handle('jobs:delete', async (event, id) => {
     const jobId = v.jobId(id);
-    const job = await core.store.get(jobId);
-    if (!(await confirm(event, `Delete "${job.name}"?`, 'Its saves and history are removed. Your files and tabs are not touched.', 'Delete folder'))) return false;
+    const ok = Date.now() - (confirmedDelete.get(jobId) ?? 0) < 10_000;
+    confirmedDelete.delete(jobId);
+    if (!ok && !(await askDelete(event, jobId))) return false;
     await core.deleteJob(jobId);
     return true;
   });
