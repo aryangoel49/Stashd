@@ -41,13 +41,13 @@ export async function runLiveTest(core: Core, tidy: TidyFlow, logFile: string): 
     log('3 saved', { jobId: saved.jobId, items: keys.length });
     await tidy.run(saved.jobId, saved.entryId);
     await wait(2500); // past the 2-second Undo
-    log('4 after Pack up', await testTabs());
+    log('4 after Pack up', { ...(await testTabs()), openState: (await core.openState())[saved.jobId] });
 
     // Unpack: reopen everything in the folder (with the fly-out).
     const result = await core.open(saved.jobId, undefined, 'all', (items) => tidy.unpackAnimation(items));
     await wait(2500);
     log('5 Unpack result', result);
-    log('6 after Unpack', await testTabs());
+    log('6 after Unpack', { ...(await testTabs()), openState: (await core.openState())[saved.jobId] });
     log('done', 'ok');
   } catch (e) {
     log('failed', e instanceof Error ? e.message : String(e));

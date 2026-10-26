@@ -49,6 +49,10 @@ export class TidyFlow {
         await this.tidy(jobId, entryId);
       } catch {
         this.toast({ title: "Couldn't pack up", detail: 'Your folder is saved. Its windows stay open.', canUndo: false, mood: 'curious' });
+      } finally {
+        // The save already told the menu bar panel and Home, but while windows were still open. Now that
+        // they're closed, look again so the folder shows as packed straight away (not after the 6s cache).
+        this.core.notify();
       }
     });
     return this.queue;
@@ -242,6 +246,7 @@ export class TidyFlow {
     this.hideToast();
     const animation = this.play(u.items, true);
     await openItems(u.items, u.frontKey, this.core.settings.get());
+    this.core.notify();
     await animation;
     this.toast({ title: 'Back where you left off', detail: `${u.items.length} ${u.items.length === 1 ? 'item' : 'items'} reopened.`, canUndo: false, mood: 'wide' });
   }
