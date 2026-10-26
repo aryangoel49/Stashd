@@ -131,6 +131,13 @@ function SaveBox() {
     ];
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') void cancel();
+      // Enter saves from anywhere in the box (after clicking a pill, say), not just from a text field.
+      // The footer buttons and the folder picker keep their own Enter.
+      const t = e.target as HTMLElement;
+      if (e.key === 'Enter' && !e.isComposing && !e.shiftKey && !t.closest('.save-foot, select')) {
+        e.preventDefault();
+        ref.current?.requestSubmit();
+      }
     };
     window.addEventListener('keydown', onKey);
     const t = setInterval(() => setExample((x) => (x + 1) % EXAMPLES.length), 3500);
