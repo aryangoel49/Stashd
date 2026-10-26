@@ -113,7 +113,16 @@ end run`;
       : fam === 'iwork'
         ? 'set wwiPosix to POSIX path of ((file of wwiDoc) as alias)'
         : 'set wwiPosix to (path of wwiDoc) as text';
-  const close = app === 'Preview' ? 'close wwiDoc' : 'close wwiDoc saving ask';
+  // Newer versions of Word accept "close document" but quietly leave it open; closing the
+  // document's own window works (and still asks about unsaved changes).
+  const close =
+    app === 'Preview'
+      ? 'close wwiDoc'
+      : app === 'Microsoft Word'
+        ? `set wwiLeft to count of documents
+          close wwiDoc saving ask
+          if (count of documents) is wwiLeft then close (active window of wwiDoc)`
+        : 'close wwiDoc saving ask';
   // Office apps that won't list their documents fall back to closing the window with that name.
   const windowFallback =
     fam === 'office'

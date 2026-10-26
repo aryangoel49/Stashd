@@ -43,6 +43,7 @@ describe('close scripts', () => {
 
   it('ask apps to close documents normally, so unsaved changes get a prompt', () => {
     expect(closeDocsScript('Microsoft Word')).toContain('close wwiDoc saving ask');
+    expect(closeDocsScript('Microsoft Word')).toContain('close (active window of wwiDoc)');
     expect(closeDocsScript('Microsoft Word')).toContain('wwiFull contains "://"');
     expect(closeDocsScript('Pages')).toContain('close wwiDoc saving ask');
     expect(closeDocsScript('Finder')).toContain('close wwiWin');
