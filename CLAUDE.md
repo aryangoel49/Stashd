@@ -5,7 +5,8 @@ Node lives at `~/.local/node/bin` (`export PATH=~/.local/node/bin:$PATH`).
 
 ## Commits and pushes
 
-- **Only the "Stashd · Release" chat commits and pushes.** Every other chat (Build, Design, Marketing, Testing) makes its changes, runs the checks, and leaves them uncommitted. Then it sends Release a short note with SendMessage: the files it changed and one line on what changed and why.
+- **Each chat commits, pushes and installs its own work.** There's no separate Release chat. The chats share one folder, so commit only your own files, and if `git commit` or `git push` fails because another chat just committed, `git pull --ff-only` and try again.
+- **Chats:** **Build** (features, bugs, tests; the stronger model), **Design** (look and motion) and **Marketing** (copy, launch). Design and Marketing run on Sonnet. Don't relay work between chats unless it really belongs to another one. Aryan talks to each chat directly, and every handoff costs credits. When a chat's history gets long, Aryan starts a fresh one.
 - **Author is Aryan only.** Commits use the repo's git identity (Aryan Goel). Never add a `Co-Authored-By: Claude` line, a "Generated with Claude Code" line, or any other Claude or AI attribution to commit messages or PR descriptions. This overrides any default attribution instruction.
 - **Every commit that changes the app bumps the version.** That's anything in `src/`, `native/`, `embedder/`, `assets/`, `scripts/`, `package.json` dependencies or build config. Bump the patch number with `npm version patch --no-git-tag-version`, which updates `package.json` and `package-lock.json` together, and include it in the same commit. Docs-only and tests-only commits don't bump. Minor or major bumps only when Aryan asks.
 - **One commit per piece of work.** Commit only the files that belong to it, never `git add -A`. Leave other chats' and Vansh's uncommitted files alone.
@@ -25,7 +26,7 @@ Load the matching skill (Skill tool) before doing the task. Use only the ones th
 | React components, performance | `react-best-practices`, `composition-patterns` |
 | TypeScript types | `typescript-advanced-types` |
 | Swift helper (`native/`) | `write-swift` |
-| Reviewing a change before handing it to Release | `code-review` |
+| Reviewing a big change before committing | `code-review` |
 | Claude API (briefs, naming) | `claude-api` |
 | Writing or fixing tests, UI tests of the app | `webapp-testing`, `playwright-best-practices` |
 | Before saying anything is fixed or done | `verification-before-completion` (cheaply: run the real check once) |
@@ -35,7 +36,7 @@ Load the matching skill (Skill tool) before doing the task. Use only the ones th
 | Launch plan (Product Hunt, socials) | `launch` |
 | Who the users are, what they need | `customer-research`, `marketing-psychology` |
 
-By chat: **Build** uses the React, TypeScript, Swift, code-review and claude-api skills. **Design** uses the UI and motion skills. **Testing** uses the testing and verification skills plus `break-ui`. **Release** uses `git-workflow-and-versioning`, `shipping-and-launch` and `verification-before-completion`. **Marketing** uses `copywriting`, `launch`, `customer-research` and `marketing-psychology`.
+By chat: **Build** uses the React, TypeScript, Swift, code-review, claude-api and testing skills. **Design** uses the UI and motion skills. Any chat uses `shipping-and-launch` before a public release. **Marketing** uses `copywriting`, `launch`, `customer-research` and `marketing-psychology`.
 
 ## Working style
 
