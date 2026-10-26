@@ -65,7 +65,10 @@ body.route-overlay { background: transparent; }
 body.test-capture { background: linear-gradient(160deg, #fbf6e6, #f1ebdb) !important; }
 @media (prefers-color-scheme: dark) { body.test-capture { background: linear-gradient(160deg, #2c2a24, #24221d) !important; } }
 
-button, input, textarea { font: inherit; color: inherit; }
+button, input, textarea { font: inherit; }
+/* Colour sits in the base layer so shadcn's button colours (Tailwind utilities) win over it: otherwise the
+   yellow buttons inherit the light dark-mode text and fade out. */
+@layer base { button, input, textarea { color: inherit; } }
 button { cursor: default; }
 .selectable { user-select: text; }
 .drag { -webkit-app-region: drag; }
