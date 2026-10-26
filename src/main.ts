@@ -17,6 +17,7 @@ import { JobStore } from './main/store';
 import { TidyFlow } from './main/tidyflow';
 import { runLiveTest } from './main/livetest';
 import { runScenarios } from './main/scenarios';
+import { runSuggestTest } from './main/suggesttest';
 import { AppTray } from './main/tray';
 import { broadcast, getWindow, hardenWebContents, showWindow } from './main/windows';
 
@@ -171,6 +172,7 @@ function start(): void {
       broadcast('settings:changed');
     });
 
+    if (!app.isPackaged && process.env.WWI_SUGGEST_TEST) setTimeout(() => void runSuggestTest(core, process.env.WWI_SUGGEST_TEST!), 2000);
     if (!app.isPackaged && process.env.WWI_SCENARIOS) setTimeout(() => void runScenarios(core, tidy, process.env.WWI_SCENARIOS!, process.env.WWI_SCENARIO_FILES ?? ''), 3000);
     if (!app.isPackaged && process.env.WWI_LIVE_TEST) setTimeout(() => void runLiveTest(core, tidy, process.env.WWI_LIVE_TEST!), 3000);
     if (!app.isPackaged && process.env.WWI_CAPTURE_DIR) {

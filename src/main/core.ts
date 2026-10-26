@@ -51,7 +51,7 @@ export class Core {
   private openCache: { at: number; result: Promise<Record<string, OpenState>> } | null = null;
   private suggestCache: { at: number; result: Promise<Suggestion[]> } | null = null;
   /** The last accepted suggestion, so it can be undone for a few seconds. */
-  private lastUndo: (() => Promise<void>) | null = null;
+  private lastUndo: { id: string; run: () => Promise<void> } | null = null;
   /** The on-device meaning model (optional: sorting works without it). */
   meaning?: Meaning;
 
@@ -349,7 +349,7 @@ export class Core {
     if (!s) throw new Error('That suggestion is out of date.');
     if (s.kind === 'move') {
       await this.moveItem(s.from, s.itemKey, s.to);
-      this.lastUndo = () => this.moveItem(s.to, s.itemKey, s.from);
+      this.lastUndo = { id, run: () => this.moveItem(s.to, s.itemKey, s.from) };
     } else {
       const into = await this.store.latest(s.into);
       const from = await this.store.latest(s.from);
@@ -360,13 +360,13 @@ export class Core {
       delete into.brief; // written again for the merged folder
       await this.store.saveEntry(into);
       await this.setDone(s.from, true); // the merged-in folder moves to Finished, history intact
-      this.lastUndo = async () => {
+      this.lastUndo = { id, run: async () => {
         const now = await this.store.entry(s.into, into.id);
         now.items = before.items;
         if (before.brief) now.brief = before.brief;
         await this.store.saveEntry(now);
         await this.setDone(s.from, false);
-      };
+      } };
     }
     this.notify();
   }
@@ -374,7 +374,11 @@ export class Core {
   async undoSuggestion(): Promise<void> {
     const undo = this.lastUndo;
     this.lastUndo = null;
-    if (undo) await undo();
+    if (undo) {
+      await undo.run();
+      // Undoing says "not this": don't offer the same thing again straight away.
+      await this.dismissSuggestion(undo.id, false);
+    }
     this.notify();
   }
 
