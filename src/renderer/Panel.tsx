@@ -1,10 +1,11 @@
 // The panel under the menu bar icon: your folders, and the brief for the one you pick.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { mostlyOpen, type BriefView, type JobSummary, type OpenState, type Settings } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useFitWindow, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
+import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './slash';
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
 import { folderTone, toneStyle } from './visuals';
 
@@ -200,10 +201,13 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
   const openNow = !job.done && (job.current || mostlyOpen(state));
   const [busy, setBusy] = useState(false);
   const [opened, setOpened] = useState<string | null>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [reaction, setReaction] = useState<Reaction>(null);
 
   // Renaming happens in the app window (click a folder's title there); here a click just opens it.
   return (
     <div
+      ref={rowRef}
       className={`job-row ${openNow ? 'current' : ''}`}
       style={{ ...toneStyle(folderTone(job.id)), ...(job.done ? { opacity: 0.6 } : {}) }}
       role="button"
@@ -211,7 +215,9 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
       onClick={() => onPick(job.id)}
       onKeyDown={(e) => e.key === 'Enter' && onPick(job.id)}
     >
-      <FolderMark size={30} awake={openNow} tone={folderTone(job.id)} />
+      <motion.span style={{ display: 'flex' }} animate={reaction === 'startled' ? FLINCH : { x: 0 }}>
+        <FolderMark size={30} awake={openNow} mood={reactionMood(reaction)} tone={folderTone(job.id)} />
+      </motion.span>
       <span className="grow">
         <span className="name" style={{ display: 'block' }}>{job.name}</span>
         <span className="hint" style={{ display: 'block' }}>
@@ -270,7 +276,7 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
         aria-label={`Delete ${job.name}`}
         onClick={(e) => {
           e.stopPropagation();
-          void api.deleteJob(job.id);
+          void deleteWithFeel(job.id, rowRef.current, setReaction);
         }}
       >
         <Icon name="trash" />
@@ -288,7 +294,14 @@ function JobMenu({ view, onGone }: { view: BriefView; onGone: () => void }) {
           <Button variant="ghost" size="small" className="tiny" onClick={() => void api.setDone(view.job.id, !view.job.done).then(onGone)}>
             {view.job.done ? 'Not finished' : 'Mark finished'}
           </Button>
-          <Button variant="danger" size="small" className="tiny" onClick={() => void api.deleteJob(view.job.id).then((gone) => gone && onGone())}>Delete</Button>
+          <Button
+            variant="danger"
+            size="small"
+            className="tiny"
+            onClick={(e) => void deleteWithFeel(view.job.id, e.currentTarget.closest<HTMLElement>('.brief'), () => undefined).then((gone) => gone && onGone())}
+          >
+            Delete
+          </Button>
         </>
       ) : (
         <Button variant="ghost" aria-label="More" onClick={() => setOpen(true)}>

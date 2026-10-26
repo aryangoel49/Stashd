@@ -2,13 +2,14 @@
 // brief and everything inside as cards you can click to reopen. Drag a card onto another folder in
 // the sidebar to move it. The layout reflows to any window size, full screen included.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { mostlyOpen, type BriefView, type Item, type JobSummary, type OpenState, type Suggestion } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
 import { SettingsView } from './SettingsView';
 import { FolderMergeHint, SuggestionStrip, useSuggestions } from './Suggestions';
+import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './slash';
 import { AnimatePresence, Button, FolderMark, motion, Motion } from './ui';
 import { describe, folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
 
@@ -267,6 +268,8 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
   const [busy, setBusy] = useState(false);
   const [menu, setMenu] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [reaction, setReaction] = useState<Reaction>(null);
   const [name, setName] = useState(job.name);
   const finishRename = (save: boolean) => {
     setRenaming(false);
@@ -281,6 +284,7 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
   ].filter(Boolean);
   return (
     <motion.div
+      ref={cardRef}
       className={`folder-card ${job.done ? 'is-done' : ''}`}
       style={toneStyle(tone)}
       layout
@@ -299,8 +303,8 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
       onKeyDown={(e) => e.key === 'Enter' && onOpen()}
     >
       <div className="folder-card-top">
-        <motion.span animate={{ rotate: hover ? -6 : 0, scale: hover ? 1.06 : 1 }}>
-          <FolderMark size={44} awake={hover || openNow} tone={tone} />
+        <motion.span animate={{ rotate: hover ? -6 : 0, scale: hover ? 1.06 : 1, ...(reaction === 'startled' ? FLINCH : { x: 0 }) }}>
+          <FolderMark size={44} awake={hover || openNow} mood={reactionMood(reaction)} tone={tone} />
         </motion.span>
         <span className="card-tools">
           {openNow && <span className="tag-live">Open now</span>}
@@ -325,7 +329,7 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
               <button onClick={() => { setMenu(false); void api.setDone(job.id, !job.done); }}>
                 <Icon name="check" /> {job.done ? 'Not finished' : 'Mark finished'}
               </button>
-              <button className="danger" onClick={() => { setMenu(false); void api.deleteJob(job.id); }}>
+              <button className="danger" onClick={() => { setMenu(false); void deleteWithFeel(job.id, cardRef.current, setReaction); }}>
                 <Icon name="trash" /> Delete…
               </button>
             </motion.div>
