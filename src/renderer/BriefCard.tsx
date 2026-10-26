@@ -62,7 +62,7 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
           <Button variant="primary" size="small" onClick={() => void api.openWindow('pack', view.job.id)} title="Save this folder and close its windows">
             <Icon name="stack" /> Pack up
           </Button>
-          <Button size="small" onClick={() => void api.openWindow('save')} title="Save without closing anything">
+          <Button size="small" onClick={() => void api.openWindow('save', view.job.id)} title="Save without closing anything">
             Save
           </Button>
         </div>

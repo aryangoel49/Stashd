@@ -151,7 +151,7 @@ function MainView() {
             ) : view === 'home' ? (
               <Home jobs={jobs} openMap={openMap} onOpen={setView} shortcut={settings ? prettyShortcut(settings.shortcutSave) : '⌃S'} />
             ) : (
-              <JobDetail jobId={view} jobs={jobs} />
+              <JobDetail jobId={view} jobs={jobs} isOpen={jobs.some((j) => j.id === view && isOpen(j))} />
             )}
           </motion.div>
         </AnimatePresence>
@@ -392,7 +392,7 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
 
 // ---------- one folder ----------
 
-function JobDetail({ jobId, jobs }: { jobId: string; jobs: JobSummary[] }) {
+function JobDetail({ jobId, jobs, isOpen }: { jobId: string; jobs: JobSummary[]; isOpen: boolean }) {
   const [entryId, setEntryId] = useState<string | undefined>(undefined);
   const [view, setView] = useState<BriefView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -429,7 +429,7 @@ function JobDetail({ jobId, jobs }: { jobId: string; jobs: JobSummary[] }) {
     <div className="page" style={toneStyle(tone)}>
       <header className="detail-hero">
         <motion.span initial={{ scale: 0.7, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 18 }}>
-          <FolderMark size={56} awake={jobs.find((j) => j.id === jobId)?.current} tone={tone} />
+          <FolderMark size={56} awake={isOpen} tone={tone} />
         </motion.span>
         <div className="grow">
           <div className="eyebrow tone-ink">{tone.name} folder</div>
@@ -440,7 +440,7 @@ function JobDetail({ jobId, jobs }: { jobId: string; jobs: JobSummary[] }) {
 
       <div className="detail-cols">
         <div className="glass-card brief-col">
-          <BriefCard view={view} hideTitle />
+          <BriefCard view={view} hideTitle current={isOpen} />
         </div>
 
         <div className="items-col">
