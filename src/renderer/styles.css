@@ -527,3 +527,7 @@ details summary { cursor: default; }
 .title-button:hover { background: var(--tone-soft); }
 .title-edit { border: none; outline: none; padding: 2px 8px; margin: 0 -8px; border-radius: 10px; width: min(100%, 560px); background: rgba(255, 255, 255, 0.85); box-shadow: inset 0 0 0 1.5px var(--tone-line), 0 0 0 3px var(--tone-soft); user-select: text; }
 .job-row .tool-btn.delete { flex: none; }
+/* The panel's one quiet way to stash: a small yellow + in the header (⌃S does the same). */
+.stash-plus-btn { background: var(--accent) !important; color: var(--on-accent) !important; border-radius: 9px !important; }
+.stash-plus-btn:hover { background: #f5d672 !important; }
+.stash-plus-btn svg { stroke-width: 2.2; }

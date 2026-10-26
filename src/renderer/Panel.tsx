@@ -122,6 +122,16 @@ function JobList(props: {
           <span className="display" style={{ fontSize: 15 }}>Stashd</span>
         </button>
         <span className="head-tools">
+          <Button
+            variant="ghost"
+            size="small"
+            className="icon-btn stash-plus-btn"
+            onClick={() => void api.openWindow('save')}
+            title={`Stash what's open (${prettyShortcut(settings.shortcutSave)})`}
+            aria-label="Stash what's open"
+          >
+            <Icon name="plus" />
+          </Button>
           <Button variant="ghost" size="small" className="icon-btn" onClick={() => void api.openWindow('main')} title="Open Stashd" aria-label="Open Stashd">
             <Icon name="open" />
           </Button>
@@ -151,18 +161,7 @@ function JobList(props: {
             </Button>
           </div>
         </motion.div>
-      ) : (
-        <motion.button layout className="stash-card" onClick={() => void api.openWindow('save')} whileTap={{ scale: 0.98 }} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-          <span className="stash-plus">
-            <Icon name="plus" />
-          </span>
-          <span className="grow">
-            <span className="stash-title">Stash what's open</span>
-            <span className="stash-sub">Your tabs and files go into a folder</span>
-          </span>
-          <Kbd>{prettyShortcut(settings.shortcutSave)}</Kbd>
-        </motion.button>
-      )}
+      ) : null}
 
       {active.length > 0 && <div className="eyebrow list-label">Folders</div>}
 
