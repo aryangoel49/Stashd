@@ -139,7 +139,7 @@ function start(): void {
       shortcutErrors: () => shortcutErrors,
       appleStatus: async () => (appleStatus = await helper.appleStatus()),
       afterSave: ({ jobId, entryId, tidy: tidyUp }) => {
-        if (tidyUp) void tidy.run(jobId, entryId);
+        if (tidyUp) void tidy.run(jobId, entryId).then(() => tray.wink());
         else {
           tray.flash('Saved');
           tray.wink();

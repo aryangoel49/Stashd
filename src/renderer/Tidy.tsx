@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NamingRequest, OverlayPlay, ToastInfo } from '../shared/types';
 import { api, useFitWindow, useSettings } from './api';
-import { Button, FolderMark, motion, Motion } from './ui';
+import { Button, FolderMark, motion, Motion, type Mood } from './ui';
 
 function usePayload<T>(): T | null {
   const [p, setP] = useState<T | null>(null);
@@ -234,15 +234,20 @@ export function Toast() {
   const [busy, setBusy] = useState(false);
   const [key, setKey] = useState(0);
   const [leaving, setLeaving] = useState(false);
-  // The folder starts the other way round, then closes its eyes (packed) or wakes up (unpacked).
-  const [awake, setAwake] = useState(false);
+  // The folder starts the other way round, then takes the toast's mood: asleep after packing, wide-eyed
+  // (then settled) when things come back.
+  const [mood, setMood] = useState<Mood>('sleep');
   useEffect(() => {
     let wake: ReturnType<typeof setTimeout>;
+    let settle: ReturnType<typeof setTimeout>;
     const show = (p: ToastInfo) => {
       setInfo(p);
-      setAwake(p.canUndo);
+      const to = p.mood ?? 'awake';
+      setMood(to === 'sleep' ? 'awake' : 'sleep');
       clearTimeout(wake);
-      wake = setTimeout(() => setAwake(!p.canUndo), 200);
+      clearTimeout(settle);
+      wake = setTimeout(() => setMood(to), 200);
+      if (to === 'wide') settle = setTimeout(() => setMood('awake'), 1100);
     };
     void api.getPayload<ToastInfo>().then((p) => p && show(p));
     const offShow = api.onToastShow((p) => {
@@ -254,6 +259,7 @@ export function Toast() {
     const offLeave = api.onToastLeave(() => setLeaving(true));
     return () => {
       clearTimeout(wake);
+      clearTimeout(settle);
       offShow();
       offLeave();
     };
@@ -263,7 +269,7 @@ export function Toast() {
     <Motion>
       <div className={`toast ${leaving ? 'leaving' : ''}`} key={key} role="status" aria-live="polite">
         <motion.span initial={{ scale: 0.6, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
-          <FolderMark size={34} awake={awake} />
+          <FolderMark size={34} alive mood={mood} />
         </motion.span>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span className="toast-title">{info.title}</span>

@@ -87,7 +87,7 @@ function MainView() {
       <aside className="side">
         <div className="drag" style={{ height: 44 }} />
         <div className="side-brand drag">
-          <FolderMark size={26} awake />
+          <FolderMark size={26} awake alive />
           <span className="display" style={{ fontSize: 16 }}>Stashd</span>
         </div>
         <nav className="side-nav">

@@ -14,7 +14,7 @@ export class AppTray {
   private tray: Tray;
   private flashTimer: NodeJS.Timeout | null = null;
   private blinkTimer: NodeJS.Timeout | null = null;
-  /** Blink twice now, to say "got it" after a save. */
+  /** A happy squint for a moment, to say "got it" after a save. */
   wink: () => void = () => undefined;
 
   constructor(actions: { togglePanel: (anchor: Rectangle) => void; save: (mode: 'save' | 'pack') => void; openMain: () => void }) {
@@ -45,9 +45,11 @@ export class AppTray {
       this.tray.setImage(closed);
       setTimeout(() => this.tray.setImage(open), ms);
     };
+    const happy = trayImage('trayHappyTemplate');
     this.wink = () => {
-      close(250);
-      setTimeout(() => close(250), 500);
+      if (happy.isEmpty()) return close(250);
+      this.tray.setImage(happy);
+      setTimeout(() => this.tray.setImage(open), 900);
     };
     const next = () => {
       this.blinkTimer = setTimeout(() => {

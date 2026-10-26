@@ -2,6 +2,7 @@
 //   assets/brand/stashd-icon.svg -> assets/icon.png and assets/icon.icns
 //   assets/brand/stashd-tray-awake.svg -> assets/tray/trayTemplate.png (+ @2x), the menu bar icon
 //   assets/brand/stashd-tray.svg -> assets/tray/trayBlinkTemplate.png (+ @2x), its blink
+//   assets/brand/stashd-tray-happy.svg -> assets/tray/trayHappyTemplate.png (+ @2x), its happy squint after a save
 // Rendering uses macOS itself (scripts/render-svg.swift), so no image libraries are needed.
 // Run with: npm run icons (macOS only)
 
@@ -16,6 +17,7 @@ const assets = path.join(root, 'assets');
 const icon = path.join(assets, 'brand', 'stashd-icon.svg');
 const tray = path.join(assets, 'brand', 'stashd-tray-awake.svg');
 const blink = path.join(assets, 'brand', 'stashd-tray.svg');
+const happy = path.join(assets, 'brand', 'stashd-tray-happy.svg');
 
 const tmp = mkdtempSync(path.join(tmpdir(), 'stashd-icons-'));
 const renderer = path.join(tmp, 'render-svg');
@@ -27,6 +29,8 @@ render(tray, 18, path.join(assets, 'tray', 'trayTemplate.png'));
 render(tray, 36, path.join(assets, 'tray', 'trayTemplate@2x.png'));
 render(blink, 18, path.join(assets, 'tray', 'trayBlinkTemplate.png'));
 render(blink, 36, path.join(assets, 'tray', 'trayBlinkTemplate@2x.png'));
+render(happy, 18, path.join(assets, 'tray', 'trayHappyTemplate.png'));
+render(happy, 36, path.join(assets, 'tray', 'trayHappyTemplate@2x.png'));
 render(icon, 1024, path.join(assets, 'icon.png'));
 
 const iconset = path.join(tmp, 'icon.iconset');

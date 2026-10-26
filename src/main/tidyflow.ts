@@ -48,7 +48,7 @@ export class TidyFlow {
       try {
         await this.tidy(jobId, entryId);
       } catch {
-        this.toast({ title: "Couldn't pack up", detail: 'Your folder is saved. Its windows stay open.', canUndo: false });
+        this.toast({ title: "Couldn't pack up", detail: 'Your folder is saved. Its windows stay open.', canUndo: false, mood: 'curious' });
       }
     });
     return this.queue;
@@ -92,7 +92,7 @@ export class TidyFlow {
     // Only things that are actually open get closed (kept items that were already closed are skipped).
     const closable = entry.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen);
     if (!closable.length) {
-      this.toast({ title: 'Nothing to close', detail: `${job.name} is saved. Its windows stay open.`, canUndo: false });
+      this.toast({ title: 'Nothing to close', detail: `${job.name} is saved. Its windows stay open.`, canUndo: false, mood: 'awake' });
       return;
     }
     const animation = this.play(closable, false);
@@ -105,6 +105,7 @@ export class TidyFlow {
       title: `${shortName(job.name)} · ${closed.length} packed`,
       detail: left ? `${left} stayed open. Undo brings them all back.` : 'Tucked away. Undo brings them back.',
       canUndo: closed.length > 0,
+      mood: 'sleep',
     });
   }
 
@@ -227,7 +228,7 @@ export class TidyFlow {
     const animation = this.play(u.items, true);
     await openItems(u.items, u.frontKey, this.core.settings.get());
     await animation;
-    this.toast({ title: 'Unpacked', detail: `${u.items.length} ${u.items.length === 1 ? 'item' : 'items'} reopened.`, canUndo: false });
+    this.toast({ title: 'Back where you left off', detail: `${u.items.length} ${u.items.length === 1 ? 'item' : 'items'} reopened.`, canUndo: false, mood: 'wide' });
   }
 
   /** Development only: show the tidy screens with pretend data, without touching any real window. */
@@ -259,7 +260,7 @@ export class TidyFlow {
         ],
         false,
       ).then(() => {
-        this.toast({ title: 'Climate essay · 9 items packed', detail: 'Everything else is still open.', canUndo: true });
+        this.toast({ title: 'Climate essay · 9 items packed', detail: 'Everything else is still open.', canUndo: true, mood: 'sleep' });
         if (process.env.WWI_CAPTURE_DIR) {
           setTimeout(() => {
             void getWindow('toast')

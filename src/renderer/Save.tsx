@@ -1,7 +1,7 @@
 // The save box (⌃S). A new folder: name it and pick what goes in. An existing folder: one keypress.
 // Pack up saves and closes the windows; Save keeps them open.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { CollectorError, Item, SavePreview } from '../shared/types';
 import { api, errorText, useFitWindow, useSettings } from './api';
 import { Icon } from './icons';
@@ -149,6 +149,34 @@ function SaveBox() {
   const all = useMemo(() => (preview ? [...preview.sure, ...preview.likely, ...preview.maybe, ...preview.kept] : []), [preview]);
   const chosen = all.filter((i) => picked.has(i.key));
   const likelyLeft = preview?.likely.filter((i) => !picked.has(i.key)) ?? [];
+
+  // The folder looks at what it's talking about: the related things when there are some, and the
+  // Save button once you've paused after typing a note.
+  const likelyRef = useRef<HTMLDivElement>(null);
+  const readyRef = useRef<HTMLButtonElement>(null);
+  const [glance, setGlance] = useState<RefObject<HTMLElement | null> | null>(null);
+  const hasLikely = state === 'ready' && expanded && !!preview?.likely.length;
+  useEffect(() => {
+    if (!hasLikely) return;
+    const look = setTimeout(() => setGlance(likelyRef), 500);
+    const back = setTimeout(() => setGlance(null), 2100);
+    return () => {
+      clearTimeout(look);
+      clearTimeout(back);
+    };
+  }, [hasLikely]);
+  useEffect(() => {
+    if (!note.trim()) return;
+    let back: ReturnType<typeof setTimeout>;
+    const look = setTimeout(() => {
+      setGlance(readyRef);
+      back = setTimeout(() => setGlance(null), 1300);
+    }, 1200);
+    return () => {
+      clearTimeout(look);
+      clearTimeout(back);
+    };
+  }, [note]);
   const isNew = !preview?.jobId;
 
   const save = (tidy: boolean) => {
@@ -205,7 +233,7 @@ function SaveBox() {
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 500, damping: 18 }}
             >
-              <SavedMark saved={state === 'saved'} />
+              <SavedMark saved={state === 'saved'} packing={packing} />
             </motion.span>
             <span>
               <span className="save-status-title">
@@ -221,7 +249,7 @@ function SaveBox() {
         {state === 'ready' && (
           <motion.div key="ready" className="save-body" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={ease}>
             <div className="save-head">
-              <FolderMark size={34} awake />
+              <FolderMark size={34} alive mood={aiNaming ? 'curious' : 'awake'} lookAt={glance} />
               <div className="grow">
                 <div className="eyebrow">
                   {isNew ? 'New folder' : 'Adding to'}
@@ -263,7 +291,13 @@ function SaveBox() {
               )}
             </div>
 
-            {isNew && <p className="save-intro">I'll make a new folder for this. Tap anything to leave it out.</p>}
+            {likelyLeft.length > 0 ? (
+              <p className="save-intro">
+                {likelyLeft.length === 1 ? '1 more thing looks related.' : `${likelyLeft.length} more things look related.`} Want {likelyLeft.length === 1 ? 'it' : 'them'} in?
+              </p>
+            ) : (
+              isNew && <p className="save-intro">I'll make a new folder for this. Tap anything to leave it out.</p>
+            )}
 
             <input
               ref={noteRef}
@@ -282,7 +316,7 @@ function SaveBox() {
                     <Pills items={[...preview.sure, ...preview.kept]} picked={picked} preview={preview} onToggle={toggle} />
                   </Group>
                   {preview.likely.length > 0 && (
-                    <div className="likely-box">
+                    <div className="likely-box" ref={likelyRef}>
                       <div className="section-label likely-label">
                         <span>Might belong here</span>
                         {likelyLeft.length > 0 && (
@@ -320,10 +354,10 @@ function SaveBox() {
                 </motion.span>
               </button>
               <span className="grow" />
-              <Button variant={packFirst ? 'secondary' : 'primary'} type={packFirst ? 'button' : 'submit'} disabled={!chosen.length} onClick={packFirst ? () => save(false) : undefined} title="Save and keep everything open">
+              <Button ref={packFirst ? undefined : readyRef} variant={packFirst ? 'secondary' : 'primary'} type={packFirst ? 'button' : 'submit'} disabled={!chosen.length} onClick={packFirst ? () => save(false) : undefined} title="Save and keep everything open">
                 Save {!packFirst && <span className="enter">↵</span>}
               </Button>
-              <Button variant={packFirst ? 'primary' : 'secondary'} type={packFirst ? 'submit' : 'button'} disabled={!chosen.length} onClick={packFirst ? undefined : () => save(true)} title="Save and close these windows">
+              <Button ref={packFirst ? readyRef : undefined} variant={packFirst ? 'primary' : 'secondary'} type={packFirst ? 'submit' : 'button'} disabled={!chosen.length} onClick={packFirst ? undefined : () => save(true)} title="Save and close these windows">
                 <Icon name="stack" /> Pack up {packFirst && <span className="enter">↵</span>}
               </Button>
             </div>
@@ -343,8 +377,8 @@ function Group({ label, muted, children }: { label: string; muted?: boolean; chi
   );
 }
 
-/** The folder stays awake while saving. Once saved, and once you can see it, it closes its eyes and a tick draws itself. */
-function SavedMark({ saved }: { saved: boolean }) {
+/** The folder stays awake while saving. Once saved, and once you can see it, it squints happily (or falls asleep when packing) and a tick draws itself. */
+function SavedMark({ saved, packing }: { saved: boolean; packing: boolean }) {
   const [stashed, setStashed] = useState(false);
   useEffect(() => {
     if (!saved) return;
@@ -353,7 +387,8 @@ function SavedMark({ saved }: { saved: boolean }) {
   }, [saved]);
   return (
     <>
-      <FolderMark size={30} awake={!stashed} />
+      {/* Saved and kept open: a happy squint. Packed away: it falls asleep. */}
+      <FolderMark size={30} mood={stashed ? (packing ? 'sleep' : 'happy') : 'awake'} />
       {stashed && (
         <motion.span className="save-check" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.22, delay: 0.15, ease: [0.23, 1, 0.32, 1] }}>
           <svg viewBox="0 0 24 24" aria-hidden="true">

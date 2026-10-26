@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="4 10 88 80" width="88" height="80">
+  <!-- Menu bar template, happy squint (black on transparent; macOS recolours it). Shown for a moment after a save. -->
+  <g fill="none" stroke="#000000" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 32 Q12 22 22 22 H36 Q41 22 44 26 L47 30 H74 Q84 30 84 40 V72 Q84 82 74 82 H22 Q12 82 12 72 Z"/>
+    <path d="M29 61 Q36 53 43 61"/>
+    <path d="M53 61 Q60 53 67 61"/>
+  </g>
+</svg>

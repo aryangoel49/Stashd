@@ -122,7 +122,7 @@ function JobList(props: {
     <>
       <div className="panel-head">
         <button className="brand brand-btn" onClick={() => void api.openWindow('main')} title="Open Stashd">
-          <FolderMark size={24} awake />
+          <FolderMark size={24} awake alive />
           <span className="display" style={{ fontSize: 15 }}>Stashd</span>
         </button>
         <span className="head-tools">
