@@ -3,11 +3,12 @@
 // the sidebar to move it. The layout reflows to any window size, full screen included.
 
 import { useCallback, useEffect, useState } from 'react';
-import type { BriefView, Item, JobSummary, OpenState } from '../shared/types';
+import type { BriefView, Item, JobSummary, OpenState, Suggestion } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
 import { SettingsView } from './SettingsView';
+import { FolderMergeHint, SuggestionStrip, useSuggestions } from './Suggestions';
 import { AnimatePresence, Button, FolderMark, motion, Motion } from './ui';
 import { BadgeStrip, describe, folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
 
@@ -204,6 +205,8 @@ function Home({ jobs, onOpen, shortcut }: { jobs: JobSummary[]; onOpen: (id: str
             </label>
           </div>
 
+          {!q && <SuggestionStrip />}
+
           {current.length > 0 && (
             <Section title="Open now">
               {current.map((j, i) => (
@@ -383,6 +386,7 @@ function JobDetail({ jobId, jobs }: { jobId: string; jobs: JobSummary[] }) {
   const [view, setView] = useState<BriefView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const tone = folderTone(jobId);
+  const [suggestions] = useSuggestions();
 
   useEffect(() => {
     let cancelled = false;
@@ -421,6 +425,7 @@ function JobDetail({ jobId, jobs }: { jobId: string; jobs: JobSummary[] }) {
           <EditableTitle jobId={jobId} name={view.job.name} />
         </div>
       </header>
+      <FolderMergeHint jobId={jobId} list={suggestions} />
 
       <div className="detail-cols">
         <div className="glass-card brief-col">
@@ -440,7 +445,15 @@ function JobDetail({ jobId, jobs }: { jobId: string; jobs: JobSummary[] }) {
                   </div>
                   <div className="item-grid">
                     {list.map((it, i) => (
-                      <ItemCard key={it.key} item={it} index={i} jobId={jobId} front={it.key === view.entry.frontKey} editable={latest} />
+                      <ItemCard
+                        key={it.key}
+                        item={it}
+                        index={i}
+                        jobId={jobId}
+                        front={it.key === view.entry.frontKey}
+                        editable={latest}
+                        moveTo={suggestions.find((s): s is Extract<Suggestion, { kind: 'move' }> => s.kind === 'move' && s.from === jobId && s.itemKey === it.key)}
+                      />
                     ))}
                   </div>
                 </section>
@@ -506,7 +519,8 @@ function EditableTitle({ jobId, name }: { jobId: string; name: string }) {
 }
 
 /** One tab, file or app. Click to open just that; drag onto another folder to move it. */
-function ItemCard({ item, index, jobId, front, editable }: { item: Item; index: number; jobId: string; front: boolean; editable: boolean }) {
+function ItemCard(props: { item: Item; index: number; jobId: string; front: boolean; editable: boolean; moveTo?: Extract<Suggestion, { kind: 'move' }> }) {
+  const { item, index, jobId, front, editable, moveTo } = props;
   const [state, setState] = useState<'idle' | 'opening' | 'opened' | 'missing'>('idle');
   const open = () => {
     setState('opening');
@@ -531,9 +545,23 @@ function ItemCard({ item, index, jobId, front, editable }: { item: Item; index: 
       <ItemBadge item={item} size={32} />
       <span className="grow">
         <span className="item-title">{titleOf(item)}</span>
-        <span className="item-sub">
-          {state === 'opening' ? 'Opening…' : state === 'opened' ? 'Opened' : state === 'missing' ? "Couldn't find it" : describe(item)}
-        </span>
+        {moveTo ? (
+          <button
+            className="belongs-chip"
+            style={toneStyle(folderTone(moveTo.to))}
+            title={`${moveTo.why.join(' · ')}\nClick to move it there`}
+            onClick={(e) => {
+              e.stopPropagation();
+              void api.acceptSuggestion(moveTo.id);
+            }}
+          >
+            Belongs in {moveTo.toName}? Move
+          </button>
+        ) : (
+          <span className="item-sub">
+            {state === 'opening' ? 'Opening…' : state === 'opened' ? 'Opened' : state === 'missing' ? "Couldn't find it" : describe(item)}
+          </span>
+        )}
       </span>
       {front && <span className="pill-dot" title="You were on this last" />}
       {editable && (

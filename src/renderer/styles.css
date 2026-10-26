@@ -534,3 +534,32 @@ details summary { cursor: default; }
 /* A folder whose tabs and files are all open already: no Unpack, just a quiet tick. */
 .open-tag { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px; border-radius: 99px; font-size: 12px; font-weight: 600; color: var(--tone-ink); background: var(--tone-soft); box-shadow: inset 0 0 0 0.5px var(--tone-line); flex: none; }
 .open-tag svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- Suggestions (merge folders, move strays) ---------- */
+.suggestions { display: grid; gap: 4px; }
+.suggest-title { display: inline-flex; align-items: center; gap: 6px; }
+.suggest-title svg, .merge-hint > svg, .suggest-undo svg { width: 14px; height: 14px; stroke: var(--accent-ink); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.suggest-list { display: grid; gap: 8px; }
+.suggest-card {
+  display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 16px;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--tone) 16%, #fff), rgba(255, 255, 255, 0.78) 60%);
+  box-shadow: inset 0 0.5px 0 #fff, inset 0 0 0 0.5px var(--tone-line), 0 6px 18px color-mix(in srgb, var(--tone) 14%, transparent);
+}
+.suggest-art { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.suggest-arrow { color: var(--faint); font-size: 14px; }
+.suggest-head { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest-why { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest-actions { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+.suggest-never { border: none; background: none; padding: 4px 6px; font-size: 12px; color: var(--faint); border-radius: 6px; }
+.suggest-never:hover { color: var(--text); background: var(--well); }
+.suggest-undo { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: var(--accent-soft); box-shadow: inset 0 0 0 0.5px var(--accent-line); font-weight: 500; }
+.suggest-undo button { margin-left: auto; }
+.merge-hint { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px; background: var(--tone-soft); box-shadow: inset 0 0 0 0.5px var(--tone-line); font-size: 13px; }
+.belongs-chip { flex: none; border: none; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px; color: var(--tone-ink); background: var(--tone-soft); box-shadow: inset 0 0 0 0.5px var(--tone-line); white-space: nowrap; }
+.belongs-chip:hover { background: color-mix(in srgb, var(--tone) 34%, transparent); }
+@media (prefers-color-scheme: dark) {
+  .suggest-card { background: linear-gradient(100deg, color-mix(in srgb, var(--tone) 16%, transparent), rgba(255, 255, 255, 0.04) 60%); box-shadow: inset 0 0 0 0.5px var(--tone-line); }
+}
+.page { grid-template-columns: minmax(0, 1fr); }
+.suggestions, .suggest-list, .suggest-card { min-width: 0; }
+.belongs-chip { margin-top: 3px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }

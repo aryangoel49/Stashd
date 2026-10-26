@@ -2,7 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppInfo, BriefView, Job, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState } from './shared/types';
+import type { AppInfo, BriefView, Job, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -26,6 +26,10 @@ const api = {
 
   listJobs: () => invoke<JobSummary[]>('jobs:list'),
   openState: () => invoke<Record<string, OpenState>>('jobs:openState'),
+  suggestions: () => invoke<Suggestion[]>('suggest:list'),
+  acceptSuggestion: (id: string) => invoke<void>('suggest:accept', id),
+  dismissSuggestion: (id: string, forever: boolean) => invoke<void>('suggest:dismiss', id, forever),
+  undoSuggestion: () => invoke<void>('suggest:undo'),
   getBrief: (jobId: string, entryId?: string) => invoke<BriefView>('jobs:brief', jobId, entryId ?? null),
   rewriteBrief: (jobId: string, entryId: string) => invoke<BriefView>('jobs:rewriteBrief', jobId, entryId),
   sendFeedback: (jobId: string, entryId: string, helpful: boolean, comment?: string) => invoke<void>('jobs:feedback', jobId, entryId, helpful, comment ?? null),

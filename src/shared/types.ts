@@ -144,6 +144,11 @@ export interface JobSummary {
   counts: { tabs: number; files: number; apps: number };
 }
 
+/** A proposal to tidy folders: two folders that are one piece of work, or something in the wrong folder. */
+export type Suggestion =
+  | { kind: 'merge'; id: string; from: string; fromName: string; into: string; intoName: string; score: number; why: string[] }
+  | { kind: 'move'; id: string; itemKey: string; itemLabel: string; item: Item; from: string; fromName: string; to: string; toName: string; score: number; why: string[] };
+
 /** How much of a folder is open right now (tabs and files; apps don't count). */
 export interface OpenState {
   open: number;

@@ -99,6 +99,10 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
 
   handle('jobs:list', () => core.listJobs());
   handle('jobs:openState', () => core.openState());
+  handle('suggest:list', () => core.suggestions());
+  handle('suggest:accept', (_e, id) => core.acceptSuggestion(v.str(id, 'suggestion', 4300)));
+  handle('suggest:dismiss', (_e, id, forever) => core.dismissSuggestion(v.str(id, 'suggestion', 4300), v.bool(forever, 'forever')));
+  handle('suggest:undo', () => core.undoSuggestion());
   handle('jobs:brief', (_e, id, entry) => core.briefView(v.jobId(id), entry == null ? undefined : v.entryId(entry)));
   handle('jobs:rewriteBrief', (_e, id, entry) => core.rewriteBrief(v.jobId(id), v.entryId(entry)));
   handle('jobs:feedback', (_e, id, entry, helpful, comment) =>

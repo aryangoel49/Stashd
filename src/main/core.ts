@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import type { BriefView, Capture, Item, Job, JobSummary, OpenResult, OpenState, SaveEntry, SavePreview, SaveRequest, SaveResult } from '../shared/types';
+import type { BriefView, Capture, Item, Job, JobSummary, OpenResult, OpenState, Suggestion, SaveEntry, SavePreview, SaveRequest, SaveResult } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, frontItemKey } from './capture';
@@ -18,6 +18,7 @@ import {
   type Classified,
 } from './jobs/match';
 import { FIT_SUGGEST, jobFit, jobProfile, meaningText, profileTexts, type MeaningLookup } from './jobs/relevance';
+import { suggest, type FolderData } from './jobs/suggest';
 import type { Meaning } from './meaning';
 import { openItems } from './open';
 import type { SettingsStore } from './settings';
@@ -28,6 +29,8 @@ interface State {
   appUnticks: Record<string, string[]>;
   /** What was open just after a job was unpacked, so later additions can be suggested. */
   baseline: { jobId: string; keys: string[] } | null;
+  /** Suggestions the person said no to: id → until when (ISO date), or 'never' to never ask again. */
+  dismissed: Record<string, string>;
 }
 
 interface PendingSave {
@@ -46,6 +49,9 @@ export class Core {
   private writing = new Set<string>();
   writers: BriefWriter[] = [];
   private openCache: { at: number; result: Promise<Record<string, OpenState>> } | null = null;
+  private suggestCache: { at: number; result: Promise<Suggestion[]> } | null = null;
+  /** The last accepted suggestion, so it can be undone for a few seconds. */
+  private lastUndo: (() => Promise<void>) | null = null;
   /** The on-device meaning model (optional: sorting works without it). */
   meaning?: Meaning;
 
@@ -72,6 +78,7 @@ export class Core {
         raw.baseline && typeof raw.baseline.jobId === 'string' && Array.isArray(raw.baseline.keys)
           ? { jobId: raw.baseline.jobId, keys: raw.baseline.keys.filter((k): k is string => typeof k === 'string') }
           : null,
+      dismissed: raw.dismissed && typeof raw.dismissed === 'object' ? raw.dismissed : {},
     };
   }
 
@@ -81,6 +88,7 @@ export class Core {
 
   notify(): void {
     this.openCache = null;
+    this.suggestCache = null;
     for (const l of this.listeners) l();
   }
 
@@ -310,6 +318,71 @@ export class Core {
     this.openCache = { at: Date.now(), result };
     result.catch(() => (this.openCache = null));
     return result;
+  }
+
+  // ---------- suggestions (merge folders, move strays) ----------
+
+  /** Up to 3 suggestions for tidying folders. Uses the meaning model when it's ready; kept for a few seconds. */
+  suggestions(): Promise<Suggestion[]> {
+    if (this.suggestCache && Date.now() - this.suggestCache.at < 10_000) return this.suggestCache.result;
+    const result = (async () => {
+      const folders: FolderData[] = [];
+      for (const j of await this.store.list()) {
+        if (j.done) continue;
+        const latest = await this.store.latest(j.id);
+        if (latest) folders.push({ id: j.id, name: j.name, note: latest.note, items: latest.items });
+      }
+      const texts = [...new Set(folders.flatMap((f) => [f.name, f.note, ...f.items.map(meaningText)]).filter((t): t is string => !!t && t.trim().length > 1))];
+      const vectors = await this.meaning?.vectors(texts, 4000).catch(() => null);
+      const now = new Date().toISOString();
+      const dismissed = new Set(Object.entries(this.state.dismissed).filter(([, until]) => until === 'never' || until > now).map(([id]) => id));
+      return suggest(folders, { meaning: vectors?.size ? (t) => vectors.get(t) : undefined, dismissed });
+    })();
+    this.suggestCache = { at: Date.now(), result };
+    result.catch(() => (this.suggestCache = null));
+    return result;
+  }
+
+  /** Do what a suggestion says. Undo is available for a few seconds after. */
+  async acceptSuggestion(id: string): Promise<void> {
+    const s = (await this.suggestions()).find((x) => x.id === id);
+    if (!s) throw new Error('That suggestion is out of date.');
+    if (s.kind === 'move') {
+      await this.moveItem(s.from, s.itemKey, s.to);
+      this.lastUndo = () => this.moveItem(s.to, s.itemKey, s.from);
+    } else {
+      const into = await this.store.latest(s.into);
+      const from = await this.store.latest(s.from);
+      if (!into || !from) throw new Error('One of those folders has no saves yet.');
+      const before = { items: into.items, brief: into.brief };
+      const have = new Set(into.items.map((i) => i.key));
+      into.items = [...into.items, ...from.items.filter((i) => !have.has(i.key))];
+      delete into.brief; // written again for the merged folder
+      await this.store.saveEntry(into);
+      await this.setDone(s.from, true); // the merged-in folder moves to Finished, history intact
+      this.lastUndo = async () => {
+        const now = await this.store.entry(s.into, into.id);
+        now.items = before.items;
+        if (before.brief) now.brief = before.brief;
+        await this.store.saveEntry(now);
+        await this.setDone(s.from, false);
+      };
+    }
+    this.notify();
+  }
+
+  async undoSuggestion(): Promise<void> {
+    const undo = this.lastUndo;
+    this.lastUndo = null;
+    if (undo) await undo();
+    this.notify();
+  }
+
+  /** "Not now" hides a suggestion for a week; "Never" for good. */
+  async dismissSuggestion(id: string, forever: boolean): Promise<void> {
+    this.state.dismissed[id] = forever ? 'never' : new Date(Date.now() + 7 * 24 * 3600_000).toISOString();
+    await this.saveState();
+    this.notify();
   }
 
   /** The brief for a save, writing it first if it doesn't exist yet. */
