@@ -245,7 +245,7 @@ button { cursor: default; }
 .toast-title { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toast-detail { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-.toast { transition: opacity var(--dur-leave) ease-in, transform var(--dur-leave) ease-in; }
+.toast { transition: opacity var(--dur-leave) var(--ease-out), transform var(--dur-leave) var(--ease-out); }
 .toast.leaving { opacity: 0; transform: translateY(-4px) scale(0.98); }
 @keyframes fadeOnly { from { opacity: 0; } to { opacity: 1; } }
 /* Reduce Motion: things still fade in and out, they just don't move. */
