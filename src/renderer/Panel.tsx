@@ -117,13 +117,18 @@ function JobList(props: {
   return (
     <>
       <div className="panel-head">
-        <span className="brand">
+        <button className="brand brand-btn" onClick={() => void api.openWindow('main')} title="Open Stashd">
           <FolderMark size={24} awake />
           <span className="display" style={{ fontSize: 15 }}>Stashd</span>
+        </button>
+        <span className="head-tools">
+          <Button variant="ghost" size="small" className="icon-btn" onClick={() => void api.openWindow('main')} title="Open Stashd" aria-label="Open Stashd">
+            <Icon name="open" />
+          </Button>
+          <Button variant="ghost" size="small" className="icon-btn" onClick={() => void api.openWindow('settings')} title="Settings" aria-label="Settings">
+            <Icon name="gear" />
+          </Button>
         </span>
-        <Button variant="ghost" size="small" className="icon-btn" onClick={() => void api.openWindow('settings')} title="Settings" aria-label="Settings">
-          <Icon name="gear" />
-        </Button>
       </div>
 
       {current ? (
@@ -184,12 +189,6 @@ function JobList(props: {
         </>
       )}
 
-      <div className="hr" />
-      <div className="panel-foot">
-        <Button variant="ghost" size="small" onClick={() => void api.openWindow('main')}>Open Stashd</Button>
-        <span style={{ flex: 1 }} />
-        <Button variant="ghost" className="tiny" onClick={() => void api.quit()}>Quit</Button>
-      </div>
     </>
   );
 }

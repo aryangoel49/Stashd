@@ -31,6 +31,17 @@ const paths: Record<string, ReactElement> = {
     </>
   ),
   check: <path d="M5 12l5 5L19 7" />,
+  open: <path d="M14 4h6v6M20 4l-8 8M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />,
+  search: (
+    <>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="M16 16l4 4" />
+    </>
+  ),
+  home: <path d="M4 10.5L12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" />,
+  spark: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />,
+  power: <path d="M12 3v8M7.1 6.6a7 7 0 1 0 9.8 0" />,
+  chevron: <path d="M9 6l6 6-6 6" />,
   plus: <path d="M12 5v14M5 12h14" />,
   pencil: (
     <>

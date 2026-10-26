@@ -468,3 +468,56 @@ details summary { cursor: default; }
 .page .brief .actions > :first-child { background: var(--tone); }
 .page .brief .sentence em { background: linear-gradient(transparent 58%, var(--tone-soft) 58%); }
 .page .pill-dot { background: var(--tone); }
+
+/* ---------- v5: panel header, sidebar nav, home toolbar, folder menu, settings tabs ---------- */
+.brand-btn { border: none; background: none; padding: 2px 4px; margin: -2px -4px; border-radius: 10px; color: inherit; }
+.brand-btn:hover { background: var(--well); }
+.head-tools { display: inline-flex; gap: 2px; }
+.icon-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+.side-nav { display: grid; gap: 2px; margin-bottom: 10px; }
+.side-row.nav svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: 0.75; }
+.side-row.nav .t { font-weight: 600; }
+.side-count { font-size: 11px; color: var(--faint); }
+.side-row.soon { opacity: 0.55; }
+.side-row.soon:hover { background: none; }
+.soon-tag { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; padding: 1px 6px; border-radius: 99px; background: var(--accent-soft); color: var(--accent-ink); }
+.side-toggle { display: flex; align-items: center; gap: 4px; width: 100%; border: none; background: none; text-align: left; margin-top: 12px; cursor: default; }
+.side-toggle svg, .section-toggle svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.page-head .btn, .page-head button { flex: none; }
+.toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.search { flex: 1; min-width: 220px; max-width: 460px; display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 34px; border-radius: 11px; background: rgba(255, 255, 255, 0.75); box-shadow: inset 0 0 0 0.5px var(--hair); transition: box-shadow 0.2s var(--ease); }
+.search:focus-within { box-shadow: inset 0 0 0 1.5px var(--accent-line), 0 0 0 3px var(--accent-soft); }
+.search svg { width: 15px; height: 15px; stroke: var(--muted); fill: none; stroke-width: 1.8; stroke-linecap: round; flex: none; }
+.search input { flex: 1; min-width: 0; border: none; outline: none; background: none; user-select: text; }
+.search input::placeholder { color: var(--faint); }
+.search .x { border: none; background: none; color: var(--faint); font-size: 10px; padding: 3px 5px; border-radius: 6px; }
+.search .x:hover { color: var(--text); background: var(--well-hover); }
+.section-toggle { display: inline-flex; align-items: center; gap: 6px; border: none; background: none; padding: 0; font-size: 13px; font-weight: 600; color: var(--text); }
+@media (prefers-color-scheme: dark) { .search { background: rgba(255, 255, 255, 0.06); } }
+
+.card-tools { display: inline-flex; align-items: center; gap: 6px; }
+.card-more { width: 26px; height: 26px; display: grid; place-items: center; border: none; border-radius: 8px; background: transparent; color: var(--muted); opacity: 0; transition: opacity 0.15s, background 0.15s; }
+.folder-card:hover .card-more, .card-more:focus-visible { opacity: 1; }
+.card-more:hover { background: rgba(255, 255, 255, 0.8); color: var(--text); }
+.card-more svg, .card-menu svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.folder-card-top { position: relative; }
+.card-menu {
+  position: absolute; right: 0; top: 32px; z-index: 5; min-width: 168px; padding: 5px; border-radius: 12px; display: grid; gap: 1px;
+  background: rgba(255, 255, 255, 0.96); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(60, 50, 20, 0.16);
+}
+.card-menu button { display: flex; align-items: center; gap: 8px; border: none; background: none; padding: 7px 9px; border-radius: 8px; text-align: left; font-size: 13px; color: var(--text); }
+.card-menu button:hover { background: var(--tone-soft); }
+.card-menu button.danger { color: var(--danger); }
+.card-menu button.danger:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.folder-card .rename-field { font-weight: 600; font-size: 15px; padding: 5px 8px; }
+@media (prefers-color-scheme: dark) { .card-menu { background: rgba(40, 38, 34, 0.96); } .card-more:hover { background: rgba(255, 255, 255, 0.1); } }
+
+.settings-tabs { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: rgba(28, 29, 34, 0.06); box-shadow: inset 0 0 0 0.5px var(--hair); justify-self: start; }
+.settings-tabs button { position: relative; border: none; background: none; padding: 7px 14px; font-size: 13px; font-weight: 500; color: var(--muted); border-radius: 9px; }
+.settings-tabs button.on { color: var(--text); }
+.tab-thumb { position: absolute; inset: 0; border-radius: 9px; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px var(--hair); }
+.settings-body { display: grid; gap: 18px; }
+@media (prefers-color-scheme: dark) { .settings-tabs { background: rgba(255, 255, 255, 0.06); } .tab-thumb { background: rgba(255, 255, 255, 0.16); } }

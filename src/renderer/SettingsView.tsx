@@ -4,15 +4,25 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { AppInfo, Settings } from '../shared/types';
 import { CLAUDE_MODELS, modelInfo } from '../shared/models';
 import { Switch } from './components/ui/switch';
-import { Button, motion, spring } from './ui';
+import { Icon } from './icons';
+import { AnimatePresence, Button, motion, spring } from './ui';
 import { api, errorText, prettyShortcut, useSettings } from './api';
 
+
+type Section = 'general' | 'briefs' | 'privacy' | 'data';
+const SECTIONS: [Section, string][] = [
+  ['general', 'General'],
+  ['briefs', 'Briefs & AI'],
+  ['privacy', 'Privacy'],
+  ['data', 'Data'],
+];
 
 export function SettingsView() {
   const s = useSettings();
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [tab, setTab] = useState<Section>('general');
 
   const refreshInfo = () => void api.appInfo().then(setInfo);
   useEffect(refreshInfo, []);
@@ -43,31 +53,19 @@ export function SettingsView() {
       </div>
       {error && <div className="banner">{error}</div>}
 
-      <div className="srow card glass-card" style={{ padding: '10px 14px' }}>
-        <span>
-          Briefs are written by <b>{writerNow(info, s.aiModel)}</b>
-          <span className="faint small" style={{ display: 'block' }}>
-            {!info.hasApiKey && info.appleAi !== 'available' && 'Connect Claude below, or turn on Apple Intelligence, for smarter briefs. '}
-            Sorting what belongs in which folder always happens on your Mac, using a small built-in model. Free, offline and private.
-          </span>
-        </span>
+      <div className="settings-tabs" role="tablist" aria-label="Settings sections">
+        {SECTIONS.map(([id, label]) => (
+          <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
+            {tab === id && <motion.span layoutId="settings-tab" className="tab-thumb" transition={spring} />}
+            <span className="seg-label">{label}</span>
+          </button>
+        ))}
       </div>
 
-      <ClaudeCard connected={info.hasApiKey} model={s.aiModel} onChange={refreshInfo} onModel={(m) => void update({ aiModel: m })} />
-
-      <Card title="Apple Intelligence" hint="Used for briefs when Claude isn't connected. It runs on your Mac, for free, and works offline.">
-        <div className="srow">
-          <span>{info.appleAi === 'available' ? 'Ready on this Mac' : info.appleAi === 'unknown' ? 'Checking…' : 'Not available right now'}</span>
-          {info.appleAi !== 'available' && (
-            <Button size="small" onClick={() => void api.openAppleAiSettings()}>
-              Open Apple Intelligence settings
-            </Button>
-          )}
-        </div>
-        {info.appleAi !== 'available' && <p className="faint small" style={{ margin: '4px 0 0' }}>Turn on Apple Intelligence in System Settings. It may need a few minutes to download.</p>}
-      </Card>
-
-
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={tab} className="settings-body" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}>
+          {tab === 'general' && (
+            <>
       <Card title="Look and sound">
         <div className="srow">
           <span>Appearance</span>
@@ -88,7 +86,6 @@ export function SettingsView() {
         </div>
         <Toggle label="Sounds" hint="A soft whoosh when your windows fly into the menu bar." on={s.sounds} onChange={(v) => void update({ sounds: v })} />
       </Card>
-
       <Card title="Keyboard shortcuts" hint="These work from any app. Use names like Control, Alt (Option), Shift and Command, joined with +.">
         <TextRow label={`Save what I'm working on (${prettyShortcut(s.shortcutSave)})`} value={s.shortcutSave} onSave={(v) => void update({ shortcutSave: v })} />
         <TextRow label={`Show my brief (${prettyShortcut(s.shortcutRecap)})`} value={s.shortcutRecap} onSave={(v) => void update({ shortcutRecap: v })} />
@@ -98,12 +95,47 @@ export function SettingsView() {
           </div>
         ))}
       </Card>
-
-      <Card title="Everyday apps and sites" hint="These never go in a folder and are never closed by Pack up. The app also learns these as you go. One per line.">
-        <ListRow label="Apps" value={s.lifestyleApps} onSave={(v) => void update({ lifestyleApps: v })} />
-        <ListRow label="Sites" value={s.lifestyleSites} onSave={(v) => void update({ lifestyleSites: v })} />
+      <Card title="Startup">
+        <Toggle label="Open Stashd when I log in" hint="Works in the installed app." on={s.launchAtLogin} onChange={(v) => void update({ launchAtLogin: v })} />
+        <div className="srow">
+          <span>
+            Quit Stashd
+            <span className="faint small" style={{ display: 'block' }}>Your shortcuts stop working until you open it again.</span>
+          </span>
+          <Button size="small" onClick={() => void api.quit()}>
+            <Icon name="power" /> Quit
+          </Button>
+        </div>
       </Card>
-
+            </>
+          )}
+          {tab === 'briefs' && (
+            <>
+      <div className="srow card glass-card" style={{ padding: '10px 14px' }}>
+        <span>
+          Briefs are written by <b>{writerNow(info, s.aiModel)}</b>
+          <span className="faint small" style={{ display: 'block' }}>
+            {!info.hasApiKey && info.appleAi !== 'available' && 'Connect Claude below, or turn on Apple Intelligence, for smarter briefs. '}
+            Sorting what belongs in which folder always happens on your Mac, using a small built-in model. Free, offline and private.
+          </span>
+        </span>
+      </div>
+      <ClaudeCard connected={info.hasApiKey} model={s.aiModel} onChange={refreshInfo} onModel={(m) => void update({ aiModel: m })} />
+      <Card title="Apple Intelligence" hint="Used for briefs when Claude isn't connected. It runs on your Mac, for free, and works offline.">
+        <div className="srow">
+          <span>{info.appleAi === 'available' ? 'Ready on this Mac' : info.appleAi === 'unknown' ? 'Checking…' : 'Not available right now'}</span>
+          {info.appleAi !== 'available' && (
+            <Button size="small" onClick={() => void api.openAppleAiSettings()}>
+              Open Apple Intelligence settings
+            </Button>
+          )}
+        </div>
+        {info.appleAi !== 'available' && <p className="faint small" style={{ margin: '4px 0 0' }}>Turn on Apple Intelligence in System Settings. It may need a few minutes to download.</p>}
+      </Card>
+            </>
+          )}
+          {tab === 'privacy' && (
+            <>
       <Card title="Privacy" hint="Stashd only looks when you press the shortcut. It never reads page contents, document text, passwords, cookies or private windows.">
         <ListRow label="Never save tabs from" value={s.excludedDomains} onSave={(v) => void update({ excludedDomains: v })} />
         {(['chrome', 'arc', 'safari'] as const).map((b) => (
@@ -117,9 +149,15 @@ export function SettingsView() {
           </Button>
         </div>
       </Card>
-
-      <Card title="General">
-        <Toggle label="Open Stashd when I log in" hint="Works in the installed app." on={s.launchAtLogin} onChange={(v) => void update({ launchAtLogin: v })} />
+      <Card title="Everyday apps and sites" hint="These never go in a folder and are never closed by Pack up. The app also learns these as you go. One per line.">
+        <ListRow label="Apps" value={s.lifestyleApps} onSave={(v) => void update({ lifestyleApps: v })} />
+        <ListRow label="Sites" value={s.lifestyleSites} onSave={(v) => void update({ lifestyleSites: v })} />
+      </Card>
+            </>
+          )}
+          {tab === 'data' && (
+            <>
+      <Card title="Your data" hint="Everything Stashd saves stays on this Mac: your folders, their history and what it has learned.">
         <div className="srow">
           <span>Delete every saved folder</span>
           <Button variant="danger" size="small" onClick={() => void api.deleteAll()}>
@@ -127,6 +165,10 @@ export function SettingsView() {
           </Button>
         </div>
       </Card>
+            </>
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       <p className="faint small" style={{ textAlign: 'center' }}>Stashd {info.version}. Everything is stored on this Mac.</p>
     </div>

@@ -26,6 +26,7 @@ function MainView() {
   const [jobs, setJobs] = useState<JobSummary[]>([]);
   const [view, setView] = useState<View>('home');
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [showFinished, setShowFinished] = useState(false);
 
   const load = useCallback(() => {
     void api.listJobs().then((list) => {
@@ -36,7 +37,14 @@ function MainView() {
 
   useEffect(() => {
     load();
-    const offs = [api.onJobsChanged(load), api.onMainShow((v) => (v === 'settings' ? setView('settings') : load()))];
+    const offs = [
+      api.onJobsChanged(load),
+      api.onMainShow((v) => {
+        // "Open Stashd" always lands on your folders; only the gear opens Settings.
+        setView(v === 'settings' ? 'settings' : 'home');
+        load();
+      }),
+    ];
     return () => offs.forEach((o) => o());
   }, [load]);
 
@@ -82,18 +90,35 @@ function MainView() {
           <FolderMark size={26} awake />
           <span className="display" style={{ fontSize: 16 }}>Stashd</span>
         </div>
-        <button className={`side-row ${view === 'home' ? 'on' : ''}`} onClick={() => setView('home')}>
-          <Icon name="stack" />
-          <span className="grow">
-            <span className="t">All folders</span>
-          </span>
-          <span className="faint tiny">{jobs.length}</span>
-        </button>
+        <nav className="side-nav">
+          <button className={`side-row nav ${view === 'home' ? 'on' : ''}`} onClick={() => setView('home')}>
+            <Icon name="home" />
+            <span className="grow">
+              <span className="t">Home</span>
+            </span>
+            <span className="side-count">{active.length}</span>
+          </button>
+          <button className="side-row nav soon" disabled title="Ask about your folders and pick up work by chatting. Coming in a future version.">
+            <Icon name="spark" />
+            <span className="grow">
+              <span className="t">Ask Stashd</span>
+            </span>
+            <span className="soon-tag">Soon</span>
+          </button>
+        </nav>
         <div className="side-title">Folders</div>
         <div className="side-list">
           {active.map(row)}
-          {done.length > 0 && <div className="side-title" style={{ marginTop: 14 }}>Finished</div>}
-          {done.map(row)}
+          {active.length === 0 && <div className="faint small" style={{ padding: '4px 10px' }}>No folders yet</div>}
+          {done.length > 0 && (
+            <button className="side-title side-toggle" onClick={() => setShowFinished(!showFinished)}>
+              <motion.span animate={{ rotate: showFinished ? 90 : 0 }} style={{ display: 'inline-flex' }}>
+                <Icon name="chevron" />
+              </motion.span>
+              Finished <span className="faint">{done.length}</span>
+            </button>
+          )}
+          {showFinished && done.map(row)}
         </div>
         <div className="side-foot">
           <button className={`side-row ${view === 'settings' ? 'on' : ''}`} onClick={() => setView('settings')}>
@@ -131,37 +156,110 @@ function MainView() {
 // ---------- all folders ----------
 
 function Home({ jobs, onOpen, shortcut }: { jobs: JobSummary[]; onOpen: (id: string) => void; shortcut: string }) {
-  if (!jobs.length) {
-    return (
-      <div className="empty" style={{ paddingTop: 90 }}>
-        <FolderMark size={64} />
-        <div className="display" style={{ marginTop: 14 }}>Nothing stashed yet</div>
-        <p>
-          Press <span className="kbd">{shortcut}</span> while you're working to make your first folder.
-        </p>
-      </div>
-    );
-  }
-  const active = jobs.filter((j) => !j.done);
-  const done = jobs.filter((j) => j.done);
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<'recent' | 'name'>('recent');
+  const [showFinished, setShowFinished] = useState(false);
+
+  const q = query.trim().toLowerCase();
+  const matches = (j: JobSummary) => !q || j.name.toLowerCase().includes(q) || j.hint.toLowerCase().includes(q) || j.preview.some((i) => i.label.toLowerCase().includes(q));
+  const order = (list: JobSummary[]) => [...list].sort((a, b) => (sort === 'name' ? a.name.localeCompare(b.name) : b.updatedAt.localeCompare(a.updatedAt)));
+  const current = jobs.filter((j) => j.current && !j.done && matches(j));
+  const active = order(jobs.filter((j) => !j.current && !j.done && matches(j)));
+  const done = order(jobs.filter((j) => j.done && matches(j)));
+
   return (
     <div className="page">
       <header className="page-head">
         <div>
-          <div className="eyebrow">Stashd</div>
-          <h1 className="page-title">All folders</h1>
+          <div className="eyebrow">Home</div>
+          <h1 className="page-title">Your folders</h1>
         </div>
-        <span className="muted small">
-          {active.length} {active.length === 1 ? 'folder' : 'folders'}
-          {done.length ? ` · ${done.length} finished` : ''}
-        </span>
+        <Button variant="primary" onClick={() => void api.openWindow('save')} title="Save what's open into a folder">
+          <Icon name="plus" /> Stash what's open <span className="enter">{shortcut}</span>
+        </Button>
       </header>
-      <div className="folder-grid">
-        {[...active, ...done].map((j, i) => (
-          <FolderCard key={j.id} job={j} index={i} onOpen={() => onOpen(j.id)} />
-        ))}
-      </div>
+
+      {jobs.length === 0 ? (
+        <div className="empty" style={{ paddingTop: 60 }}>
+          <FolderMark size={64} />
+          <div className="display" style={{ marginTop: 14 }}>Nothing stashed yet</div>
+          <p>
+            Press <span className="kbd">{shortcut}</span> while you're working to make your first folder.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="toolbar">
+            <label className="search">
+              <Icon name="search" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search folders, tabs and files" aria-label="Search" spellCheck={false} />
+              {query && (
+                <button className="x" onClick={() => setQuery('')} aria-label="Clear search">
+                  ✕
+                </button>
+              )}
+            </label>
+            <span className="segmented" role="radiogroup" aria-label="Sort">
+              {(
+                [
+                  ['recent', 'Recent'],
+                  ['name', 'A–Z'],
+                ] as const
+              ).map(([id, label]) => (
+                <button key={id} role="radio" aria-checked={sort === id} className={sort === id ? 'on' : ''} onClick={() => setSort(id)}>
+                  {sort === id && <motion.span layoutId="sort" className="seg-thumb" />}
+                  <span className="seg-label">{label}</span>
+                </button>
+              ))}
+            </span>
+          </div>
+
+          {current.length > 0 && (
+            <Section title="Open now">
+              {current.map((j, i) => (
+                <FolderCard key={j.id} job={j} index={i} onOpen={() => onOpen(j.id)} />
+              ))}
+            </Section>
+          )}
+          <Section title="Folders" count={active.length}>
+            {active.map((j, i) => (
+              <FolderCard key={j.id} job={j} index={i} onOpen={() => onOpen(j.id)} />
+            ))}
+          </Section>
+          {active.length === 0 && current.length === 0 && <p className="muted small">{q ? `Nothing matches “${query}”.` : 'Every folder is finished.'}</p>}
+          {done.length > 0 && (
+            <section>
+              <button className="section-toggle" onClick={() => setShowFinished(!showFinished)}>
+                <motion.span animate={{ rotate: showFinished ? 90 : 0 }} style={{ display: 'inline-flex' }}>
+                  <Icon name="chevron" />
+                </motion.span>
+                Finished <span className="faint">{done.length}</span>
+              </button>
+              {showFinished && (
+                <div className="folder-grid" style={{ marginTop: 12 }}>
+                  {done.map((j, i) => (
+                    <FolderCard key={j.id} job={j} index={i} onOpen={() => onOpen(j.id)} />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </>
+      )}
     </div>
+  );
+}
+
+function Section({ title, count, children }: { title: string; count?: number; children: React.ReactNode }) {
+  return (
+    <section>
+      <div className="section-head">
+        <h3>
+          {title} {count !== undefined && <span className="faint">{count}</span>}
+        </h3>
+      </div>
+      <div className="folder-grid">{children}</div>
+    </section>
   );
 }
 
@@ -169,6 +267,15 @@ function FolderCard({ job, index, onOpen }: { job: JobSummary; index: number; on
   const tone = folderTone(job.id);
   const [hover, setHover] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(job.name);
+  const finishRename = (save: boolean) => {
+    setRenaming(false);
+    const next = name.trim();
+    if (save && next && next !== job.name) void api.renameJob(job.id, next);
+    else setName(job.name);
+  };
   const counts = [
     job.counts.tabs && `${job.counts.tabs} ${job.counts.tabs === 1 ? 'tab' : 'tabs'}`,
     job.counts.files && `${job.counts.files} ${job.counts.files === 1 ? 'file' : 'files'}`,
@@ -184,8 +291,11 @@ function FolderCard({ job, index, onOpen }: { job: JobSummary; index: number; on
       transition={{ delay: Math.min(index, 10) * 0.035 }}
       whileHover={{ y: -3 }}
       onHoverStart={() => setHover(true)}
-      onHoverEnd={() => setHover(false)}
-      onClick={onOpen}
+      onHoverEnd={() => {
+        setHover(false);
+        setMenu(false);
+      }}
+      onClick={() => !renaming && onOpen()}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && onOpen()}
@@ -194,9 +304,56 @@ function FolderCard({ job, index, onOpen }: { job: JobSummary; index: number; on
         <motion.span animate={{ rotate: hover ? -6 : 0, scale: hover ? 1.06 : 1 }}>
           <FolderMark size={44} awake={hover || job.current} tone={tone} />
         </motion.span>
-        {job.current && <span className="tag-live">Open now</span>}
+        <span className="card-tools">
+          {job.current && <span className="tag-live">Open now</span>}
+          <button
+            className="card-more"
+            aria-label={`More for ${job.name}`}
+            title="Rename, finish or delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenu(!menu);
+            }}
+          >
+            <Icon name="more" />
+          </button>
+        </span>
+        <AnimatePresence>
+          {menu && (
+            <motion.div className="card-menu" initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4 }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => { setMenu(false); setRenaming(true); }}>
+                <Icon name="pencil" /> Rename
+              </button>
+              <button onClick={() => { setMenu(false); void api.setDone(job.id, !job.done); }}>
+                <Icon name="check" /> {job.done ? 'Not finished' : 'Mark finished'}
+              </button>
+              <button className="danger" onClick={() => { setMenu(false); void api.deleteJob(job.id); }}>
+                <Icon name="trash" /> Delete…
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      <div className="folder-card-name">{job.name}</div>
+      {renaming ? (
+        <input
+          className="field rename-field"
+          autoFocus
+          value={name}
+          maxLength={60}
+          aria-label="Folder name"
+          onClick={(e) => e.stopPropagation()}
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => finishRename(true)}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === 'Enter') finishRename(true);
+            if (e.key === 'Escape') finishRename(false);
+          }}
+        />
+      ) : (
+        <div className="folder-card-name">{job.name}</div>
+      )}
       <div className="folder-card-meta">
         {timeAgo(job.updatedAt)}
         {counts.length > 0 && ` · ${counts.join(' · ')}`}
