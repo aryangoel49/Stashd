@@ -141,7 +141,10 @@ function start(): void {
       appleStatus: async () => (appleStatus = await helper.appleStatus()),
       afterSave: ({ jobId, entryId, tidy: tidyUp }) => {
         if (tidyUp) void tidy.run(jobId, entryId);
-        else tray.flash('Saved');
+        else {
+          tray.flash('Saved');
+          tray.wink();
+        }
       },
       payload: (route) => tidy.payload(route as Route),
       finishNaming: (names) => tidy.finishNaming(names),

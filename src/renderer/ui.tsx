@@ -38,7 +38,8 @@ export function Kbd({ children }: { children: ReactNode }) {
 }
 
 /** The app icon in miniature: a white folder on butter yellow. Eyes closed while things are stashed;
- *  awake, it blinks every few seconds. */
+ *  awake, it blinks every few seconds. Going to sleep, the eyes squish shut and the closed curves draw in;
+ *  waking, they pop open (as on design/brand.html). */
 export function FolderMark({ size = 28, awake = false, tone }: { size?: number; awake?: boolean; tone?: { tile: string; flap: string } }) {
   const blinking = useBlink(awake);
   return (
@@ -46,27 +47,38 @@ export function FolderMark({ size = 28, awake = false, tone }: { size?: number; 
       <rect width="96" height="96" rx="22" fill={tone?.tile ?? '#F2CD5C'} />
       <path d="M16 33 Q16 25 24 25 H37 Q41 25 43.5 28.5 L46.5 32 H72 Q80 32 80 40 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill={tone?.flap ?? '#FBEFC6'} />
       <path d="M16 45 Q16 39 22 39 H74 Q80 39 80 45 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FFFFFF" />
-      {awake ? (
-        <g fill="#1C1D22">
-          {[37, 59].map((cx) => (
-            <motion.ellipse
-              key={cx}
-              cx={cx}
-              cy="59"
-              rx="3.6"
-              ry="4.2"
-              style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
-              animate={{ scaleY: blinking ? 0.12 : 1 }}
-              transition={{ duration: 0.08 }}
-            />
-          ))}
-        </g>
-      ) : (
-        <g fill="none" stroke="#1C1D22" strokeWidth="3.4" strokeLinecap="round">
-          <path d="M32 58 Q37 63 42 58" />
-          <path d="M54 58 Q59 63 64 58" />
-        </g>
-      )}
+      <g fill="#1C1D22">
+        {[37, 59].map((cx) => (
+          <motion.ellipse
+            key={cx}
+            cx={cx}
+            cy="59"
+            rx="3.6"
+            ry="4.2"
+            style={{ transformBox: 'fill-box', transformOrigin: '50% 70%' }}
+            initial={false}
+            animate={{ scaleY: awake ? (blinking ? 0.12 : 1) : 0.06, opacity: awake ? 1 : 0 }}
+            transition={
+              blinking
+                ? { duration: 0.08 }
+                : awake
+                  ? { scaleY: { duration: 0.42, ease: [0.25, 1.6, 0.45, 1] }, opacity: { duration: 0.05 } }
+                  : { scaleY: { duration: 0.28, ease: [0.55, 0, 0.8, 0.3] }, opacity: { duration: 0.08, delay: 0.24 } }
+            }
+          />
+        ))}
+      </g>
+      <g fill="none" stroke="#1C1D22" strokeWidth="3.4" strokeLinecap="round">
+        {['M32 58 Q37 63 42 58', 'M54 58 Q59 63 64 58'].map((d) => (
+          <motion.path
+            key={d}
+            d={d}
+            initial={false}
+            animate={{ pathLength: awake ? 0 : 1, opacity: awake ? 0 : 1 }}
+            transition={awake ? { duration: 0.12 } : { pathLength: { duration: 0.2, delay: 0.22, ease: 'easeOut' }, opacity: { duration: 0.01, delay: 0.22 } }}
+          />
+        ))}
+      </g>
     </svg>
   );
 }
@@ -144,7 +156,10 @@ export function Pill({ item, on, front, tip, onToggle }: { item: Item; on: boole
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
     >
-      <span className="pill-mark">{on ? <Icon name="check" /> : <Icon name="plus" />}</span>
+      <span className="pill-mark">
+        <Icon name="check" className="i mark-check" />
+        <Icon name="plus" className="i mark-plus" />
+      </span>
       <ItemBadge item={item} size={16} />
       <span className="pill-label">{titleOf(item)}</span>
       {item.notOpen && <span className="pill-tag">closed</span>}

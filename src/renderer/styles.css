@@ -20,6 +20,12 @@
   --warn-text: #6b4b00;
   --radius: 12px;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Motion: ease-out for things arriving or reacting to a click, ease-in-out for things moving on screen. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-leave: 150ms;
+  --dur-press: 160ms;
+  --dur-quick: 180ms;
   color-scheme: light;
 }
 
@@ -134,6 +140,8 @@ button { cursor: default; }
 .tool-btn { width: 24px; height: 22px; padding: 0; border-radius: 7px; color: var(--faint); }
 .tool-btn svg { width: 14px; height: 14px; }
 .tool-btn:hover { color: var(--text); background: var(--well-hover); }
+.tool-btn { transition: background 0.15s, color 0.15s, transform var(--dur-press) var(--ease-out); }
+.tool-btn:active { transform: scale(0.97); }
 .tool-btn.delete:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
 .rename-field { padding: 4px 8px; font-weight: 600; margin: -2px 0 2px; }
 .job-row:hover .unpack-btn, .unpack-btn.pack { opacity: 1; background: var(--accent); color: var(--on-accent); box-shadow: none; }
@@ -189,6 +197,9 @@ button { cursor: default; }
 .pill.in .pill-mark { background: var(--accent); color: var(--on-accent); }
 .pill.out .pill-mark { color: var(--faint); }
 .pill-mark svg { width: 10px; height: 10px; stroke-width: 2.6; }
+/* Tick and plus sit on top of each other: the one that applies pops in, the other shrinks away. */
+.pill-mark svg { grid-area: 1 / 1; transition: transform var(--dur-quick) var(--ease-out), opacity var(--dur-quick) var(--ease-out); }
+.pill.in .mark-plus, .pill.out .mark-check { transform: scale(0.4); opacity: 0; }
 .pill .kind { width: 13px; height: 13px; opacity: 0.6; flex: none; }
 .pill-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pill-tag { font-size: 10px; color: var(--faint); border: 1px solid var(--hair); border-radius: 99px; padding: 0 5px; flex: none; }
@@ -234,6 +245,14 @@ button { cursor: default; }
 .toast-title { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toast-detail { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.toast { transition: opacity var(--dur-leave) ease-in, transform var(--dur-leave) ease-in; }
+.toast.leaving { opacity: 0; transform: translateY(-4px) scale(0.98); }
+@keyframes fadeOnly { from { opacity: 0; } to { opacity: 1; } }
+/* Reduce Motion: things still fade in and out, they just don't move. */
+@media (prefers-reduced-motion: reduce) {
+  .slide-in, .fade-in, .toast { animation-name: fadeOnly; }
+  .toast.leaving { transform: none; }
+}
 
 /* ---------- App window ---------- */
 body.route-main { overflow: hidden; background: transparent; }
@@ -292,6 +311,13 @@ details summary { cursor: default; }
 .save-intro { margin: -4px 2px 0; color: var(--muted); font-size: 12px; }
 .save-foot { display: flex; align-items: center; gap: 8px; padding: 0 2px; }
 .save-status { display: flex; align-items: center; gap: 12px; padding: 6px 2px; min-height: 44px; }
+.save-mark { position: relative; display: block; flex: none; }
+.save-mark .folder-mark { display: block; }
+.save-check {
+  position: absolute; right: -5px; bottom: -4px; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 2px var(--well-hover);
+}
+.save-check svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
 .save-status-title { display: block; font-size: 14px; }
 .save-status-title b { font-weight: 600; }
 .save-head .save-to-select { flex: none; max-width: 200px; }
@@ -333,7 +359,8 @@ details summary { cursor: default; }
 
 /* Main window: the sidebar is native glass; content sits on a soft cream wash with frosted cards. */
 .side-brand { display: flex; align-items: center; gap: 10px; padding: 2px 10px 14px; }
-.side-row { gap: 9px; transition: background 0.2s var(--ease); }
+.side-row { gap: 9px; transition: background 0.2s var(--ease), transform var(--dur-press) var(--ease-out); }
+.side-row:active { transform: scale(0.97); }
 .content { background: linear-gradient(180deg, rgba(255, 252, 243, 0.72), rgba(255, 249, 232, 0.6)); }
 .glass-card {
   border-radius: 18px; padding: 18px 20px;

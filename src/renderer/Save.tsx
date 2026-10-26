@@ -56,7 +56,7 @@ function SaveBox() {
       await api.commitSave({ jobId: p.jobId, name: opts.name, note: opts.note, keys: opts.keys, tidy: opts.tidy });
       setState('saved');
       // With Pack up, get out of the way quickly so the windows can be seen flying into the menu bar.
-      closeTimer.current = setTimeout(() => void api.closeWindow(), opts.tidy ? 450 : 900);
+      closeTimer.current = setTimeout(() => void api.closeWindow(), opts.tidy ? 450 : 1200);
     } catch (e) {
       setError(errorText(e));
       setState('ready');
@@ -155,6 +155,9 @@ function SaveBox() {
     void commit(preview, { name: name.trim(), note, keys: chosen.map((i) => i.key), tidy });
   };
 
+  // "Add all" ticks the pills one after another, so you can see each one join.
+  const addOneByOne = (keys: string[]) => keys.forEach((key, i) => setTimeout(() => setPicked((prev) => new Set(prev).add(key)), i * 40));
+
   const toggle = (key: string) =>
     setPicked((prev) => {
       const next = new Set(prev);
@@ -191,8 +194,13 @@ function SaveBox() {
 
         {(state === 'saving' || state === 'saved') && (
           <motion.div key="done" className="save-status" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-            <motion.span initial={{ scale: 0.6, rotate: -8 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
-              <FolderMark size={30} awake={!packing} />
+            <motion.span
+              className="save-mark"
+              initial={{ scale: 0.6, rotate: -8 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+            >
+              <SavedMark saved={state === 'saved'} />
             </motion.span>
             <span>
               <span className="save-status-title">
@@ -273,7 +281,7 @@ function SaveBox() {
                       <div className="section-label likely-label">
                         <span>Might belong here</span>
                         {likelyLeft.length > 0 && (
-                          <button type="button" className="link small" onClick={() => setPicked((prev) => new Set([...prev, ...likelyLeft.map((i) => i.key)]))}>
+                          <button type="button" className="link small" onClick={() => addOneByOne(likelyLeft.map((i) => i.key))}>
                             Add all
                           </button>
                         )}
@@ -326,6 +334,28 @@ function Group({ label, muted, children }: { label: string; muted?: boolean; chi
       <div className="section-label">{label}</div>
       {children}
     </div>
+  );
+}
+
+/** The folder stays awake while saving. Once saved, and once you can see it, it closes its eyes and a tick draws itself. */
+function SavedMark({ saved }: { saved: boolean }) {
+  const [stashed, setStashed] = useState(false);
+  useEffect(() => {
+    if (!saved) return;
+    const t = setTimeout(() => setStashed(true), 80);
+    return () => clearTimeout(t);
+  }, [saved]);
+  return (
+    <>
+      <FolderMark size={30} awake={!stashed} />
+      {stashed && (
+        <motion.span className="save-check" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.22, delay: 0.15, ease: [0.23, 1, 0.32, 1] }}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <motion.path d="M5 12l5 5L19 7" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.26, delay: 0.27, ease: [0.23, 1, 0.32, 1] }} />
+          </svg>
+        </motion.span>
+      )}
+    </>
   );
 }
 

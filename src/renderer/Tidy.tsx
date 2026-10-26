@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NamingRequest, OverlayPlay, ToastInfo } from '../shared/types';
 import { api, useFitWindow, useSettings } from './api';
-import { Button, FolderMark, motion } from './ui';
+import { Button, FolderMark, motion, Motion } from './ui';
 
 function usePayload<T>(): T | null {
   const [p, setP] = useState<T | null>(null);
@@ -194,7 +194,7 @@ async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<
     const home = `translate3d(${tx}px, ${ty}px, 0)`;
     const frames: Keyframe[] = play.reverse
       ? [
-          { transform: `${home} scale(0.12)`, opacity: 0, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' },
+          { transform: `${home} scale(0.12)`, opacity: 0, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' },
           { transform: `${at} scale(1)`, opacity: 1, offset: 0.75 },
           { transform: `${at} scale(1)`, opacity: 0 },
         ]
@@ -233,41 +233,60 @@ export function Toast() {
   const [info, setInfo] = useState<ToastInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [key, setKey] = useState(0);
+  const [leaving, setLeaving] = useState(false);
+  // The folder starts the other way round, then closes its eyes (packed) or wakes up (unpacked).
+  const [awake, setAwake] = useState(false);
   useEffect(() => {
-    void api.getPayload<ToastInfo>().then((p) => p && setInfo(p));
-    return api.onToastShow((p) => {
+    let wake: ReturnType<typeof setTimeout>;
+    const show = (p: ToastInfo) => {
       setInfo(p);
+      setAwake(p.canUndo);
+      clearTimeout(wake);
+      wake = setTimeout(() => setAwake(!p.canUndo), 200);
+    };
+    void api.getPayload<ToastInfo>().then((p) => p && show(p));
+    const offShow = api.onToastShow((p) => {
+      show(p);
       setBusy(false);
+      setLeaving(false);
       setKey((k) => k + 1);
     });
+    const offLeave = api.onToastLeave(() => setLeaving(true));
+    return () => {
+      clearTimeout(wake);
+      offShow();
+      offLeave();
+    };
   }, []);
   if (!info) return null;
   return (
-    <div className="toast" key={key}>
-      <motion.span initial={{ scale: 0.6, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
-        <FolderMark size={34} awake={!info.canUndo} />
-      </motion.span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span className="toast-title">{info.title}</span>
-        <span className="muted small toast-detail">{info.detail}</span>
-      </span>
-      {info.canUndo ? (
-        <Button
-          size="small"
-          tabIndex={-1}
-          disabled={busy}
-          onClick={() => {
-            setBusy(true);
-            void api.undoTidy();
-          }}
-        >
-          Undo
-        </Button>
-      ) : (
-        <Button variant="ghost" className="close" tabIndex={-1} aria-label="Close" onClick={() => void api.dismissToast()}>
-          ✕
-        </Button>
-      )}
-    </div>
+    <Motion>
+      <div className={`toast ${leaving ? 'leaving' : ''}`} key={key}>
+        <motion.span initial={{ scale: 0.6, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
+          <FolderMark size={34} awake={awake} />
+        </motion.span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span className="toast-title">{info.title}</span>
+          <span className="muted small toast-detail">{info.detail}</span>
+        </span>
+        {info.canUndo ? (
+          <Button
+            size="small"
+            tabIndex={-1}
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              void api.undoTidy();
+            }}
+          >
+            Undo
+          </Button>
+        ) : (
+          <Button variant="ghost" className="close" tabIndex={-1} aria-label="Close" onClick={() => void api.dismissToast()}>
+            ✕
+          </Button>
+        )}
+      </div>
+    </Motion>
   );
 }

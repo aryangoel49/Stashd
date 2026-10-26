@@ -13,6 +13,8 @@ import { getWindow, prepareWindow, showWindow } from './windows';
 
 // Undo is offered briefly: long enough to catch a slip, short enough to stay out of the way.
 const UNDO_MS = 2_000;
+/** Just longer than the toast's 150ms fade-out, so the window hides after it has gone. */
+const TOAST_LEAVE_MS = 170;
 
 export class TidyFlow {
   private payloads = new Map<Route, unknown>();
@@ -192,7 +194,16 @@ export class TidyFlow {
     // Let it draw the new text first, then slide it in under the menu bar icon.
     setTimeout(() => showWindow('toast', { near: this.trayBounds() }), 60);
     if (this.toastTimer) clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => getWindow('toast')?.hide(), info.canUndo ? UNDO_MS : 4000);
+    this.toastTimer = setTimeout(() => this.hideToast(), info.canUndo ? UNDO_MS : 4000);
+  }
+
+  /** Let the toast fade up and away, then hide its window. A new toast cancels the hide. */
+  private hideToast(): void {
+    const win = getWindow('toast');
+    if (!win?.isVisible()) return;
+    win.webContents.send('toast:leave');
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => getWindow('toast')?.hide(), TOAST_LEAVE_MS);
   }
 
   private setUndo(items: Item[], frontKey: string | null): void {
@@ -205,7 +216,7 @@ export class TidyFlow {
     if (!u) return;
     clearTimeout(u.timer);
     this.undo = null;
-    getWindow('toast')?.hide();
+    this.hideToast();
     const animation = this.play(u.items, true);
     await openItems(u.items, u.frontKey, this.core.settings.get());
     await animation;
@@ -255,7 +266,7 @@ export class TidyFlow {
   }
 
   dismissToast(): void {
-    getWindow('toast')?.hide();
+    this.hideToast();
   }
 }
 
