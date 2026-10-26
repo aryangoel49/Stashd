@@ -243,7 +243,7 @@ function SaveBox() {
                   {preview.jobOptions.map((j) => (
                     <option key={j.id} value={j.id}>
                       {j.name}
-                      {j.current ? ' (open now)' : j.match === 'strong' ? ' (looks like a match)' : ''}
+                      {j.current ? ' · open now' : j.match === 'strong' ? ' · match' : ''}
                     </option>
                   ))}
                 </select>

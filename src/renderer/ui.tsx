@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { Item } from '../shared/types';
 import { Button as ShadcnButton } from './components/ui/button';
 import { Icon } from './icons';
+import { ItemBadge, titleOf } from './visuals';
 
 export { AnimatePresence, motion };
 
@@ -144,8 +145,8 @@ export function Pill({ item, on, front, tip, onToggle }: { item: Item; on: boole
       animate={{ opacity: 1, scale: 1 }}
     >
       <span className="pill-mark">{on ? <Icon name="check" /> : <Icon name="plus" />}</span>
-      <Icon name={item.kind} className="i kind" />
-      <span className="pill-label">{item.label}</span>
+      <ItemBadge item={item} size={16} />
+      <span className="pill-label">{titleOf(item)}</span>
       {item.notOpen && <span className="pill-tag">closed</span>}
       {front && <span className="pill-dot" title="You were on this last" />}
     </motion.button>
