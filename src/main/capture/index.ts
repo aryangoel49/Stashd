@@ -95,7 +95,8 @@ export function frontItemKey(items: Item[], appOrder: string[]): string | null {
   return null;
 }
 
-export async function capture(settings: Settings, helper: Helper, selfNames: string[], early?: Promise<WindowsInfo>): Promise<Capture> {
+/** `onlyApps`: ask just these apps (by name), e.g. the ones your folders use, to keep quick checks light. */
+export async function capture(settings: Settings, helper: Helper, selfNames: string[], early?: Promise<WindowsInfo>, onlyApps?: Set<string>): Promise<Capture> {
   const errors: CollectorError[] = [];
   let win: WindowsInfo;
   try {
@@ -104,8 +105,8 @@ export async function capture(settings: Settings, helper: Helper, selfNames: str
     errors.push({ collector: 'windows', message: `Could not see which apps are open: ${e instanceof Error ? e.message : String(e)}` });
     win = { front: null, frontBundleId: null, apps: [], order: [] };
   }
-  const running = new Set(win.apps.map((a) => a.bundleId));
-  const enabledBrowsers = BROWSERS.filter((b) => settings.browsers[b]);
+  const running = new Set(win.apps.filter((a) => !onlyApps || onlyApps.has(a.name)).map((a) => a.bundleId));
+  const enabledBrowsers = BROWSERS.filter((b) => settings.browsers[b] && (!onlyApps || onlyApps.has(BROWSER_APPS[b].appName)));
   const [tabResult, docResult] = await Promise.all([
     collectTabs(enabledBrowsers, { keepQueryStrings: settings.keepQueryStrings, excludedDomains: settings.excludedDomains }, running).catch((e) => {
       errors.push({ collector: 'browsers', message: String(e instanceof Error ? e.message : e) });

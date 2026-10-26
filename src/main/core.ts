@@ -44,6 +44,9 @@ interface PendingSave {
   target?: string;
 }
 
+/** How long one look at what's open is reused. */
+const OPEN_CHECK_MS = 6_000;
+
 export class Core {
   private listeners: (() => void)[] = [];
   private state: State;
@@ -307,14 +310,20 @@ export class Core {
    * Apps don't count (Slack being open doesn't mean a folder is). Kept for a few seconds.
    */
   openState(): Promise<Record<string, OpenState>> {
-    if (this.openCache && Date.now() - this.openCache.at < 4000) return this.openCache.result;
+    // Asking browsers and apps what's open costs a little battery, so one look is reused for a few seconds
+    // (and thrown away as soon as you save, unpack or change a folder, via notify()).
+    if (this.openCache && Date.now() - this.openCache.at < OPEN_CHECK_MS) return this.openCache.result;
     const result = (async () => {
-      const cap = this.fakeCapture ? await this.fakeCapture() : await capture(this.settings.get(), this.helper, this.selfNames);
+      // Only ask the apps your folders actually use (no folder has a Word file? Word isn't asked).
+      const jobs = await this.store.list();
+      const latest = await Promise.all(jobs.map((j) => this.store.latest(j.id)));
+      const apps = new Set(latest.flatMap((e) => (e?.items ?? []).map((i) => i.app)));
+      const cap = this.fakeCapture ? await this.fakeCapture() : await capture(this.settings.get(), this.helper, this.selfNames, undefined, apps);
       const open = new Set(cap.items.map(looseKey));
       const out: Record<string, OpenState> = {};
-      for (const j of await this.store.list()) {
+      for (const [n, j] of jobs.entries()) {
         // Apps don't count (Slack being open doesn't mean a folder is), unless a folder holds only apps.
-        const all = (await this.store.latest(j.id))?.items ?? [];
+        const all = latest[n]?.items ?? [];
         const content = all.filter((i) => i.kind !== 'app');
         const items = content.length ? content : all;
         out[j.id] = { open: items.filter((i) => open.has(looseKey(i))).length, total: items.length };
