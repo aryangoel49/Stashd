@@ -52,14 +52,14 @@ export function textTokens(text: string): string[] {
   const words = text
     .replace(/([a-z])([A-Z])/g, '$1 $2') // StreamEast -> Stream East
     .replace(/\.[a-z0-9]{2,5}\b/gi, ' ') // file extensions and .zip/.com style endings
-    .split(/[^A-Za-z0-9]+/)
+    .split(/[^\p{L}\p{N}]+/u)
     .filter(Boolean);
   const out: string[] = [];
   for (const w of words) {
     if (/^\d+$/.test(w)) continue;
     const l = w.toLowerCase();
     if (STOP.has(l)) continue;
-    if (l.length < 2 || (l.length === 2 && !/^[a-z]{2}$/.test(l))) continue;
+    if (l.length < 2 || (l.length === 2 && !/^\p{L}{2}$/u.test(l))) continue;
     out.push(stem(l));
   }
   return out;

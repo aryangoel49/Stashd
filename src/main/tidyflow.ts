@@ -42,6 +42,8 @@ export class TidyFlow {
 
   /** Called right after a save with Tidy up on. */
   run(jobId: string, entryId: string): Promise<void> {
+    // A naming box still waiting for an answer was abandoned: treat it as Skip so this Pack up isn't stuck behind it.
+    if (this.naming) this.finishNaming([]);
     this.queue = this.queue.then(async () => {
       try {
         await this.tidy(jobId, entryId);
@@ -116,8 +118,13 @@ export class TidyFlow {
     };
     this.payloads.set('naming', req);
     return new Promise((resolve) => {
-      this.naming = { jobId, entryId, items, resolve };
-      showWindow('naming', { onReady: (w) => w.webContents.send('payload:updated') });
+      const pending = { jobId, entryId, items, resolve };
+      this.naming = pending;
+      const win = showWindow('naming', { onReady: (w) => w.webContents.send('payload:updated') });
+      // Closing the box (⌘W, Window → Close) counts as Skip.
+      win.once?.('closed', () => {
+        if (this.naming === pending) this.finishNaming([]);
+      });
     });
   }
 

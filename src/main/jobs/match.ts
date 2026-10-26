@@ -20,8 +20,8 @@ export function words(text: string): Set<string> {
     text
       .toLowerCase()
       .replace(/\.[a-z0-9]{2,5}$/, '')
-      .split(/[^a-z0-9]+/)
-      .filter((w) => w.length >= 4 && !STOP.has(w) && !/^\d+$/.test(w)),
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter((w) => [...w].length >= 4 && !STOP.has(w) && !/^\d+$/.test(w)),
   );
 }
 

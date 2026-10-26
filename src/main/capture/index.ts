@@ -2,7 +2,7 @@
 // It only looks when asked (when you press the shortcut), never in the background.
 
 import type { Capture, CollectorError, Item, Settings } from '../../shared/types';
-import { BROWSERS } from '../../shared/validate';
+import { BROWSERS, MAX_ITEMS } from '../../shared/validate';
 import { BROWSER_APPS, collectTabs, type Tab } from '../collectors/browsers';
 import type { Helper, WindowsInfo } from '../helper';
 import { displayUrl } from '../urls';
@@ -75,7 +75,7 @@ export function assemble(
     add({ key: `app:${name}`, kind: 'app', label: name, detail: 'App', app: name });
   }
 
-  return { appOrder, frontApp, items: items.slice(0, 300) };
+  return { appOrder, frontApp, items: items.slice(0, MAX_ITEMS) };
 }
 
 /** The item you were on last: the front document or active tab of the front app. */

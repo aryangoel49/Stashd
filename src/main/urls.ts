@@ -10,12 +10,20 @@ export interface UrlOptions {
 /** True if the URL matches an excluded domain (entries with a dot) or keyword (entries without one). */
 export function isExcluded(url: URL, excluded: string[]): boolean {
   const host = url.hostname.toLowerCase();
-  const hostAndPath = (host + url.pathname).toLowerCase();
+  // A keyword like "bank" or "login" must be a whole part of the address (login.example.com, /bank/login,
+  // /login.php), never inside another word, so worldbank.org and /author/ pages are kept.
+  let path = url.pathname;
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    // keep it as it is
+  }
+  const parts = new Set(`${host}/${path}`.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean));
   return excluded.some((raw) => {
     const e = raw.trim().toLowerCase();
     if (!e) return false;
     if (e.includes('.')) return host === e || host.endsWith('.' + e);
-    return hostAndPath.includes(e);
+    return parts.has(e);
   });
 }
 

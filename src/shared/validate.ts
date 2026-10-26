@@ -163,14 +163,19 @@ export function normalizeStoredSettings(raw: unknown): Settings {
   return out;
 }
 
+/** Most things one save can hold, and the longest item address accepted. */
+export const MAX_ITEMS = 1000;
+const MAX_KEY = 65_536;
+
 export function saveRequest(v: unknown): SaveRequest {
   if (!isPlainObject(v)) fail('bad save request');
-  if (!Array.isArray(v.keys) || v.keys.length > 500) fail('items must be a list');
+  if (!Array.isArray(v.keys) || v.keys.length > MAX_ITEMS) fail('items must be a list');
   return {
     jobId: v.jobId == null ? null : jobId(v.jobId),
     name: jobName(v.name),
     note: note(v.note),
-    keys: v.keys.map((k) => str(k, 'item', 4200)),
+    // A very long address (a long search, say) is still saved; only something absurd is left out.
+    keys: v.keys.filter((k) => typeof k !== 'string' || k.length <= MAX_KEY).map((k) => str(k, 'item', MAX_KEY)),
     tidy: bool(v.tidy, 'tidy'),
   };
 }

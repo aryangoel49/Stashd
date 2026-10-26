@@ -1,6 +1,6 @@
 // Things a messy, impatient real user does, run against the real logic.
 // Tests marked it.fails are known bugs: they pass while the bug is there. When a bug is fixed,
-// that test starts failing, so change it.fails to it.
+// that test starts failing, so change it.fails to it. (The first round of six bugs is fixed.)
 
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
@@ -104,8 +104,7 @@ describe('very long tab addresses', () => {
     expect(url!.length).toBeGreaterThan(4200);
   });
 
-  // KNOWN BUG: one long address makes the whole save fail with "item is too long".
-  it.fails('one long tab address does not stop the whole save', () => {
+  it('one long tab address does not stop the whole save', () => {
     const key = `tab:${cleanTabUrl(longSearch, DEFAULT_SETTINGS)}`;
     expect(() => v.saveRequest({ jobId: null, name: 'Tokyo trip', note: '', keys: ['tab:https://example.com', key], tidy: false })).not.toThrow();
   });
@@ -117,8 +116,7 @@ describe('sites that are left out for privacy', () => {
     expect(isExcluded(new URL('https://www.chase.com/bank/login'), DEFAULT_SETTINGS.excludedDomains)).toBe(true);
   });
 
-  // KNOWN BUG: the keywords "bank", "auth" and "login" match inside ordinary words, so research tabs vanish.
-  it.fails.each([
+  it.each([
     'https://data.worldbank.org/indicator/NY.GDP.MKTP.CD',
     'https://www.goodreads.com/author/show/1077326.J_K_Rowling',
     'https://en.wikipedia.org/wiki/Authoritarianism',
@@ -138,8 +136,7 @@ describe('lots of tabs', () => {
     expect(p.sure.length + p.likely.length + p.maybe.length + p.hiddenCount).toBe(80);
   });
 
-  // KNOWN BUG: past 200 tabs the rest are dropped without a word.
-  it.fails('says so when some tabs were left out', async () => {
+  it('says so when some tabs were left out', async () => {
     const US = '\x1f';
     const RS = '\x1e';
     const out = Array.from({ length: 250 }, (_, i) => `1${US}false${US}https://example.com/p${i}${US}Page ${i}${RS}`).join('');
@@ -148,7 +145,7 @@ describe('lots of tabs', () => {
     expect(r.tabs.length === 250 || r.errors.length > 0).toBe(true);
   });
 
-  it.fails('says so when more than 300 things were open', () => {
+  it('says so when more than 300 things were open', () => {
     const tabs = Array.from({ length: 350 }, (_, i) => ({ browser: 'chrome' as const, window: 1, title: `t${i}`, url: `https://example.com/${i}`, active: false }));
     const r = assemble({ front: null, frontBundleId: null, apps: [], order: [] }, tabs, [], []);
     expect(r.items.length).toBe(350);
@@ -160,8 +157,7 @@ describe('names in other languages', () => {
     expect(words('Climate essay draft')).toContain('climate');
   });
 
-  // KNOWN BUG: anything that isn't plain a–z is thrown away, so word matching can't work.
-  it.fails.each([
+  it.each([
     ['Voyage à Montréal', 'montréal'],
     ['Übungsblatt Mathematik', 'übungsblatt'],
     ['Résumé for Café job', 'résumé'],
@@ -229,9 +225,8 @@ describe('Pack up with an unsaved document', () => {
     expect(shown).toContain('toast:show');
   });
 
-  // KNOWN BUG: closing the naming box with ⌘W (or Window → Close) instead of Skip never tells
-  // Pack up, so every later Pack up waits forever: it saves, but nothing closes and no toast shows.
-  it.fails('a later Pack up still works after the naming box was closed without answering', async () => {
+  // Closing the naming box with ⌘W (or Window → Close) instead of Skip must not leave Pack up stuck.
+  it('a later Pack up still works after the naming box was closed without answering', async () => {
     const core = makeCore();
     const tidy = new TidyFlow(core, () => ({ x: 1000, y: 0, width: 24, height: 24 }));
     const a = await packed(core, [untitled, file], 'Essay');

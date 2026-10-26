@@ -20,6 +20,9 @@ export const BROWSER_APPS: Record<BrowserName, { bundleId: string; appName: stri
   safari: { bundleId: 'com.apple.Safari', appName: 'Safari', label: 'Safari' },
 };
 
+/** Most tabs saved at once; past this the save box says so. */
+export const MAX_TABS = 500;
+
 const US = 'character id 31';
 const RS = 'character id 30';
 
@@ -152,5 +155,8 @@ export async function collectTabs(
       });
     }
   }
-  return { tabs: tabs.slice(0, 200), errors };
+  if (tabs.length > MAX_TABS) {
+    errors.push({ collector: 'browser:limit', message: `You have ${tabs.length} tabs open. Only the first ${MAX_TABS} were saved.` });
+  }
+  return { tabs: tabs.slice(0, MAX_TABS), errors };
 }

@@ -47,6 +47,8 @@ function SaveBox() {
   const modeRef = useRef<Mode>('last');
   // Once you type in the name, an AI suggestion never replaces it.
   const nameTouched = useRef(false);
+  // Each preview gets a number, so an AI name that arrives late (after you switch "Save to") is ignored.
+  const loadId = useRef(0);
   const [aiNaming, setAiNaming] = useState(false);
 
   const commit = async (p: SavePreview, opts: { name: string; note: string; keys: string[]; tidy: boolean }) => {
@@ -65,12 +67,15 @@ function SaveBox() {
 
   const load = async (opts: { asNew?: boolean; jobId?: string } = {}) => {
     setError(null);
+    const id = ++loadId.current;
     try {
       const p = await api.previewSave(opts);
+      if (id !== loadId.current) return;
       const keys = [...p.sure, ...p.kept].map((i) => i.key);
       setPreview(p);
       setName(p.suggestedName);
       setPicked(new Set(keys));
+      setAiNaming(false);
       const pack = modeRef.current === 'pack' ? true : modeRef.current === 'save' ? false : p.tidyUp;
       setPackFirst(pack);
       nameTouched.current = false;
@@ -90,10 +95,10 @@ function SaveBox() {
         void api
           .aiName(p.sure.map((i) => i.key))
           .then((n) => {
-            if (n && !nameTouched.current) setName(n);
+            if (n && !nameTouched.current && id === loadId.current) setName(n);
           })
           .catch(() => undefined)
-          .finally(() => setAiNaming(false));
+          .finally(() => id === loadId.current && setAiNaming(false));
       }
       setTimeout(() => (p.jobId ? noteRef.current : nameRef.current)?.focus(), 0);
     } catch (e) {

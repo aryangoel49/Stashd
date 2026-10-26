@@ -20,7 +20,8 @@ describe('cleanTabUrl', () => {
 
   it.each([
     'https://accounts.google.com/signin',
-    'https://www.mybank.com/home',
+    'https://www.mybank.com/bank/accounts',
+    'https://online.bank.example/home',
     'https://example.com/login',
     'https://example.com/signin',
     'https://auth.example.com/',
