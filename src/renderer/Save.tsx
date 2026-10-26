@@ -357,6 +357,9 @@ function SaveBox() {
                 </motion.span>
               </button>
               <span className="grow" />
+              <Button variant="ghost" type="button" onClick={() => void cancel()} title="Close without saving (Esc)">
+                Cancel
+              </Button>
               <Button ref={packFirst ? undefined : readyRef} variant={packFirst ? 'secondary' : 'primary'} type={packFirst ? 'button' : 'submit'} disabled={!chosen.length} onClick={packFirst ? () => save(false) : undefined} title="Save and keep everything open">
                 Save {!packFirst && <span className="enter">↵</span>}
               </Button>
