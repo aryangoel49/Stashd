@@ -408,7 +408,7 @@ function JobDetail({ jobId, jobs }: { jobId: string; jobs: JobSummary[] }) {
         </motion.span>
         <div className="grow">
           <div className="eyebrow tone-ink">{tone.name} folder</div>
-          <h1 className="page-title">{view.job.name}</h1>
+          <EditableTitle jobId={jobId} name={view.job.name} />
         </div>
       </header>
 
@@ -456,6 +456,43 @@ function JobDetail({ jobId, jobs }: { jobId: string; jobs: JobSummary[] }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/** A folder's name: click it to rename, Enter to save, Esc to cancel. */
+function EditableTitle({ jobId, name }: { jobId: string; name: string }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(name);
+  useEffect(() => setValue(name), [name]);
+  const finish = (save: boolean) => {
+    setEditing(false);
+    const next = value.trim();
+    if (save && next && next !== name) void api.renameJob(jobId, next);
+    else setValue(name);
+  };
+  if (editing) {
+    return (
+      <input
+        className="page-title title-edit"
+        autoFocus
+        value={value}
+        maxLength={60}
+        aria-label="Folder name"
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => finish(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') finish(true);
+          if (e.key === 'Escape') finish(false);
+        }}
+      />
+    );
+  }
+  return (
+    <button className="page-title title-button" onClick={() => setEditing(true)} title="Click to rename">
+      {name}
+      <Icon name="pencil" className="i title-pencil" />
+    </button>
   );
 }
 

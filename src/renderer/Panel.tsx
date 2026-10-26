@@ -196,149 +196,90 @@ function JobList(props: {
 function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [opened, setOpened] = useState<string | null>(null);
-  const [renaming, setRenaming] = useState(false);
-  const [name, setName] = useState(job.name);
 
-  const finishRename = (save: boolean) => {
-    const next = name.trim();
-    setRenaming(false);
-    if (save && next && next !== job.name) void api.renameJob(job.id, next);
-    else setName(job.name);
-  };
-
+  // Renaming happens in the app window (click a folder's title there); here a click just opens it.
   return (
     <div
       className={`job-row ${job.current ? 'current' : ''}`}
       style={{ ...toneStyle(folderTone(job.id)), ...(job.done ? { opacity: 0.6 } : {}) }}
       role="button"
       tabIndex={0}
-      onClick={() => !renaming && onPick(job.id)}
-      onKeyDown={(e) => e.key === 'Enter' && !renaming && onPick(job.id)}
+      onClick={() => onPick(job.id)}
+      onKeyDown={(e) => e.key === 'Enter' && onPick(job.id)}
     >
       <FolderMark size={30} awake={job.current} tone={folderTone(job.id)} />
       <span className="grow">
-        {renaming ? (
-          <input
-            className="field rename-field"
-            autoFocus
-            value={name}
-            maxLength={80}
-            aria-label="Folder name"
-            onFocus={(e) => e.target.select()}
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => finishRename(true)}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (e.key === 'Enter') finishRename(true);
-              if (e.key === 'Escape') finishRename(false);
-            }}
-          />
-        ) : (
-          <span className="name" style={{ display: 'block' }}>{job.name}</span>
-        )}
+        <span className="name" style={{ display: 'block' }}>{job.name}</span>
         <span className="hint" style={{ display: 'block' }}>
-          {renaming ? 'Enter to save, Esc to cancel' : (opened ?? (
+          {opened ?? (
             <>
               <BadgeStrip items={job.preview} size={14} max={4} />
               <span>{job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
             </>
-          ))}
+          )}
         </span>
       </span>
-      {!renaming && job.current && <span className="live" />}
-      {!renaming &&
-        (job.current ? (
-          <Button
-            size="small"
-            className="unpack-btn pack"
-            title="Save this folder and close its windows"
-            onClick={(e) => {
-              e.stopPropagation();
-              void api.openWindow('pack');
-            }}
-          >
-            Pack up
-          </Button>
-        ) : (
-          <Button
-            size="small"
-            className="unpack-btn"
-            disabled={busy}
-            title="Open what you need to carry on"
-            onClick={(e) => {
-              e.stopPropagation();
-              setBusy(true);
-              void api
-                .openJob(job.id, null, 'needed')
-                .then((r) => {
-                  const missing = r.missing.length + r.failed.length;
-                  setOpened(`Opened ${r.opened + r.alreadyOpen}${missing ? `, ${missing} not found` : ''}`);
-                  setTimeout(() => setOpened(null), 4000);
-                })
-                .catch(() => setOpened("Couldn't open this folder"))
-                .finally(() => setBusy(false));
-            }}
-          >
-            {busy ? <span className="spinner" /> : 'Unpack'}
-          </Button>
-        ))}
-      {!renaming && (
-        <span className="row-tools">
-          <Button variant="ghost" size="small"
-            className="tool-btn"
-            title="Rename"
-            aria-label={`Rename ${job.name}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              setName(job.name);
-              setRenaming(true);
-            }}
-          >
-            <Icon name="pencil" />
-          </Button>
-          <Button variant="ghost" size="small"
-            className="tool-btn delete"
-            title={`Delete ${job.name}`}
-            aria-label={`Delete ${job.name}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              void api.deleteJob(job.id);
-            }}
-          >
-            <Icon name="trash" />
-          </Button>
-        </span>
+      {job.current && <span className="live" />}
+      {job.current ? (
+        <Button
+          size="small"
+          className="unpack-btn pack"
+          title="Save this folder and close its windows"
+          onClick={(e) => {
+            e.stopPropagation();
+            void api.openWindow('pack');
+          }}
+        >
+          Pack up
+        </Button>
+      ) : (
+        <Button
+          size="small"
+          className="unpack-btn"
+          disabled={busy}
+          title="Open what you need to carry on"
+          onClick={(e) => {
+            e.stopPropagation();
+            setBusy(true);
+            void api
+              .openJob(job.id, null, 'needed')
+              .then((r) => {
+                const missing = r.missing.length + r.failed.length;
+                setOpened(`Opened ${r.opened + r.alreadyOpen}${missing ? `, ${missing} not found` : ''}`);
+                setTimeout(() => setOpened(null), 4000);
+              })
+              .catch(() => setOpened("Couldn't open this folder"))
+              .finally(() => setBusy(false));
+          }}
+        >
+          {busy ? <span className="spinner" /> : 'Unpack'}
+        </Button>
       )}
+      <Button
+        variant="ghost"
+        size="small"
+        className="tool-btn delete"
+        title={`Delete ${job.name}`}
+        aria-label={`Delete ${job.name}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          void api.deleteJob(job.id);
+        }}
+      >
+        <Icon name="trash" />
+      </Button>
     </div>
   );
 }
 
 function JobMenu({ view, onGone }: { view: BriefView; onGone: () => void }) {
   const [open, setOpen] = useState(false);
-  const [renaming, setRenaming] = useState(false);
-  const [name, setName] = useState(view.job.name);
-  if (renaming) {
-    return (
-      <form
-        style={{ display: 'flex', gap: 6 }}
-        onSubmit={(e) => {
-          e.preventDefault();
-          void api.renameJob(view.job.id, name).then(() => setRenaming(false));
-        }}
-      >
-        <input className="field small" style={{ width: 170, padding: '4px 8px' }} autoFocus value={name} onChange={(e) => setName(e.target.value)} />
-        <Button size="small" type="submit">Save</Button>
-      </form>
-    );
-  }
   return (
     <div style={{ display: 'flex', gap: 2 }}>
       {open ? (
         <>
-          <Button variant="ghost" size="small" className="tiny" onClick={() => setRenaming(true)}>Rename</Button>
           <Button variant="ghost" size="small" className="tiny" onClick={() => void api.setDone(view.job.id, !view.job.done).then(onGone)}>
-            {view.job.done ? 'Not done' : 'Mark done'}
+            {view.job.done ? 'Not finished' : 'Mark finished'}
           </Button>
           <Button variant="danger" size="small" className="tiny" onClick={() => void api.deleteJob(view.job.id).then((gone) => gone && onGone())}>Delete</Button>
         </>

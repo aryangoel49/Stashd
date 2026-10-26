@@ -521,3 +521,11 @@ details summary { cursor: default; }
 .tab-thumb { position: absolute; inset: 0; border-radius: 9px; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px var(--hair); }
 .settings-body { display: grid; gap: 18px; }
 @media (prefers-color-scheme: dark) { .settings-tabs { background: rgba(255, 255, 255, 0.06); } .tab-thumb { background: rgba(255, 255, 255, 0.16); } }
+
+/* Folder title in the app window: click to rename. */
+.title-button { display: inline-flex; align-items: center; gap: 10px; border: none; background: none; padding: 2px 8px; margin: 0 -8px; border-radius: 10px; color: inherit; text-align: left; cursor: text; }
+.title-button:hover { background: var(--tone-soft); }
+.title-pencil { width: 16px !important; height: 16px !important; opacity: 0; color: var(--tone-ink); transition: opacity 0.15s; }
+.title-button:hover .title-pencil { opacity: 0.8; }
+.title-edit { border: none; outline: none; padding: 2px 8px; margin: 0 -8px; border-radius: 10px; width: min(100%, 560px); background: rgba(255, 255, 255, 0.85); box-shadow: inset 0 0 0 1.5px var(--tone-line), 0 0 0 3px var(--tone-soft); user-select: text; }
+.job-row .tool-btn.delete { flex: none; }
