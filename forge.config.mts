@@ -7,6 +7,16 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
+const LOCAL_IDENTITY = 'Stashd Local Signing';
+
+function hasIdentity(name: string): boolean {
+  try {
+    return execFileSync('security', ['find-identity', '-p', 'codesigning'], { encoding: 'utf8' }).includes(`"${name}"`);
+  } catch {
+    return false;
+  }
+}
+
 const config: ForgeConfig = {
   packagerConfig: {
     name: 'Stashd',
@@ -32,7 +42,10 @@ const config: ForgeConfig = {
       if (result.platform !== 'darwin') return;
       for (const dir of result.outputPaths) {
         const appPath = path.join(dir, 'Stashd.app');
-        execFileSync('codesign', ['--force', '--deep', '--sign', '-', '--identifier', 'com.aryangoel.stashd', appPath], { stdio: 'inherit' });
+        // Sign with the Mac's local "Stashd Local Signing" certificate when it's there, so the signature stays the
+        // same across builds and macOS keeps Stashd's Automation permissions after each update. Otherwise ad-hoc.
+        const identity = hasIdentity(LOCAL_IDENTITY) ? LOCAL_IDENTITY : '-';
+        execFileSync('codesign', ['--force', '--deep', '--sign', identity, '--identifier', 'com.aryangoel.stashd', appPath], { stdio: 'inherit' });
         execFileSync('codesign', ['--verify', '--deep', '--strict', appPath], { stdio: 'inherit' });
       }
     },
