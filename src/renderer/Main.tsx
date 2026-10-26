@@ -10,7 +10,7 @@ import { Icon } from './icons';
 import { SettingsView } from './SettingsView';
 import { FolderMergeHint, SuggestionStrip, useSuggestions } from './Suggestions';
 import { AnimatePresence, Button, FolderMark, motion, Motion } from './ui';
-import { BadgeStrip, describe, folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
+import { describe, folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
 
 type View = 'home' | 'settings' | string;
 
@@ -354,7 +354,6 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
       </div>
       {job.hint && <div className="folder-card-hint">{job.hint}</div>}
       <div className="folder-card-foot">
-        <BadgeStrip items={job.preview} />
         {!job.current && allOpen && (
           <span className="open-tag" title="Everything in this folder is already open">
             <Icon name="check" /> Open
