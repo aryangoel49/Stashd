@@ -106,6 +106,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('jobs:open', (_e, id, entry, mode) =>
     core.open(v.jobId(id), entry == null ? undefined : v.entryId(entry), v.openMode(mode), hooks.beforeOpen),
   );
+  handle('jobs:openItem', (_e, id, key) => core.openItem(v.jobId(id), v.str(key, 'item', 4200)));
   handle('jobs:removeItem', (_e, id, key) => core.removeItem(v.jobId(id), v.str(key, 'item', 4200)));
   handle('jobs:moveItem', (_e, from, key, to) => core.moveItem(v.jobId(from), v.str(key, 'item', 4200), v.jobId(to)));
   handle('jobs:rename', (_e, id, name) => core.rename(v.jobId(id), v.jobName(name)));

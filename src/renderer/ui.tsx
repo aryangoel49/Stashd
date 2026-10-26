@@ -38,12 +38,12 @@ export function Kbd({ children }: { children: ReactNode }) {
 
 /** The app icon in miniature: a white folder on butter yellow. Eyes closed while things are stashed;
  *  awake, it blinks every few seconds. */
-export function FolderMark({ size = 28, awake = false }: { size?: number; awake?: boolean }) {
+export function FolderMark({ size = 28, awake = false, tone }: { size?: number; awake?: boolean; tone?: { tile: string; flap: string } }) {
   const blinking = useBlink(awake);
   return (
     <svg className="folder-mark" width={size} height={size} viewBox="0 0 96 96" aria-hidden="true">
-      <rect width="96" height="96" rx="22" fill="#F2CD5C" />
-      <path d="M16 33 Q16 25 24 25 H37 Q41 25 43.5 28.5 L46.5 32 H72 Q80 32 80 40 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FBEFC6" />
+      <rect width="96" height="96" rx="22" fill={tone?.tile ?? '#F2CD5C'} />
+      <path d="M16 33 Q16 25 24 25 H37 Q41 25 43.5 28.5 L46.5 32 H72 Q80 32 80 40 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill={tone?.flap ?? '#FBEFC6'} />
       <path d="M16 45 Q16 39 22 39 H74 Q80 39 80 45 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FFFFFF" />
       {awake ? (
         <g fill="#1C1D22">

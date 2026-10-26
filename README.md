@@ -9,7 +9,7 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-111114?style=flat-square">
 </p>
 
-**Stashd** is a menu bar app for your Mac. Press **⌃S** and it stashes the work you're in the middle of: your open tabs, documents and apps, plus a quick note. When you come back, pick the job from the menu bar. A short brief tells you where you left off, and one click reopens what you need.
+**Stashd** is a menu bar app for your Mac. Press **⌃S** and it stashes the work you're in the middle of: your open tabs, documents and apps, plus a quick note. When you come back, pick the folder from the menu bar. A short brief tells you where you left off, and one click reopens what you need.
 
 Everything stays on your Mac. The only time it goes online is to write Claude briefs, and only after you connect your own Claude key.
 
@@ -19,9 +19,11 @@ Everything stays on your Mac. The only time it goes online is to write Claude br
 
 | | |
 |---|---|
-| **1 · Stash** | Press **⌃S**. Stashd sees what's open and ticks what belongs to this job. Add a note for the robot 🤖 if you like, then press **Enter**. |
-| **2 · Tidy (optional)** | Turn on **Tidy up after saving** and your windows fly into the menu bar icon. **Undo** brings them back for 10 seconds. |
-| **3 · Pick up** | Click the menu bar icon or press **⌃W**, then choose a job. Read the brief, then hit **Pick up where I left off**. |
+| **1 · Stash** | Press **⌃S**. Stashd sees what's open, suggests a short folder name and ticks what belongs. Add a note for later if you like. |
+| **2 · Save or Pack up** | **Save** keeps everything open. **Pack up** also closes the windows, which fly into the menu bar with a soft whoosh. **Undo** is there for 2 seconds. |
+| **3 · Pick up** | Press **⌃W** or click the menu bar folder, then **Unpack**: what you need opens straight away, and a short brief says where you left off. |
+
+Every folder gets its own colour. In the app window, **All folders** shows them as cards, and inside a folder every tab, file and app is a card you can click to open on its own.
 
 ## Install
 
@@ -48,13 +50,13 @@ xattr -dr com.apple.quarantine /Applications/Stashd.app
 | You want to… | Do this |
 |---|---|
 | Stash what you're working on | **⌃S**, optional note, **Enter** |
-| Clear your screen too | Tick **Tidy up after saving** |
+| Clear your screen too | Click **Pack up** instead of Save |
 | See where you were | Click the menu bar icon, or **⌃W** |
-| Get back to work | **Pick up where I left off** (just what you need) or **All** |
-| Fix what's in a job | **All jobs**: remove items with ✕, or drag them onto another job |
-| Rename, finish or delete a job | In the job's brief, click **…** |
+| Get back to work | **Unpack** (what you need) or **Open everything** |
+| Fix what's in a folder | Open Stashd: remove a card with ✕, or drag it onto another folder |
+| Rename, finish or delete a folder | In the folder's brief, click **…** |
 
-**It learns as you go.** Everyday apps and sites (Spotify, Messages, Gmail…) are never part of a job and are never closed. If you keep leaving something out, it stops suggesting it. If you keep adding something, it starts ticking it for you.
+**It learns as you go.** Everyday apps and sites (Spotify, Messages, Gmail…) never go in a folder and are never closed. If you keep leaving something out, it stops suggesting it. If you keep adding something, it starts ticking it for you.
 
 ## Briefs
 
@@ -64,11 +66,11 @@ Each brief is written by the first of these that's available:
 2. **Apple Intelligence** on your Mac, if it's turned on. Free and offline.
 3. A **basic brief** from a template, so there's always something.
 
-The bottom of each brief says which one wrote it. Click **No** under "Helpful?" to say what was wrong, and the next brief for that job takes it into account.
+The bottom of each brief says which one wrote it. Click **No** under "Helpful?" to say what was wrong, and the next brief for that folder takes it into account.
 
 ## Privacy
 
-- Jobs live on disk in `~/Library/Application Support/Stashd/jobs/`.
+- Folders live on disk in `~/Library/Application Support/Stashd/jobs/`.
 - Your Claude key is stored encrypted in the macOS keychain.
 - `tests/privacy.test.ts` fails the build if anything except `src/main/brief/claude.ts` tries to use the internet.
 

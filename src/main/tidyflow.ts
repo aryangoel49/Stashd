@@ -1,5 +1,5 @@
 // Runs "Tidy up after saving": name untitled files, close the job's windows while they fly
-// into the menu bar icon, then show a small toast with Undo for 10 seconds.
+// into the menu bar icon, then show a small toast with Undo for 2 seconds.
 
 import os from 'node:os';
 import path from 'node:path';
@@ -11,7 +11,8 @@ import { canName, cleanFileName, closeItems, freePath, saveUntitled, suggestedFi
 import type { UrlOptions } from './urls';
 import { getWindow, prepareWindow, showWindow } from './windows';
 
-const UNDO_MS = 10_000;
+// Undo is offered briefly: long enough to catch a slip, short enough to stay out of the way.
+const UNDO_MS = 2_000;
 
 export class TidyFlow {
   private payloads = new Map<Route, unknown>();

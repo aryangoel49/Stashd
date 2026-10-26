@@ -3,6 +3,7 @@ import type { Brief, BriefView, OpenResult } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
 import { Button, motion, Reveal } from './ui';
+import { ItemBadge, titleOf } from './visuals';
 
 /** Shows the sentence with its key words in the accent colour. */
 export function Sentence({ brief }: { brief: Brief }) {
@@ -19,7 +20,7 @@ export function Sentence({ brief }: { brief: Brief }) {
 
 const SOURCE: Record<Brief['source'], string> = { claude: 'Brief by Claude', apple: 'Brief by Apple Intelligence', basic: 'Basic brief' };
 
-export function BriefCard({ view, onOpened, current = false }: { view: BriefView; onOpened?: (r: OpenResult) => void; current?: boolean }) {
+export function BriefCard({ view, onOpened, current = false, hideTitle = false }: { view: BriefView; onOpened?: (r: OpenResult) => void; current?: boolean; hideTitle?: boolean }) {
   const { job, entry, brief } = view;
   const [busy, setBusy] = useState<'needed' | 'all' | null>(null);
   const [result, setResult] = useState<OpenResult | null>(null);
@@ -50,7 +51,7 @@ export function BriefCard({ view, onOpened, current = false }: { view: BriefView
 
   return (
     <div className="brief">
-      <div className="display">{job.name}</div>
+      {!hideTitle && <div className="display">{job.name}</div>}
       <div className="muted small">
         {new Date(entry.savedAt).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })} · {timeAgo(entry.savedAt)}
       </div>
@@ -58,19 +59,19 @@ export function BriefCard({ view, onOpened, current = false }: { view: BriefView
 
       {current ? (
         <div className="actions">
-          <Button variant="primary" onClick={() => void api.openWindow('pack')} title="Save this folder and close its windows">
+          <Button variant="primary" size="small" onClick={() => void api.openWindow('pack')} title="Save this folder and close its windows">
             <Icon name="stack" /> Pack up
           </Button>
-          <Button onClick={() => void api.openWindow('save')} title="Save without closing anything">
+          <Button size="small" onClick={() => void api.openWindow('save')} title="Save without closing anything">
             Save
           </Button>
         </div>
       ) : (
       <div className="actions">
-        <Button variant="primary" disabled={busy !== null} onClick={() => void open('needed')} title="Open what you need to carry on">
+        <Button variant="primary" size="small" disabled={busy !== null} onClick={() => void open('needed')} title="Open what you need to carry on">
           {busy === 'needed' ? <span className="spinner on-accent" /> : null} Unpack
         </Button>
-        <Button disabled={busy !== null} onClick={() => void open('all')} title="Open everything in this folder">
+        <Button size="small" disabled={busy !== null} onClick={() => void open('all')} title="Open everything in this folder">
           {busy === 'all' ? <span className="spinner" /> : null} Open everything
         </Button>
       </div>
@@ -93,8 +94,8 @@ export function BriefCard({ view, onOpened, current = false }: { view: BriefView
         <div className="items-list">
           {entry.items.map((it) => (
             <div key={it.key} className={`item-row ${needed.has(it.key) ? 'need' : ''}`} title={it.detail}>
-              <Icon name={it.kind} />
-              <span className="lbl">{it.label}</span>
+              <ItemBadge item={it} size={18} />
+              <span className="lbl">{titleOf(it)}</span>
               <span className="det">{it.kind === 'app' ? '' : it.detail}</span>
             </div>
           ))}

@@ -6,6 +6,7 @@ import { api, errorText, prettyShortcut, timeAgo, useFitWindow, useSettings } fr
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
+import { BadgeStrip, folderTone, toneStyle } from './visuals';
 
 export function Panel() {
   return (
@@ -126,19 +127,21 @@ function JobList(props: {
       </div>
 
       {current ? (
-        <motion.div layout className="now-card" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div layout className="now-card" style={toneStyle(folderTone(current.id))} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
           <button className="now-main" onClick={() => onPick(current.id)} title="See the brief">
             <span className="eyebrow now-eyebrow">
               <span className="live" /> Open now
             </span>
             <span className="now-name">{current.name}</span>
-            {current.hint && <span className="now-hint">{current.hint}</span>}
+            <span className="now-strip">
+              <BadgeStrip items={current.preview} size={18} />
+            </span>
           </button>
           <div className="now-actions">
-            <Button variant="primary" onClick={() => void api.openWindow('pack')} title="Save this folder and close its windows">
+            <Button variant="primary" size="small" onClick={() => void api.openWindow('pack')} title="Save this folder and close its windows">
               <Icon name="stack" /> Pack up <span className="enter">{prettyShortcut(settings.shortcutSave)}</span>
             </Button>
-            <Button onClick={() => void api.openWindow('save')} title="Save without closing anything">
+            <Button size="small" onClick={() => void api.openWindow('save')} title="Save without closing anything">
               Save
             </Button>
           </div>
@@ -207,13 +210,13 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
   return (
     <div
       className={`job-row ${job.current ? 'current' : ''}`}
+      style={{ ...toneStyle(folderTone(job.id)), ...(job.done ? { opacity: 0.6 } : {}) }}
       role="button"
       tabIndex={0}
       onClick={() => !renaming && onPick(job.id)}
       onKeyDown={(e) => e.key === 'Enter' && !renaming && onPick(job.id)}
-      style={job.done ? { opacity: 0.6 } : undefined}
     >
-      <FolderMark size={30} awake={job.current} />
+      <FolderMark size={30} awake={job.current} tone={folderTone(job.id)} />
       <span className="grow">
         {renaming ? (
           <input
@@ -236,7 +239,12 @@ function JobRow({ job, onPick }: { job: JobSummary; onPick: (id: string) => void
           <span className="name" style={{ display: 'block' }}>{job.name}</span>
         )}
         <span className="hint" style={{ display: 'block' }}>
-          {renaming ? 'Enter to save, Esc to cancel' : (opened ?? `${job.current ? 'Open now' : timeAgo(job.updatedAt)}${job.hint ? ` · ${job.hint}` : ''}`)}
+          {renaming ? 'Enter to save, Esc to cancel' : (opened ?? (
+            <>
+              <BadgeStrip items={job.preview} size={14} max={4} />
+              <span>{job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
+            </>
+          ))}
         </span>
       </span>
       {!renaming && job.current && <span className="live" />}

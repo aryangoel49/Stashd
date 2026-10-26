@@ -281,6 +281,12 @@ export class Core {
         itemCount: latest?.items.length ?? 0,
         current: j.id === this.state.currentJobId,
         icon: latest ? iconFor(latest.items) : 'stack',
+        preview: (latest?.items ?? []).slice(0, 8),
+        counts: {
+          tabs: latest?.items.filter((i) => i.kind === 'tab').length ?? 0,
+          files: latest?.items.filter((i) => i.kind === 'doc' || i.kind === 'folder').length ?? 0,
+          apps: latest?.items.filter((i) => i.kind === 'app').length ?? 0,
+        },
       });
     }
     return out;
@@ -364,6 +370,14 @@ export class Core {
     // A moment later, note what's open, so anything opened after this can be suggested for the job.
     setTimeout(() => void this.recordBaseline(jobId), 2500);
     return result;
+  }
+
+  /** Opens one thing from a folder's latest save (clicking a tab or file card). */
+  async openItem(jobId: string, key: string): Promise<OpenResult> {
+    const latest = await this.store.latest(jobId);
+    const item = latest?.items.find((i) => i.key === key);
+    if (!item) throw new Error('That is no longer in this folder.');
+    return openItems([item], null, this.settings.get());
   }
 
   /** Swap one item in a save (used when an untitled document gets saved with a name). */
