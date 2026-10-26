@@ -35,7 +35,6 @@ const api = {
   renameJob: (jobId: string, name: string) => invoke<void>('jobs:rename', jobId, name),
   setDone: (jobId: string, done: boolean) => invoke<void>('jobs:done', jobId, done),
   deleteJob: (jobId: string) => invoke<boolean>('jobs:delete', jobId),
-  deleteAll: () => invoke<boolean>('data:deleteAll'),
 
   openWindow: (route: 'save' | 'pack' | 'main' | 'settings') => invoke<boolean>('window:open', route),
   closeWindow: () => invoke<boolean>('window:close'),

@@ -157,12 +157,11 @@ function MainView() {
 
 function Home({ jobs, onOpen, shortcut }: { jobs: JobSummary[]; onOpen: (id: string) => void; shortcut: string }) {
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<'recent' | 'name'>('recent');
   const [showFinished, setShowFinished] = useState(false);
 
   const q = query.trim().toLowerCase();
   const matches = (j: JobSummary) => !q || j.name.toLowerCase().includes(q) || j.hint.toLowerCase().includes(q) || j.preview.some((i) => i.label.toLowerCase().includes(q));
-  const order = (list: JobSummary[]) => [...list].sort((a, b) => (sort === 'name' ? a.name.localeCompare(b.name) : b.updatedAt.localeCompare(a.updatedAt)));
+  const order = (list: JobSummary[]) => [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const current = jobs.filter((j) => j.current && !j.done && matches(j));
   const active = order(jobs.filter((j) => !j.current && !j.done && matches(j)));
   const done = order(jobs.filter((j) => j.done && matches(j)));
@@ -199,19 +198,6 @@ function Home({ jobs, onOpen, shortcut }: { jobs: JobSummary[]; onOpen: (id: str
                 </button>
               )}
             </label>
-            <span className="segmented" role="radiogroup" aria-label="Sort">
-              {(
-                [
-                  ['recent', 'Recent'],
-                  ['name', 'A–Z'],
-                ] as const
-              ).map(([id, label]) => (
-                <button key={id} role="radio" aria-checked={sort === id} className={sort === id ? 'on' : ''} onClick={() => setSort(id)}>
-                  {sort === id && <motion.span layoutId="sort" className="seg-thumb" />}
-                  <span className="seg-label">{label}</span>
-                </button>
-              ))}
-            </span>
           </div>
 
           {current.length > 0 && (

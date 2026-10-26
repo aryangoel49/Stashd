@@ -9,12 +9,11 @@ import { AnimatePresence, Button, motion, spring } from './ui';
 import { api, errorText, prettyShortcut, useSettings } from './api';
 
 
-type Section = 'general' | 'briefs' | 'privacy' | 'data';
+type Section = 'general' | 'briefs' | 'privacy';
 const SECTIONS: [Section, string][] = [
   ['general', 'General'],
   ['briefs', 'Briefs & AI'],
   ['privacy', 'Privacy'],
-  ['data', 'Data'],
 ];
 
 export function SettingsView() {
@@ -152,18 +151,6 @@ export function SettingsView() {
       <Card title="Everyday apps and sites" hint="These never go in a folder and are never closed by Pack up. The app also learns these as you go. One per line.">
         <ListRow label="Apps" value={s.lifestyleApps} onSave={(v) => void update({ lifestyleApps: v })} />
         <ListRow label="Sites" value={s.lifestyleSites} onSave={(v) => void update({ lifestyleSites: v })} />
-      </Card>
-            </>
-          )}
-          {tab === 'data' && (
-            <>
-      <Card title="Your data" hint="Everything Stashd saves stays on this Mac: your folders, their history and what it has learned.">
-        <div className="srow">
-          <span>Delete every saved folder</span>
-          <Button variant="danger" size="small" onClick={() => void api.deleteAll()}>
-            Delete everything…
-          </Button>
-        </div>
       </Card>
             </>
           )}

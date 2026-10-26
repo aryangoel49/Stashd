@@ -1,6 +1,6 @@
 // The app's actions, shared by the menu bar, keyboard shortcuts and the windows.
 
-import { promises as fs, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { BriefView, Capture, Item, Job, JobSummary, OpenResult, SaveEntry, SavePreview, SaveRequest, SaveResult } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
@@ -42,12 +42,9 @@ export class Core {
   private listeners: (() => void)[] = [];
   private state: State;
   private readonly stateFile: string;
-  private readonly keyFile: string;
   private pending: PendingSave | null = null;
   private writing = new Set<string>();
   writers: BriefWriter[] = [];
-  /** The old Where Was I data folder, so Delete everything removes that copy too. */
-  legacyDir?: string;
   /** The on-device meaning model (optional: sorting works without it). */
   meaning?: Meaning;
 
@@ -61,7 +58,6 @@ export class Core {
     private readonly fakeCapture?: () => Promise<Capture>,
   ) {
     this.stateFile = path.join(dataDir, 'state.json');
-    this.keyFile = path.join(dataDir, 'api-key.bin');
     let raw: Partial<State> = {};
     try {
       raw = JSON.parse(readFileSync(this.stateFile, 'utf8')) as Partial<State>;
@@ -452,15 +448,6 @@ export class Core {
   async deleteJob(jobId: string): Promise<void> {
     await this.store.delete(jobId);
     if (this.state.currentJobId === jobId) await this.setCurrent(null);
-    this.notify();
-  }
-
-  async deleteAll(): Promise<void> {
-    await this.store.deleteAll();
-    this.state = { currentJobId: null, appUnticks: {}, baseline: null };
-    await fs.rm(this.stateFile, { force: true });
-    await fs.rm(this.keyFile, { force: true });
-    if (this.legacyDir) await fs.rm(this.legacyDir, { recursive: true, force: true });
     this.notify();
   }
 }
