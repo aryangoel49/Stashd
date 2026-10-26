@@ -19,15 +19,15 @@ Everything stays on your Mac. The only time it goes online is to write Claude br
 
 | | |
 |---|---|
-| **1 · Stash** | Press **⌃S**. Stashd sees what's open, suggests a short folder name and ticks what belongs. Add a note for later if you like. |
+| **1 · Stash** | Press **⌃S**. Stashd sees what's open, works out which project you're on and ticks only what belongs to it. If it's work you saved before, the box says **Your folder** in yellow and shows what's new since last time. Add a note for later if you like. |
 | **2 · Save or Pack up** | **Save** keeps everything open. **Pack up** also closes the windows, which fly into the menu bar with a soft whoosh. **Undo** is there for 2 seconds. |
-| **3 · Pick up** | Press **⌃W** or click the menu bar folder, then **Unpack**: what you need opens straight away, and a short brief says where you left off. |
+| **3 · Pick up** | Press **⌃W** or click the menu bar folder, then **Unpack**: everything in the folder reopens, with what you were on last in front, and a short brief says where you left off. |
 
 Every folder gets its own colour. In the app window, **All folders** shows them as cards, and inside a folder every tab, file and app is a card you can click to open on its own.
 
 ## Install
 
-Needs a Mac with Apple silicon (M1 or later).
+The download needs a Mac with Apple silicon (M1 or later) and macOS 12 or newer. On an Intel Mac, build it yourself (below).
 
 1. **[Download Stashd.dmg](https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg)** from the latest release.
 2. Open it and drag **Stashd** into **Applications**. If it asks, click **Replace** to update an older version.
@@ -42,6 +42,18 @@ xattr -dr com.apple.quarantine /Applications/Stashd.app
 ```
 </details>
 
+<details>
+<summary>Intel Mac, or rather have Claude set it up?</summary>
+
+Paste this into Claude Code. It builds Stashd on your own Mac, so there's no "can't check for malware" step and it works on Intel too:
+
+> Download and install the Stashd app from https://github.com/aryangoel49/Stashd. Clone it, install Node and the Xcode Command Line Tools if missing, run `npm install`, then `npm run install-local` to build it into /Applications and open it.
+</details>
+
+### Updating
+
+Stashd doesn't update itself yet. To get the newest version, download **Stashd.dmg** again and click **Replace**, or ask Claude to "pull the latest Stashd and run `npm run install-local`". Your folders are kept.
+
 > [!TIP]
 > The first time you stash with Chrome, Safari, Word and so on open, macOS asks for permission to control that app (once per app). Click **OK**. That's how Stashd reads tab addresses and which files are open. If you clicked "Don't Allow", the save box shows a button that opens the right System Settings page.
 
@@ -49,10 +61,11 @@ xattr -dr com.apple.quarantine /Applications/Stashd.app
 
 | You want to… | Do this |
 |---|---|
-| Stash what you're working on | **⌃S**, optional note, **Enter** |
+| Stash what you're working on | **⌃S**, optional note, **Enter** (works from anywhere in the box) |
+| Close the save box without saving | **Cancel**, or **Esc** |
 | Clear your screen too | Click **Pack up** instead of Save |
 | See where you were | Click the menu bar icon, or **⌃W** |
-| Get back to work | **Unpack** (what you need) or **Open everything** |
+| Get back to work | **Unpack**: everything reopens, what you were on last in front |
 | Fix what's in a folder | Open Stashd: remove a card with ✕, or drag it onto another folder |
 | Rename, finish or delete a folder | In the folder's brief, click **…** |
 
@@ -63,7 +76,7 @@ xattr -dr com.apple.quarantine /Applications/Stashd.app
 Each brief is written by the first of these that's available:
 
 1. **Claude**, if you connected it (Settings → Claude). Costs about $0.0003 per brief. It gets file names, tab titles and addresses with secrets removed, plus your note. It never sees what's inside your files.
-2. **Apple Intelligence** on your Mac, if it's turned on. Free and offline.
+2. **Apple Intelligence** on your Mac, if it's turned on (macOS 26 or later on Apple silicon). Free and offline.
 3. A **basic brief** from a template, so there's always something.
 
 The bottom of each brief says which one wrote it. Click **No** under "Helpful?" to say what was wrong, and the next brief for that folder takes it into account.
