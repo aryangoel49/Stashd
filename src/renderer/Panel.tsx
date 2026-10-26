@@ -5,7 +5,7 @@ import { mostlyOpen, type BriefView, type JobSummary, type OpenState, type Setti
 import { api, errorText, prettyShortcut, timeAgo, useFitWindow, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
-import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './slash';
+import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './deleteFx';
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
 import { folderTone, toneStyle } from './visuals';
 

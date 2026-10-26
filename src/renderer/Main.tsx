@@ -9,7 +9,7 @@ import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
 import { SettingsView } from './SettingsView';
 import { FolderMergeHint, SuggestionStrip, useSuggestions } from './Suggestions';
-import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './slash';
+import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './deleteFx';
 import { AnimatePresence, Button, FolderMark, motion, Motion } from './ui';
 import { describe, folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
 
