@@ -11,6 +11,7 @@ Node lives at `~/.local/node/bin` (`export PATH=~/.local/node/bin:$PATH`).
 - **One commit per piece of work.** Commit only the files that belong to it, never `git add -A`. Leave other chats' and Vansh's uncommitted files alone.
 - **Before committing:** `git fetch` and fast-forward if GitHub is ahead (Vansh pushes too). Then `npx tsc --noEmit -p .` and `npx vitest run` must pass. Never force-push, rewrite pushed history, or skip hooks.
 - **Push after each commit** unless Aryan says to hold. Report back with the commit and the new version.
+- **Then put it on Aryan's Mac.** After pushing any app change, run `npm run install-local`. It builds Stashd, replaces `/Applications/Stashd.app`, and opens it, so he can see the change himself. Tell him it's updated and where to look. macOS may ask for Automation permission again after a new build.
 
 ## Working style
 
