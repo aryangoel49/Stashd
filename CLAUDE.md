@@ -16,4 +16,5 @@ Node lives at `~/.local/node/bin` (`export PATH=~/.local/node/bin:$PATH`).
 ## Working style
 
 - Aryan is not a programmer: plain words, short replies, screenshots when they help.
+- When Aryan asks for something, do it all the way (build, commit, push, install) without stopping to ask "should I?". Only check with him first for destructive steps he didn't ask for, like force-pushing, deleting data or rewriting history.
 - Test the real app in a test copy, never his installed app. Use `WWI_USER_DATA`, `WWI_CAPTURE_DIR` and `WWI_FAKE_CAPTURE` (see `src/main.ts`).
