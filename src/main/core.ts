@@ -311,7 +311,10 @@ export class Core {
       const open = new Set(cap.items.map(looseKey));
       const out: Record<string, OpenState> = {};
       for (const j of await this.store.list()) {
-        const items = ((await this.store.latest(j.id))?.items ?? []).filter((i) => i.kind !== 'app');
+        // Apps don't count (Slack being open doesn't mean a folder is), unless a folder holds only apps.
+        const all = (await this.store.latest(j.id))?.items ?? [];
+        const content = all.filter((i) => i.kind !== 'app');
+        const items = content.length ? content : all;
         out[j.id] = { open: items.filter((i) => open.has(looseKey(i))).length, total: items.length };
       }
       return out;

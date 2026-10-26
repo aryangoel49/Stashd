@@ -57,6 +57,14 @@ export class Helper {
     return paths.map((_, i) => (typeof out.icons?.[i] === 'string' ? (out.icons[i] as string) : null));
   }
 
+  /** Hide these apps (like ⌘H) without quitting them. Returns the names that are now hidden. */
+  async hideApps(names: string[]): Promise<string[]> {
+    if (!names.length) return [];
+    const r = await run(this.binary, ['hide'], { timeoutMs: 4000, input: JSON.stringify(names) });
+    const out = JSON.parse(r.stdout) as { hidden?: unknown };
+    return Array.isArray(out.hidden) ? out.hidden.filter((n): n is string => typeof n === 'string') : [];
+  }
+
   /** Ask Apple's on-device model. Throws if it is unavailable or fails. */
   async appleBrief(instructions: string, prompt: string): Promise<string> {
     const r = await run(this.binary, ['brief'], { timeoutMs: 45_000, input: JSON.stringify({ instructions, prompt }) });

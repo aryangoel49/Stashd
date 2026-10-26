@@ -6,7 +6,7 @@ import { api, errorText, prettyShortcut, timeAgo, useFitWindow, useSettings } fr
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
-import { BadgeStrip, folderTone, toneStyle } from './visuals';
+import { folderTone, toneStyle } from './visuals';
 
 export function Panel() {
   return (
@@ -152,9 +152,6 @@ function JobList(props: {
               <span className="live" /> Open now
             </span>
             <span className="now-name">{current.name}</span>
-            <span className="now-strip">
-              <BadgeStrip items={current.preview} size={18} />
-            </span>
           </button>
           <div className="now-actions">
             <Button variant="primary" size="small" onClick={() => void api.openWindow('pack')} title="Save this folder and close its windows">
@@ -220,7 +217,6 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
         <span className="hint" style={{ display: 'block' }}>
           {opened ?? (
             <>
-              <BadgeStrip items={job.preview} size={14} max={4} />
               <span>{allOpen ? 'All open' : someOpen ? `${state!.open} of ${state!.total} open` : job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
             </>
           )}

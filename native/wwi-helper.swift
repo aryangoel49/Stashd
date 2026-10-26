@@ -7,6 +7,8 @@
 //   wwi-helper status    Prints whether Apple Intelligence is available.
 //   wwi-helper icons     Reads a JSON list of file or app paths on stdin and prints their Finder
 //                        icons as small PNG data URLs (for the tidy-up animation).
+//   wwi-helper hide      Reads a JSON list of app names on stdin and hides those apps (like ⌘H), for
+//                        Pack up. Nothing is quit, so no work is lost; reopening the app shows it again.
 //
 // Output is always one line of JSON on stdout.
 
@@ -137,13 +139,29 @@ func iconsCommand() {
     printJSON(["icons": out])
 }
 
+func hideCommand() {
+    let input = FileHandle.standardInput.readDataToEndOfFile()
+    guard let names = try? JSONSerialization.jsonObject(with: input) as? [String] else {
+        printJSON(["error": "bad input"])
+        return
+    }
+    let wanted = Set(names.map { $0.lowercased() })
+    var hidden: [String] = []
+    for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+        guard let name = app.localizedName, wanted.contains(name.lowercased()) else { continue }
+        if app.isHidden || app.hide() { hidden.append(name) }
+    }
+    printJSON(["hidden": hidden])
+}
+
 let args = CommandLine.arguments
 switch args.count > 1 ? args[1] : "" {
 case "windows": windowsCommand()
 case "brief": briefCommand()
 case "status": statusCommand()
 case "icons": iconsCommand()
+case "hide": hideCommand()
 default:
-    printJSON(["error": "usage: wwi-helper windows|brief|status|icons"])
+    printJSON(["error": "usage: wwi-helper windows|brief|status|icons|hide"])
     exit(2)
 }

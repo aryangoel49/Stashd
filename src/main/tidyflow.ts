@@ -91,13 +91,21 @@ export class TidyFlow {
     // 2. Animate and close together: icons start flying, then the windows close behind them.
     // Only things that are actually open get closed (kept items that were already closed are skipped).
     const closable = entry.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen);
-    if (!closable.length) {
+    // Apps in the folder (Terminal, say) are hidden, never quit, so nothing running is lost.
+    const apps = entry.items.filter((i) => i.kind === 'app' && !i.notOpen);
+    if (!closable.length && !apps.length) {
       this.toast({ title: 'Nothing to close', detail: `${job.name} is saved. Its windows stay open.`, canUndo: false, mood: 'awake' });
       return;
     }
-    const animation = this.play(closable, false);
+    const animation = this.play([...closable, ...apps], false);
     await wait(120);
-    const { closed, failed } = await closeItems(closable, this.urlOptions());
+    const [{ closed, failed }, hiddenNames] = await Promise.all([
+      closeItems(closable, this.urlOptions()),
+      apps.length ? this.core.helper.hideApps(apps.map((a) => a.app)).catch(() => [] as string[]) : Promise.resolve([] as string[]),
+    ]);
+    const hidden = new Set(hiddenNames.map((n) => n.toLowerCase()));
+    closed.push(...apps.filter((a) => hidden.has(a.app.toLowerCase())));
+    failed.push(...apps.filter((a) => !hidden.has(a.app.toLowerCase())));
     await animation;
     this.setUndo(closed, entry.frontKey);
     const left = failed.length + entry.items.filter((i) => i.untitled).length;
