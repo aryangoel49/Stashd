@@ -76,7 +76,8 @@ async function slash(copy: HTMLElement, rect: DOMRect, original: HTMLElement | n
     width: `${length}px`,
     height: '2px',
     borderRadius: '2px',
-    background: '#1C1D22',
+    // The eyes' ink in light mode; in dark mode a near-white line, so the cut shows on dark cards.
+    background: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#F2F2F7' : '#1C1D22',
     transformOrigin: '0 50%',
     transform: `rotate(${angle}deg) scaleX(0)`,
   });
