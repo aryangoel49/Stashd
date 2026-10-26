@@ -89,8 +89,8 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     return result;
   });
   handle('save:aiName', (_e, keys) => {
-    if (!Array.isArray(keys) || keys.length > 500) throw new Error('bad items');
-    return core.aiName(keys.map((k) => v.str(k, 'item', 4200)));
+    if (!Array.isArray(keys) || keys.length > v.MAX_ITEMS) throw new Error('bad items');
+    return core.aiName(keys.filter((k) => typeof k !== 'string' || k.length <= v.MAX_KEY).map(v.itemKey));
   });
   handle('save:cancel', () => {
     core.cancelSave();
@@ -106,9 +106,9 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('jobs:open', (_e, id, entry, mode) =>
     core.open(v.jobId(id), entry == null ? undefined : v.entryId(entry), v.openMode(mode), hooks.beforeOpen),
   );
-  handle('jobs:openItem', (_e, id, key) => core.openItem(v.jobId(id), v.str(key, 'item', 4200)));
-  handle('jobs:removeItem', (_e, id, key) => core.removeItem(v.jobId(id), v.str(key, 'item', 4200)));
-  handle('jobs:moveItem', (_e, from, key, to) => core.moveItem(v.jobId(from), v.str(key, 'item', 4200), v.jobId(to)));
+  handle('jobs:openItem', (_e, id, key) => core.openItem(v.jobId(id), v.itemKey(key)));
+  handle('jobs:removeItem', (_e, id, key) => core.removeItem(v.jobId(id), v.itemKey(key)));
+  handle('jobs:moveItem', (_e, from, key, to) => core.moveItem(v.jobId(from), v.itemKey(key), v.jobId(to)));
   handle('jobs:rename', (_e, id, name) => core.rename(v.jobId(id), v.jobName(name)));
   handle('jobs:done', (_e, id, done) => core.setDone(v.jobId(id), v.bool(done, 'done')));
   handle('jobs:delete', async (event, id) => {

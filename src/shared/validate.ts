@@ -165,7 +165,12 @@ export function normalizeStoredSettings(raw: unknown): Settings {
 
 /** Most things one save can hold, and the longest item address accepted. */
 export const MAX_ITEMS = 1000;
-const MAX_KEY = 65_536;
+export const MAX_KEY = 65_536;
+
+/** One item's key (its address or file path), as sent from the windows. */
+export function itemKey(v: unknown): string {
+  return str(v, 'item', MAX_KEY);
+}
 
 export function saveRequest(v: unknown): SaveRequest {
   if (!isPlainObject(v)) fail('bad save request');

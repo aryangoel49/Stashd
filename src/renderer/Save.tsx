@@ -309,6 +309,7 @@ function SaveBox() {
             </Reveal>
 
             {preview && <PermissionNote errors={preview.errors} />}
+            {preview && <LimitNote errors={preview.errors} />}
             {error && <div className="banner no-drag">{error}</div>}
 
             <div className="save-foot no-drag">
@@ -381,6 +382,17 @@ const BROWSER_NAMES: Record<string, string> = { chrome: 'Chrome', arc: 'Arc', sa
 function appName(collector: string): string {
   const [kind, name] = collector.split(':');
   return kind === 'browser' ? (BROWSER_NAMES[name] ?? name) : (name ?? collector).replace('Microsoft ', '');
+}
+
+/** Too many tabs open to save them all: say so instead of leaving some out silently. */
+function LimitNote({ errors }: { errors: CollectorError[] }) {
+  const limit = errors.find((e) => e.collector === 'browser:limit');
+  if (!limit) return null;
+  return (
+    <div className="banner no-drag" role="status">
+      <span>{limit.message}</span>
+    </div>
+  );
 }
 
 function PermissionNote({ errors }: { errors: CollectorError[] }) {
