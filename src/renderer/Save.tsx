@@ -149,6 +149,7 @@ function SaveBox() {
   const all = useMemo(() => (preview ? [...preview.sure, ...preview.likely, ...preview.maybe, ...preview.kept] : []), [preview]);
   const chosen = all.filter((i) => picked.has(i.key));
   const likelyLeft = preview?.likely.filter((i) => !picked.has(i.key)) ?? [];
+  const nothingOpen = !!preview && !preview.sure.length && !preview.kept.length && !preview.likely.length && !preview.maybe.length;
 
   // The folder looks at what it's talking about: the related things when there are some, and the
   // Save button once you've paused after typing a note.
@@ -291,7 +292,9 @@ function SaveBox() {
               )}
             </div>
 
-            {likelyLeft.length > 0 ? (
+            {nothingOpen ? (
+              <p className="save-intro">Nothing open to stash right now. Open the tabs or files you're working on, then try again.</p>
+            ) : likelyLeft.length > 0 ? (
               <p className="save-intro">
                 {likelyLeft.length === 1 ? '1 more thing looks related.' : `${likelyLeft.length} more things look related.`} Want {likelyLeft.length === 1 ? 'it' : 'them'} in?
               </p>
@@ -309,7 +312,7 @@ function SaveBox() {
               aria-label="Note for later"
             />
 
-            <Reveal show={expanded && !!preview}>
+            <Reveal show={expanded && !!preview && !nothingOpen}>
               {preview && (
                 <div className="groups no-drag">
                   <Group label={isNew ? 'Going in' : 'In this folder'}>

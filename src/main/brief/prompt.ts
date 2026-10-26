@@ -43,7 +43,9 @@ export function buildPromptData(entry: SaveEntry, previous: SaveEntry | null, fe
     const id = `i${n + 1}`;
     idToKey.set(id, it.key);
     const base: Record<string, unknown> = { id, kind: it.kind, name: redactCommand(it.label), app: it.app };
-    if (it.url) base.address = redactUrlString(it.url).slice(0, 200);
+    // A PDF from this Mac opened in the browser: only its file name, never the path.
+    if (it.url?.startsWith('file:')) base.address = decodeURIComponent(it.url.split('/').pop() ?? '').slice(0, 200);
+    else if (it.url) base.address = redactUrlString(it.url).slice(0, 200);
     if (it.kind === 'doc' && it.detail && !it.untitled) base.folder = it.detail;
     if (it.untitled) base.unsaved = true;
     if (it.active) base.activeInItsWindow = true;

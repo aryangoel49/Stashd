@@ -72,6 +72,7 @@ The bottom of each brief says which one wrote it. Click **No** under "Helpful?" 
 
 - Folders live on disk in `~/Library/Application Support/Stashd/jobs/`.
 - Your Claude key is stored encrypted in the macOS keychain.
+- Incognito windows in Chrome and Arc are never saved or closed. **Safari Private windows can't be told apart** (Safari doesn't let other apps see that), so close them before you stash, or leave Safari unticked in Settings.
 - `tests/privacy.test.ts` fails the build if anything except `src/main/brief/claude.ts` tries to use the internet.
 
 ---

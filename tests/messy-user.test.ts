@@ -257,3 +257,22 @@ describe('Pack up on a folder that holds only an app', () => {
     expect(p.sure.map((i) => i.key)).toContain(terminal.key);
   });
 });
+
+describe('second round (known bugs)', () => {
+  // KNOWN BUG: a local PDF opened in Chrome (file://) is never saved.
+  it('keeps a PDF from the Mac opened in Chrome', () => {
+    expect(cleanTabUrl('file:///Users/me/Downloads/Lecture%205.pdf', DEFAULT_SETTINGS)).not.toBeNull();
+  });
+
+  it('a second new folder with the same name gets told apart', async () => {
+    open = [tab(1, 'Essay outline')];
+    const core = makeCore();
+    for (let i = 0; i < 2; i++) {
+      core.beginSave();
+      await core.preview({ asNew: true });
+      await core.commitSave({ jobId: null, name: 'Essay', note: '', keys: [open[0].key], tidy: false });
+    }
+    const names = (await core.listJobs()).map((j) => j.name);
+    expect(new Set(names).size).toBe(2);
+  });
+});

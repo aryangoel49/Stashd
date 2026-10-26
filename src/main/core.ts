@@ -229,7 +229,11 @@ export class Core {
       job = await this.store.get(req.jobId);
       job.name = req.name;
     } else {
-      job = await this.store.create(req.name, now);
+      // A second folder with the same name gets a number, so the two can be told apart.
+      const taken = new Set((await this.store.list()).map((j) => j.name.trim().toLowerCase()));
+      let name = req.name.trim();
+      for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${req.name.trim()} ${n}`;
+      job = await this.store.create(name, now);
     }
     job.prefs = learn(job.prefs, offered, req.keys);
     job.updatedAt = now.toISOString();
@@ -261,7 +265,8 @@ export class Core {
     // Only clear it if no newer save box has started in the meantime.
     if (this.pending === pending) this.pending = null;
     this.notify();
-    void this.ensureBrief(job.id, entry.id);
+    // The folder may be deleted while its brief is still being written; that's fine.
+    void this.ensureBrief(job.id, entry.id).catch(() => undefined);
     return { jobId: job.id, entryId: entry.id, needsNaming: req.tidy ? items.filter((i) => i.untitled) : [] };
   }
 

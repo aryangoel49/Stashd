@@ -34,7 +34,8 @@ const PAGE_PARAMS = new Set(['v', 'list', 'id', 'p', 'page', 'q', 'query', 'sear
 
 /**
  * Returns a cleaned URL to save, or null if the tab should be dropped.
- * Only http and https pages are kept (no chrome://, file://, about: and so on).
+ * Only http and https pages are kept, plus PDFs from this Mac opened in the browser
+ * (no chrome://, about:, other file:// pages and so on).
  */
 export function cleanTabUrl(raw: string, opts: UrlOptions): string | null {
   let u: URL;
@@ -43,6 +44,7 @@ export function cleanTabUrl(raw: string, opts: UrlOptions): string | null {
   } catch {
     return null;
   }
+  if (u.protocol === 'file:') return /\.pdf$/i.test(u.pathname) ? u.href : null;
   if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
   if (isExcluded(u, opts.excludedDomains)) return null;
   u.username = '';
