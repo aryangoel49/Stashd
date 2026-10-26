@@ -491,7 +491,6 @@ function EditableTitle({ jobId, name }: { jobId: string; name: string }) {
   return (
     <button className="page-title title-button" onClick={() => setEditing(true)} title="Click to rename">
       {name}
-      <Icon name="pencil" className="i title-pencil" />
     </button>
   );
 }

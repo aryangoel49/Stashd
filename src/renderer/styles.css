@@ -525,7 +525,5 @@ details summary { cursor: default; }
 /* Folder title in the app window: click to rename. */
 .title-button { display: inline-flex; align-items: center; gap: 10px; border: none; background: none; padding: 2px 8px; margin: 0 -8px; border-radius: 10px; color: inherit; text-align: left; cursor: text; }
 .title-button:hover { background: var(--tone-soft); }
-.title-pencil { width: 16px !important; height: 16px !important; opacity: 0; color: var(--tone-ink); transition: opacity 0.15s; }
-.title-button:hover .title-pencil { opacity: 0.8; }
 .title-edit { border: none; outline: none; padding: 2px 8px; margin: 0 -8px; border-radius: 10px; width: min(100%, 560px); background: rgba(255, 255, 255, 0.85); box-shadow: inset 0 0 0 1.5px var(--tone-line), 0 0 0 3px var(--tone-soft); user-select: text; }
 .job-row .tool-btn.delete { flex: none; }
