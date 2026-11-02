@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Install Stashd</title>
+<meta name="description" content="Download Stashd and set it up on your Mac in five short steps.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Same look as the home page: butter-yellow folder, ink, warm paper under a slow drifting light.
+   One step per row, each with a small picture of exactly what you'll see on your Mac. */
+:root {
+  --paper: #fffcf3; --ink: #1c1d22; --ink-soft: #55554f; --butter: #f2cd5c; --butter-deep: #e4b93b; --cream: #fbefc6; --line: #ece3c7;
+  --card: rgba(255, 253, 246, 0.85);
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Hanken Grotesk", -apple-system, system-ui, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: inherit; }
+svg { display: block; }
+button { font: inherit; }
+h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -0.025em; text-wrap: balance; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--butter-deep); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 980px; margin: 0 auto; padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+.sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.sky .blob { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; opacity: 0.55; }
+.sky .b1 { background: radial-gradient(closest-side, rgba(242,205,92,0.55), rgba(242,205,92,0)); left: -18vmax; top: -22vmax; animation: d1 38s ease-in-out infinite alternate; }
+.sky .b2 { background: radial-gradient(closest-side, rgba(247,201,170,0.5), rgba(247,201,170,0)); right: -24vmax; top: 20vh; animation: d2 46s ease-in-out infinite alternate; }
+.sky .b3 { background: radial-gradient(closest-side, rgba(214,226,240,0.6), rgba(214,226,240,0)); left: 20vw; bottom: -36vmax; animation: d1 52s ease-in-out infinite alternate-reverse; }
+@keyframes d1 { to { transform: translate(14vw, 10vh) scale(1.12); } }
+@keyframes d2 { to { transform: translate(-16vw, 18vh) scale(0.92); } }
+
+.nav { display: flex; align-items: center; gap: 20px; padding-block: 18px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 21px var(--display); text-decoration: none; }
+.brand svg { width: 34px; height: 34px; }
+.nav a.back { margin-left: auto; font-size: 16px; color: var(--ink-soft); text-decoration: none; }
+.nav a.back:hover { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; font: 600 17px var(--body); text-decoration: none; cursor: pointer; background: var(--butter); color: var(--ink); padding: 14px 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 6px 18px rgba(214,170,40,0.3); transition: transform 0.16s, background 0.2s; }
+.btn:hover { background: #f5d672; }
+.btn:active { transform: scale(0.97); }
+
+.top { display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center; padding-block: 36px 24px; }
+.top .mascot svg { width: 104px; height: 104px; filter: drop-shadow(0 12px 22px rgba(214,170,40,0.35)); }
+.top h1 { font-size: clamp(40px, 6vw, 64px); line-height: 1; font-weight: 800; }
+.top p { margin-top: 12px; font-size: 19px; color: var(--ink-soft); }
+.status { margin-top: 18px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 16px; color: var(--ink-soft); }
+.need { margin-top: 10px; font-size: 15px; color: var(--ink-soft); }
+
+.steps { list-style: none; margin: 40px 0 0; padding: 0; display: grid; gap: 18px; counter-reset: s; }
+.step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: center; background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 26px; padding: 26px 28px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.step .num { width: 34px; height: 34px; border-radius: 50%; background: var(--butter); display: grid; place-items: center; font: 800 16px var(--display); margin-bottom: 12px; }
+.step h2 { font-size: 26px; line-height: 1.15; }
+.step p { margin-top: 8px; color: var(--ink-soft); font-size: 17px; }
+.step p b { color: var(--ink); font-weight: 600; }
+.pic { background: rgba(28,29,34,0.05); border-radius: 18px; min-height: 170px; display: grid; place-items: center; padding: 18px; }
+
+/* little pictures of what you'll see */
+.dmg { display: flex; align-items: center; gap: 22px; background: #fff; border-radius: 14px; padding: 18px 24px; box-shadow: 0 10px 26px rgba(0,0,0,0.08); }
+.dmg .app { text-align: center; font-size: 13px; }
+.dmg .app svg { width: 60px; height: 60px; margin: 0 auto 6px; }
+.dmg .apps { width: 60px; height: 52px; border-radius: 10px; background: linear-gradient(160deg, #6cb4f7, #2f7fd6); margin: 0 auto 6px; position: relative; }
+.dmg .apps::after { content: "A"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font: 800 22px var(--display); }
+.arrow { font-size: 28px; color: var(--butter-deep); animation: nudge 1.6s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: translateX(6px); } }
+.alert { background: #fff; border-radius: 14px; padding: 16px 18px; width: 100%; max-width: 330px; box-shadow: 0 10px 26px rgba(0,0,0,0.08); font-size: 13.5px; }
+.alert b { display: block; font-size: 14px; margin-bottom: 4px; }
+.alert .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.alert .b { border-radius: 8px; padding: 4px 14px; background: #ecebe6; font-weight: 600; font-size: 13px; }
+.alert .b.go { background: #0a84ff; color: #fff; box-shadow: 0 0 0 3px rgba(242,205,92,0.9); }
+.settings { background: #fff; border-radius: 14px; width: 100%; max-width: 330px; box-shadow: 0 10px 26px rgba(0,0,0,0.08); font-size: 13px; overflow: hidden; }
+.settings .bar { background: #f1f0ec; padding: 8px 12px; font-weight: 600; }
+.settings .line { padding: 12px; display: flex; align-items: center; gap: 10px; justify-content: space-between; }
+.settings .b.go { border-radius: 8px; padding: 4px 12px; background: #ecebe6; font-weight: 600; box-shadow: 0 0 0 3px rgba(242,205,92,0.9); white-space: nowrap; }
+.mbar { width: 100%; max-width: 330px; height: 34px; border-radius: 10px; background: #2a2f3a; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 0 12px; color: #ecebe4; font-size: 12.5px; position: relative; }
+.mbar svg { width: 26px; height: 22px; }
+.mbar .ring { position: absolute; right: 74px; top: 2px; width: 34px; height: 30px; border-radius: 8px; box-shadow: 0 0 0 3px rgba(242,205,92,0.9); animation: ring 1.8s ease-in-out infinite; }
+@keyframes ring { 50% { opacity: 0.35; } }
+.keys { display: flex; gap: 10px; margin-top: 16px; justify-content: center; }
+.key { min-width: 52px; height: 50px; padding: 0 12px; border-radius: 11px; background: #fff; border: 1px solid var(--line); box-shadow: 0 4px 0 #e2d7b4; display: grid; place-items: center; font: 700 16px var(--display); }
+.key.wide { font-size: 13px; color: var(--ink-soft); }
+
+.extras { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+.extra { background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 22px; padding: 22px 24px; }
+.extra h3 { font-size: 21px; }
+.extra p { margin-top: 8px; color: var(--ink-soft); font-size: 16px; }
+.prompt { margin-top: 12px; background: #fff; border: 1px solid #eee8d5; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.5; user-select: all; }
+.copy { margin-top: 10px; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 7px 14px; font-weight: 600; font-size: 14px; cursor: pointer; }
+footer { margin-top: 72px; border-top: 1px solid var(--line); padding-block: 26px 40px; font-size: 15px; color: var(--ink-soft); }
+footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; }
+
+.folder .closed, .folder .happy { opacity: 0; }
+.folder.smile .open { opacity: 0; }
+.folder.smile .happy { opacity: 1; }
+.folder .pupils { transition: transform 0.2s; }
+.folder .lids { transform-box: fill-box; transform-origin: 50% 60%; transition: transform 0.14s; }
+.folder.blink .lids { transform: scaleY(0.1); }
+
+@media (max-width: 760px) {
+  .step { grid-template-columns: 1fr; }
+  .top { grid-template-columns: 1fr; }
+  .extras { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<header class="wrap nav">
+  <a class="brand" href="./"><span data-folder></span>Stashd</a>
+  <a class="back" href="./">Back to home</a>
+</header>
+
+<main class="wrap">
+  <div class="top">
+    <div class="mascot" id="mascot"><span data-folder></span></div>
+    <div>
+      <h1>Let's get Stashd on your Mac.</h1>
+      <p>Five short steps, about a minute.</p>
+      <div class="status"><span id="status">Your download should start in a moment.</span><a class="btn" id="dl" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download Stashd</a></div>
+      <p class="need">Free. Needs a Mac with Apple silicon (M1 or newer) and macOS 12 or later.</p>
+    </div>
+  </div>
+
+  <ol class="steps">
+    <li class="step">
+      <div><div class="num">1</div><h2>Open the download</h2><p>Find <b>Stashd.dmg</b> in your Downloads folder, or click it at the bottom of your browser, and double-click it.</p></div>
+      <div class="pic"><div class="alert"><b>Downloads</b><div style="display:flex;gap:10px;align-items:center;margin-top:6px"><span style="width:30px;height:34px;border-radius:5px;background:#e9e5d8;display:grid;place-items:center;font:700 9px var(--body);color:#7a7462">DMG</span>Stashd.dmg<span style="margin-left:auto;color:#8a887e">just now</span></div></div></div>
+    </li>
+    <li class="step">
+      <div><div class="num">2</div><h2>Drag Stashd into Applications</h2><p>A small window opens. Drag the <b>Stashd</b> icon onto the <b>Applications</b> folder. If it asks, click <b>Replace</b>.</p></div>
+      <div class="pic"><div class="dmg"><div class="app"><span data-folder data-tile></span>Stashd</div><span class="arrow" aria-hidden="true">→</span><div class="app"><div class="apps"></div>Applications</div></div></div>
+    </li>
+    <li class="step">
+      <div><div class="num">3</div><h2>Open it the first time</h2><p>Open Stashd from Applications. Your Mac will say it can't check it, because Stashd isn't from the App Store yet. Click <b>Done</b>, then open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>. You only do this once.</p></div>
+      <div class="pic"><div class="settings"><div class="bar">Privacy &amp; Security</div><div class="line"><span>"Stashd" was blocked to protect your Mac.</span><span class="b go">Open Anyway</span></div></div></div>
+    </li>
+    <li class="step">
+      <div><div class="num">4</div><h2>Click OK when your Mac asks</h2><p>The first time you save, your Mac asks if Stashd can see your browser's tabs. Click <b>OK</b>. It asks once for each app, like Chrome or Safari.</p><p>To reopen the exact Claude or ChatGPT chat, also turn on <b>Stashd</b> in <b>System Settings → Privacy &amp; Security → Accessibility</b>. This one is optional.</p></div>
+      <div class="pic"><div class="alert"><b>"Stashd" wants to control "Google Chrome".</b>This lets Stashd see which tabs are open, so it can save them.<div class="row"><span class="b">Don't Allow</span><span class="b go">OK</span></div></div></div>
+    </li>
+    <li class="step">
+      <div><div class="num">5</div><h2>Press ⌃S</h2><p>That's it. Stashd lives in the menu bar at the top of your screen, as a little folder. Next time you're in the middle of something, press <b>Control-S</b>.</p></div>
+      <div class="pic"><div style="width:100%;max-width:330px"><div class="mbar"><span class="ring" aria-hidden="true"></span><span data-folder data-bare></span><span>Wi-Fi</span><span>Mon 9:41</span></div><div class="keys"><span class="key wide">control</span><span class="key">S</span></div></div></div>
+    </li>
+  </ol>
+
+  <div class="extras">
+    <div class="extra">
+      <h3>Have an Intel Mac?</h3>
+      <p>The download is for Apple silicon. On an Intel Mac, paste this into Claude Code and it will build Stashd for you:</p>
+      <div class="prompt" id="prompt">Download and install the Stashd app from https://github.com/aryangoel49/Stashd. Clone it, install Node and the Xcode Command Line Tools if missing, run npm install, then npm run install-local to build it into /Applications and open it.</div>
+      <button class="copy" type="button" id="copy">Copy</button>
+    </div>
+    <div class="extra">
+      <h3>Updating later</h3>
+      <p>Download Stashd again from this page and drag it into Applications. Click <b>Replace</b> when asked. Your folders and notes are kept.</p>
+      <p style="margin-top:12px">Something not working? <a href="https://github.com/aryangoel49/Stashd/issues">Tell us on GitHub</a>.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Stashd, made by Aryan Goel. Open source under MIT.</span>
+    <a href="./">Back to home</a>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const BODY = '<path d="M16 33Q16 25 24 25H37Q41 25 43.5 28.5L46.5 32H72Q80 32 80 40V70Q80 78 72 78H24Q16 78 16 70Z" fill="#FBEFC6"/><path d="M16 45Q16 39 22 39H74Q80 39 80 45V70Q80 78 72 78H24Q16 78 16 70Z" fill="#FFF"/>';
+  const EYES = '<g class="open"><g class="lids"><g class="pupils" fill="#1C1D22"><ellipse cx="37" cy="59" rx="3.6" ry="4.6"/><ellipse cx="59" cy="59" rx="3.6" ry="4.6"/></g></g></g><g class="happy" fill="none" stroke="#1C1D22" stroke-width="3" stroke-linecap="round"><path d="M32 61Q37 54 42 61"/><path d="M54 61Q59 54 64 61"/></g>';
+  document.querySelectorAll('[data-folder]').forEach((s) => {
+    const bare = s.hasAttribute('data-bare');
+    s.outerHTML = `<svg class="folder" viewBox="${bare ? '12 20 72 62' : '0 0 96 96'}" aria-hidden="true">${bare ? '' : '<rect width="96" height="96" rx="22" fill="#F2CD5C"/>'}${BODY}${EYES}</svg>`;
+  });
+  const folders = [...document.querySelectorAll('svg.folder')];
+  const big = document.querySelector('#mascot svg');
+  if (!reduce) {
+    folders.forEach((f) => { const b = () => { f.classList.add('blink'); setTimeout(() => f.classList.remove('blink'), 130); setTimeout(b, 2600 + Math.random() * 3600); }; setTimeout(b, 1000 + Math.random() * 2000); });
+    if (matchMedia('(hover: hover) and (pointer: fine)').matches) addEventListener('pointermove', (e) => folders.forEach((f) => {
+      const r = f.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height * 0.62), d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 240);
+      f.querySelector('.pupils').style.transform = `translate(${(dx / d) * 4 * k}px, ${(dy / d) * 3 * k}px)`;
+    }), { passive: true });
+  }
+  // Coming from a Download button: start the download, and smile about it.
+  const dl = document.getElementById('dl'), status = document.getElementById('status');
+  if (new URLSearchParams(location.search).has('start')) {
+    setTimeout(() => { location.href = dl.href; big.classList.add('smile'); status.textContent = 'Downloading. Then follow the steps below.'; dl.textContent = 'Download again'; setTimeout(() => big.classList.remove('smile'), 1800); }, 700);
+  } else {
+    status.textContent = 'Start here:';
+  }
+  dl.addEventListener('click', () => { big.classList.add('smile'); setTimeout(() => big.classList.remove('smile'), 1500); });
+  document.getElementById('copy').addEventListener('click', async (e) => {
+    try { await navigator.clipboard.writeText(document.getElementById('prompt').textContent); e.target.textContent = 'Copied'; }
+    catch { getSelection().selectAllChildren(document.getElementById('prompt')); e.target.textContent = 'Selected, press ⌘C'; }
+  });
+})();
+</script>
+</body>
+</html>

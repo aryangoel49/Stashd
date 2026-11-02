@@ -237,10 +237,14 @@ section { padding-block: 112px; }
 .trow .fav { width: 20px; height: 20px; border-radius: 6px; font-size: 11px; }
 .trow .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .trow .tag { font-size: 12.5px; font-weight: 600; color: transparent; transition: color 0.4s; white-space: nowrap; }
+.sorted .trow { transition-delay: calc(var(--i) * 220ms); }
+.sorted .trow .tag { transition-delay: calc(var(--i) * 220ms); }
 .sorted .trow.in { background: var(--cream); border-color: #e9d27f; }
 .sorted .trow.in .tag { color: #8a6a00; }
 .sorted .trow.no { opacity: 0.45; transform: translateX(10px); }
 .sorted .trow.no .tag { color: var(--ink-soft); }
+.tally { margin-top: 14px; font-size: 15px; font-weight: 600; color: var(--ink-soft); min-height: 24px; transition: color 0.3s; }
+.tally.done { color: #8a6a00; }
 .big-brief .head { display: flex; gap: 14px; align-items: center; }
 .big-brief .head .folder { width: 48px; height: 48px; }
 .big-brief .name { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
@@ -351,8 +355,9 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     <a href="#how">How it works</a>
     <a href="#features">What it knows</a>
     <a href="#privacy">Privacy</a>
+    <a href="download.html">Install guide</a>
     <a href="https://github.com/aryangoel49/Stashd">GitHub</a>
-    <a class="btn btn-main btn-small" data-smile href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download</a>
+    <a class="btn btn-main btn-small" data-smile href="download.html?start">Download</a>
   </nav>
 </header>
 
@@ -363,7 +368,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       <h1>Put your work to bed.</h1>
       <p class="lede">Press <kbd>⌃S</kbd> and Stashd puts the tabs, files and apps for what you're working on into a folder in your menu bar. Open it later and everything comes back.</p>
       <div class="hero-cta">
-        <a class="btn btn-main" data-smile href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">
+        <a class="btn btn-main" data-smile href="download.html?start">
           <svg class="apple" viewBox="0 0 16 19" aria-hidden="true"><path fill="currentColor" d="M13.2 10.1c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3.7 4.8 2.2 5.7 1.4 7.2c-1.6 2.8-.4 6.9 1.1 9.2.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2-1.1 2.8-2.2.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.3-.9-2.3-3.8zM10.9 3.1c.6-.8 1.1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1.1.1 2.1-.5 2.8-1.3z"/></svg>
           Download for Mac
         </a>
@@ -448,20 +453,21 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   <div id="features">
     <div class="wrap chapter">
       <div class="copy reveal">
-        <h2>It takes the project, not every tab.</h2>
-        <p>Stashd reads what your tabs are about, so it knows that a lecture PDF and a Krebs cycle video go together, even with no words in common. Instagram stays out.</p>
-        <p class="eg">Sorting runs on your Mac, in an instant.</p>
+        <h2>Only your project goes in.</h2>
+        <p>Say you're planning a trip to Japan, with a basketball game and your email open on the side. Press ⌃S and only the trip goes into the folder. The rest stays where it is.</p>
+        <p class="eg">No setup. Stashd works it out on your Mac.</p>
       </div>
       <div class="panel reveal" style="--d:120ms">
-        <div class="panel-title"><span data-folder="tile" id="sortFolder"></span>Studying for the biology midterm</div>
+        <div class="panel-title"><span data-folder="tile" id="sortFolder"></span><span id="sortTitle">Open on your Mac</span></div>
         <div class="tablist" id="tablist">
-          <div class="trow in"><span class="fav" style="background:#14bf96">K</span><span class="t">Cellular respiration · Khan Academy</span><span class="tag">Goes in</span></div>
-          <div class="trow no"><span class="fav" style="background:#e1306c">I</span><span class="t">Instagram</span><span class="tag">Not this</span></div>
-          <div class="trow in"><span class="fav" style="background:#4255ff">Q</span><span class="t">Bio 101 Unit 4 flashcards · Quizlet</span><span class="tag">Goes in</span></div>
-          <div class="trow in"><span class="fav" style="background:#ff0000">▶</span><span class="t">The Krebs cycle in 5 minutes · YouTube</span><span class="tag">Goes in</span></div>
-          <div class="trow no"><span class="fav" style="background:#ff9900;color:#111">a</span><span class="t">Desk lamp, warm white · Amazon</span><span class="tag">Not this</span></div>
-          <div class="trow in"><span class="fav" style="background:#b3261e">P</span><span class="t">Lecture 9 · Mitochondria.pdf</span><span class="tag">Goes in</span></div>
+          <div class="trow in" style="--i:0"><span class="fav" style="background:#4285f4">G</span><span class="t">Flights to Tokyo · Google Flights</span><span class="tag">Goes in</span></div>
+          <div class="trow no" style="--i:1"><span class="fav" style="background:#d50a0a">E</span><span class="t">Warriors vs Lakers · ESPN</span><span class="tag">Stays open</span></div>
+          <div class="trow in" style="--i:2"><span class="fav" style="background:#003b95">B</span><span class="t">Ryokans in Kyoto · Booking.com</span><span class="tag">Goes in</span></div>
+          <div class="trow no" style="--i:3"><span class="fav" style="background:#ea4335">M</span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
+          <div class="trow in" style="--i:4"><span class="fav" style="background:#1a7f4b">J</span><span class="t">Japan Rail Pass · 7-day</span><span class="tag">Goes in</span></div>
+          <div class="trow in" style="--i:5"><span class="fav" style="background:#2b5fb4">W</span><span class="t">Japan itinerary.docx</span><span class="tag">Goes in</span></div>
         </div>
+        <div class="tally" id="tally">Press ⌃S…</div>
       </div>
     </div>
 
@@ -561,7 +567,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       <div class="end-mascot reveal" id="endMascot" title="Hi"><span data-folder="tile" data-mode="asleep"></span></div>
       <h2 class="reveal" style="--d:80ms">Stash it. Close the laptop.</h2>
       <p class="reveal" style="--d:140ms">Free for Mac. Takes a minute to set up.</p>
-      <a class="btn btn-main reveal" style="--d:200ms" id="endCta" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download for Mac</a>
+      <a class="btn btn-main reveal" style="--d:200ms" id="endCta" href="download.html?start">Download for Mac</a>
     </div>
   </section>
 </main>
@@ -815,11 +821,18 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 
   // Chapter 1: the study tabs sort themselves.
   const tablist = $('tablist'), sortF = $('sortFolder');
+  // Each tab is decided one after another, then the tally and the folder name catch up.
+  const tally = $('tally'), sortTitle = $('sortTitle');
   whenSeen(tablist, async () => {
-    tablist.classList.remove('sorted');
+    tablist.classList.remove('sorted'); tally.classList.remove('done');
+    tally.textContent = 'Press ⌃S…'; sortTitle.textContent = 'Open on your Mac';
     held.add(sortF); look(sortF, 4, 2);
-    await wait(500);
-    tablist.classList.add('sorted'); smile(sortF, 1200);
+    await wait(700);
+    tablist.classList.add('sorted');
+    await wait(6 * 220 + 300);
+    sortTitle.textContent = 'New folder: Japan trip';
+    tally.textContent = '4 things go into "Japan trip". 2 stay open.'; tally.classList.add('done');
+    smile(sortF, 1400);
     held.delete(sortF);
   }, true);
   // Chapter 2: the brief writes itself, line by line.
