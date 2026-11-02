@@ -2,7 +2,8 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import type { BriefView, Capture, Item, Job, JobSummary, OpenResult, OpenState, Suggestion, SaveEntry, SavePreview, SaveRequest, SaveResult } from '../shared/types';
+import type { BriefView, Capture, Item, Job, JobSummary, OpenKind, OpenResult, OpenState, Suggestion, SaveEntry, SavePreview, SaveRequest, SaveResult } from '../shared/types';
+import { openKindOf } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, CHAT_APPS, frontItemKey } from './capture';
@@ -506,8 +507,12 @@ export class Core {
     return { entry, items: items.length ? items : entry.items };
   }
 
-  async open(jobId: string, entryId: string | undefined, mode: 'needed' | 'all', before?: (items: Item[]) => void): Promise<OpenResult> {
-    const { entry, items } = await this.itemsToOpen(jobId, entryId, mode);
+  /** `kinds`: open only these types (docs, tabs, apps, chats). */
+  async open(jobId: string, entryId: string | undefined, mode: 'needed' | 'all', before?: (items: Item[]) => void, kinds?: OpenKind[]): Promise<OpenResult> {
+    const picked = await this.itemsToOpen(jobId, entryId, mode);
+    const entry = picked.entry;
+    const items = kinds ? picked.items.filter((i) => kinds.includes(openKindOf(i))) : picked.items;
+    if (!items.length) return { opened: 0, alreadyOpen: 0, missing: [], failed: [] };
     before?.(items);
     let openBefore = new Set<string>();
     const result = await openItems(items, entry.frontKey, this.settings.get(), (b) => (openBefore = b));

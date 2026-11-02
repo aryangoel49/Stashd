@@ -71,6 +71,11 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
+/** Gap between things opening, and the most tabs opened one by one before it's done in one go. */
+const GAP_MS = 150;
+const GENTLE_MAX = 12;
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 /** Opens items in order, with the front item last so it ends up in front. */
 export async function openItems(
   items: Item[],
@@ -121,7 +126,8 @@ export async function openItems(
     ...items.filter((i) => i.key === frontKey),
   ];
 
-  // Tabs go to each browser in one go (one `open` per browser, not one per tab), so Unpack is quick.
+  // Tabs open one after another, a moment apart, so Unpack feels calm rather than everything at once.
+  // A big folder goes in one go per browser, so it doesn't take ages.
   const tabsByBrowser = new Map<string, Item[]>();
   for (const item of ordered) {
     if (item.kind !== 'tab') continue;
@@ -145,7 +151,14 @@ export async function openItems(
         .filter((u): u is string => !!u && /^(https?:|file:.*\.pdf$)/i.test(u));
       try {
         if (!app || !urls.length) throw new Error('one by one');
-        await run('open', ['-a', app, ...urls], { timeoutMs: 20_000 });
+        if (urls.length <= GENTLE_MAX) {
+          for (const [n, url] of urls.entries()) {
+            if (n) await pause(GAP_MS);
+            await run('open', ['-a', app, url], { timeoutMs: 20_000 });
+          }
+        } else {
+          await run('open', ['-a', app, ...urls], { timeoutMs: 20_000 });
+        }
         result.opened += urls.length;
         result.failed.push(
           ...group
@@ -166,11 +179,15 @@ export async function openItems(
   };
 
   const openOthers = async () => {
+    let first = true;
     for (const item of ordered) {
       try {
         if (item.kind === 'tab') {
           continue;
-        } else if (item.kind === 'doc' && !item.path && item.url) {
+        }
+        if (!first) await pause(GAP_MS);
+        first = false;
+        if (item.kind === 'doc' && !item.path && item.url) {
           // A OneDrive or SharePoint document: ask its app to open the address.
           await run('open', ['-a', item.app, item.url], { timeoutMs: 15_000 });
         } else if (item.kind === 'doc' || item.kind === 'folder') {

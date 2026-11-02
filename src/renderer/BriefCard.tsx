@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { Brief, BriefView, OpenResult } from '../shared/types';
+import type { Brief, BriefView, OpenKind, OpenResult } from '../shared/types';
+import { openKindOf } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
 import { Button, motion, Reveal } from './ui';
@@ -18,11 +19,29 @@ export function Sentence({ brief }: { brief: Brief }) {
   );
 }
 
+const KINDS: { kind: OpenKind; one: string; many: string; icon: 'doc' | 'tab' | 'app' | 'spark' }[] = [
+  { kind: 'doc', one: 'file', many: 'files', icon: 'doc' },
+  { kind: 'tab', one: 'tab', many: 'tabs', icon: 'tab' },
+  { kind: 'app', one: 'app', many: 'apps', icon: 'app' },
+  { kind: 'chat', one: 'chat', many: 'chats', icon: 'spark' },
+];
+
 const SOURCE: Record<Brief['source'], string> = { claude: 'Brief by Claude', apple: 'Brief by Apple Intelligence', basic: 'Basic brief' };
 
 export function BriefCard({ view, onOpened, current = false, hideTitle = false }: { view: BriefView; onOpened?: (r: OpenResult) => void; current?: boolean; hideTitle?: boolean }) {
   const { job, entry, brief } = view;
-  const [busy, setBusy] = useState<'needed' | 'all' | null>(null);
+  const [busy, setBusy] = useState<'some' | 'all' | null>(null);
+  // Open by type: every type in the folder starts ticked; untick what you don't want this time.
+  const counts = KINDS.map((k) => ({ ...k, n: entry.items.filter((i) => openKindOf(i) === k.kind).length })).filter((k) => k.n > 0);
+  const [kinds, setKinds] = useState<Set<OpenKind>>(() => new Set(counts.map((k) => k.kind)));
+  const toggleKind = (k: OpenKind) =>
+    setKinds((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  const pickedCount = counts.filter((k) => kinds.has(k.kind)).reduce((n, k) => n + k.n, 0);
   const [result, setResult] = useState<OpenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showItems, setShowItems] = useState(false);
@@ -30,11 +49,11 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
   const [comment, setComment] = useState('');
   const needed = new Set(brief.needed);
 
-  const open = async (mode: 'needed' | 'all') => {
-    setBusy(mode);
+  const open = async (which: 'some' | 'all') => {
+    setBusy(which);
     setError(null);
     try {
-      const r = await api.openJob(job.id, entry.id, mode);
+      const r = await api.openJob(job.id, entry.id, 'all', which === 'some' ? [...kinds] : undefined);
       setResult(r);
       onOpened?.(r);
     } catch (e) {
@@ -67,14 +86,26 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
           </Button>
         </div>
       ) : (
-      <div className="actions">
-        <Button variant="primary" size="small" disabled={busy !== null} onClick={() => void open('all')} title="Reopen everything in this folder">
-          {busy === 'all' ? <span className="spinner on-accent" /> : null} Unpack
-        </Button>
-        <Button size="small" disabled={busy !== null} onClick={() => void open('needed')} title="Open only the few things you were working on">
-          {busy === 'needed' ? <span className="spinner" /> : null} Just the essentials
-        </Button>
-      </div>
+      <>
+        {counts.length > 1 && (
+          <div className="open-kinds" role="group" aria-label="What to open">
+            {counts.map((k) => (
+              <button key={k.kind} type="button" className={`pill ${kinds.has(k.kind) ? 'in' : 'out'}`} aria-pressed={kinds.has(k.kind)} onClick={() => toggleKind(k.kind)}>
+                <span className="pill-mark">{kinds.has(k.kind) ? <Icon name="check" /> : <Icon name="plus" />}</span>
+                <Icon name={k.icon} /> {k.n} {k.n === 1 ? k.one : k.many}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="actions">
+          <Button variant="primary" size="small" disabled={busy !== null || pickedCount === 0} onClick={() => void open('some')} title="Open the ticked types">
+            {busy === 'some' ? <span className="spinner on-accent" /> : null} {pickedCount === entry.items.length ? 'Unpack' : `Unpack ${pickedCount}`}
+          </Button>
+          <Button size="small" disabled={busy !== null} onClick={() => void open('all')} title="Reopen everything in this folder">
+            {busy === 'all' ? <span className="spinner" /> : null} Open everything
+          </Button>
+        </div>
+      </>
       )}
 
       {result && (

@@ -59,6 +59,15 @@ export interface Item {
   seenAs?: string[];
 }
 
+/** How Unpack groups things for "open by type". */
+export type OpenKind = 'doc' | 'tab' | 'app' | 'chat';
+
+export function openKindOf(item: Item): OpenKind {
+  if (item.kind === 'tab') return 'tab';
+  if (item.kind === 'app') return item.chat ? 'chat' : 'app';
+  return 'doc';
+}
+
 export interface CollectorError {
   collector: string;
   message: string;

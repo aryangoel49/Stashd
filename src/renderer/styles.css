@@ -172,6 +172,10 @@ button { cursor: default; }
 .brief .sentence { font-size: 15px; line-height: 1.5; margin: 12px 0 0; }
 .brief .sentence em { font-style: normal; font-weight: 600; background: linear-gradient(transparent 58%, var(--accent-soft) 58%); padding: 0 1px; }
 .brief .actions { display: flex; gap: 8px; margin-top: 16px; }
+/* Open by type: which kinds of things Unpack brings back this time. */
+.brief .open-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.brief .open-kinds + .actions { margin-top: 10px; }
+.brief .open-kinds .pill svg:not(.pill-mark svg) { width: 13px; height: 13px; }
 .brief .actions > :first-child { flex: 1; }
 .brief .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--faint); font-size: 11px; gap: 8px; }
 .items-list { margin-top: 12px; display: flex; flex-direction: column; gap: 2px; max-height: 190px; overflow-y: auto; }
