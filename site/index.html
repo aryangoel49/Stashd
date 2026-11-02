@@ -13,8 +13,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
 <script>document.documentElement.classList.add('js');</script>
 <style>
-/* Stashd's own look: butter-yellow folder, ink, warm white paper. The little Mac is the one loud thing;
-   the folder's eyes carry the personality (they watch, blink, get drowsy, smile, sleep and wake). */
+/* Stashd's look: butter-yellow folder, ink, warm paper, under a slow drifting light that runs the whole page.
+   The folder's eyes carry the personality. Each feature gets its own chapter with one live picture. */
 :root {
   --paper: #fffcf3;
   --ink: #1c1d22;
@@ -23,11 +23,11 @@
   --butter-deep: #e4b93b;
   --cream: #fbefc6;
   --line: #ece3c7;
+  --card: rgba(255, 253, 246, 0.82);
   --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body: "Hanken Grotesk", -apple-system, system-ui, sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --gutter: max(24px, env(safe-area-inset-left));
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -35,17 +35,30 @@ body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 va
 a { color: inherit; }
 svg { display: block; }
 button { font: inherit; }
-.wrap { max-width: 1160px; margin: 0 auto; padding-left: var(--gutter); padding-right: max(24px, env(safe-area-inset-right)); }
+.wrap { max-width: 1160px; margin: 0 auto; padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); position: relative; }
 h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.025em; }
 p { margin: 0; }
 :focus-visible { outline: 3px solid var(--butter-deep); outline-offset: 3px; border-radius: 6px; }
+
+/* ---------- the drifting light behind everything ---------- */
+.sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--paper); }
+.sky .blob { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; opacity: 0.55; will-change: transform; }
+.sky .b1 { background: radial-gradient(closest-side, rgba(242,205,92,0.55), rgba(242,205,92,0)); left: -18vmax; top: -22vmax; animation: drift1 38s ease-in-out infinite alternate; }
+.sky .b2 { background: radial-gradient(closest-side, rgba(247,201,170,0.5), rgba(247,201,170,0)); right: -24vmax; top: 10vh; animation: drift2 46s ease-in-out infinite alternate; }
+.sky .b3 { background: radial-gradient(closest-side, rgba(214,226,240,0.6), rgba(214,226,240,0)); left: 20vw; bottom: -36vmax; animation: drift3 52s ease-in-out infinite alternate; }
+.sky .b4 { background: radial-gradient(closest-side, rgba(251,239,198,0.9), rgba(251,239,198,0)); right: 10vw; bottom: -10vh; width: 50vmax; height: 50vmax; animation: drift1 60s ease-in-out infinite alternate-reverse; }
+.sky .layer { position: absolute; inset: -10vh 0; transform: translate3d(0, calc(var(--sy, 0) * -0.08px), 0); }
+.sky .grain { position: absolute; inset: 0; opacity: 0.35; mix-blend-mode: multiply; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.4 0 0 0 0 0.3 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@keyframes drift1 { to { transform: translate(14vw, 10vh) scale(1.12); } }
+@keyframes drift2 { to { transform: translate(-16vw, 18vh) scale(0.92); } }
+@keyframes drift3 { to { transform: translate(-10vw, -14vh) scale(1.1); } }
 
 /* ---------- the folder and its eyes ---------- */
 .folder { overflow: visible; }
 .folder .open, .folder .closed, .folder .happy { transition: opacity 0.12s; }
 .folder .closed, .folder .happy { opacity: 0; }
 .folder .lids { transform-box: fill-box; transform-origin: 50% 60%; transition: transform 0.14s var(--ease-out); }
-.folder .pupils { transition: transform 0.2s var(--ease-out); }
+.folder .pupils { transition: transform 0.22s var(--ease-out); }
 .folder.blink .lids { transform: scaleY(0.1); }
 .folder.drowsy .lids { transform: scaleY(0.42); transition-duration: 0.9s; }
 .folder.asleep .open, .folder.smile .open { opacity: 0; }
@@ -66,7 +79,7 @@ p { margin: 0; }
 .nav-links { display: flex; gap: 26px; margin-left: auto; font-size: 16px; align-items: center; }
 .nav-links a { text-decoration: none; color: var(--ink-soft); }
 .nav-links a:hover { color: var(--ink); }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; font: 600 17px var(--body); text-decoration: none; cursor: pointer; transition: transform 0.16s var(--ease-out), background 0.2s, box-shadow 0.2s; white-space: nowrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; font: 600 17px var(--body); text-decoration: none; cursor: pointer; transition: transform 0.16s var(--ease-out), background 0.2s; white-space: nowrap; }
 .btn:active { transform: scale(0.97); }
 .btn-main { background: var(--butter); color: var(--ink); padding: 14px 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 6px 18px rgba(214,170,40,0.3); }
 .btn-main:hover { background: #f5d672; }
@@ -74,7 +87,7 @@ p { margin: 0; }
 .apple { width: 16px; height: 18px; }
 
 /* ---------- hero ---------- */
-.hero { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 56px; align-items: center; padding-block: 40px 104px; }
+.hero { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 56px; align-items: center; padding-block: 40px 96px; }
 .hero-mascot { width: 88px; height: 88px; margin-bottom: 28px; cursor: pointer; }
 .hero-mascot .folder { width: 88px; height: 88px; filter: drop-shadow(0 10px 18px rgba(214,170,40,0.35)); }
 .hero h1 { font-size: clamp(50px, 5.6vw, 78px); line-height: 0.95; font-weight: 800; }
@@ -108,27 +121,22 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .view { height: 232px; overflow: hidden; background: #fff; position: relative; }
 .pg { position: absolute; inset: 0; padding: 16px 18px; font-size: 12.5px; line-height: 1.45; color: #2a2a28; animation: pg 0.25s var(--ease-out); }
 @keyframes pg { from { opacity: 0; } }
-.imdb { display: grid; grid-template-columns: 74px 1fr; gap: 14px; align-content: start; }
-.poster { height: 108px; border-radius: 6px; background: linear-gradient(170deg, #0f3a4a, #06171f); position: relative; overflow: hidden; }
-.poster::after { content: "BELOW"; position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font: 800 12px var(--display); letter-spacing: 0.18em; color: #bfe6f0; }
-.imdb h4 { margin: 0; font: 700 17px var(--display); }
+.pg h4 { margin: 0; font: 700 16px var(--display); }
 .meta { color: #6a6960; font-size: 11.5px; }
-.stars { color: #c99700; font-weight: 700; margin: 4px 0 8px; }
-.review { border-top: 1px solid #ecebe6; padding-top: 7px; margin-top: 7px; }
-.netflix { color: #fff; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px 22px; background: linear-gradient(0deg, #141414 25%, rgba(20,20,20,0) 80%), linear-gradient(150deg, #17495a, #071a22); }
-.netflix h4 { margin: 0; font: 800 34px var(--display); letter-spacing: 0.06em; }
-.netflix .play { display: inline-flex; margin-top: 12px; background: #fff; color: #111; border-radius: 5px; padding: 5px 16px; font-weight: 700; width: max-content; }
-.goog .q { border: 1px solid #dfe1e5; border-radius: 99px; padding: 6px 14px; margin-bottom: 12px; font-size: 13px; }
-.goog .r { margin-bottom: 10px; }
-.goog .r a { color: #1a0dab; font-size: 14px; display: block; }
-.goog .r small { color: #4d5156; }
-.stock { border: 1px solid #ecebe6; border-radius: 10px; padding: 10px 12px; }
-.stock .price { font: 700 24px var(--display); }
-.stock .up { color: #137333; font-weight: 600; font-size: 12px; }
+.flights .row { display: grid; grid-template-columns: 1fr auto; gap: 8px; border: 1px solid #ecebe6; border-radius: 10px; padding: 9px 12px; margin-top: 8px; }
+.flights .price { font-weight: 700; color: #188038; }
+.booking { display: grid; grid-template-columns: 96px 1fr; gap: 12px; }
+.booking .img { height: 88px; border-radius: 8px; background: linear-gradient(160deg, #8fb07a, #3e5a3a); position: relative; }
+.booking .img::after { content: ""; position: absolute; left: 14px; right: 14px; bottom: 12px; height: 34px; background: #6a4a2a; clip-path: polygon(0 40%, 50% 0, 100% 40%, 100% 100%, 0 100%); opacity: 0.85; }
+.score { display: inline-block; background: #003b95; color: #fff; font-weight: 700; border-radius: 6px 6px 6px 0; padding: 1px 6px; font-size: 12px; }
+.jr { background: #fff; }
+.jr .pass { border-radius: 10px; background: #e8f3ec; padding: 10px 12px; margin-top: 8px; }
+.jr .pass b { color: #1a7f4b; }
 .reddit { background: #f6f7f8; }
 .reddit .post { background: #fff; border-radius: 8px; padding: 10px 12px; }
-.reddit .post b { display: block; font-size: 13.5px; }
 .reddit .c { font-size: 12px; color: #4b4b48; padding-left: 10px; border-left: 2px solid #e2e2df; margin-top: 6px; }
+.espn { background: #fff; }
+.espn .game { display: grid; grid-template-columns: 1fr auto; border: 1px solid #ecebe6; border-radius: 10px; padding: 8px 12px; margin-top: 8px; font-weight: 600; }
 .windows { display: flex; gap: 10px; flex-wrap: wrap; min-height: 52px; }
 .win { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); color: #f1efe8; border-radius: 12px; padding: 8px 14px 8px 8px; font-size: 13px; max-width: 100%; min-width: 0; }
 .win > span:last-child { min-width: 0; }
@@ -137,12 +145,11 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .appicon { width: 36px; height: 36px; border-radius: 9px; flex: none; display: grid; place-items: center; color: #fff; font: 800 15px var(--display); }
 .word { background: linear-gradient(160deg, #3c7ad1, #1f4f9c); }
 .claude { background: #d97757; font-size: 19px; }
+.pdf { background: linear-gradient(160deg, #e5534b, #b3261e); font-size: 11px; }
 .hidden-thing { visibility: hidden; }
-
-/* guide bar: the demo explains itself */
 .guide { display: flex; align-items: center; gap: 16px; padding: 12px 14px 12px 18px; background: rgba(255,255,255,0.06); border-top: 1px solid rgba(255,255,255,0.08); position: relative; z-index: 4; }
 .steps-mini { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 0; color: #9d9b92; font-size: 13.5px; }
-.steps-mini span { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; transition: color 0.25s; }
+.steps-mini > span { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; transition: color 0.25s; }
 .steps-mini i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: 700 11px var(--body); font-style: normal; background: rgba(255,255,255,0.1); transition: background 0.25s, color 0.25s; }
 .steps-mini .sep { width: 18px; height: 1px; background: rgba(255,255,255,0.18); flex: none; }
 .steps-mini .on { color: #fff; }
@@ -154,8 +161,6 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .nudge.off { opacity: 0; transform: translateY(4px); }
 .pulse { animation: pulse 2.2s ease-in-out infinite; }
 @keyframes pulse { 0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 0 0 0 rgba(242,205,92,0.55); } 50% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 0 0 9px rgba(242,205,92,0); } }
-
-/* save box, like the real one */
 .scrim { position: absolute; inset: 32px 0 0; background: rgba(20,22,28,0.25); opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 2; }
 .scrim.on { opacity: 1; }
 .savebox { position: absolute; left: 50%; top: 52px; width: min(400px, calc(100% - 28px)); transform: translate(-50%, 10px) scale(0.97); background: #fffdf6; color: var(--ink); border-radius: 18px; padding: 16px 16px 14px; box-shadow: 0 24px 60px rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.32s var(--ease); z-index: 3; }
@@ -170,7 +175,7 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 @keyframes caret { 50% { opacity: 0; } }
 .sb-label { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin: 11px 0 6px; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px 4px 5px; border-radius: 999px; background: var(--cream); border: 1px solid #e9d27f; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px 4px 5px; border-radius: 999px; background: var(--cream); border: 1px solid #e9d27f; color: var(--ink); }
 .pill .tick { width: 15px; height: 15px; border-radius: 50%; background: var(--butter); display: grid; place-items: center; flex: none; }
 .pill .tick svg { width: 9px; height: 9px; }
 .pill.out { background: none; border: 1px dashed #c9c3b2; color: var(--ink-soft); }
@@ -188,89 +193,133 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .briefpop { width: min(320px, calc(100% - 24px)); padding: 14px 16px; cursor: pointer; }
 .bp-name { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
 .bp-head { font: 700 16px/1.25 var(--display); margin-top: 2px; }
-.bp-rows, .brief-rows { margin: 9px 0 0; display: grid; gap: 5px; font-size: 13px; }
-.bp-rows div, .brief-rows div { display: grid; grid-template-columns: 56px 1fr; gap: 8px; }
-.bp-rows dt, .brief-rows dt { font-size: 11.5px; font-weight: 600; color: #7d7a6e; }
-.bp-rows dd, .brief-rows dd { margin: 0; }
-.bp-rows .next dt, .brief-rows .next dt { color: #9a7300; }
+.rows { margin: 9px 0 0; display: grid; gap: 6px; font-size: 13px; }
+.rows div { display: grid; grid-template-columns: 56px 1fr; gap: 8px; }
+.rows dt { font-size: 11.5px; font-weight: 600; color: #7d7a6e; }
+.rows dd { margin: 0; }
+.rows .next dt { color: #9a7300; }
 .flyer { position: fixed; z-index: 50; pointer-events: none; margin: 0; }
 
-/* ---------- sections ---------- */
-section { padding-block: 104px; }
-.section-head { max-width: 620px; }
-.section-head h2 { font-size: clamp(36px, 4.6vw, 56px); line-height: 1.02; font-weight: 700; }
+/* ---------- how it works ---------- */
+section { padding-block: 112px; }
+.section-head { max-width: 640px; }
+.section-head h2 { font-size: clamp(36px, 4.6vw, 58px); line-height: 1.02; font-weight: 700; }
 .section-head p { margin-top: 18px; font-size: 20px; color: var(--ink-soft); }
-.steps { margin-top: 52px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); position: relative; }
-.steps::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--line); }
-.steps .fill { position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--ink); transform-origin: left; transform: scaleX(var(--p, 1)); }
-.step { padding: 28px 32px 0 0; }
-.step + .step { padding-left: 32px; border-left: 1px solid var(--line); }
-.step .n { font: 800 64px/1 var(--display); color: var(--butter-deep); letter-spacing: -0.04em; }
-.step h3 { font-size: 26px; margin-top: 14px; }
-.step p { margin-top: 10px; color: var(--ink-soft); }
+.steps { margin-top: 56px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.step { background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 24px; padding: 22px 24px 26px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.step .pic { height: 132px; border-radius: 16px; background: rgba(28,29,34,0.04); display: grid; place-items: center; position: relative; overflow: hidden; }
+.step .n { font: 800 15px var(--display); color: var(--butter-deep); margin-top: 20px; }
+.step h3 { font-size: 26px; margin-top: 2px; }
+.step p { margin-top: 8px; color: var(--ink-soft); font-size: 17px; }
+.keys { display: flex; gap: 10px; align-items: flex-end; }
+.key { min-width: 56px; height: 56px; padding: 0 14px; border-radius: 12px; background: #fff; border: 1px solid var(--line); box-shadow: 0 4px 0 #e2d7b4; display: grid; place-items: center; font: 700 17px var(--display); transition: transform 0.12s, box-shadow 0.12s; }
+.key.wide { min-width: 92px; font-size: 14px; color: var(--ink-soft); }
+.key.down { transform: translateY(4px); box-shadow: 0 0 0 #e2d7b4; background: var(--cream); }
+.mini-bar { position: absolute; top: 0; left: 0; right: 0; height: 26px; background: rgba(28,29,34,0.08); display: flex; justify-content: flex-end; align-items: center; padding-right: 14px; }
+.mini-bar .folder { width: 22px; height: 19px; }
+.chiplets { display: flex; gap: 8px; margin-top: 20px; }
+.chiplet { width: 40px; height: 30px; border-radius: 8px; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); display: grid; place-items: center; font: 800 11px var(--body); color: #fff; }
+.mini-brief { background: #fff; border-radius: 12px; padding: 10px 14px; font-size: 13px; box-shadow: 0 6px 16px rgba(0,0,0,0.07); width: 78%; }
+.mini-brief b { font-family: var(--display); }
+.mini-brief .ln { height: 7px; border-radius: 4px; background: #eee8d5; margin-top: 6px; transform-origin: left; }
 
-.smart { background: var(--ink); color: #f4f1e8; border-radius: 36px; margin-inline: 12px; }
-.smart .section-head p { color: #b9b6aa; }
-.features { margin-top: 60px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 64px 72px; }
-.feature { display: flex; flex-direction: column; }
-.feature h3 { font-size: 26px; }
-.feature p { margin-top: 10px; color: #b9b6aa; max-width: 44ch; }
-.feature .show { margin-top: auto; padding-top: 24px; }
-.smart .pill { font-size: 14px; padding: 6px 12px 6px 6px; color: var(--ink); }
-.smart .pill.out { color: #b9b6aa; border-color: #5b5b60; }
-.smart .pill.out .tick { box-shadow: inset 0 0 0 1px #5b5b60; }
-.sort-pills .pill { transition: transform 0.5s var(--ease), opacity 0.5s, background 0.4s, border-color 0.4s, color 0.4s; }
-.sort-pills .pill .tick { transition: background 0.3s, box-shadow 0.3s; }
-.sort-pills .pill.out { transform: scale(0.96); }
-.card { background: #fffdf6; color: var(--ink); border-radius: 18px; padding: 18px 20px; }
-.brief-head { font: 700 19px/1.3 var(--display); letter-spacing: -0.01em; }
-.brief-rows { font-size: 15px; gap: 7px; }
-.brief-rows div { grid-template-columns: 64px 1fr; gap: 10px; }
-.brief-rows dt { font-size: 13px; }
-.brief-rows > div { transition: opacity 0.4s, transform 0.5s var(--ease); }
-.js .card:not(.played) .brief-rows > div { opacity: 0; transform: translateX(-8px); }
+/* ---------- feature chapters ---------- */
+.chapter { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 72px; align-items: center; padding-block: 72px; }
+.chapter.flip .copy { order: 2; }
+.chapter .copy h2 { font-size: clamp(34px, 4vw, 50px); line-height: 1.04; font-weight: 700; }
+.chapter .copy p { margin-top: 16px; font-size: 19px; color: var(--ink-soft); max-width: 42ch; }
+.chapter .copy .eg { margin-top: 18px; font-size: 15px; color: #8a7a44; font-weight: 600; }
+.panel { background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 26px; padding: 26px; box-shadow: 0 24px 60px -30px rgba(28,29,34,0.35); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.panel-title { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.panel-title .folder { width: 22px; height: 22px; }
+.tablist { display: grid; gap: 8px; }
+.trow { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #eee8d5; border-radius: 14px; padding: 11px 14px; font-size: 15px; transition: opacity 0.5s, transform 0.6s var(--ease), background 0.4s, border-color 0.4s; }
+.trow .fav { width: 20px; height: 20px; border-radius: 6px; font-size: 11px; }
+.trow .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trow .tag { font-size: 12.5px; font-weight: 600; color: transparent; transition: color 0.4s; white-space: nowrap; }
+.sorted .trow.in { background: var(--cream); border-color: #e9d27f; }
+.sorted .trow.in .tag { color: #8a6a00; }
+.sorted .trow.no { opacity: 0.45; transform: translateX(10px); }
+.sorted .trow.no .tag { color: var(--ink-soft); }
+.big-brief .head { display: flex; gap: 14px; align-items: center; }
+.big-brief .head .folder { width: 48px; height: 48px; }
+.big-brief .name { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.big-brief h3 { font-size: 24px; line-height: 1.2; }
+.big-brief .rows { font-size: 16px; margin-top: 18px; gap: 12px; }
+.big-brief .rows div { grid-template-columns: 74px 1fr; gap: 12px; }
+.big-brief .rows dt { font-size: 13.5px; }
+.big-brief .rows > div { transition: opacity 0.45s, transform 0.55s var(--ease); }
+.js .big-brief:not(.played) .rows > div { opacity: 0; transform: translateY(8px); }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 14px; font-size: 15px; border: 1px solid #4a4b52; color: #f4f1e8; background: none; cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.16s var(--ease-out); }
+.chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 14px; font-size: 15px; border: 1px solid #dcd3b5; color: var(--ink); background: #fff; cursor: pointer; transition: background 0.2s, border-color 0.2s, transform 0.16s var(--ease-out); }
 .chip:active { transform: scale(0.96); }
-.chip[aria-pressed="true"] { background: var(--butter); color: var(--ink); border-color: var(--butter); }
-.chip-out { margin-top: 12px; font-size: 15px; color: #b9b6aa; }
-.chat { display: flex; align-items: center; gap: 12px; }
+.chip[aria-pressed="true"] { background: var(--butter); border-color: var(--butter); }
+.olist { display: grid; gap: 6px; margin-top: 16px; }
+.orow { display: flex; align-items: center; gap: 10px; width: 100%; font-size: 15px; padding: 9px 12px; border-radius: 12px; background: #fff; border: 1px solid #eee8d5; color: var(--ink); text-align: left; cursor: pointer; transition: opacity 0.3s, border-color 0.2s; }
+.orow:hover { border-color: #e2d29a; }
+.orow .ck { width: 18px; height: 18px; border-radius: 50%; background: var(--butter); display: grid; place-items: center; flex: none; transition: background 0.2s, box-shadow 0.2s; }
+.orow .ck svg { width: 10px; height: 10px; transition: opacity 0.2s; }
+.orow.off { opacity: 0.4; }
+.orow.off .ck { background: none; box-shadow: inset 0 0 0 1.5px #c9c3b2; }
+.orow.off .ck svg { opacity: 0; }
+.orow small { margin-left: auto; color: var(--ink-soft); font-size: 13px; }
+.ofoot { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; gap: 12px; }
+.ofoot .count { font-size: 15px; color: var(--ink-soft); }
+.chatwin { display: grid; grid-template-columns: 180px 1fr; border-radius: 18px; overflow: hidden; background: #f5f4ef; border: 1px solid #e7e2d2; min-height: 260px; }
+.chatside { background: #ecebe4; padding: 12px 8px; display: grid; align-content: start; gap: 4px; position: relative; }
+.chatside .h { font-size: 12px; font-weight: 600; color: #8a887e; padding: 4px 10px 8px; }
+.citem { font-size: 13.5px; padding: 7px 10px; border-radius: 8px; position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chatside .hl { position: absolute; left: 8px; right: 8px; height: 33px; border-radius: 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: top 0.6s var(--ease); top: 36px; }
+.chatmain { padding: 16px 18px; display: grid; align-content: start; gap: 10px; background: #faf9f5; }
+.chatmain .title { font-weight: 700; font-size: 14px; }
+.bubble { background: #fff; border: 1px solid #ece9df; border-radius: 12px; padding: 9px 12px; font-size: 13.5px; max-width: 92%; transition: opacity 0.4s; }
+.bubble.me { justify-self: end; background: #f2efe6; }
+.chatcap { margin-top: 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-soft); }
+.chatcap .folder { width: 24px; height: 24px; }
 
-.privacy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 72px; align-items: start; }
-.facts { border-top: 2px solid var(--ink); margin-top: 10px; }
-.facts p { padding: 18px 0; border-bottom: 1px solid var(--line); }
-.facts b { font-weight: 600; }
+/* ---------- privacy ---------- */
+.privacy { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 72px; align-items: center; }
+.mac-map { position: relative; padding: 28px; border-radius: 28px; border: 2px dashed #d9cda6; background: var(--card); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.mac-map .label { position: absolute; top: -14px; left: 24px; background: var(--paper); padding: 0 10px; font: 700 15px var(--display); }
+.vault { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
+.vault .folder { width: 92px; height: 92px; }
+.things { display: grid; gap: 8px; }
+.thing { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #eee8d5; border-radius: 12px; padding: 9px 12px; font-size: 15px; }
+.thing i { width: 8px; height: 8px; border-radius: 50%; background: #2f9e5e; flex: none; }
+.outside { margin-top: 22px; display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--ink-soft); padding-top: 18px; border-top: 1px dashed #d9cda6; }
+.outside .appicon { width: 30px; height: 30px; font-size: 15px; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 30px; }
+.fact { font-size: 16px; color: var(--ink-soft); }
+.fact b { display: block; color: var(--ink); font-weight: 600; }
 
-.end { text-align: center; padding-block: 112px 124px; }
-.end-mascot { width: 128px; height: 128px; margin: 0 auto 28px; cursor: pointer; }
-.end-mascot .folder { width: 128px; height: 128px; }
+/* ---------- end ---------- */
+.end { text-align: center; padding-block: 120px 128px; }
+.end-mascot { width: 136px; height: 136px; margin: 0 auto 30px; cursor: pointer; }
+.end-mascot .folder { width: 136px; height: 136px; filter: drop-shadow(0 14px 24px rgba(214,170,40,0.35)); }
 .end h2 { font-size: clamp(44px, 6vw, 76px); line-height: 0.98; font-weight: 800; }
 .end p { margin-top: 16px; color: var(--ink-soft); }
 .end .btn { margin-top: 30px; }
 footer { border-top: 1px solid var(--line); padding-block: 26px 40px; font-size: 15px; color: var(--ink-soft); }
 footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; }
 
-/* the little folder that keeps you company down the page */
 .buddy { position: fixed; right: max(20px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom)); width: 56px; height: 56px; z-index: 40; border: 0; padding: 0; background: none; cursor: pointer; transform: translateY(90px) rotate(8deg); opacity: 0; transition: transform 0.5s var(--ease), opacity 0.3s; }
 .buddy.on { transform: none; opacity: 1; }
 .buddy .folder { width: 56px; height: 56px; filter: drop-shadow(0 8px 16px rgba(28,29,34,0.25)); }
 .buddy .tip { position: absolute; right: 64px; bottom: 12px; white-space: nowrap; background: var(--ink); color: #fff; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 9px; opacity: 0; transform: translateX(6px); transition: 0.2s var(--ease-out); pointer-events: none; }
 @media (hover: hover) { .buddy:hover .tip { opacity: 1; transform: none; } }
 
-/* scroll reveals: content rises in once as you reach it (only when scripts run) */
-.js .reveal { opacity: 0; transform: translateY(22px); transition: opacity 0.7s var(--ease-out), transform 0.8s var(--ease-out); transition-delay: var(--d, 0ms); }
+/* scroll reveals: once, as you reach them */
+.js .reveal { opacity: 0; transform: translateY(26px); transition: opacity 0.8s var(--ease-out), transform 0.9s var(--ease-out); transition-delay: var(--d, 0ms); }
 .js .reveal.in { opacity: 1; transform: none; }
-.js .smart.reveal { transform: scale(0.97); }
-.js .smart.reveal.in { transform: none; }
 
 @media (max-width: 920px) {
-  .hero { grid-template-columns: 1fr; gap: 40px; padding-block: 20px 72px; }
+  .hero, .chapter, .privacy { grid-template-columns: 1fr; gap: 36px; }
+  .chapter.flip .copy { order: 0; }
+  .hero { padding-block: 20px 72px; }
   .steps { grid-template-columns: 1fr; }
-  .step, .step + .step { padding: 24px 0; border-left: 0; border-bottom: 1px solid var(--line); }
-  .features, .privacy { grid-template-columns: 1fr; gap: 48px; }
   .nav-links a:not(.btn) { display: none; }
-  section { padding-block: 72px; }
-  .smart { border-radius: 26px; margin-inline: 8px; }
+  section { padding-block: 80px; }
+  .chapter { padding-block: 48px; }
 }
 @media (max-width: 560px) {
   body { font-size: 17px; }
@@ -281,7 +330,11 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   .mac { border-radius: 16px; }
   .steps-mini .label { display: none; }
   .steps-mini .on .label { display: inline; }
-  .guide { padding-left: 14px; }
+  .chatwin { grid-template-columns: 1fr; }
+  .chatside { display: none; }
+  .facts { grid-template-columns: 1fr; }
+  .vault { grid-template-columns: 1fr; justify-items: start; }
+  .panel { padding: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
@@ -290,12 +343,13 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 </style>
 </head>
 <body>
+<div class="sky" aria-hidden="true"><div class="layer"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div><div class="grain"></div></div>
 
 <header class="wrap nav">
   <a class="brand" href="#top" aria-label="Stashd home"><span data-folder="tile"></span>Stashd</a>
   <nav class="nav-links" aria-label="Main">
     <a href="#how">How it works</a>
-    <a href="#smart">What it knows</a>
+    <a href="#features">What it knows</a>
     <a href="#privacy">Privacy</a>
     <a href="https://github.com/aryangoel49/Stashd">GitHub</a>
     <a class="btn btn-main btn-small" data-smile href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download</a>
@@ -305,7 +359,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 <main id="top">
   <div class="wrap hero">
     <div>
-      <div class="hero-mascot" id="heroMascot" title="Hello"><span data-folder="tile" data-watch></span></div>
+      <div class="hero-mascot" id="heroMascot" title="Hello"><span data-folder="tile"></span></div>
       <h1>Put your work to bed.</h1>
       <p class="lede">Press <kbd>⌃S</kbd> and Stashd puts the tabs, files and apps for what you're working on into a folder in your menu bar. Open it later and everything comes back.</p>
       <div class="hero-cta">
@@ -322,7 +376,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
         <svg width="12" height="14" viewBox="0 0 16 19" aria-hidden="true"><path fill="currentColor" d="M13.2 10.1c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3.7 4.8 2.2 5.7 1.4 7.2c-1.6 2.8-.4 6.9 1.1 9.2.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2-1.1 2.8-2.2.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.3-.9-2.3-3.8zM10.9 3.1c.6-.8 1.1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1.1.1 2.1-.5 2.8-1.3z"/></svg>
         <b>Chrome</b><span class="opt">File</span><span class="opt">Edit</span><span class="opt">View</span><span class="grow"></span>
         <span class="tray" id="tray" aria-hidden="true"><span data-folder="bare"></span></span>
-        <span>Mon 9:41 pm</span>
+        <span>Sun 10:12 pm</span>
       </div>
       <div class="desk">
         <div class="chrome">
@@ -331,8 +385,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
           <div class="view" id="view"></div>
         </div>
         <div class="windows">
-          <div class="win" data-pack><span class="appicon word">W</span><span><b>Below · episode notes.docx</b><small>Word</small></span></div>
-          <div class="win" data-pack><span class="appicon claude">✳</span><span><b>What did the Below finale mean?</b><small>Claude chat</small></span></div>
+          <div class="win" data-pack><span class="appicon word">W</span><span><b>Japan itinerary.docx</b><small>Word</small></span></div>
+          <div class="win" data-pack><span class="appicon claude">✳</span><span><b>10 days in Japan: what order?</b><small>Claude chat</small></span></div>
         </div>
       </div>
       <div class="guide">
@@ -346,7 +400,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       </div>
       <div class="scrim" id="scrim"></div>
       <div class="savebox" id="savebox" role="dialog" aria-label="Stashd save box">
-        <div class="sb-head"><span data-folder="tile" id="sbFolder"></span><div><div class="sb-eyebrow">New folder</div><div class="sb-name">Below</div></div></div>
+        <div class="sb-head"><span data-folder="tile" id="sbFolder"></span><div><div class="sb-eyebrow">New folder</div><div class="sb-name">Japan trip</div></div></div>
         <div class="sb-note" id="sbNote"></div>
         <div class="sb-label">Going in</div>
         <div class="pills" id="goingIn"></div>
@@ -354,17 +408,17 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
         <div class="pills" id="leftOut"></div>
         <div class="sb-foot"><span class="grow">4 tabs · 1 file · 1 chat</span><button class="btn btn-small ghost" id="cancel" type="button">Cancel</button><button class="btn btn-main btn-small" id="pack" type="button">Pack up</button></div>
       </div>
-      <div class="toast" id="toast"><span data-folder="tile" data-mode="asleep"></span><span><b>Below</b> · 6 packed</span><button type="button" id="undo">Undo</button></div>
+      <div class="toast" id="toast"><span data-folder="tile" data-mode="asleep"></span><span><b>Japan trip</b> · 6 packed</span><button type="button" id="undo">Undo</button></div>
       <div class="briefpop" id="briefpop" role="status">
-        <div class="bp-name">Below · just now</div>
-        <div class="bp-head">Watching Below and writing a review.</div>
-        <dl class="bp-rows">
-          <div><dt>Last on</dt><dd>IMDb reviews for episode 4.</dd></div>
-          <div><dt>So far</dt><dd>Notes done up to episode 3.</dd></div>
-          <div class="next"><dt>Next</dt><dd>Finish your episode 4 notes.</dd></div>
+        <div class="bp-name">Japan trip · just now</div>
+        <div class="bp-head">Planning your 10-day trip to Japan.</div>
+        <dl class="rows">
+          <div><dt>Last on</dt><dd>Ryokan options in Kyoto.</dd></div>
+          <div><dt>So far</dt><dd>Flights picked, Rail Pass in the cart.</dd></div>
+          <div class="next"><dt>Next</dt><dd>Book a ryokan for nights 4 to 6.</dd></div>
         </dl>
       </div>
-      <p class="sr-only" id="note" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></p>
+      <p id="note" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></p>
     </div>
   </div>
 
@@ -374,78 +428,137 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
         <h2>Three steps, and two of them are one key.</h2>
         <p>Stashd lives in your menu bar. It doesn't change how you work. It just remembers it for you.</p>
       </div>
-      <div class="steps" id="steps">
-        <span class="fill" aria-hidden="true"></span>
-        <div class="step reveal" style="--d:0ms"><div class="n">1</div><h3>Stash</h3><p>Press <kbd>⌃S</kbd>. Stashd looks at what's open and ticks only what belongs to the project you're on. Add a note for later if you like.</p></div>
-        <div class="step reveal" style="--d:120ms"><div class="n">2</div><h3>Pack up</h3><p>The windows fly into the menu bar and the folder goes to sleep. Your screen is clear. Unsaved work still asks to be saved first.</p></div>
-        <div class="step reveal" style="--d:240ms"><div class="n">3</div><h3>Unpack</h3><p>Open the folder when you're back. A short brief says where you stopped, and one click brings everything back.</p></div>
+      <div class="steps">
+        <div class="step reveal" style="--d:0ms">
+          <div class="pic"><div class="keys" id="keys"><span class="key wide">control</span><span class="key">S</span></div></div>
+          <div class="n">Step 1</div><h3>Stash</h3><p>Press ⌃S. Stashd ticks only what belongs to the project you're on. Add a note for later if you like.</p>
+        </div>
+        <div class="step reveal" style="--d:140ms">
+          <div class="pic" id="packPic"><div class="mini-bar"><span data-folder="bare"></span></div><div class="chiplets"><span class="chiplet" style="background:#4285f4">G</span><span class="chiplet" style="background:#003b95">B</span><span class="chiplet" style="background:#2b5fb4">W</span></div></div>
+          <div class="n">Step 2</div><h3>Pack up</h3><p>The windows fly into the menu bar and the folder goes to sleep. Unsaved work still asks to be saved first.</p>
+        </div>
+        <div class="step reveal" style="--d:280ms">
+          <div class="pic" id="unpackPic"><div class="mini-brief"><b>Japan trip</b><div class="ln" style="width:92%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:80%;background:#f2cd5c"></div></div></div>
+          <div class="n">Step 3</div><h3>Unpack</h3><p>Open the folder when you're back. A short brief says where you stopped, and everything comes back.</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="smart reveal" id="smart">
-    <div class="wrap">
-      <div class="section-head">
-        <h2>It knows what belongs together.</h2>
-        <p>The sorting runs on your Mac, in an instant. No account, nothing to set up.</p>
+  <div id="features">
+    <div class="wrap chapter">
+      <div class="copy reveal">
+        <h2>It takes the project, not every tab.</h2>
+        <p>Stashd reads what your tabs are about, so it knows that a lecture PDF and a Krebs cycle video go together, even with no words in common. Instagram stays out.</p>
+        <p class="eg">Sorting runs on your Mac, in an instant.</p>
       </div>
-      <div class="features">
-        <div class="feature reveal">
-          <h3>One project, not every tab</h3>
-          <p>Writing an essay with a shoe sale open on the side? Only the essay goes in. Stashd reads what your tabs are about, so "Carbon tax" and "Paris Agreement" land together even with no words in common.</p>
-          <div class="show pills sort-pills" id="sortPills" aria-hidden="true"></div>
-        </div>
-        <div class="feature reveal" style="--d:120ms">
-          <h3>A brief that says where you stopped</h3>
-          <p>Each folder gets a short note: what you were on, what's done, and what's next.</p>
-          <div class="show"><div class="card" id="briefCard">
-            <div class="brief-head">Writing your climate essay on carbon taxes.</div>
-            <dl class="brief-rows">
-              <div><dt>Last on</dt><dd>The essay draft, at the counterargument.</dd></div>
-              <div><dt>So far</dt><dd>Intro and the case for a tax are written.</dd></div>
-              <div class="next"><dt>Next</dt><dd>Find two more sources.</dd></div>
-            </dl>
-          </div></div>
-        </div>
-        <div class="feature reveal">
-          <h3>Open only what you need</h3>
-          <p>Bring back just the files, just the tabs, or everything. Pick single tabs too.</p>
-          <div class="show">
-            <div class="chips" role="group" aria-label="What to open">
-              <button class="chip" type="button" aria-pressed="true" data-n="2">2 files</button>
-              <button class="chip" type="button" aria-pressed="true" data-n="4">4 tabs</button>
-              <button class="chip" type="button" aria-pressed="true" data-n="1">1 chat</button>
-            </div>
-            <p class="chip-out" id="chipout">Unpack opens 7 things. Tap one to leave it out.</p>
-          </div>
-        </div>
-        <div class="feature reveal" style="--d:120ms">
-          <h3>Back to the exact chat</h3>
-          <p>Working something out with Claude? Stashd saves which chat you were in and opens that one again, so you never hunt for it by name.</p>
-          <div class="show"><div class="card chat"><span class="appicon claude" aria-hidden="true">✳</span><div><b>Grant budget for the RA stipends</b><div class="small">Claude chat, reopened on Unpack</div></div></div></div>
+      <div class="panel reveal" style="--d:120ms">
+        <div class="panel-title"><span data-folder="tile" id="sortFolder"></span>Studying for the biology midterm</div>
+        <div class="tablist" id="tablist">
+          <div class="trow in"><span class="fav" style="background:#14bf96">K</span><span class="t">Cellular respiration · Khan Academy</span><span class="tag">Goes in</span></div>
+          <div class="trow no"><span class="fav" style="background:#e1306c">I</span><span class="t">Instagram</span><span class="tag">Not this</span></div>
+          <div class="trow in"><span class="fav" style="background:#4255ff">Q</span><span class="t">Bio 101 Unit 4 flashcards · Quizlet</span><span class="tag">Goes in</span></div>
+          <div class="trow in"><span class="fav" style="background:#ff0000">▶</span><span class="t">The Krebs cycle in 5 minutes · YouTube</span><span class="tag">Goes in</span></div>
+          <div class="trow no"><span class="fav" style="background:#ff9900;color:#111">a</span><span class="t">Desk lamp, warm white · Amazon</span><span class="tag">Not this</span></div>
+          <div class="trow in"><span class="fav" style="background:#b3261e">P</span><span class="t">Lecture 9 · Mitochondria.pdf</span><span class="tag">Goes in</span></div>
         </div>
       </div>
     </div>
-  </section>
+
+    <div class="wrap chapter flip">
+      <div class="copy reveal">
+        <h2>A brief that says where you stopped.</h2>
+        <p>Come back a week later and the folder tells you, in three short lines, what you were on, what's done and what's next.</p>
+        <p class="eg">Written by Apple Intelligence on your Mac, or by Claude with your own key.</p>
+      </div>
+      <div class="panel big-brief reveal" style="--d:120ms" id="bigBrief">
+        <div class="head"><span data-folder="tile" id="briefFolder"></span><div><div class="name">Japan trip · 6 days ago</div><h3>Planning your 10-day trip to Japan.</h3></div></div>
+        <dl class="rows">
+          <div><dt>Last on</dt><dd>Ryokan options in Kyoto on Booking.com.</dd></div>
+          <div><dt>So far</dt><dd>Flights picked and the Rail Pass in your cart.</dd></div>
+          <div class="next"><dt>Next</dt><dd>Book a ryokan for nights 4 to 6.</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="wrap chapter">
+      <div class="copy reveal">
+        <h2>Open only what you need.</h2>
+        <p>Bring back just the files, just the tabs, or everything. Untick anything you don't want this time. Try it here.</p>
+        <p class="eg">Things open one at a time, so your screen doesn't explode.</p>
+      </div>
+      <div class="panel reveal" style="--d:120ms">
+        <div class="panel-title"><span data-folder="tile"></span>Spotify job application</div>
+        <div class="chips" role="group" aria-label="What to open">
+          <button class="chip" type="button" aria-pressed="true" data-kind="file">1 file</button>
+          <button class="chip" type="button" aria-pressed="true" data-kind="tab">3 tabs</button>
+          <button class="chip" type="button" aria-pressed="true" data-kind="chat">1 chat</button>
+        </div>
+        <div class="olist" id="olist">
+          <button class="orow" type="button" data-kind="file"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>Resume 2026.pdf<small>Preview</small></button>
+          <button class="orow" type="button" data-kind="tab"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>Product Designer · Spotify Jobs<small>lifeatspotify.com</small></button>
+          <button class="orow" type="button" data-kind="tab"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>Spotify reviews · Glassdoor<small>glassdoor.com</small></button>
+          <button class="orow" type="button" data-kind="tab"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>Your portfolio · Notion<small>notion.so</small></button>
+          <button class="orow" type="button" data-kind="chat"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>Cover letter for Spotify<small>Claude chat</small></button>
+        </div>
+        <div class="ofoot"><span class="count" id="ocount">5 things will open</span><button class="btn btn-main btn-small" type="button" id="ounpack">Unpack</button></div>
+      </div>
+    </div>
+
+    <div class="wrap chapter flip">
+      <div class="copy reveal">
+        <h2>Back to the exact chat.</h2>
+        <p>Working something out with Claude? Stashd remembers which chat you were in and opens that one again, so you never scroll through your history hunting for it.</p>
+      </div>
+      <div class="reveal" style="--d:120ms">
+        <div class="chatwin" id="chatwin">
+          <div class="chatside"><div class="h">Recents</div><span class="hl" id="chatHl"></span>
+            <div class="citem">Weeknight pasta ideas</div>
+            <div class="citem">Explain compound interest</div>
+            <div class="citem">Fix my Excel formula</div>
+            <div class="citem">Cover letter for Spotify</div>
+            <div class="citem">Birthday gift for Mom</div>
+          </div>
+          <div class="chatmain">
+            <div class="title" id="chatTitle">Weeknight pasta ideas</div>
+            <div class="bubble me" id="chatQ">What can I make with spinach and feta?</div>
+            <div class="bubble" id="chatA">Try a spinach and feta orzo. It takes about 20 minutes.</div>
+          </div>
+        </div>
+        <div class="chatcap"><span data-folder="tile" id="chatFolder"></span><span id="chatCapText">Unpacking "Spotify job application"…</span></div>
+      </div>
+    </div>
+  </div>
 
   <section id="privacy">
     <div class="wrap privacy">
-      <div class="section-head reveal">
-        <h2>Your work stays on your Mac.</h2>
-        <p>There's no account and no server. Folders are plain files on your computer.</p>
+      <div class="reveal">
+        <div class="section-head">
+          <h2>Your work stays on your Mac.</h2>
+          <p>No account, no server. Your folders are plain files on your computer, and the sorting happens there too.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><b>Never reads inside files</b>Only names, tab titles and addresses.</div>
+          <div class="fact"><b>Private windows left alone</b>Incognito tabs are never saved or closed.</div>
+        </div>
       </div>
-      <div class="facts">
-        <p class="reveal"><b>Sorting happens on your Mac.</b> A small model runs locally to tell which tabs belong together.</p>
-        <p class="reveal" style="--d:90ms"><b>It never reads inside your files.</b> Only names, tab titles and addresses.</p>
-        <p class="reveal" style="--d:180ms"><b>Briefs are optional.</b> Use Apple Intelligence on your Mac, or connect your own Claude key.</p>
-        <p class="reveal" style="--d:270ms"><b>Private windows are left alone.</b> Incognito tabs are never saved or closed.</p>
+      <div class="mac-map reveal" style="--d:140ms">
+        <span class="label">Your Mac</span>
+        <div class="vault"><span data-folder="tile" id="vaultFolder"></span>
+          <div class="things">
+            <div class="thing"><i></i>Your folders and notes</div>
+            <div class="thing"><i></i>Which tabs belong together</div>
+            <div class="thing"><i></i>Briefs from Apple Intelligence</div>
+          </div>
+        </div>
+        <div class="outside"><span class="appicon claude">✳</span>Optional: Claude writes briefs if you connect your own key. It sees titles and your note, never your files.</div>
       </div>
     </div>
   </section>
 
   <section class="end" id="end">
     <div class="wrap">
-      <div class="end-mascot reveal" id="endMascot" title="Shh, it's sleeping"><span data-folder="tile" data-mode="asleep" data-watch></span></div>
+      <div class="end-mascot reveal" id="endMascot" title="Hi"><span data-folder="tile" data-mode="asleep"></span></div>
       <h2 class="reveal" style="--d:80ms">Stash it. Close the laptop.</h2>
       <p class="reveal" style="--d:140ms">Free for Mac. Takes a minute to set up.</p>
       <a class="btn btn-main reveal" style="--d:200ms" id="endCta" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download for Mac</a>
@@ -453,7 +566,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   </section>
 </main>
 
-<button class="buddy" id="buddy" type="button" aria-label="Back to the demo"><span class="tip">Back to the demo</span><span data-folder="tile" data-watch></span></button>
+<button class="buddy" id="buddy" type="button" aria-label="Back to the demo"><span class="tip">Back to the demo</span><span data-folder="tile"></span></button>
 
 <footer>
   <div class="wrap">
@@ -468,6 +581,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
   const $ = (id) => document.getElementById(id);
   const wait = (ms) => new Promise((r) => setTimeout(r, reduce ? 0 : ms));
+  const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg>';
 
   // ---------- the folder ----------
   const TILE = '<rect width="96" height="96" rx="22" fill="#F2CD5C"/>';
@@ -485,7 +599,6 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const endF = document.querySelector('#endMascot .folder');
   const buddyF = document.querySelector('#buddy .folder');
   const sbF = $('sbFolder');
-
   const look = (f, x, y) => { const p = f.querySelector('.pupils'); if (p) p.style.transform = `translate(${x}px, ${y}px)`; };
   const lookAt = (f, px, py) => {
     const r = f.getBoundingClientRect();
@@ -496,9 +609,10 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const lookAtEl = (f, el) => { const r = el.getBoundingClientRect(); lookAt(f, r.left + r.width / 2, r.top + r.height / 2); };
   const sleep = (f, on) => f.classList.toggle('asleep', on);
   const wide = async (f) => { f.classList.add('wide'); await wait(520); f.classList.remove('wide'); };
+  const smile = async (f, ms = 1400) => { f.classList.add('smile'); await wait(ms); f.classList.remove('smile'); };
   const replay = (el, cls) => { el.classList.remove(cls); void el.getBoundingClientRect(); el.classList.add(cls); };
+  const held = new Set(); // folders playing a scripted moment; the cursor leaves them alone
 
-  // Blinks now and then, never in sync.
   if (!reduce) folders.forEach((f) => {
     const blink = () => {
       if (!f.classList.contains('asleep') && !f.classList.contains('smile')) { f.classList.add('blink'); setTimeout(() => f.classList.remove('blink'), 130); }
@@ -506,50 +620,35 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     };
     setTimeout(blink, 900 + Math.random() * 3000);
   });
-
-  // Watches the cursor; gets drowsy if you leave it alone, and perks up when you come back.
-  let busyEyes = false, idle;
-  const wakeAll = () => folders.forEach((f) => f.classList.remove('drowsy'));
+  let idle;
   const drowse = () => { idle = setTimeout(() => [heroF, buddyF].forEach((f) => !f.classList.contains('asleep') && f.classList.add('drowsy')), 7000); };
   if (finePointer && !reduce) {
     addEventListener('pointermove', (e) => {
-      wakeAll(); clearTimeout(idle); drowse();
-      folders.forEach((f) => {
-        if (f.classList.contains('asleep') || (busyEyes && (f === heroF || f === trayF))) return;
-        lookAt(f, e.clientX, e.clientY);
-      });
+      folders.forEach((f) => f.classList.remove('drowsy')); clearTimeout(idle); drowse();
+      folders.forEach((f) => { if (!f.classList.contains('asleep') && !held.has(f)) lookAt(f, e.clientX, e.clientY); });
     }, { passive: true });
     drowse();
   }
-
-  // Smiles when you go for a Download button.
   document.querySelectorAll('[data-smile], #endCta').forEach((b) => {
-    b.addEventListener('pointerenter', () => [heroF, buddyF, document.querySelector('.brand .folder')].forEach((f) => f.classList.add('smile')));
+    b.addEventListener('pointerenter', () => folders.forEach((f) => !f.classList.contains('asleep') && f.classList.add('smile')));
     b.addEventListener('pointerleave', () => folders.forEach((f) => f.classList.remove('smile')));
   });
-  // Poke it and it jumps.
   $('heroMascot').addEventListener('click', () => { replay($('heroMascot'), 'jump'); wide(heroF); });
 
-  // The sleeping folder at the end wakes up, smiling, when you reach for its button.
-  const endCta = $('endCta');
-  endCta.addEventListener('pointerenter', () => { sleep(endF, false); endF.classList.add('smile'); });
-  endCta.addEventListener('pointerleave', () => { endF.classList.remove('smile'); setTimeout(() => { if (!endCta.matches(':hover')) sleep(endF, true); }, 800); });
-  $('endMascot').addEventListener('click', () => { sleep(endF, false); wide(endF); replay($('endMascot'), 'jump'); setTimeout(() => sleep(endF, true), 2200); });
-
-  // ---------- the browser ----------
+  // ---------- the hero demo: planning a trip to Japan ----------
   const TABS = [
-    { id: 'netflix', title: 'Below | Netflix', url: 'netflix.com/title/81725634', fav: ['#e50914', 'N'], go: true },
-    { id: 'imdb', title: 'Below (TV Mini Series 2026) · User reviews · IMDb', url: 'imdb.com/title/tt35934755/reviews', fav: ['#f5c518', 'I', '#000'], go: true },
-    { id: 'search', title: 'something in the water below ending - Google Search', url: 'google.com/search?q=something+in+the+water+below+ending', fav: ['#4285f4', 'G'], go: true },
-    { id: 'reddit', title: 'r/television · Below finale discussion', url: 'reddit.com/r/television/comments/below_finale', fav: ['#ff4500', 'r'], go: true },
-    { id: 'stock', title: 'tsm stock - Google Search', url: 'google.com/search?q=tsm+stock', fav: ['#4285f4', 'G'], go: false },
+    { id: 'flights', title: 'Flights to Tokyo · Google Flights', url: 'google.com/travel/flights?q=SFO+to+HND+Apr+3', fav: ['#4285f4', 'G'], go: true },
+    { id: 'booking', title: 'Ryokans in Kyoto · Booking.com', url: 'booking.com/searchresults.html?ss=Kyoto&nflt=ht_id=209', fav: ['#003b95', 'B'], go: true },
+    { id: 'jr', title: 'Japan Rail Pass · 7-day', url: 'japanrailpass.net/en/purchase', fav: ['#1a7f4b', 'J'], go: true },
+    { id: 'reddit', title: 'r/JapanTravel · 10 day itinerary check', url: 'reddit.com/r/JapanTravel/comments/10_day_itinerary', fav: ['#ff4500', 'r'], go: true },
+    { id: 'espn', title: 'Warriors vs Lakers · ESPN', url: 'espn.com/nba/game/_/gameId/401704112', fav: ['#d50a0a', 'E'], go: false },
   ];
   const PAGES = {
-    netflix: '<div class="pg netflix"><span class="meta" style="color:#bbb">Limited series · 2026 · 6 episodes</span><h4>BELOW</h4><span>Episode 4 · The Undertow</span><span class="play">▶ Resume</span></div>',
-    imdb: '<div class="pg imdb"><div class="poster"></div><div><h4>Below</h4><div class="meta">TV Mini Series · 2026 · 6 episodes</div><div class="stars">★ 8.1/10 · 2,140 reviews</div><div class="review"><b>Quietly terrifying</b><br>The island feels alive. Episode 4 is where it all clicks.</div><div class="review"><b>That ending though</b><br>Still thinking about the lighthouse scene.</div></div></div>',
-    search: '<div class="pg goog"><div class="q">something in the water below ending</div><div class="r"><a>Below ending explained: what was in the water?</a><small>vulture.com · 2 days ago</small></div><div class="r"><a>Below (TV Mini Series 2026) · Plot summary</a><small>imdb.com</small></div><div class="r"><a>Who is the keeper in Below? Theories</a><small>reddit.com</small></div></div>',
-    reddit: '<div class="pg reddit"><div class="post"><b>Below · Series finale discussion</b><span class="meta">r/television · 1.4k comments</span><div class="c">The lighthouse was a clock the whole time.</div><div class="c">Rewatch episode 2 after this. Everything is set up there.</div></div></div>',
-    stock: '<div class="pg goog"><div class="q">tsm stock</div><div class="stock"><span class="meta">Taiwan Semiconductor · NYSE: TSM</span><div class="price">182.41 USD</div><span class="up">+2.18 (1.21%) today</span><svg viewBox="0 0 200 40" style="margin-top:6px;width:100%;height:36px"><path d="M0 32L20 28L40 30L60 22L80 24L100 16L120 19L140 12L160 14L180 8L200 10" fill="none" stroke="#137333" stroke-width="2"/></svg></div></div>',
+    flights: '<div class="pg flights"><h4>San Francisco to Tokyo</h4><span class="meta">Thu, Apr 3 · 1 adult · Economy</span><div class="row"><span>ANA · Nonstop · 11h 20m</span><span class="price">$842</span></div><div class="row"><span>JAL · Nonstop · 11h 05m</span><span class="price">$899</span></div><div class="row"><span>United · 1 stop · 14h 40m</span><span class="price">$711</span></div></div>',
+    booking: '<div class="pg booking"><div class="img"></div><div><h4>Ryokan Sanga, Gion</h4><span class="meta">Kyoto · Traditional inn · Breakfast included</span><div style="margin:8px 0"><span class="score">9.1</span> <b>Wonderful</b> · 1,284 reviews</div><span class="meta">Apr 6 to Apr 9 · 3 nights · <b style="color:#111">¥96,000</b></span></div></div>',
+    jr: '<div class="pg jr"><h4>Japan Rail Pass</h4><span class="meta">Unlimited JR trains, including most shinkansen</span><div class="pass"><b>7-day pass · ¥50,000</b><br>In your cart · Starts Apr 5</div></div>',
+    reddit: '<div class="pg reddit"><div class="post"><b>10 days: Tokyo, Hakone, Kyoto, Osaka. Too much?</b><span class="meta">r/JapanTravel · 214 comments</span><div class="c">Do Hakone on your way to Kyoto, not as a day trip.</div><div class="c">Two nights in Osaka is plenty. Give Kyoto the extra day.</div></div></div>',
+    espn: '<div class="pg espn"><h4>NBA · Final</h4><div class="game"><span>Warriors</span><span>118</span></div><div class="game"><span>Lakers</span><span>112</span></div><span class="meta">Curry 34 PTS · 7 AST</span></div>',
   };
   const strip = $('strip'), view = $('view'), url = $('url');
   TABS.forEach((t) => {
@@ -565,13 +664,11 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     url.textContent = TABS.find((t) => t.id === id).url;
     view.innerHTML = PAGES[id];
   }
-  show('imdb');
+  show('booking');
 
-  // ---------- the demo ----------
   const mac = $('mac'), box = $('savebox'), scrim = $('scrim'), demo = $('demo'), note = $('note'), toast = $('toast'), briefpop = $('briefpop'), tray = $('tray'), nudge = $('nudge');
   const stepEls = [...$('stepsMini').querySelectorAll(':scope > span:not(.sep)')];
-  const TICK = '<span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>';
-  const pill = (text, out) => `<span class="pill ${out ? 'out' : ''}">${out ? '<span class="tick"></span>' : TICK}${text}</span>`;
+  const pill = (text, out) => `<span class="pill ${out ? 'out' : ''}"><span class="tick">${out ? '' : CHECK}</span>${text}</span>`;
   let state = 'open', typing = 0;
   const step = (n, label, text) => {
     stepEls.forEach((el, i) => { el.classList.toggle('on', i === n); el.classList.toggle('done', i < n); });
@@ -580,39 +677,35 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const packables = () => [...mac.querySelectorAll('[data-pack]')];
 
   async function typeNote() {
-    const el = $('sbNote'), text = 'finish episode 4 notes', run = ++typing;
+    const el = $('sbNote'), text = 'book the Kyoto ryokan this week', run = ++typing;
     el.innerHTML = '<span class="ph">Note for later</span><span class="caret"></span>';
     await wait(500);
     for (let i = 1; i <= text.length; i++) {
       if (run !== typing || state !== 'asking') return;
       el.innerHTML = `${text.slice(0, i)}<span class="caret"></span>`;
-      await wait(36 + Math.random() * 40);
+      await wait(32 + Math.random() * 36);
     }
   }
-
   async function stash() {
     if (state !== 'open') return;
     state = 'asking';
-    nudge.classList.add('off'); demo.classList.remove('pulse');
-    briefpop.classList.remove('on');
-    $('goingIn').innerHTML = ['Below | Netflix', 'IMDb reviews', 'Ending explained search', 'r/television', 'Episode notes', 'Claude chat'].map((t) => pill(t)).join('');
-    $('leftOut').innerHTML = pill('tsm stock', true);
+    nudge.classList.add('off'); demo.classList.remove('pulse'); briefpop.classList.remove('on');
+    $('goingIn').innerHTML = ['Flights to Tokyo', 'Kyoto ryokans', 'Japan Rail Pass', 'r/JapanTravel', 'Japan itinerary', 'Claude chat'].map((t) => pill(t)).join('');
+    $('leftOut').innerHTML = pill('Warriors vs Lakers', true);
     [...box.querySelectorAll('.pill')].forEach((p, i) => { p.classList.add('pop'); p.style.animationDelay = `${120 + i * 45}ms`; });
     scrim.classList.add('on'); box.classList.add('on');
-    busyEyes = true;
+    held.add(heroF); held.add(sbF);
     lookAtEl(heroF, box); wide(sbF);
     setTimeout(() => lookAtEl(sbF, $('leftOut')), 700);
-    step(1, 'Pack up', 'Stashd ticked the show. The stock tab is something else.');
+    step(1, 'Pack up', 'Stashd ticked the trip. The basketball score is something else.');
     typeNote();
   }
-
   function cancel() {
     if (state !== 'asking') return;
     box.classList.remove('on'); scrim.classList.remove('on');
-    state = 'open'; busyEyes = false; typing++;
+    state = 'open'; held.clear(); typing++;
     step(0, 'Press ⌃S', 'Nothing saved.');
   }
-
   function fly(el, from, to, back) {
     const clone = el.cloneNode(true);
     clone.classList.add('flyer');
@@ -629,7 +722,6 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     const a = clone.animate(back ? frames.slice().reverse() : frames, { duration: reduce ? 1 : 720, easing: 'cubic-bezier(0.45, 0, 0.25, 1)', fill: 'forwards' });
     return a.finished.then(() => clone.remove());
   }
-
   async function packUp() {
     if (state !== 'asking') return;
     state = 'busy'; typing++;
@@ -637,7 +729,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     demo.textContent = 'Packing…';
     await wait(160);
     const to = tray.getBoundingClientRect();
-    lookAtEl(heroF, tray); lookAt(trayF, to.left, to.bottom + 200);
+    held.add(trayF); lookAtEl(heroF, tray); look(trayF, 0, 3);
     await Promise.all(packables().map(async (el, i) => {
       await wait(i * 80);
       const from = el.getBoundingClientRect();
@@ -646,16 +738,14 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       replay(tray, 'hop');
       if (el.classList.contains('tab')) el.classList.add('collapsed');
     }));
-    show('stock');
-    sleep(trayF, true);
-    toast.classList.add('on');
+    show('espn');
+    sleep(trayF, true); toast.classList.add('on');
     await wait(300);
     sleep(heroF, true);
     state = 'packed';
-    step(2, 'Unpack', 'Packed. The folder is asleep, and only the stock tab is left.');
+    step(2, 'Unpack', 'Packed. The folder is asleep, and only the basketball tab is left.');
     setTimeout(() => toast.classList.remove('on'), 3200);
   }
-
   async function unpack() {
     if (state !== 'packed') return;
     state = 'busy';
@@ -673,15 +763,13 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       await fly(el, el.getBoundingClientRect(), from, true);
       el.classList.remove('hidden-thing');
     }));
-    show('imdb');
+    show('booking');
     briefpop.classList.add('on');
-    heroF.classList.add('smile'); setTimeout(() => heroF.classList.remove('smile'), 1400);
-    busyEyes = false;
+    smile(heroF); held.clear();
     state = 'open';
     step(0, 'Press ⌃S', 'Everything came back, with a note on where you stopped.');
     setTimeout(() => briefpop.classList.remove('on'), 7000);
   }
-
   demo.addEventListener('click', () => (state === 'open' ? stash() : state === 'asking' ? packUp() : state === 'packed' ? unpack() : null));
   $('pack').addEventListener('click', packUp);
   $('cancel').addEventListener('click', cancel);
@@ -696,32 +784,111 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   });
 
   // ---------- scroll ----------
-  // Things rise in once as you reach them.
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
   document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+  // Run `fn` each time `el` comes well into view (`repeat`), or once.
+  const whenSeen = (el, fn, repeat = false, threshold = 0.55) => new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { fn(); if (!repeat) o.disconnect(); } }), { threshold }).observe(el);
 
-  // Feature examples play when they come into view.
-  const once = (el, fn, threshold = 0.6) => new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { fn(); o.disconnect(); } }), { threshold }).observe(el);
-  const sortPills = $('sortPills');
-  // Every tab starts ticked; then the one that isn't about the essay unticks itself.
-  sortPills.innerHTML = [pill('Carbon tax · Wikipedia'), pill('Nike Air Max 90'), pill('Paris Agreement · UNFCCC'), pill('Climate essay draft.docx')].join('');
-  const nike = sortPills.children[1];
-  once(sortPills, () => setTimeout(() => { nike.classList.add('out'); nike.querySelector('.tick').innerHTML = ''; }, 700));
-  const briefCard = $('briefCard');
-  [...briefCard.querySelectorAll('.brief-rows > div')].forEach((d, i) => (d.style.transitionDelay = `${250 + i * 220}ms`));
-  once(briefCard, () => briefCard.classList.add('played'));
+  // Step pictures: the keys press, things fly into the menu bar folder, the brief fills in.
+  const keyEls = [...$('keys').children];
+  const pressKeys = async () => { for (const k of keyEls) { k.classList.add('down'); await wait(160); } await wait(380); keyEls.forEach((k) => k.classList.remove('down')); };
+  whenSeen($('keys'), () => { pressKeys(); if (!reduce) setInterval(pressKeys, 3600); });
+  const packPic = $('packPic'), miniF = packPic.querySelector('.folder');
+  const playPack = async () => {
+    sleep(miniF, false);
+    const chips = [...packPic.querySelectorAll('.chiplet')];
+    chips.forEach((c) => (c.style.cssText = c.style.cssText.replace(/transform[^;]*;?|opacity[^;]*;?/g, '')));
+    await wait(400);
+    const t = miniF.getBoundingClientRect();
+    await Promise.all(chips.map(async (c, i) => {
+      await wait(i * 120);
+      const r = c.getBoundingClientRect();
+      await c.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${t.left - r.left}px, ${t.top - r.top}px) scale(0.2)`, opacity: 0 }], { duration: reduce ? 1 : 650, easing: 'cubic-bezier(0.45, 0, 0.25, 1)', fill: 'forwards' }).finished;
+    }));
+    sleep(miniF, true);
+    await wait(2200);
+    packPic.querySelectorAll('.chiplet').forEach((c) => c.getAnimations().forEach((a) => a.cancel()));
+  };
+  whenSeen(packPic, () => { playPack(); if (!reduce) setInterval(playPack, 5200); });
+  const lns = [...$('unpackPic').querySelectorAll('.ln')];
+  whenSeen($('unpackPic'), () => lns.forEach((l, i) => l.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: reduce ? 1 : 600, delay: 200 + i * 220, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'both' })));
 
-  // The line across the three steps fills as you scroll through them.
-  const steps = $('steps'), fill = steps.querySelector('.fill');
-  // The little folder that follows you down the page, looking at what you're reading.
+  // Chapter 1: the study tabs sort themselves.
+  const tablist = $('tablist'), sortF = $('sortFolder');
+  whenSeen(tablist, async () => {
+    tablist.classList.remove('sorted');
+    held.add(sortF); look(sortF, 4, 2);
+    await wait(500);
+    tablist.classList.add('sorted'); smile(sortF, 1200);
+    held.delete(sortF);
+  }, true);
+  // Chapter 2: the brief writes itself, line by line.
+  const bigBrief = $('bigBrief');
+  [...bigBrief.querySelectorAll('.rows > div')].forEach((d, i) => (d.style.transitionDelay = `${300 + i * 260}ms`));
+  whenSeen(bigBrief, () => { bigBrief.classList.add('played'); wide($('briefFolder')); });
+  // Chapter 3: open by type, with single items too.
+  const olist = $('olist'), chips = [...document.querySelectorAll('.chip')];
+  const countOpen = () => {
+    const n = olist.querySelectorAll('.orow:not(.off)').length;
+    $('ocount').textContent = n ? `${n} ${n === 1 ? 'thing' : 'things'} will open` : 'Tick something to open';
+    $('ounpack').textContent = n === 5 ? 'Unpack' : `Unpack ${n}`;
+    chips.forEach((c) => c.setAttribute('aria-pressed', [...olist.querySelectorAll(`.orow[data-kind="${c.dataset.kind}"]`)].some((r) => !r.classList.contains('off')) ? 'true' : 'false'));
+  };
+  chips.forEach((c) => c.addEventListener('click', () => {
+    const rows = [...olist.querySelectorAll(`.orow[data-kind="${c.dataset.kind}"]`)];
+    const on = rows.some((r) => !r.classList.contains('off'));
+    rows.forEach((r) => r.classList.toggle('off', on));
+    countOpen();
+  }));
+  olist.querySelectorAll('.orow').forEach((r) => r.addEventListener('click', () => { r.classList.toggle('off'); countOpen(); }));
+  $('ounpack').addEventListener('click', () => { replay($('ounpack'), 'hop'); });
+  // Chapter 4: Stashd jumps to the exact chat.
+  const hl = $('chatHl'), citems = [...document.querySelectorAll('.citem')], chatF = $('chatFolder');
+  const placeHl = (i) => { hl.style.top = `${citems[i].offsetTop}px`; };
+  placeHl(0);
+  whenSeen($('chatwin'), async () => {
+    placeHl(0); $('chatTitle').textContent = 'Weeknight pasta ideas';
+    $('chatQ').textContent = 'What can I make with spinach and feta?'; $('chatA').textContent = 'Try a spinach and feta orzo. It takes about 20 minutes.';
+    $('chatCapText').textContent = 'Unpacking "Spotify job application"…';
+    held.add(chatF); lookAtEl(chatF, $('chatwin'));
+    await wait(900);
+    placeHl(3);
+    await wait(500);
+    $('chatTitle').textContent = 'Cover letter for Spotify';
+    $('chatQ').textContent = 'Can you make the second paragraph sound less formal?';
+    $('chatA').textContent = 'Sure. Here is a warmer version that keeps your point about the Wrapped redesign.';
+    $('chatCapText').textContent = 'Back in "Cover letter for Spotify", right where you left it.';
+    smile(chatF, 1600); held.delete(chatF);
+  }, true);
+  // Privacy: the folder keeps an eye on your things.
+  whenSeen($('vaultFolder'), () => { const f = $('vaultFolder'); held.add(f); look(f, 4, 0); setTimeout(() => { look(f, -4, 0); setTimeout(() => { held.delete(f); smile(f, 1200); }, 700); }, 700); }, true);
+
+  // The end: the folder wakes, looks to one side, then the other, then smiles at you.
+  const endM = $('endMascot');
+  whenSeen(endM, async () => {
+    held.add(endF);
+    sleep(endF, true); look(endF, 0, 0);
+    await wait(700);
+    sleep(endF, false); wide(endF);
+    await wait(650);
+    look(endF, -4.5, 0); await wait(750);
+    look(endF, 4.5, 0); await wait(750);
+    look(endF, 0, 0); await wait(300);
+    replay(endM, 'hop');
+    await smile(endF, 1600);
+    held.delete(endF);
+  }, true, 0.7);
+  endM.addEventListener('click', () => { replay(endM, 'jump'); smile(endF, 1200); });
+
+  // Line + background parallax + the companion folder.
   const buddy = $('buddy'), hero = document.querySelector('.hero'), end = $('end');
-  const heads = [...document.querySelectorAll('section h2')];
+  const heads = [...document.querySelectorAll('h2')];
+  const sky = document.querySelector('.sky');
   let ticking = false, lastY = scrollY, fastTimer;
   function onScroll() {
     ticking = false;
     const vh = innerHeight;
-    const r = steps.getBoundingClientRect();
-    fill.style.setProperty('--p', Math.max(0, Math.min(1, (vh * 0.85 - r.top) / (r.height + vh * 0.35))).toFixed(3));
+    if (!reduce) sky.style.setProperty('--sy', scrollY.toFixed(0));
     const showBuddy = hero.getBoundingClientRect().bottom < 80 && end.getBoundingClientRect().top > vh * 0.75;
     buddy.classList.toggle('on', showBuddy);
     if (showBuddy && !reduce) {
@@ -733,16 +900,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   }
   addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
   onScroll();
-  buddy.addEventListener('click', () => { replay(buddy, 'jump'); $('mac').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); });
-
-  // ---------- open by type ----------
-  const chips = [...document.querySelectorAll('.chip')];
-  const out = $('chipout');
-  chips.forEach((c) => c.addEventListener('click', () => {
-    c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
-    const n = chips.filter((x) => x.getAttribute('aria-pressed') === 'true').reduce((a, x) => a + Number(x.dataset.n), 0);
-    out.textContent = n ? `Unpack opens ${n} ${n === 1 ? 'thing' : 'things'}.` : 'Tick something to open.';
-  }));
+  buddy.addEventListener('click', () => { replay(buddy, 'jump'); mac.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); });
 })();
 </script>
 </body>
