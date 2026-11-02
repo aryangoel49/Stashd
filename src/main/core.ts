@@ -5,7 +5,7 @@ import path from 'node:path';
 import type { BriefView, Capture, Item, Job, JobSummary, OpenResult, OpenState, Suggestion, SaveEntry, SavePreview, SaveRequest, SaveResult } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
-import { capture, frontItemKey } from './capture';
+import { capture, CHAT_APPS, frontItemKey } from './capture';
 import type { Helper, WindowsInfo } from './helper';
 import {
   classify,
@@ -32,6 +32,8 @@ interface State {
   baseline: { jobId: string; keys: string[] } | null;
   /** Suggestions the person said no to: id → until when (ISO date), or 'never' to never ask again. */
   dismissed: Record<string, string>;
+  /** macOS has been asked once for Accessibility (to see which Claude or ChatGPT chat is open). */
+  askedChatAccess?: boolean;
 }
 
 interface PendingSave {
@@ -85,6 +87,7 @@ export class Core {
           ? { jobId: raw.baseline.jobId, keys: raw.baseline.keys.filter((k): k is string => typeof k === 'string') }
           : null,
       dismissed: raw.dismissed && typeof raw.dismissed === 'object' ? raw.dismissed : {},
+      askedChatAccess: raw.askedChatAccess === true,
     };
   }
 
@@ -115,8 +118,15 @@ export class Core {
 
   /** Called the moment the shortcut is pressed. `early` is the window order taken before our box appeared. */
   beginSave(early?: Promise<WindowsInfo>, target?: string): void {
-    this.pending = { capture: this.fakeCapture ? this.fakeCapture() : capture(this.settings.get(), this.helper, this.selfNames, early), target };
+    this.pending = { capture: this.fakeCapture ? this.fakeCapture() : capture(this.settings.get(), this.helper, this.selfNames, early, undefined, !this.state.askedChatAccess), target };
     this.pending.capture.catch(() => undefined);
+    if (!this.state.askedChatAccess) {
+      void this.pending.capture.then((cap) => {
+        if (!cap.items.some((i) => CHAT_APPS.includes(i.app))) return;
+        this.state.askedChatAccess = true;
+        return this.saveState();
+      }).catch(() => undefined);
+    }
   }
 
   async preview(opts: { asNew?: boolean; jobId?: string } = {}): Promise<SavePreview> {

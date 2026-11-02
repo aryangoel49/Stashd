@@ -8,6 +8,28 @@ import type { Helper, WindowsInfo } from '../helper';
 import { displayUrl } from '../urls';
 import { collectDocs } from './docs';
 
+/** Chat apps whose open chat is saved with them, so Unpack can go back to it. */
+export const CHAT_APPS = ['Claude', 'ChatGPT'];
+
+/** "Grant budget - Claude" -> "Grant budget". Null for a window that shows no particular chat. */
+export function chatTitle(app: string, title: string): string | null {
+  const t = title.replace(/\s+[-–|·]\s+(Claude Code|Claude|ChatGPT)$/i, '').trim();
+  if (!t || t.toLowerCase() === app.toLowerCase() || /^(new chat|chatgpt|claude|home)$/i.test(t)) return null;
+  return t;
+}
+
+/** Puts each chat on its app's item: the chat's name becomes the label, so it sorts with the project. */
+export function attachChats(items: Item[], chats: { app: string; title: string; url?: string }[]): void {
+  for (const c of chats) {
+    const it = items.find((i) => i.kind === 'app' && i.app === c.app);
+    const title = chatTitle(c.app, c.title);
+    if (!it || !title) continue;
+    it.label = title;
+    it.detail = `${c.app} chat`;
+    it.chat = { title, url: c.url };
+  }
+}
+
 /** Apps that are never items themselves (their content is captured instead, or they are us). */
 const NOT_APP_ITEMS = new Set(['Finder', 'Stashd', 'Where Was I', 'Electron', 'loginwindow']);
 
@@ -85,7 +107,7 @@ export function assemble(
  */
 export function frontItemKey(items: Item[], appOrder: string[]): string | null {
   for (const app of appOrder) {
-    const inApp = items.filter((i) => i.app === app && i.kind !== 'app');
+    const inApp = items.filter((i) => i.app === app && (i.kind !== 'app' || i.chat));
     if (!inApp.length) continue;
     const tabs = inApp.filter((i) => i.kind === 'tab');
     if (tabs.length) {
@@ -104,7 +126,7 @@ export function frontItemKey(items: Item[], appOrder: string[]): string | null {
 }
 
 /** `onlyApps`: ask just these apps (by name), e.g. the ones your folders use, to keep quick checks light. */
-export async function capture(settings: Settings, helper: Helper, selfNames: string[], early?: Promise<WindowsInfo>, onlyApps?: Set<string>): Promise<Capture> {
+export async function capture(settings: Settings, helper: Helper, selfNames: string[], early?: Promise<WindowsInfo>, onlyApps?: Set<string>, askChatAccess = false): Promise<Capture> {
   const errors: CollectorError[] = [];
   let win: WindowsInfo;
   try {
@@ -115,15 +137,19 @@ export async function capture(settings: Settings, helper: Helper, selfNames: str
   }
   const running = new Set(win.apps.filter((a) => !onlyApps || onlyApps.has(a.name)).map((a) => a.bundleId));
   const enabledBrowsers = BROWSERS.filter((b) => settings.browsers[b] && (!onlyApps || onlyApps.has(BROWSER_APPS[b].appName)));
-  const [tabResult, docResult] = await Promise.all([
+  // Quick open checks (onlyApps) don't need to know which chat is showing.
+  const chatApps = onlyApps ? [] : win.apps.map((a) => a.name).filter((n) => CHAT_APPS.includes(n));
+  const [tabResult, docResult, chatResult] = await Promise.all([
     collectTabs(enabledBrowsers, { keepQueryStrings: settings.keepQueryStrings, excludedDomains: settings.excludedDomains }, running).catch((e) => {
       errors.push({ collector: 'browsers', message: String(e instanceof Error ? e.message : e) });
       return { tabs: [], errors: [] };
     }),
     collectDocs(running),
+    chatApps.length ? helper.chats(chatApps, askChatAccess).catch(() => null) : Promise.resolve(null),
   ]);
   errors.push(...tabResult.errors, ...docResult.errors);
   const assembled = assemble(win, tabResult.tabs, docResult.items, selfNames, docResult.answered);
+  if (chatResult) attachChats(assembled.items, chatResult.chats);
   // If an app's files couldn't be read (permission not given yet), say so on its item.
   const blocked = new Set(docResult.errors.map((e) => e.collector.replace(/^docs:/, '')));
   for (const it of assembled.items) {

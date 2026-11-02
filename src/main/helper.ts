@@ -65,6 +65,18 @@ export class Helper {
     return Array.isArray(out.hidden) ? out.hidden.filter((n): n is string => typeof n === 'string') : [];
   }
 
+  /** The chat open in each of these apps (Claude, ChatGPT). `ask`: let macOS ask for Accessibility if it isn't on. */
+  async chats(names: string[], ask = false): Promise<{ trusted: boolean; chats: { app: string; title: string; url?: string }[] }> {
+    const r = await run(this.binary, ask ? ['chats', 'ask'] : ['chats'], { timeoutMs: 3000, input: JSON.stringify(names) });
+    const out = JSON.parse(r.stdout) as { trusted?: unknown; chats?: unknown };
+    const chats = Array.isArray(out.chats)
+      ? out.chats
+          .filter((c): c is { app: string; title: string; url?: string } => !!c && typeof c.app === 'string' && typeof c.title === 'string')
+          .map((c) => ({ app: c.app, title: c.title, url: typeof c.url === 'string' ? c.url : undefined }))
+      : [];
+    return { trusted: out.trusted === true, chats };
+  }
+
   /** Ask Apple's on-device model. Throws if it is unavailable or fails. */
   async appleBrief(instructions: string, prompt: string): Promise<string> {
     const r = await run(this.binary, ['brief'], { timeoutMs: 45_000, input: JSON.stringify({ instructions, prompt }) });

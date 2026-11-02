@@ -82,7 +82,7 @@ export function isGeneralHost(h: string): boolean {
 
 /** Tokens for an item: its title (minus app names), plus the site's own name for special-purpose sites. */
 export function itemTokens(item: Item): string[] {
-  if (item.kind === 'app') return [];
+  if (item.kind === 'app') return item.chat ? [...new Set(textTokens(item.chat.title))] : [];
   let text = item.label;
   if (item.kind === 'doc' || item.kind === 'folder') text = text.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/_+/g, ' ');
   if (item.untitled && /^(document|book|workbook|presentation|untitled)\s*\d*$/i.test(text)) text = '';
@@ -97,7 +97,7 @@ export function itemTokens(item: Item): string[] {
 
 /** The text the meaning model reads for an item: its title, without file endings and search-engine noise. */
 export function meaningText(item: Item): string | null {
-  if (item.kind === 'app') return null;
+  if (item.kind === 'app') return item.chat && item.chat.title.length >= 2 ? item.chat.title : null;
   if (item.untitled && /^(document|book|workbook|presentation|untitled)\s*\d*$/i.test(item.label)) return null;
   let t = item.label;
   if (item.kind === 'doc' || item.kind === 'folder') t = t.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/[_-]+/g, ' ');
@@ -141,6 +141,8 @@ export interface Profile {
   keys: Set<string>;
   /** The same items, matched loosely (a tab whose address changed a little after reopening). */
   loose: Set<string>;
+  /** Chats that were in the job (a chat app only counts as the same item when it's on the same chat). */
+  chats: Set<string>;
   hosts: Set<string>;
   dirs: Set<string>;
   /** Texts to compare meaning against (the job name, your note, titles in the job), with a label for tooltips. */
@@ -151,7 +153,7 @@ export interface Profile {
 }
 
 export function emptyProfile(): Profile {
-  return { tokens: new Map(), keys: new Set(), loose: new Set(), hosts: new Set(), dirs: new Set(), refs: new Map(), avoidTexts: [], avoidHosts: new Set() };
+  return { tokens: new Map(), keys: new Set(), loose: new Set(), chats: new Set(), hosts: new Set(), dirs: new Set(), refs: new Map(), avoidTexts: [], avoidHosts: new Set() };
 }
 
 function addTokens(p: Profile, tokens: string[], weight: number, cap = 4): void {
@@ -163,6 +165,7 @@ export function addItem(p: Profile, item: Item, weight = 1, asMember = true): vo
   if (asMember) {
     p.keys.add(item.key);
     p.loose.add(looseKey(item));
+    if (item.chat) p.chats.add(item.chat.url ?? item.chat.title);
   }
   addTokens(p, itemTokens(item), weight);
   const h = hostOf(item);
@@ -212,7 +215,7 @@ export interface Score {
 }
 
 export function scoreItem(item: Item, p: Profile, df: Map<string, number>, frontWindow: number | null = null, meaning?: MeaningLookup): Score {
-  if (p.keys.has(item.key) || p.loose.has(looseKey(item))) return { score: 10, why: ['was in this job'] };
+  if (item.chat ? p.chats.has(item.chat.url ?? item.chat.title) : p.keys.has(item.key) || p.loose.has(looseKey(item))) return { score: 10, why: ['was in this job'] };
   let score = 0;
   const why: string[] = [];
   const shared: string[] = [];
@@ -329,8 +332,8 @@ export function group(opts: {
     if (front) addItem(profile, front, 2);
     if (profile.tokens.size === 0 && profile.hosts.size === 0 && profile.dirs.size === 0 && profile.refs.size === 0) {
       // Nothing to go on (an untitled document, say): everything that isn't a bare app is the job.
-      const sure = candidates.filter((i) => i.kind !== 'app');
-      return { sure, likely: [], maybe: candidates.filter((i) => i.kind === 'app'), why: {} };
+      const sure = candidates.filter((i) => i.kind !== 'app' || i.chat);
+      return { sure, likely: [], maybe: candidates.filter((i) => i.kind === 'app' && !i.chat), why: {} };
     }
   }
 
@@ -347,7 +350,7 @@ export function group(opts: {
   run(new Set());
   // Second pass: what clearly matched joins the profile, so related things pull each other in.
   // (What already matched keeps its first score and reason, so it isn't matched against itself.)
-  const settled = new Set(candidates.filter((it) => (scores.get(it.key) ?? 0) >= SURE && it.kind !== 'app').map((it) => it.key));
+  const settled = new Set(candidates.filter((it) => (scores.get(it.key) ?? 0) >= SURE && (it.kind !== 'app' || it.chat)).map((it) => it.key));
   for (const it of candidates) if (settled.has(it.key)) addItem(profile, it, 0.75, false);
   run(settled);
 
@@ -356,7 +359,7 @@ export function group(opts: {
     const s = scores.get(it.key) ?? 0;
     if (it.key === opts.frontKey && isNew) out.sure.push(it);
     else if (opts.alwaysSure?.(it)) out.sure.push(it);
-    else if (it.kind === 'app' && s < 10) out.maybe.push(it); // a bare app is never ticked on its own
+    else if (it.kind === 'app' && !it.chat && s < 10) out.maybe.push(it); // a bare app is never ticked on its own
     else if (s >= SURE) out.sure.push(it);
     else if (s >= LIKELY || (opts.baseline && !opts.baseline.has(it.key))) out.likely.push(it);
     else out.maybe.push(it);
@@ -367,7 +370,7 @@ export function group(opts: {
 /** How well a set of open items fits a job (0 = not at all). Used to suggest and rank jobs. */
 export function jobFit(candidates: Item[], profile: Profile, meaning?: MeaningLookup): number {
   const df = documentFrequency(candidates);
-  const scored = candidates.filter((i) => i.kind !== 'app').map((i) => Math.max(0, Math.min(scoreItem(i, profile, df, null, meaning).score, 4)));
+  const scored = candidates.filter((i) => i.kind !== 'app' || i.chat).map((i) => Math.max(0, Math.min(scoreItem(i, profile, df, null, meaning).score, 4)));
   if (!scored.length) return 0;
   // Clear matches count fully, "probably related" ones half.
   const strong = scored.reduce((n, s) => n + (s >= SURE ? 1 : s >= LIKELY ? 0.5 : 0), 0);

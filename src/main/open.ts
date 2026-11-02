@@ -8,6 +8,16 @@ import { BROWSER_APPS, collectTabs } from './collectors/browsers';
 import { run } from './exec';
 import { looseKey } from './urls';
 
+/**
+ * The link that opens a saved chat in its app: claude.ai/chat/<id> -> claude://claude.ai/chat/<id>.
+ * Only exact Claude chat and Claude Code addresses qualify (the file on disk could be edited by anyone).
+ */
+export function chatLink(item: Item): string | null {
+  if (item.kind !== 'app' || item.app !== 'Claude' || !item.chat?.url) return null;
+  const m = /^https:\/\/claude\.ai\/(chat|epitaxy|project)\/([A-Za-z0-9_-]{6,80})$/.exec(item.chat.url);
+  return m ? `claude://claude.ai/${m[1]}/${m[2]}` : null;
+}
+
 async function openUrl(item: Item): Promise<void> {
   const u = new URL(item.url ?? '');
   const pdf = u.protocol === 'file:' && /\.pdf$/i.test(u.pathname);
@@ -170,6 +180,8 @@ export async function openItems(
             continue;
           }
           await openPath(item);
+        } else if (chatLink(item)) {
+          await run('open', [chatLink(item)!], { timeoutMs: 10_000 });
         } else {
           await run('open', ['-a', item.app], { timeoutMs: 10_000 });
         }

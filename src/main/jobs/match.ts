@@ -41,6 +41,8 @@ function siteMatches(h: string, entry: string): boolean {
 }
 
 export function isLifestyle(item: Item, settings: Pick<Settings, 'lifestyleApps' | 'lifestyleSites'>, learnedApps: string[] = []): boolean {
+  // Claude or ChatGPT on its own is everyday, but a particular chat in it is work.
+  if (item.kind === 'app' && item.chat) return false;
   const apps = new Set([...settings.lifestyleApps, ...learnedApps].map((a) => a.toLowerCase()));
   if (item.kind === 'tab') {
     const h = host(item);
