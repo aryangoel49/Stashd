@@ -31,17 +31,27 @@ const SOURCE: Record<Brief['source'], string> = { claude: 'Brief by Claude', app
 export function BriefCard({ view, onOpened, current = false, hideTitle = false }: { view: BriefView; onOpened?: (r: OpenResult) => void; current?: boolean; hideTitle?: boolean }) {
   const { job, entry, brief } = view;
   const [busy, setBusy] = useState<'some' | 'all' | null>(null);
-  // Open by type: every type in the folder starts ticked; untick what you don't want this time.
-  const counts = KINDS.map((k) => ({ ...k, n: entry.items.filter((i) => openKindOf(i) === k.kind).length })).filter((k) => k.n > 0);
-  const [kinds, setKinds] = useState<Set<OpenKind>>(() => new Set(counts.map((k) => k.kind)));
-  const toggleKind = (k: OpenKind) =>
-    setKinds((prev) => {
+  // What Unpack opens: everything starts ticked. Untick a whole type with its pill, or single items
+  // under "Show what's inside".
+  const counts = KINDS.map((k) => ({ ...k, keys: entry.items.filter((i) => openKindOf(i) === k.kind).map((i) => i.key) })).filter((k) => k.keys.length > 0);
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(entry.items.map((i) => i.key)));
+  const kindOn = (keys: string[]) => keys.some((k) => picked.has(k));
+  const toggleKind = (keys: string[]) =>
+    setPicked((prev) => {
       const next = new Set(prev);
-      if (next.has(k)) next.delete(k);
+      const on = keys.every((k) => prev.has(k));
+      for (const k of keys) if (on) next.delete(k);
       else next.add(k);
       return next;
     });
-  const pickedCount = counts.filter((k) => kinds.has(k.kind)).reduce((n, k) => n + k.n, 0);
+  const toggleItem = (key: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  const pickedCount = entry.items.filter((i) => picked.has(i.key)).length;
   const [result, setResult] = useState<OpenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showItems, setShowItems] = useState(false);
@@ -53,7 +63,7 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
     setBusy(which);
     setError(null);
     try {
-      const r = await api.openJob(job.id, entry.id, 'all', which === 'some' ? [...kinds] : undefined);
+      const r = await api.openJob(job.id, entry.id, 'all', which === 'some' ? entry.items.filter((i) => picked.has(i.key)).map((i) => i.key) : undefined);
       setResult(r);
       onOpened?.(r);
     } catch (e) {
@@ -89,12 +99,16 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
       <>
         {counts.length > 1 && (
           <div className="open-kinds" role="group" aria-label="What to open">
-            {counts.map((k) => (
-              <button key={k.kind} type="button" className={`pill ${kinds.has(k.kind) ? 'in' : 'out'}`} aria-pressed={kinds.has(k.kind)} onClick={() => toggleKind(k.kind)}>
-                <span className="pill-mark">{kinds.has(k.kind) ? <Icon name="check" /> : <Icon name="plus" />}</span>
-                <Icon name={k.icon} /> {k.n} {k.n === 1 ? k.one : k.many}
-              </button>
-            ))}
+            {counts.map((k) => {
+              const on = kindOn(k.keys);
+              const n = k.keys.filter((key) => picked.has(key)).length;
+              return (
+                <button key={k.kind} type="button" className={`pill ${on ? 'in' : 'out'}`} aria-pressed={on} onClick={() => toggleKind(k.keys)}>
+                  <span className="pill-mark">{on ? <Icon name="check" /> : <Icon name="plus" />}</span>
+                  <Icon name={k.icon} /> {on && n < k.keys.length ? `${n} of ${k.keys.length}` : k.keys.length} {k.keys.length === 1 ? k.one : k.many}
+                </button>
+              );
+            })}
           </div>
         )}
         <div className="actions">
@@ -123,13 +137,29 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
       </Button>
       <Reveal show={showItems}>
         <div className="items-list">
-          {entry.items.map((it) => (
-            <div key={it.key} className={`item-row ${needed.has(it.key) ? 'need' : ''}`} title={it.detail}>
-              <ItemBadge item={it} size={18} />
-              <span className="lbl">{titleOf(it)}</span>
-              <span className="det">{it.kind === 'app' ? '' : it.detail}</span>
-            </div>
-          ))}
+          {entry.items.map((it) =>
+            current ? (
+              <div key={it.key} className={`item-row ${needed.has(it.key) ? 'need' : ''}`} title={it.detail}>
+                <ItemBadge item={it} size={18} />
+                <span className="lbl">{titleOf(it)}</span>
+                <span className="det">{it.kind === 'app' ? '' : it.detail}</span>
+              </div>
+            ) : (
+              <button
+                key={it.key}
+                type="button"
+                className={`item-row pickable ${needed.has(it.key) ? 'need' : ''} ${picked.has(it.key) ? '' : 'off'}`}
+                title={picked.has(it.key) ? `${it.detail} · click to leave it closed` : `${it.detail} · click to open it too`}
+                aria-pressed={picked.has(it.key)}
+                onClick={() => toggleItem(it.key)}
+              >
+                <span className="item-check">{picked.has(it.key) && <Icon name="check" />}</span>
+                <ItemBadge item={it} size={18} />
+                <span className="lbl">{titleOf(it)}</span>
+                <span className="det">{it.kind === 'app' ? '' : it.detail}</span>
+              </button>
+            ),
+          )}
         </div>
       </Reveal>
 

@@ -2,7 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppInfo, BriefView, Job, JobSummary, OpenKind, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion } from './shared/types';
+import type { AppInfo, BriefView, Job, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -33,7 +33,7 @@ const api = {
   getBrief: (jobId: string, entryId?: string) => invoke<BriefView>('jobs:brief', jobId, entryId ?? null),
   rewriteBrief: (jobId: string, entryId: string) => invoke<BriefView>('jobs:rewriteBrief', jobId, entryId),
   sendFeedback: (jobId: string, entryId: string, helpful: boolean, comment?: string) => invoke<void>('jobs:feedback', jobId, entryId, helpful, comment ?? null),
-  openJob: (jobId: string, entryId: string | null, mode: 'needed' | 'all', kinds?: OpenKind[]) => invoke<OpenResult>('jobs:open', jobId, entryId, mode, kinds),
+  openJob: (jobId: string, entryId: string | null, mode: 'needed' | 'all', keys?: string[]) => invoke<OpenResult>('jobs:open', jobId, entryId, mode, keys),
   openItem: (jobId: string, key: string) => invoke<OpenResult>('jobs:openItem', jobId, key),
   removeItem: (jobId: string, key: string) => invoke<void>('jobs:removeItem', jobId, key),
   moveItem: (fromJobId: string, key: string, toJobId: string) => invoke<void>('jobs:moveItem', fromJobId, key, toJobId),

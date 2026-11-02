@@ -1,7 +1,7 @@
 // Input checks for everything that crosses from the UI into the main process.
 // Each function either returns a clean value or throws.
 
-import type { Accent, BrowserName, OpenKind, SaveRequest, Settings } from './types';
+import type { Accent, BrowserName, SaveRequest, Settings } from './types';
 
 export const DEFAULT_LIFESTYLE_APPS = [
   'Spotify', 'Music', 'Messages', 'Mail', 'Microsoft Outlook', 'Slack', 'WhatsApp', 'Discord', 'Telegram',
@@ -185,10 +185,11 @@ export function saveRequest(v: unknown): SaveRequest {
   };
 }
 
-export function openKinds(v: unknown): OpenKind[] | undefined {
+/** The items to open (picked by type or one by one), or undefined for the whole folder. */
+export function openKeys(v: unknown): string[] | undefined {
   if (v == null) return undefined;
-  if (!Array.isArray(v) || v.length > 4 || !v.every((k) => k === 'doc' || k === 'tab' || k === 'app' || k === 'chat')) fail('bad open kinds');
-  return v as OpenKind[];
+  if (!Array.isArray(v) || v.length > MAX_ITEMS) fail('bad item list');
+  return v.map(itemKey);
 }
 
 export function openMode(v: unknown): 'needed' | 'all' {
