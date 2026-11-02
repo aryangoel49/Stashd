@@ -51,8 +51,9 @@ export interface Item {
   untitled?: boolean;
   /** Part of the job but not open when it was saved (closed by accident, say). Kept, not closed by Tidy up. */
   notOpen?: boolean;
-  /** For a chat app (Claude, ChatGPT): the chat that was open. `url` names the exact chat when the app shows one. */
-  chat?: { title: string; url?: string };
+  /** For a chat app (Claude, ChatGPT): the chat that was open. `url` names the exact chat when the app shows one;
+   *  `excerpt` is the end of the conversation on screen (secrets removed), so the brief knows where it got to. */
+  chat?: { title: string; url?: string; excerpt?: string };
 }
 
 export interface CollectorError {

@@ -75,7 +75,7 @@ Stashd doesn't update itself yet. To get the newest version, download **Stashd.d
 
 Each brief is written by the first of these that's available:
 
-1. **Claude**, if you connected it (Settings → Claude). Costs about $0.0003 per brief. It gets file names, tab titles and addresses with secrets removed, plus your note. It never sees what's inside your files.
+1. **Claude**, if you connected it (Settings → Claude). Costs about $0.0003 per brief. It gets file names, tab titles and addresses with secrets removed, your note, and the last few messages of a Claude chat you had open for this work (also with secrets removed). It never sees what's inside your files.
 2. **Apple Intelligence** on your Mac, if it's turned on (macOS 26 or later on Apple silicon). Free and offline.
 3. A **basic brief** from a template, so there's always something.
 
@@ -85,6 +85,7 @@ The bottom of each brief says which one wrote it. Click **No** under "Helpful?" 
 
 - Folders live on disk in `~/Library/Application Support/Stashd/jobs/`.
 - Your Claude key is stored encrypted in the macOS keychain.
+- With the Accessibility permission, Stashd notes which Claude or ChatGPT chat is open when you stash, and saves its name, its link and the end of the conversation with the folder, so it can reopen the chat and write a better brief.
 - Incognito windows in Chrome and Arc are never saved or closed. **Safari Private windows can't be told apart** (Safari doesn't let other apps see that), so close them before you stash, or leave Safari unticked in Settings.
 - `tests/privacy.test.ts` fails the build if anything except `src/main/brief/claude.ts` tries to use the internet.
 

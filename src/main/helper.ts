@@ -33,6 +33,14 @@ export function parseWindows(text: string): WindowsInfo {
   };
 }
 
+export interface ChatInfo {
+  app: string;
+  title: string;
+  url?: string;
+  /** The end of the conversation on screen. */
+  text?: string;
+}
+
 export class Helper {
   constructor(private readonly binary: string) {}
 
@@ -66,13 +74,13 @@ export class Helper {
   }
 
   /** The chat open in each of these apps (Claude, ChatGPT). `ask`: let macOS ask for Accessibility if it isn't on. */
-  async chats(names: string[], ask = false): Promise<{ trusted: boolean; chats: { app: string; title: string; url?: string }[] }> {
+  async chats(names: string[], ask = false): Promise<{ trusted: boolean; chats: ChatInfo[] }> {
     const r = await run(this.binary, ask ? ['chats', 'ask'] : ['chats'], { timeoutMs: 3000, input: JSON.stringify(names) });
     const out = JSON.parse(r.stdout) as { trusted?: unknown; chats?: unknown };
     const chats = Array.isArray(out.chats)
       ? out.chats
-          .filter((c): c is { app: string; title: string; url?: string } => !!c && typeof c.app === 'string' && typeof c.title === 'string')
-          .map((c) => ({ app: c.app, title: c.title, url: typeof c.url === 'string' ? c.url : undefined }))
+          .filter((c): c is ChatInfo => !!c && typeof c.app === 'string' && typeof c.title === 'string')
+          .map((c) => ({ app: c.app, title: c.title, url: typeof c.url === 'string' ? c.url : undefined, text: typeof c.text === 'string' ? c.text : undefined }))
       : [];
     return { trusted: out.trusted === true, chats };
   }

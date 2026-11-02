@@ -10,7 +10,8 @@
 //   wwi-helper hide      Reads a JSON list of app names on stdin and hides those apps (like ⌘H), for
 //                        Pack up. Nothing is quit, so no work is lost; reopening the app shows it again.
 //   wwi-helper chats     Reads a JSON list of chat app names (Claude, ChatGPT) on stdin and prints the chat
-//                        open in each one's front window: its title and, for web-based apps, its address.
+//                        open in each one's front window: its title and, for web-based apps, its address
+//                        and the last ~2000 characters of the conversation on screen (for the brief).
 //                        Uses the Accessibility permission; with "chats ask" macOS asks for it if needed.
 //
 // Output is always one line of JSON on stdout.
@@ -164,16 +165,57 @@ func axValue(_ e: AXUIElement, _ name: String) -> AnyObject? {
     return AXUIElementCopyAttributeValue(e, name as CFString, &v) == .success ? v : nil
 }
 
-func findPage(_ e: AXUIElement, depth: Int, budget: inout Int) -> (url: String, title: String)? {
+func findPage(_ e: AXUIElement, depth: Int, budget: inout Int) -> (url: String, title: String, element: AXUIElement)? {
     budget -= 1
     if depth > 25 || budget < 0 { return nil }
     if axValue(e, "AXRole") as? String == "AXWebArea", let url = (axValue(e, "AXURL") as? URL)?.absoluteString, url.hasPrefix("https://") {
-        return (url, axValue(e, "AXTitle") as? String ?? "")
+        return (url, axValue(e, "AXTitle") as? String ?? "", e)
     }
     for child in (axValue(e, "AXChildren") as? [AXUIElement]) ?? [] {
         if let found = findPage(child, depth: depth + 1, budget: &budget) { return found }
     }
     return nil
+}
+
+/** The text of the conversation on screen: the page's main area (not the sidebar), last part only. */
+func conversationText(_ page: AXUIElement) -> String {
+    var budget = 6000
+    func mainArea(_ e: AXUIElement, _ depth: Int) -> AXUIElement? {
+        budget -= 1
+        if depth > 20 || budget < 0 { return nil }
+        if axValue(e, "AXSubrole") as? String == "AXLandmarkMain" { return e }
+        for child in (axValue(e, "AXChildren") as? [AXUIElement]) ?? [] {
+            if let found = mainArea(child, depth + 1) { return found }
+        }
+        return nil
+    }
+    let area = mainArea(page, 0) ?? page
+    var parts: [String] = []
+    var reachedInput = false
+    budget = 20000
+    // Messages come before the box you type in; what follows it is controls (model picker, usage).
+    func collect(_ e: AXUIElement, _ depth: Int) {
+        budget -= 1
+        if depth > 60 || budget < 0 || reachedInput { return }
+        let role = axValue(e, "AXRole") as? String
+        if role == "AXTextArea" || (role == "AXTextField" && axValue(e, "AXEditableAncestor") != nil) { reachedInput = true; return }
+        if role == "AXStaticText", let s = axValue(e, "AXValue") as? String, !s.isEmpty { parts.append(s) }
+        for child in (axValue(e, "AXChildren") as? [AXUIElement]) ?? [] { collect(child, depth + 1) }
+    }
+    // Claude marks each message (its element id contains "msg_"); when it does, read only those.
+    var messages: [AXUIElement] = []
+    budget = 20000
+    func findMessages(_ e: AXUIElement, _ depth: Int) {
+        budget -= 1
+        if depth > 40 || budget < 0 { return }
+        if let id = axValue(e, "AXDOMIdentifier") as? String, id.contains("msg_") { messages.append(e); return }
+        for child in (axValue(e, "AXChildren") as? [AXUIElement]) ?? [] { findMessages(child, depth + 1) }
+    }
+    findMessages(area, 0)
+    budget = 20000
+    if messages.isEmpty { collect(area, 0) } else { for m in messages.suffix(8) { collect(m, 0) } }
+    let text = parts.joined(separator: " ").split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+    return String(text.suffix(2000))
 }
 
 func chatsCommand(ask: Bool) {
@@ -194,7 +236,7 @@ func chatsCommand(ask: Bool) {
         guard let window = (axValue(root, "AXMainWindow") ?? (axValue(root, "AXWindows") as? [AnyObject])?.first) else { continue }
         let win = window as! AXUIElement
         var budget = 4000
-        var page = findPage(win, depth: 0, budget: &budget)
+        var page: (url: String, title: String, element: AXUIElement)? = findPage(win, depth: 0, budget: &budget)
         if page == nil {
             // The tree can take a moment to appear the first time.
             Thread.sleep(forTimeInterval: 0.3)
@@ -204,6 +246,10 @@ func chatsCommand(ask: Bool) {
         let windowTitle = axValue(win, "AXTitle") as? String ?? ""
         var chat = ["app": name, "title": page?.title.isEmpty == false ? page!.title : windowTitle]
         if let url = page?.url { chat["url"] = url }
+        if let element = page?.element {
+            let text = conversationText(element)
+            if !text.isEmpty { chat["text"] = text }
+        }
         chats.append(chat)
     }
     printJSON(["trusted": true, "chats": chats])

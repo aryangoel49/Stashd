@@ -4,7 +4,8 @@
 import type { Capture, CollectorError, Item, Settings } from '../../shared/types';
 import { BROWSERS, MAX_ITEMS } from '../../shared/validate';
 import { BROWSER_APPS, collectTabs, type Tab } from '../collectors/browsers';
-import type { Helper, WindowsInfo } from '../helper';
+import type { ChatInfo, Helper, WindowsInfo } from '../helper';
+import { redactCommand, redactLongSecrets } from '../redact';
 import { displayUrl } from '../urls';
 import { collectDocs } from './docs';
 
@@ -19,14 +20,15 @@ export function chatTitle(app: string, title: string): string | null {
 }
 
 /** Puts each chat on its app's item: the chat's name becomes the label, so it sorts with the project. */
-export function attachChats(items: Item[], chats: { app: string; title: string; url?: string }[]): void {
+export function attachChats(items: Item[], chats: ChatInfo[]): void {
   for (const c of chats) {
     const it = items.find((i) => i.kind === 'app' && i.app === c.app);
     const title = chatTitle(c.app, c.title);
     if (!it || !title) continue;
     it.label = title;
     it.detail = `${c.app} chat`;
-    it.chat = { title, url: c.url };
+    const excerpt = c.text ? redactLongSecrets(redactCommand(c.text)).slice(-1500).trim() : '';
+    it.chat = { title, url: c.url, ...(excerpt ? { excerpt } : {}) };
   }
 }
 

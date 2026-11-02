@@ -1,5 +1,6 @@
 // What the AI is told, and exactly what it is sent. Shared by Claude and Apple Intelligence.
-// It sends names, titles, scrubbed addresses and your note. Never file contents.
+// It sends names, titles, scrubbed addresses, your note and the end of an open Claude chat (secrets removed).
+// Never file contents.
 
 import type { SaveEntry } from '../../shared/types';
 import { redactCommand, redactUrlString } from '../redact';
@@ -14,6 +15,7 @@ Rules:
 - Say what they were on last, by its plain name (for example "your essay" or "the JSTOR article on sea levels").
 - If their note says what was next, use it. If not, suggest the most natural next step from what was open.
 - Only use facts from the data. Never invent progress, deadlines, or contents of files. If unsure, say less.
+- An item may have "chatEnd": the last part of a chat they were having with an AI assistant about this work. Use it to say what they were figuring out or what was decided. Don't quote it.
 - No em dashes, no lists, no headings, no emoji.
 Also return:
 - "highlights": 1 to 3 short phrases copied exactly from your sentence that matter most (shown in colour).
@@ -51,6 +53,7 @@ export function buildPromptData(entry: SaveEntry, previous: SaveEntry | null, fe
     if (it.active) base.activeInItsWindow = true;
     if (it.key === entry.frontKey) base.inFrontWhenSaved = true;
     if (it.notOpen) base.notOpenWhenSaved = true;
+    if (it.chat?.excerpt) base.chatEnd = it.chat.excerpt.slice(-1200);
     return base;
   });
 

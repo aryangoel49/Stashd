@@ -3,8 +3,9 @@ import { attachChats, chatTitle } from '../src/main/capture';
 import { isLifestyle } from '../src/main/jobs/match';
 import { group, jobProfile } from '../src/main/jobs/relevance';
 import { chatLink } from '../src/main/open';
+import { buildPromptData } from '../src/main/brief/prompt';
 import { DEFAULT_SETTINGS } from '../src/shared/validate';
-import type { Item } from '../src/shared/types';
+import type { Item, SaveEntry } from '../src/shared/types';
 
 const tab = (label: string, url: string): Item => ({ key: `tab:${url}`, kind: 'tab', label, detail: '', app: 'Google Chrome', url, window: 1 });
 const app = (name: string): Item => ({ key: `app:${name}`, kind: 'app', label: name, detail: 'App', app: name });
@@ -48,5 +49,16 @@ describe('chats in Claude and ChatGPT', () => {
     expect(chatLink(c('https://evil.com/chat/abc123def'))).toBeNull();
     expect(chatLink(c('https://claude.ai/chat/abc;rm -rf'))).toBeNull();
     expect(chatLink({ ...app('ChatGPT'), chat: { title: 'x', url: 'https://chatgpt.com/c/1' } })).toBeNull();
+  });
+
+  it('keeps the end of the chat, without secrets, and gives it to the brief', () => {
+    const items = [app('Claude')];
+    const key = 'sk-ant-api03-' + 'Zq8x'.repeat(12);
+    attachChats(items, [{ app: 'Claude', title: 'Grant budget - Claude', url: 'https://claude.ai/chat/abc123def', text: `Use ${key} here. We agreed to cut travel to $2,000 and ask Priya for the final numbers.` }]);
+    expect(items[0].chat?.excerpt).toContain('cut travel to $2,000');
+    expect(items[0].chat?.excerpt).not.toContain(key);
+    const entry: SaveEntry = { version: 2, id: 'e', jobId: 'j', savedAt: '2026-11-02T10:00:00Z', note: '', items, frontKey: null, appOrder: [], tidied: false, errors: [] };
+    const payload = buildPromptData(entry, null, null).payload as { items: { chatEnd?: string }[] };
+    expect(payload.items[0].chatEnd).toContain('ask Priya');
   });
 });
