@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stashd · Put your work to bed</title>
+<meta name="description" content="Stashd is a Mac menu bar app. Press Control-S to put away the tabs, files and apps for what you're working on. Open the folder later and it all comes back.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:title" content="Stashd · Put your work to bed">
+<meta property="og:description" content="Press Control-S. Your tabs, files and apps go into a folder in the menu bar. Open it later and everything comes back.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Stashd's own look: butter-yellow folder, ink, warm white paper. The hero's little Mac screen is the one loud thing. */
+:root {
+  --paper: #fffcf3;
+  --paper-2: #fbf4dd;
+  --ink: #1c1d22;
+  --ink-soft: #55554f;
+  --butter: #f2cd5c;
+  --butter-deep: #e4b93b;
+  --cream: #fbefc6;
+  --screen: #262a33;
+  --screen-2: #323743;
+  --line: #ece3c7;
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Hanken Grotesk", -apple-system, system-ui, sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+img, svg { display: block; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.025em; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--butter-deep); outline-offset: 3px; border-radius: 6px; }
+
+/* nav */
+.nav { display: flex; align-items: center; gap: 24px; padding-block: 18px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 21px var(--display); text-decoration: none; letter-spacing: -0.02em; }
+.brand img { width: 34px; height: 34px; }
+.nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 16px; }
+.nav-links a { text-decoration: none; color: var(--ink-soft); }
+.nav-links a:hover { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; font: 600 17px var(--body); text-decoration: none; cursor: pointer; transition: transform 0.15s var(--ease), background 0.2s; }
+.btn:active { transform: scale(0.97); }
+.btn-main { background: var(--butter); color: var(--ink); padding: 14px 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 6px 18px rgba(214,170,40,0.3); }
+.btn-main:hover { background: #f5d672; }
+.btn-small { padding: 9px 16px; font-size: 15px; border-radius: 11px; }
+.apple { width: 16px; height: 18px; }
+
+/* hero */
+.hero { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 56px; align-items: center; padding-block: 48px 88px; }
+.hero h1 { font-size: clamp(52px, 7.4vw, 96px); line-height: 0.95; font-weight: 800; }
+.hero .lede { margin-top: 26px; font-size: 21px; color: var(--ink-soft); max-width: 30ch; }
+.hero-cta { margin-top: 34px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.small { font-size: 15px; color: var(--ink-soft); }
+kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 7px; padding: 1px 7px; }
+
+/* the little Mac */
+.mac { background: var(--screen); border-radius: 22px; padding: 0 0 22px; box-shadow: 0 30px 70px -20px rgba(28,29,34,0.45); overflow: hidden; position: relative; }
+.menubar { height: 34px; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: rgba(255,255,255,0.06); color: #e9e6dc; font-size: 13px; }
+.menubar .grow { flex: 1; }
+.tray { position: relative; width: 26px; height: 22px; }
+.tray svg { width: 26px; height: 22px; }
+.eye { transform-box: fill-box; transform-origin: 50% 60%; transition: transform 0.35s var(--ease); }
+.asleep .eye { transform: scaleY(0.1); }
+.tray .count { position: absolute; top: -5px; right: -9px; background: var(--butter); color: var(--ink); font: 700 10px var(--body); border-radius: 9px; padding: 0 5px; line-height: 15px; opacity: 0; transform: scale(0.6); transition: 0.3s var(--ease); }
+.tray .count.on { opacity: 1; transform: none; }
+.desk { padding: 22px 22px 0; display: grid; gap: 14px; min-height: 372px; align-content: start; }
+.browser { background: #f6f4ee; border-radius: 12px; overflow: hidden; }
+.tabs { display: flex; gap: 4px; padding: 8px 8px 0; background: #e3dfd3; min-height: 44px; flex-wrap: wrap; }
+.tab { display: flex; align-items: center; gap: 7px; background: #f6f4ee; border-radius: 9px 9px 0 0; padding: 7px 10px; font-size: 12.5px; max-width: 168px; white-space: nowrap; overflow: hidden; color: #2d2d2a; transition: transform 0.6s var(--ease), opacity 0.45s; }
+.tab span { overflow: hidden; text-overflow: ellipsis; }
+.fav { width: 14px; height: 14px; border-radius: 4px; flex: none; }
+.page { padding: 18px; display: grid; gap: 8px; }
+.page i { display: block; height: 9px; border-radius: 5px; background: #e2ded2; }
+.others { display: flex; gap: 12px; flex-wrap: wrap; }
+.thing { display: flex; align-items: center; gap: 10px; background: var(--screen-2); color: #ecebe5; border-radius: 12px; padding: 10px 14px; font-size: 13.5px; transition: transform 0.6s var(--ease), opacity 0.45s; }
+.thing b { font-weight: 600; }
+.thing small { display: block; color: #a8a69c; font-size: 12px; }
+.ico { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; font: 700 11px var(--body); color: #fff; flex: none; }
+.flying { transform: translate(var(--dx), var(--dy)) scale(0.08) !important; opacity: 0 !important; }
+.gone { display: none; }
+
+/* save box inside the demo */
+.savebox { position: absolute; left: 50%; top: 58px; width: min(380px, calc(100% - 32px)); transform: translate(-50%, 8px); background: #fffdf6; color: var(--ink); border-radius: 16px; padding: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.35); opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.35s var(--ease); z-index: 3; }
+.savebox.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.savebox h3 { font-size: 20px; }
+.savebox .label { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin: 12px 0 6px; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 5px 10px 5px 6px; border-radius: 999px; background: var(--cream); border: 1px solid #e9d27f; }
+.pill::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--butter) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231c1d22' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12l4 4 8-8'/%3E%3C/svg%3E") center/9px no-repeat; }
+.pill.out { background: none; border: 1px dashed #c9c3b2; color: var(--ink-soft); }
+.pill.out::before { background: none; box-shadow: inset 0 0 0 1px #c9c3b2; }
+.savebox .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); padding: 9px 14px; }
+
+.demo-bar { display: flex; align-items: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
+.demo-bar .btn { min-width: 168px; }
+.demo-note { font-size: 15px; color: var(--ink-soft); min-height: 24px; }
+
+/* sections */
+section { padding-block: 92px; }
+.section-head { max-width: 640px; }
+.section-head h2 { font-size: clamp(36px, 4.6vw, 56px); line-height: 1.02; font-weight: 700; }
+.section-head p { margin-top: 18px; font-size: 20px; color: var(--ink-soft); }
+.steps { margin-top: 48px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 2px solid var(--ink); }
+.step { padding: 26px 28px 0 0; }
+.step + .step { padding-left: 28px; border-left: 1px solid var(--line); }
+.step .n { font: 800 64px/1 var(--display); color: var(--butter-deep); letter-spacing: -0.04em; }
+.step h3 { font-size: 26px; margin-top: 14px; }
+.step p { margin-top: 10px; color: var(--ink-soft); }
+
+.smart { background: var(--ink); color: #f4f1e8; border-radius: 36px; margin-inline: max(12px, env(safe-area-inset-left)); }
+.smart .section-head p { color: #b9b6aa; }
+.features { margin-top: 56px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px 64px; }
+.feature h3 { font-size: 26px; }
+.feature p { margin-top: 10px; color: #b9b6aa; max-width: 44ch; }
+.feature .show { margin-top: 22px; }
+.card { background: #fffdf6; color: var(--ink); border-radius: 18px; padding: 18px 20px; }
+.brief-head { font: 700 19px/1.3 var(--display); letter-spacing: -0.01em; }
+.brief-rows { margin-top: 12px; display: grid; gap: 7px; font-size: 15px; }
+.brief-rows div { display: grid; grid-template-columns: 64px 1fr; gap: 10px; }
+.brief-rows dt { font-size: 13px; font-weight: 600; color: #7d7a6e; }
+.brief-rows dd { margin: 0; }
+.brief-rows .next dt { color: #9a7300; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 14px; font-size: 15px; border: 1px solid #4a4b52; color: #f4f1e8; background: none; font-family: var(--body); cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+.chip[aria-pressed="true"] { background: var(--butter); color: var(--ink); border-color: var(--butter); }
+.chip-out { margin-top: 12px; font-size: 15px; color: #b9b6aa; min-height: 24px; }
+.chat { display: flex; align-items: center; gap: 12px; }
+.chat .ico { width: 40px; height: 40px; border-radius: 10px; background: #d97757; }
+
+.privacy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: start; }
+.facts { display: grid; gap: 0; border-top: 2px solid var(--ink); }
+.facts p { padding: 18px 0; border-bottom: 1px solid var(--line); }
+.facts b { font-weight: 600; }
+
+.end { text-align: center; padding-block: 110px 120px; }
+.end .sleepy { width: 120px; height: 120px; margin: 0 auto 28px; }
+.end h2 { font-size: clamp(44px, 6vw, 76px); line-height: 0.98; font-weight: 800; }
+.end p { margin-top: 16px; color: var(--ink-soft); }
+.end .btn { margin-top: 30px; }
+footer { border-top: 1px solid var(--line); padding-block: 26px 40px; font-size: 15px; color: var(--ink-soft); }
+footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; }
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; gap: 40px; padding-block: 24px 64px; }
+  .steps { grid-template-columns: 1fr; }
+  .step, .step + .step { padding: 24px 0; border-left: 0; border-bottom: 1px solid var(--line); }
+  .features, .privacy { grid-template-columns: 1fr; gap: 44px; }
+  .nav-links a:not(.btn) { display: none; }
+  section { padding-block: 64px; }
+  .smart { border-radius: 26px; }
+}
+@media (max-width: 520px) {
+  body { font-size: 17px; }
+  .desk { padding: 14px 12px 0; min-height: 330px; }
+  .tab { max-width: 120px; font-size: 11.5px; }
+  .mac { border-radius: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="wrap nav">
+  <a class="brand" href="#top" aria-label="Stashd home"><img src="favicon.svg" alt="">Stashd</a>
+  <nav class="nav-links" aria-label="Main">
+    <a href="#how">How it works</a>
+    <a href="#privacy">Privacy</a>
+    <a href="https://github.com/aryangoel49/Stashd">GitHub</a>
+    <a class="btn btn-main btn-small" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download</a>
+  </nav>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <div>
+      <h1>Put your work to bed.</h1>
+      <p class="lede">Press <kbd>⌃S</kbd> and Stashd puts the tabs, files and apps for what you're working on into a folder in your menu bar. Open it later and everything comes back.</p>
+      <div class="hero-cta">
+        <a class="btn btn-main" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">
+          <svg class="apple" viewBox="0 0 16 19" aria-hidden="true"><path fill="currentColor" d="M13.2 10.1c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3.7 4.8 2.2 5.7 1.4 7.2c-1.6 2.8-.4 6.9 1.1 9.2.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2-1.1 2.8-2.2.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.3-.9-2.3-3.8zM10.9 3.1c.6-.8 1.1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1.1.1 2.1-.5 2.8-1.3z"/></svg>
+          Download for Mac
+        </a>
+        <span class="small">Free and open source. Apple silicon, macOS 12 or later.</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="mac" id="mac" aria-label="A small Mac screen showing Stashd in action">
+        <div class="menubar">
+          <span aria-hidden="true"></span><b>Chrome</b><span>File</span><span>Edit</span><span class="grow"></span>
+          <span class="tray" id="tray" aria-hidden="true">
+            <svg viewBox="0 0 26 22"><path d="M2 6.5Q2 4 4.5 4H9.6Q10.8 4 11.6 5L12.6 6.2H21.5Q24 6.2 24 8.7V17.5Q24 20 21.5 20H4.5Q2 20 2 17.5Z" fill="#F2CD5C"/><path d="M2 10Q2 8.3 3.7 8.3H22.3Q24 8.3 24 10V17.5Q24 20 21.5 20H4.5Q2 20 2 17.5Z" fill="#FFF"/><g fill="#1C1D22"><ellipse class="eye" cx="9.5" cy="14" rx="1.4" ry="1.8"/><ellipse class="eye" cx="16.5" cy="14" rx="1.4" ry="1.8"/></g></svg>
+            <span class="count" id="count">5</span>
+          </span>
+          <span>Mon 3:42 pm</span>
+        </div>
+        <div class="desk">
+          <div class="browser">
+            <div class="tabs">
+              <div class="tab fly" data-go><span class="fav" style="background:#e50914"></span><span>Below · Netflix</span></div>
+              <div class="tab fly" data-go><span class="fav" style="background:#f5c518"></span><span>Below (2026) · IMDb reviews</span></div>
+              <div class="tab fly" data-go><span class="fav" style="background:#4285f4"></span><span>something in the water below</span></div>
+              <div class="tab" id="stock"><span class="fav" style="background:#4285f4"></span><span>tsm stock · Google</span></div>
+            </div>
+            <div class="page" aria-hidden="true"><i style="width:62%"></i><i style="width:88%"></i><i style="width:74%"></i><i style="width:40%"></i></div>
+          </div>
+          <div class="others">
+            <div class="thing fly" data-go><span class="ico" style="background:#2b579a">W</span><span><b>Below review notes</b><small>Word</small></span></div>
+            <div class="thing fly" data-go><span class="ico" style="background:#d97757">✳</span><span><b>Below ending explained</b><small>Claude chat</small></span></div>
+          </div>
+        </div>
+
+        <div class="savebox" id="savebox" role="dialog" aria-label="Stashd save box">
+          <h3>Below</h3>
+          <div class="label">Going in</div>
+          <div class="pills">
+            <span class="pill">Below · Netflix</span><span class="pill">IMDb reviews</span><span class="pill">something in the water</span><span class="pill">Review notes</span><span class="pill">Claude chat</span>
+          </div>
+          <div class="label">Probably something else</div>
+          <div class="pills"><span class="pill out">tsm stock</span></div>
+          <div class="row"><button class="btn btn-small ghost" id="cancel" type="button">Cancel</button><button class="btn btn-main btn-small" id="pack" type="button">Pack up</button></div>
+        </div>
+      </div>
+      <div class="demo-bar">
+        <button class="btn btn-main" id="demo" type="button">Press ⌃S</button>
+        <p class="demo-note" id="note" aria-live="polite">Try it. Or press Control-S on your keyboard.</p>
+      </div>
+    </div>
+  </div>
+
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Three steps, and two of them are one key.</h2>
+        <p>Stashd lives in your menu bar. It doesn't change how you work. It just remembers it for you.</p>
+      </div>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><h3>Stash</h3><p>Press <kbd>⌃S</kbd>. Stashd looks at what's open and ticks only what belongs to the project you're on. Add a note for later if you like.</p></div>
+        <div class="step"><div class="n">2</div><h3>Pack up</h3><p>The windows fly into the menu bar and the folder goes to sleep. Your screen is clear. Unsaved work still asks to be saved first.</p></div>
+        <div class="step"><div class="n">3</div><h3>Unpack</h3><p>Open the folder when you're back. A short brief says where you stopped, and one click brings everything back.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="smart">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>It knows what belongs together.</h2>
+        <p>The sorting runs on your Mac, in an instant. No account, nothing to set up.</p>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <h3>One project, not every tab</h3>
+          <p>Researching a show with a stock tab open on the side? Only the show goes in. Stashd reads what your tabs are about, so it groups by meaning, not just matching words.</p>
+          <div class="show pills" aria-hidden="true"><span class="pill">Carbon tax · Wikipedia</span><span class="pill">Paris Agreement</span><span class="pill">Climate essay draft</span><span class="pill out">Nike Air Max 90</span></div>
+        </div>
+        <div class="feature">
+          <h3>A brief that says where you stopped</h3>
+          <p>Each folder gets a short note: what you were on, what's done, and what's next.</p>
+          <div class="show card">
+            <div class="brief-head">Writing your climate essay on carbon taxes.</div>
+            <dl class="brief-rows">
+              <div><dt>Last on</dt><dd>The essay draft, at the counterargument.</dd></div>
+              <div><dt>So far</dt><dd>Intro and the case for a tax are written.</dd></div>
+              <div class="next"><dt>Next</dt><dd>Find two more sources.</dd></div>
+            </dl>
+          </div>
+        </div>
+        <div class="feature">
+          <h3>Open only what you need</h3>
+          <p>Bring back just the files, just the tabs, or everything. Pick single tabs too.</p>
+          <div class="show">
+            <div class="chips" role="group" aria-label="What to open">
+              <button class="chip" type="button" aria-pressed="true" data-n="2">2 files</button>
+              <button class="chip" type="button" aria-pressed="true" data-n="4">4 tabs</button>
+              <button class="chip" type="button" aria-pressed="true" data-n="1">1 chat</button>
+            </div>
+            <p class="chip-out" id="chipout">Unpack opens 7 things.</p>
+          </div>
+        </div>
+        <div class="feature">
+          <h3>Back to the exact chat</h3>
+          <p>Working something out with Claude? Stashd saves which chat you were in and opens that one again, so you never hunt for it by name.</p>
+          <div class="show card chat"><span class="ico" aria-hidden="true">✳</span><div><b>Grant budget</b><div class="small">Claude chat, reopened on Unpack</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <div class="wrap privacy">
+      <div class="section-head">
+        <h2>Your work stays on your Mac.</h2>
+        <p>There's no account and no server. Folders are plain files on your computer.</p>
+      </div>
+      <div class="facts">
+        <p><b>Sorting happens on your Mac.</b> A small model runs locally to tell which tabs belong together.</p>
+        <p><b>It never reads inside your files.</b> Only names, tab titles and addresses.</p>
+        <p><b>Briefs are optional.</b> Use Apple Intelligence on your Mac, or connect your own Claude key.</p>
+        <p><b>Private windows are left alone.</b> Incognito tabs are never saved or closed.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="end">
+    <div class="wrap">
+      <svg class="sleepy" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="22" fill="#F2CD5C"/><path d="M16 33 Q16 25 24 25 H37 Q41 25 43.5 28.5 L46.5 32 H72 Q80 32 80 40 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FBEFC6"/><path d="M16 45 Q16 39 22 39 H74 Q80 39 80 45 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FFF"/><g fill="none" stroke="#1C1D22" stroke-width="3" stroke-linecap="round"><path d="M32 58 Q37 63 42 58"/><path d="M54 58 Q59 63 64 58"/></g></svg>
+      <h2>Stash it. Close the laptop.</h2>
+      <p>Free for Mac. Takes a minute to set up.</p>
+      <a class="btn btn-main" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download for Mac</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Stashd, made by Aryan Goel. Open source under MIT.</span>
+    <a href="https://github.com/aryangoel49/Stashd">Source on GitHub</a>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const mac = document.getElementById('mac');
+  const tray = document.getElementById('tray');
+  const count = document.getElementById('count');
+  const box = document.getElementById('savebox');
+  const demo = document.getElementById('demo');
+  const note = document.getElementById('note');
+  const things = [...document.querySelectorAll('[data-go]')];
+  let state = 'open';
+
+  const set = (s, text, label) => { state = s; note.textContent = text; demo.textContent = label; };
+
+  function stash() {
+    if (state !== 'open') return;
+    box.classList.add('on');
+    set('asking', 'Stashd ticked the show. The stock tab is something else.', 'Pack up');
+    document.getElementById('pack').focus({ preventScroll: true });
+  }
+
+  function packUp() {
+    if (state !== 'asking') return;
+    box.classList.remove('on');
+    const t = tray.getBoundingClientRect();
+    things.forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--dx', `${t.left + t.width / 2 - (r.left + r.width / 2)}px`);
+      el.style.setProperty('--dy', `${t.top + t.height / 2 - (r.top + r.height / 2)}px`);
+      el.style.transitionDelay = `${i * 70}ms`;
+      el.classList.add('flying');
+    });
+    setTimeout(() => {
+      things.forEach((el) => el.classList.add('gone'));
+      mac.classList.add('asleep');
+      count.classList.add('on');
+    }, 700 + things.length * 70);
+    set('packed', 'Packed. Only the stock tab is left on screen.', 'Unpack');
+  }
+
+  function unpack() {
+    if (state !== 'packed') return;
+    mac.classList.remove('asleep');
+    count.classList.remove('on');
+    things.forEach((el) => el.classList.remove('gone'));
+    requestAnimationFrame(() => requestAnimationFrame(() =>
+      things.forEach((el, i) => { el.style.transitionDelay = `${i * 110}ms`; el.classList.remove('flying'); })));
+    set('open', 'Everything came back, one at a time.', 'Press ⌃S');
+  }
+
+  demo.addEventListener('click', () => (state === 'open' ? stash() : state === 'asking' ? packUp() : unpack()));
+  document.getElementById('pack').addEventListener('click', packUp);
+  document.getElementById('cancel').addEventListener('click', () => { box.classList.remove('on'); set('open', 'Nothing saved.', 'Press ⌃S'); });
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); state === 'packed' ? unpack() : state === 'asking' ? packUp() : stash(); }
+    if (e.key === 'Escape' && state === 'asking') document.getElementById('cancel').click();
+  });
+
+  const chips = [...document.querySelectorAll('.chip')];
+  const out = document.getElementById('chipout');
+  chips.forEach((c) => c.addEventListener('click', () => {
+    c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+    const n = chips.filter((x) => x.getAttribute('aria-pressed') === 'true').reduce((a, x) => a + Number(x.dataset.n), 0);
+    out.textContent = n ? `Unpack opens ${n} ${n === 1 ? 'thing' : 'things'}.` : 'Tick something to open.';
+  }));
+})();
+</script>
+</body>
+</html>
