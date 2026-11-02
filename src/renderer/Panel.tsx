@@ -93,7 +93,7 @@ function PanelView() {
               {view && <JobMenu view={view} onGone={() => setSelected(null)} />}
             </div>
             {view ? (
-              <BriefCard view={view} current={!view.job.done && (!!jobs?.find((j) => j.id === view.job.id)?.current || mostlyOpen(openMap[view.job.id]))} />
+              <BriefCard view={view} current={!!jobs?.find((j) => j.id === view.job.id)?.current || mostlyOpen(openMap[view.job.id])} />
             ) : (
               <div className="muted small" style={{ padding: '18px 8px' }}>
                 <span className="spinner" /> Getting your folder…
@@ -199,8 +199,9 @@ function JobList(props: {
 function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; onPick: (id: string) => void }) {
   const allOpen = !!state && state.total > 0 && state.open === state.total;
   const someOpen = !!state && state.open > 0 && !allOpen;
-  // Open now: you unpacked it here, or most of its tabs and files are open anyway.
-  const openNow = !job.done && (job.current || mostlyOpen(state));
+  // Open now: you unpacked it here, or most of its tabs and files are open anyway. A finished folder
+  // you unpacked counts too, so it can be packed up again; it still stays under Finished.
+  const openNow = job.current || mostlyOpen(state);
   const [busy, setBusy] = useState(false);
   const [opened, setOpened] = useState<string | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);

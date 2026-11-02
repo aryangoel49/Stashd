@@ -39,7 +39,7 @@ function MainView() {
     });
     api.openState().then(setOpenMap, () => undefined);
   }, []);
-  const isOpen = (j: JobSummary) => !j.done && (j.current || mostlyOpen(openMap[j.id]));
+  const isOpen = (j: JobSummary) => j.current || mostlyOpen(openMap[j.id]);
 
   useEffect(() => {
     load();
@@ -261,8 +261,9 @@ function Section({ title, count, children }: { title: string; count?: number; ch
 }
 
 function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: number; state?: OpenState; onOpen: () => void }) {
-  // Open now: you unpacked it here, or most of its tabs and files are open anyway.
-  const openNow = !job.done && (job.current || mostlyOpen(state));
+  // Open now: you unpacked it here, or most of its tabs and files are open anyway (finished folders too,
+  // so they can be packed up again).
+  const openNow = job.current || mostlyOpen(state);
   const tone = folderTone(job.id);
   const [hover, setHover] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -362,7 +363,7 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
       </div>
       {job.hint && <div className="folder-card-hint">{job.hint}</div>}
       <div className="folder-card-foot">
-        {openNow && !job.done && (
+        {openNow && (
           <Button
             size="small"
             className="tone-btn"
