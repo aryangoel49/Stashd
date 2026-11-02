@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { screen, type Rectangle } from 'electron';
 import type { FlyItem, Item, NamingRequest, OverlayPlay, Route, ToastInfo } from '../shared/types';
+import { CHAT_APPS } from './capture';
 import type { Core } from './core';
 import { openItems } from './open';
 import { canName, cleanFileName, closeItems, freePath, saveUntitled, suggestedFileName } from './tidy';
@@ -100,23 +101,29 @@ export class TidyFlow {
     // Only in apps that are running: asking an app that isn't would launch it.
     const running = new Set((await Promise.resolve().then(() => this.core.helper.windows()).catch(() => null))?.apps.map((a) => a.name) ?? []);
     const maybeOpen = entry.items.filter((i) => i.kind !== 'app' && !i.untitled && i.notOpen && running.has(i.app));
-    // Apps in the folder (Terminal, say) are hidden, never quit, so nothing running is lost.
+    // Apps in the folder (Terminal, say) quit like ⌘Q, so they still ask about unsaved work. Claude and
+    // ChatGPT are only hidden: other chats may be running there, and Unpack goes back to the saved chat anyway.
     const apps = entry.items.filter((i) => i.kind === 'app' && !i.notOpen);
+    const hideOnly = apps.filter((a) => CHAT_APPS.includes(a.app));
+    const toQuit = apps.filter((a) => !CHAT_APPS.includes(a.app));
     if (!closable.length && !apps.length && !maybeOpen.length) {
       this.toast({ title: 'Nothing to close', detail: `${job.name} is saved. Its windows stay open.`, canUndo: false, mood: 'awake' });
       return;
     }
     const animation = this.play([...closable, ...apps], false);
     await wait(120);
-    const [{ closed, failed }, hiddenNames] = await Promise.all([
+    const [{ closed, failed }, doneNames] = await Promise.all([
       closeItems([...closable, ...maybeOpen], this.urlOptions()),
-      apps.length ? this.core.helper.hideApps(apps.map((a) => a.app)).catch(() => [] as string[]) : Promise.resolve([] as string[]),
+      Promise.all([
+        toQuit.length ? this.core.helper.quitApps(toQuit.map((a) => a.app)).catch(() => [] as string[]) : [],
+        hideOnly.length ? this.core.helper.hideApps(hideOnly.map((a) => a.app)).catch(() => [] as string[]) : [],
+      ]).then((r) => r.flat()),
     ]);
     // Only report what was really open: an already-closed item that stayed closed isn't a failure.
     for (let i = failed.length - 1; i >= 0; i--) if (failed[i].notOpen) failed.splice(i, 1);
-    const hidden = new Set(hiddenNames.map((n) => n.toLowerCase()));
-    closed.push(...apps.filter((a) => hidden.has(a.app.toLowerCase())));
-    failed.push(...apps.filter((a) => !hidden.has(a.app.toLowerCase())));
+    const done = new Set(doneNames.map((n) => n.toLowerCase()));
+    closed.push(...apps.filter((a) => done.has(a.app.toLowerCase())));
+    failed.push(...apps.filter((a) => !done.has(a.app.toLowerCase())));
     await animation;
     this.setUndo(closed, entry.frontKey);
     const left = failed.length + entry.items.filter((i) => i.untitled).length;

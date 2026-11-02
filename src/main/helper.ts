@@ -73,6 +73,14 @@ export class Helper {
     return Array.isArray(out.hidden) ? out.hidden.filter((n): n is string => typeof n === 'string') : [];
   }
 
+  /** Ask these apps to quit (like ⌘Q, never forced). Returns the names that were asked. */
+  async quitApps(names: string[]): Promise<string[]> {
+    if (!names.length) return [];
+    const r = await run(this.binary, ['quit'], { timeoutMs: 4000, input: JSON.stringify(names) });
+    const out = JSON.parse(r.stdout) as { quit?: unknown };
+    return Array.isArray(out.quit) ? out.quit.filter((n): n is string => typeof n === 'string') : [];
+  }
+
   /** The chat open in each of these apps (Claude, ChatGPT). `ask`: let macOS ask for Accessibility if it isn't on. */
   async chats(names: string[], ask = false): Promise<{ trusted: boolean; chats: ChatInfo[] }> {
     const r = await run(this.binary, ask ? ['chats', 'ask'] : ['chats'], { timeoutMs: 3000, input: JSON.stringify(names) });

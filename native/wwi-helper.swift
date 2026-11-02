@@ -9,6 +9,8 @@
 //                        icons as small PNG data URLs (for the tidy-up animation).
 //   wwi-helper hide      Reads a JSON list of app names on stdin and hides those apps (like ⌘H), for
 //                        Pack up. Nothing is quit, so no work is lost; reopening the app shows it again.
+//   wwi-helper quit      Reads a JSON list of app names on stdin and asks those apps to quit (like ⌘Q), for
+//                        Pack up. Never forced: an app with unsaved work asks to save first, as usual.
 //   wwi-helper chats     Reads a JSON list of chat app names (Claude, ChatGPT) on stdin and prints the chat
 //                        open in each one's front window: its title and, for web-based apps, its address
 //                        and the last ~2000 characters of the conversation on screen (for the brief).
@@ -158,6 +160,21 @@ func hideCommand() {
     printJSON(["hidden": hidden])
 }
 
+func quitCommand() {
+    let input = FileHandle.standardInput.readDataToEndOfFile()
+    guard let names = try? JSONSerialization.jsonObject(with: input) as? [String] else {
+        printJSON(["error": "bad input"])
+        return
+    }
+    let wanted = Set(names.map { $0.lowercased() })
+    var quit: [String] = []
+    for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+        guard let name = app.localizedName, wanted.contains(name.lowercased()) else { continue }
+        if app.terminate() { quit.append(name) }
+    }
+    printJSON(["quit": quit])
+}
+
 // Reads the front window through Accessibility. Web-based apps (Claude) expose their page, whose
 // address names the exact chat; native ones (ChatGPT) give at least the window title.
 func axValue(_ e: AXUIElement, _ name: String) -> AnyObject? {
@@ -277,8 +294,9 @@ case "brief": briefCommand()
 case "status": statusCommand()
 case "icons": iconsCommand()
 case "hide": hideCommand()
+case "quit": quitCommand()
 case "chats": chatsCommand(ask: args.count > 2 && args[2] == "ask")
 default:
-    printJSON(["error": "usage: wwi-helper windows|brief|status|icons|hide|chats"])
+    printJSON(["error": "usage: wwi-helper windows|brief|status|icons|hide|quit|chats"])
     exit(2)
 }
