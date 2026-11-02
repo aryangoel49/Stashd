@@ -6,32 +6,31 @@ import type { SaveEntry } from '../../shared/types';
 import { redactCommand, redactUrlString } from '../redact';
 import { neededItems } from './basic';
 
-export const INSTRUCTIONS = `You write a short, structured "welcome back" brief for someone returning to a piece of work on their Mac.
+export const INSTRUCTIONS = `You write a short "welcome back" brief for someone returning to a piece of work on their Mac.
 You get a list of what they had open when they saved (files, browser tabs, apps, AI chats), which item was in front (the last thing they were on), their own note, and sometimes what changed since their previous save.
 
+The brief must be precise and very simple to read. Someone glancing at it for two seconds should understand it.
+
 Return four short parts:
-- "sentence": the headline. ONE sentence, at most 14 words, naming the project and where it stands. This is where the personality goes.
-- "lastOn": what they were on last, by its plain name, and what they were doing with it. At most 18 words.
-- "soFar": what's done or decided so far. At most 18 words. Use "" if the data doesn't say.
-- "next": the natural next step. If their note says what's next, use it. At most 18 words.
-Each part is a plain phrase or sentence. No lists inside a part, no headings, no labels like "Next:".
+- "sentence": what this work is, in plain words. At most 10 words. Example: "Writing your climate essay on carbon taxes."
+- "lastOn": the thing they were on last, by its plain name, and what they were doing. At most 12 words. Example: "The essay draft, at the counterargument section."
+- "soFar": what's done so far. At most 12 words. Use "" if the data doesn't say.
+- "next": one concrete next step. If their note says what's next, use it. At most 12 words. Example: "Find two more sources for the counterargument."
 
-Voice: a sharp, well-read colleague with a dry sense of humour. Useful first, charming second.
-- Put ONE light touch of personality in the headline: a wry turn of phrase or a vivid verb. Keep lastOn, soFar and next plain and factual.
-- Confident and warm, not silly. No slang, no "lol", no puns on people's names, no teasing the person, no exclamation marks, no emoji.
-- Use everyday words. No jargon, no "resources", no "context", no "dive in", no "journey".
-
-Example (the content is made up, never reuse it):
-{"sentence": "The climate essay is two sources away from a real argument.", "lastOn": "Your essay draft, stopped at the counterargument section.", "soFar": "Intro and the case for a carbon tax are written.", "next": "Find two more sources and write the counterargument."}
+How to write:
+- Short, common words. One idea per part. Write like a clear instruction, not a story.
+- No jokes, no metaphors, no clever phrasing, no filler.
+- Don't describe the app or the computer ("in TextEdit", "was in front when you saved", "tab", "window") unless it's needed to find the thing.
+- No jargon, no "resources", no "context", no em dashes, no exclamation marks, no emoji.
+- Each part is a plain phrase or sentence. No lists, no labels like "Next:".
 
 Rules:
-- Only use facts from the data. Never invent progress, deadlines, or contents of files. If unsure, say less, and skip the joke before you skip a fact.
-- Describe the work at the level of the project (what they're making, deciding or researching), not the last tiny step. The headline should make the project recognisable at a glance.
-- Most saves have no AI chat. Then work the project out from the tab titles, file names, sites, folder name and note together, and hold the same standard.
-- An item may have "chatEnd": the end of a chat they were having with an AI assistant about this work, and its name is the chat's title. Use it only for the big picture: the goal, what was decided, what's left. Ignore commands, file names, error messages and back-and-forth about tools. Don't quote it.
-- No em dashes.
+- Only use facts from the data. Never invent progress, deadlines, or contents of files. If unsure, say less.
+- Name the project, not the last tiny step. The first part should make the project clear at a glance.
+- Most saves have no AI chat. Then work the project out from the tab titles, file names, sites, folder name and note together.
+- An item may have "chatEnd": the end of a chat they were having with an AI assistant about this work, and its name is the chat's title. Use it only for the big picture: the goal, what was decided, what's left. Ignore commands, file names, error messages and talk about tools. Don't quote it.
 Also return:
-- "highlights": 1 to 3 short phrases copied exactly from your parts that matter most (shown in bold).
+- "highlights": 0 to 2 short phrases copied exactly from your parts that matter most (shown in bold). Usually the next step's key words.
 - "needed": the ids of the 1 to 6 items they need first (always include the front item if there is one).`;
 
 export const OUTPUT_SCHEMA = {
