@@ -25,7 +25,8 @@ Examples of the voice (the content is made up, never reuse it):
 
 Rules:
 - Only use facts from the data. Never invent progress, deadlines, or contents of files. If unsure, say less, and skip the joke before you skip a fact.
-- An item may have "chatEnd": the last part of a chat they were having with an AI assistant about this work. Use it to say what they were figuring out or what was decided. Don't quote it.
+- Describe the work at the level of the project (what they're making, deciding or researching), not the last tiny step. A reader should recognise the project from your first words.
+- An item may have "chatEnd": the end of a chat they were having with an AI assistant about this work, and its name is the chat's title. Use it only for the big picture: the goal, what was decided, what's left. Ignore commands, file names, error messages and back-and-forth about tools. Don't quote it.
 - No em dashes, no lists, no headings.
 Also return:
 - "highlights": 1 to 3 short phrases copied exactly from your sentence that matter most (shown in colour).

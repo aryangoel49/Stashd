@@ -191,6 +191,7 @@ func conversationText(_ page: AXUIElement) -> String {
     }
     let area = mainArea(page, 0) ?? page
     var parts: [String] = []
+    var messages: [AXUIElement] = []
     var reachedInput = false
     budget = 20000
     // Messages come before the box you type in; what follows it is controls (model picker, usage).
@@ -198,24 +199,38 @@ func conversationText(_ page: AXUIElement) -> String {
         budget -= 1
         if depth > 60 || budget < 0 || reachedInput { return }
         let role = axValue(e, "AXRole") as? String
-        if role == "AXTextArea" || (role == "AXTextField" && axValue(e, "AXEditableAncestor") != nil) { reachedInput = true; return }
+        if role == "AXTextArea" || (role == "AXTextField" && axValue(e, "AXEditableAncestor") != nil) {
+            if messages.isEmpty { reachedInput = true }
+            return
+        }
+        // Code and command output say little about what the work is.
+        if axValue(e, "AXSubrole") as? String == "AXCodeStyleGroup" { return }
         if role == "AXStaticText", let s = axValue(e, "AXValue") as? String, !s.isEmpty { parts.append(s) }
         for child in (axValue(e, "AXChildren") as? [AXUIElement]) ?? [] { collect(child, depth + 1) }
     }
-    // Claude marks each message (its element id contains "msg_"); when it does, read only those.
-    var messages: [AXUIElement] = []
+    // Claude marks each message (a "message" class, or an id with "msg_"); when it does, read only those.
     budget = 20000
     func findMessages(_ e: AXUIElement, _ depth: Int) {
         budget -= 1
         if depth > 40 || budget < 0 { return }
-        if let id = axValue(e, "AXDOMIdentifier") as? String, id.contains("msg_") { messages.append(e); return }
+        let id = axValue(e, "AXDOMIdentifier") as? String ?? ""
+        let classes = (axValue(e, "AXDOMClassList") as? [String]) ?? []
+        if id.contains("msg_") || classes.contains(where: { $0.contains("message") }) { messages.append(e); return }
         for child in (axValue(e, "AXChildren") as? [AXUIElement]) ?? [] { findMessages(child, depth + 1) }
     }
     findMessages(area, 0)
     budget = 20000
-    if messages.isEmpty { collect(area, 0) } else { for m in messages.suffix(8) { collect(m, 0) } }
+    if messages.isEmpty {
+        collect(area, 0)
+    } else {
+        // Inside a message, a text box is part of it (a code block), not the place you type.
+        for m in messages.suffix(12) {
+            reachedInput = false
+            collect(m, 0)
+        }
+    }
     let text = parts.joined(separator: " ").split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
-    return String(text.suffix(2000))
+    return String(text.suffix(3000))
 }
 
 func chatsCommand(ask: Bool) {
