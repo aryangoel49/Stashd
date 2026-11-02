@@ -10,42 +10,59 @@
 <meta property="og:description" content="Press Control-S. Your tabs, files and apps go into a folder in the menu bar. Open it later and everything comes back.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
 <style>
-/* Stashd's own look: butter-yellow folder, ink, warm white paper. The hero's little Mac screen is the one loud thing. */
+/* Stashd's own look: butter-yellow folder, ink, warm white paper. The hero's little Mac is the one loud thing,
+   and the sleepy folder (eyes that watch, blink, sleep and wake) carries the fun. */
 :root {
   --paper: #fffcf3;
-  --paper-2: #fbf4dd;
   --ink: #1c1d22;
   --ink-soft: #55554f;
   --butter: #f2cd5c;
   --butter-deep: #e4b93b;
   --cream: #fbefc6;
-  --screen: #262a33;
-  --screen-2: #323743;
+  --screen: #2a2f3a;
   --line: #ece3c7;
   --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body: "Hanken Grotesk", -apple-system, system-ui, sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--body); -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 a { color: inherit; }
-img, svg { display: block; }
-.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
+svg { display: block; }
+button { font: inherit; }
+.wrap { max-width: 1160px; margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
 h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.025em; }
 p { margin: 0; }
 :focus-visible { outline: 3px solid var(--butter-deep); outline-offset: 3px; border-radius: 6px; }
 
+/* the folder: one drawing used everywhere, with eyes that open, look, blink and close */
+.folder .open { transition: opacity 0.12s; }
+.folder .closed { opacity: 0; transition: opacity 0.12s; }
+.folder .lids { transform-box: fill-box; transform-origin: 50% 60%; transition: transform 0.12s var(--ease-out); }
+.folder .pupils { transition: transform 0.18s var(--ease-out); }
+.folder.blink .lids { transform: scaleY(0.1); }
+.folder.asleep .open { opacity: 0; }
+.folder.asleep .closed { opacity: 1; }
+.folder.wide .lids { transform: scale(1.28); transition: transform 0.38s cubic-bezier(0.34, 1.8, 0.5, 1); }
+.hop { animation: hop 0.32s var(--ease-out); }
+@keyframes hop { 40% { transform: scale(1.22) translateY(-2px); } }
+.zz { position: absolute; pointer-events: none; font: 700 13px var(--display); color: var(--ink-soft); opacity: 0; }
+.sleeping .zz { animation: z 2.6s ease-in-out infinite; }
+.sleeping .zz:nth-child(2) { animation-delay: 1.3s; }
+@keyframes z { 0% { opacity: 0; transform: translate(0, 0) scale(0.7); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(10px, -22px) scale(1.15); } }
+
 /* nav */
 .nav { display: flex; align-items: center; gap: 24px; padding-block: 18px; }
 .brand { display: flex; align-items: center; gap: 10px; font: 700 21px var(--display); text-decoration: none; letter-spacing: -0.02em; }
-.brand img { width: 34px; height: 34px; }
-.nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 16px; }
+.brand .folder { width: 34px; height: 34px; }
+.nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 16px; align-items: center; }
 .nav-links a { text-decoration: none; color: var(--ink-soft); }
 .nav-links a:hover { color: var(--ink); }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; font: 600 17px var(--body); text-decoration: none; cursor: pointer; transition: transform 0.15s var(--ease), background 0.2s; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; font: 600 17px var(--body); text-decoration: none; cursor: pointer; transition: transform 0.16s var(--ease-out), background 0.2s; }
 .btn:active { transform: scale(0.97); }
 .btn-main { background: var(--butter); color: var(--ink); padding: 14px 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 6px 18px rgba(214,170,40,0.3); }
 .btn-main:hover { background: #f5d672; }
@@ -53,62 +70,129 @@ p { margin: 0; }
 .apple { width: 16px; height: 18px; }
 
 /* hero */
-.hero { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 56px; align-items: center; padding-block: 48px 88px; }
-.hero h1 { font-size: clamp(52px, 7.4vw, 96px); line-height: 0.95; font-weight: 800; }
-.hero .lede { margin-top: 26px; font-size: 21px; color: var(--ink-soft); max-width: 30ch; }
-.hero-cta { margin-top: 34px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.hero { display: grid; grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr); gap: 52px; align-items: center; padding-block: 36px 96px; }
+.hero-mascot { width: 92px; height: 92px; margin-bottom: 26px; position: relative; }
+.hero-mascot .folder { width: 92px; height: 92px; filter: drop-shadow(0 10px 18px rgba(214,170,40,0.35)); }
+.hero-mascot .zz { right: -8px; top: 0; font-size: 18px; }
+.hero h1 { font-size: clamp(50px, 7vw, 92px); line-height: 0.95; font-weight: 800; }
+.hero .lede { margin-top: 24px; font-size: 21px; color: var(--ink-soft); max-width: 30ch; }
+.hero-cta { margin-top: 32px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .small { font-size: 15px; color: var(--ink-soft); }
 kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 7px; padding: 1px 7px; }
 
 /* the little Mac */
-.mac { background: var(--screen); border-radius: 22px; padding: 0 0 22px; box-shadow: 0 30px 70px -20px rgba(28,29,34,0.45); overflow: hidden; position: relative; }
-.menubar { height: 34px; display: flex; align-items: center; gap: 14px; padding: 0 16px; background: rgba(255,255,255,0.06); color: #e9e6dc; font-size: 13px; }
+.mac { background: linear-gradient(160deg, #3a4152, #262a33 60%); border-radius: 22px; box-shadow: 0 34px 80px -24px rgba(28,29,34,0.5); overflow: hidden; position: relative; isolation: isolate; }
+.menubar { height: 32px; display: flex; align-items: center; gap: 15px; padding: 0 14px; background: rgba(255,255,255,0.08); color: #ecebe4; font-size: 12.5px; position: relative; z-index: 4; }
+.menubar b { font-weight: 700; }
 .menubar .grow { flex: 1; }
-.tray { position: relative; width: 26px; height: 22px; }
-.tray svg { width: 26px; height: 22px; }
-.eye { transform-box: fill-box; transform-origin: 50% 60%; transition: transform 0.35s var(--ease); }
-.asleep .eye { transform: scaleY(0.1); }
-.tray .count { position: absolute; top: -5px; right: -9px; background: var(--butter); color: var(--ink); font: 700 10px var(--body); border-radius: 9px; padding: 0 5px; line-height: 15px; opacity: 0; transform: scale(0.6); transition: 0.3s var(--ease); }
-.tray .count.on { opacity: 1; transform: none; }
-.desk { padding: 22px 22px 0; display: grid; gap: 14px; min-height: 372px; align-content: start; }
-.browser { background: #f6f4ee; border-radius: 12px; overflow: hidden; }
-.tabs { display: flex; gap: 4px; padding: 8px 8px 0; background: #e3dfd3; min-height: 44px; flex-wrap: wrap; }
-.tab { display: flex; align-items: center; gap: 7px; background: #f6f4ee; border-radius: 9px 9px 0 0; padding: 7px 10px; font-size: 12.5px; max-width: 168px; white-space: nowrap; overflow: hidden; color: #2d2d2a; transition: transform 0.6s var(--ease), opacity 0.45s; }
-.tab span { overflow: hidden; text-overflow: ellipsis; }
-.fav { width: 14px; height: 14px; border-radius: 4px; flex: none; }
-.page { padding: 18px; display: grid; gap: 8px; }
-.page i { display: block; height: 9px; border-radius: 5px; background: #e2ded2; }
-.others { display: flex; gap: 12px; flex-wrap: wrap; }
-.thing { display: flex; align-items: center; gap: 10px; background: var(--screen-2); color: #ecebe5; border-radius: 12px; padding: 10px 14px; font-size: 13.5px; transition: transform 0.6s var(--ease), opacity 0.45s; }
-.thing b { font-weight: 600; }
-.thing small { display: block; color: #a8a69c; font-size: 12px; }
-.ico { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; font: 700 11px var(--body); color: #fff; flex: none; }
-.flying { transform: translate(var(--dx), var(--dy)) scale(0.08) !important; opacity: 0 !important; }
-.gone { display: none; }
+.tray { position: relative; width: 26px; height: 22px; display: grid; place-items: center; }
+.tray .folder { width: 26px; height: 22px; overflow: visible; }
+.tray .zz { right: -10px; top: -4px; font-size: 10px; color: #f2cd5c; }
+.desk { padding: 18px 18px 16px; display: grid; gap: 12px; position: relative; }
 
-/* save box inside the demo */
-.savebox { position: absolute; left: 50%; top: 58px; width: min(380px, calc(100% - 32px)); transform: translate(-50%, 8px); background: #fffdf6; color: var(--ink); border-radius: 16px; padding: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.35); opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.35s var(--ease); z-index: 3; }
-.savebox.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-.savebox h3 { font-size: 20px; }
-.savebox .label { font-size: 12px; font-weight: 600; color: var(--ink-soft); margin: 12px 0 6px; }
+.chrome { background: #f1f0ec; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+.strip { display: flex; align-items: flex-end; gap: 2px; padding: 8px 8px 0 70px; background: #dedbd2; position: relative; height: 40px; }
+.lights { position: absolute; left: 12px; top: 13px; display: flex; gap: 6px; }
+.lights i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; }
+.lights i:nth-child(2) { background: #febc2e; }
+.lights i:nth-child(3) { background: #28c840; }
+.tab { flex: 1 1 150px; min-width: 0; max-width: 190px; display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 10px; border-radius: 9px 9px 0 0; font-size: 12px; color: #3a3a36; background: transparent; border: 0; cursor: pointer; white-space: nowrap; overflow: hidden; transition: max-width 0.3s var(--ease-out), padding 0.3s var(--ease-out), background 0.15s; text-align: left; }
+.tab:hover { background: rgba(255,255,255,0.45); }
+.tab.on { background: #f1f0ec; }
+.tab .t { overflow: hidden; text-overflow: ellipsis; }
+.tab.collapsed { max-width: 0; padding: 0; flex-basis: 0; }
+.fav { width: 14px; height: 14px; border-radius: 4px; flex: none; display: grid; place-items: center; font: 800 8.5px var(--body); color: #fff; }
+.bar { display: flex; align-items: center; gap: 10px; padding: 7px 12px; }
+.url { flex: 1; background: #fff; border-radius: 99px; padding: 4px 14px; font-size: 12px; color: #6a6960; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.view { height: 236px; overflow: hidden; background: #fff; position: relative; }
+
+/* pages inside the browser */
+.pg { position: absolute; inset: 0; padding: 16px 18px; font-size: 12.5px; line-height: 1.45; color: #2a2a28; animation: pg 0.25s var(--ease-out); }
+@keyframes pg { from { opacity: 0; } }
+.imdb { background: #fff; display: grid; grid-template-columns: 74px 1fr; gap: 14px; align-content: start; }
+.poster { height: 108px; border-radius: 6px; background: linear-gradient(170deg, #0f3a4a, #06171f); position: relative; overflow: hidden; }
+.poster::after { content: "BELOW"; position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font: 800 12px var(--display); letter-spacing: 0.18em; color: #bfe6f0; }
+.imdb h4 { margin: 0; font: 700 17px var(--display); }
+.meta { color: #6a6960; font-size: 11.5px; }
+.stars { color: #c99700; font-weight: 700; margin: 4px 0 8px; }
+.review { border-top: 1px solid #ecebe6; padding-top: 7px; margin-top: 7px; }
+.review b { font-size: 12px; }
+.netflix { background: #141414; color: #fff; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px 22px; background-image: linear-gradient(0deg, #141414 25%, rgba(20,20,20,0) 80%), linear-gradient(150deg, #17495a, #071a22); }
+.netflix h4 { margin: 0; font: 800 34px var(--display); letter-spacing: 0.06em; }
+.netflix .play { display: inline-flex; margin-top: 12px; background: #fff; color: #111; border-radius: 5px; padding: 5px 16px; font-weight: 700; font-size: 12.5px; width: max-content; }
+.goog .q { border: 1px solid #dfe1e5; border-radius: 99px; padding: 6px 14px; margin-bottom: 12px; font-size: 13px; }
+.goog .r { margin-bottom: 10px; }
+.goog .r a { color: #1a0dab; font-size: 14px; text-decoration: none; display: block; }
+.goog .r small { color: #4d5156; }
+.stock { border: 1px solid #ecebe6; border-radius: 10px; padding: 10px 12px; }
+.stock .price { font: 700 24px var(--display); }
+.stock .up { color: #137333; font-weight: 600; font-size: 12px; }
+.reddit { background: #f6f7f8; }
+.reddit .post { background: #fff; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+.reddit .post b { display: block; font-size: 13.5px; }
+.reddit .c { font-size: 12px; color: #4b4b48; padding-left: 10px; border-left: 2px solid #e2e2df; margin-top: 6px; }
+
+.windows { display: flex; gap: 10px; flex-wrap: wrap; min-height: 54px; }
+.win { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); color: #f1efe8; border-radius: 12px; padding: 8px 14px 8px 8px; font-size: 13px; backdrop-filter: blur(6px); max-width: 100%; }
+.win b { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.win small { color: #b9b7ad; font-size: 11.5px; }
+.appicon { width: 36px; height: 36px; border-radius: 9px; flex: none; display: grid; place-items: center; color: #fff; font: 800 15px var(--display); }
+.word { background: linear-gradient(160deg, #3c7ad1, #1f4f9c); }
+.claude { background: #d97757; font-size: 19px; }
+.hidden-thing { visibility: hidden; }
+
+/* save box, like the real one */
+.scrim { position: absolute; inset: 32px 0 0; background: rgba(20,22,28,0.25); opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 2; }
+.scrim.on { opacity: 1; }
+.savebox { position: absolute; left: 50%; top: 52px; width: min(400px, calc(100% - 28px)); transform: translate(-50%, 10px) scale(0.97); background: #fffdf6; color: var(--ink); border-radius: 18px; padding: 16px 16px 14px; box-shadow: 0 24px 60px rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.32s var(--ease); z-index: 3; }
+.savebox.on { opacity: 1; transform: translate(-50%, 0) scale(1); pointer-events: auto; }
+.sb-head { display: flex; gap: 12px; align-items: center; }
+.sb-head .folder { width: 40px; height: 40px; flex: none; }
+.sb-eyebrow { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
+.sb-name { font: 700 21px/1.1 var(--display); }
+.sb-note { margin-top: 10px; border-radius: 10px; background: #fff; border: 1px solid var(--line); padding: 7px 11px; font-size: 13px; min-height: 34px; color: var(--ink); }
+.sb-note .ph { color: #a9a597; }
+.caret { display: inline-block; width: 1.5px; height: 14px; background: var(--ink); vertical-align: -2px; margin-left: 1px; animation: caret 1s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.sb-label { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin: 11px 0 6px; }
 .pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 5px 10px 5px 6px; border-radius: 999px; background: var(--cream); border: 1px solid #e9d27f; }
-.pill::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--butter) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231c1d22' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12l4 4 8-8'/%3E%3C/svg%3E") center/9px no-repeat; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px 4px 5px; border-radius: 999px; background: var(--cream); border: 1px solid #e9d27f; }
+.pill .tick { width: 15px; height: 15px; border-radius: 50%; background: var(--butter); display: grid; place-items: center; }
+.pill .tick svg { width: 9px; height: 9px; }
 .pill.out { background: none; border: 1px dashed #c9c3b2; color: var(--ink-soft); }
-.pill.out::before { background: none; box-shadow: inset 0 0 0 1px #c9c3b2; }
-.savebox .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
-.ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); padding: 9px 14px; }
+.pill.out .tick { background: none; box-shadow: inset 0 0 0 1px #c9c3b2; }
+.pill.pop { animation: pop 0.3s var(--ease-out) both; }
+@keyframes pop { from { opacity: 0; transform: scale(0.9); } }
+.sb-foot { display: flex; align-items: center; gap: 8px; margin-top: 13px; }
+.sb-foot .grow { flex: 1; font-size: 12px; color: var(--ink-soft); }
+.ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); }
+
+/* toast and brief that drop from the menu bar */
+.toast, .briefpop { position: absolute; right: 12px; top: 40px; z-index: 5; background: #fffdf6; color: var(--ink); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.35); opacity: 0; transform: translateY(-8px) scale(0.98); transform-origin: top right; transition: opacity 0.2s, transform 0.3s var(--ease); pointer-events: none; }
+.toast.on, .briefpop.on { opacity: 1; transform: none; pointer-events: auto; }
+.toast { display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 9px; font-size: 13px; }
+.toast .folder { width: 26px; height: 26px; }
+.toast button { border: 0; background: none; color: #9a7300; font-weight: 700; cursor: pointer; padding: 0 0 0 6px; }
+.briefpop { width: min(320px, calc(100% - 24px)); padding: 14px 16px; }
+.briefpop .bp-name { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
+.briefpop .bp-head { font: 700 16px/1.25 var(--display); margin-top: 2px; }
+.bp-rows { margin: 9px 0 0; display: grid; gap: 5px; font-size: 13px; }
+.bp-rows div { display: grid; grid-template-columns: 54px 1fr; gap: 8px; }
+.bp-rows dt { font-size: 11.5px; font-weight: 600; color: #7d7a6e; }
+.bp-rows dd { margin: 0; }
+.bp-rows .next dt { color: #9a7300; }
 
 .demo-bar { display: flex; align-items: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
-.demo-bar .btn { min-width: 168px; }
+.demo-bar .btn { min-width: 150px; }
 .demo-note { font-size: 15px; color: var(--ink-soft); min-height: 24px; }
+.flyer { position: fixed; z-index: 50; pointer-events: none; margin: 0; }
 
 /* sections */
 section { padding-block: 92px; }
 .section-head { max-width: 640px; }
 .section-head h2 { font-size: clamp(36px, 4.6vw, 56px); line-height: 1.02; font-weight: 700; }
 .section-head p { margin-top: 18px; font-size: 20px; color: var(--ink-soft); }
-.steps { margin-top: 48px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 2px solid var(--ink); }
+.steps { margin-top: 48px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 2px solid var(--ink); }
 .step { padding: 26px 28px 0 0; }
 .step + .step { padding-left: 28px; border-left: 1px solid var(--line); }
 .step .n { font: 800 64px/1 var(--display); color: var(--butter-deep); letter-spacing: -0.04em; }
@@ -121,35 +205,42 @@ section { padding-block: 92px; }
 .feature h3 { font-size: 26px; }
 .feature p { margin-top: 10px; color: #b9b6aa; max-width: 44ch; }
 .feature .show { margin-top: 22px; }
+.smart .pill { font-size: 14px; padding: 6px 12px 6px 6px; }
+.smart .pill.out { color: #b9b6aa; border-color: #5b5b60; }
+.smart .pill.out .tick { box-shadow: inset 0 0 0 1px #5b5b60; }
+.sort-pills .pill { transition: transform 0.5s var(--ease), opacity 0.4s; }
+.sort-pills.sorted .pill.out { transform: translateX(14px); opacity: 0.55; }
 .card { background: #fffdf6; color: var(--ink); border-radius: 18px; padding: 18px 20px; }
 .brief-head { font: 700 19px/1.3 var(--display); letter-spacing: -0.01em; }
-.brief-rows { margin-top: 12px; display: grid; gap: 7px; font-size: 15px; }
+.brief-rows { margin: 12px 0 0; display: grid; gap: 7px; font-size: 15px; }
 .brief-rows div { display: grid; grid-template-columns: 64px 1fr; gap: 10px; }
 .brief-rows dt { font-size: 13px; font-weight: 600; color: #7d7a6e; }
 .brief-rows dd { margin: 0; }
 .brief-rows .next dt { color: #9a7300; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 14px; font-size: 15px; border: 1px solid #4a4b52; color: #f4f1e8; background: none; font-family: var(--body); cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s; }
+.chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 14px; font-size: 15px; border: 1px solid #4a4b52; color: #f4f1e8; background: none; cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.16s var(--ease-out); }
+.chip:active { transform: scale(0.96); }
 .chip[aria-pressed="true"] { background: var(--butter); color: var(--ink); border-color: var(--butter); }
 .chip-out { margin-top: 12px; font-size: 15px; color: #b9b6aa; min-height: 24px; }
 .chat { display: flex; align-items: center; gap: 12px; }
-.chat .ico { width: 40px; height: 40px; border-radius: 10px; background: #d97757; }
 
 .privacy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 64px; align-items: start; }
-.facts { display: grid; gap: 0; border-top: 2px solid var(--ink); }
+.facts { border-top: 2px solid var(--ink); }
 .facts p { padding: 18px 0; border-bottom: 1px solid var(--line); }
 .facts b { font-weight: 600; }
 
 .end { text-align: center; padding-block: 110px 120px; }
-.end .sleepy { width: 120px; height: 120px; margin: 0 auto 28px; }
+.end-mascot { width: 128px; height: 128px; margin: 0 auto 28px; position: relative; }
+.end-mascot .folder { width: 128px; height: 128px; }
+.end-mascot .zz { right: -4px; top: 6px; font-size: 22px; }
 .end h2 { font-size: clamp(44px, 6vw, 76px); line-height: 0.98; font-weight: 800; }
 .end p { margin-top: 16px; color: var(--ink-soft); }
 .end .btn { margin-top: 30px; }
 footer { border-top: 1px solid var(--line); padding-block: 26px 40px; font-size: 15px; color: var(--ink-soft); }
 footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; }
 
-@media (max-width: 900px) {
-  .hero { grid-template-columns: 1fr; gap: 40px; padding-block: 24px 64px; }
+@media (max-width: 920px) {
+  .hero { grid-template-columns: 1fr; gap: 36px; padding-block: 18px 64px; }
   .steps { grid-template-columns: 1fr; }
   .step, .step + .step { padding: 24px 0; border-left: 0; border-bottom: 1px solid var(--line); }
   .features, .privacy { grid-template-columns: 1fr; gap: 44px; }
@@ -157,21 +248,24 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   section { padding-block: 64px; }
   .smart { border-radius: 26px; }
 }
-@media (max-width: 520px) {
+@media (max-width: 560px) {
   body { font-size: 17px; }
-  .desk { padding: 14px 12px 0; min-height: 330px; }
-  .tab { max-width: 120px; font-size: 11.5px; }
+  .desk { padding: 12px 10px 12px; }
+  .strip { padding-left: 58px; }
+  .menubar .opt { display: none; }
+  .view { height: 210px; }
+  .win b { max-width: 150px; }
   .mac { border-radius: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
 </style>
 </head>
 <body>
 
 <header class="wrap nav">
-  <a class="brand" href="#top" aria-label="Stashd home"><img src="favicon.svg" alt="">Stashd</a>
+  <a class="brand" href="#top" aria-label="Stashd home"><span data-folder="tile" data-mode="awake"></span>Stashd</a>
   <nav class="nav-links" aria-label="Main">
     <a href="#how">How it works</a>
     <a href="#privacy">Privacy</a>
@@ -183,6 +277,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 <main id="top">
   <div class="wrap hero">
     <div>
+      <div class="hero-mascot" id="heroMascot"><span data-folder="tile" data-mode="awake" data-watch></span><span class="zz">z</span><span class="zz">z</span></div>
       <h1>Put your work to bed.</h1>
       <p class="lede">Press <kbd>⌃S</kbd> and Stashd puts the tabs, files and apps for what you're working on into a folder in your menu bar. Open it later and everything comes back.</p>
       <div class="hero-cta">
@@ -197,43 +292,46 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     <div>
       <div class="mac" id="mac" aria-label="A small Mac screen showing Stashd in action">
         <div class="menubar">
-          <span aria-hidden="true"></span><b>Chrome</b><span>File</span><span>Edit</span><span class="grow"></span>
-          <span class="tray" id="tray" aria-hidden="true">
-            <svg viewBox="0 0 26 22"><path d="M2 6.5Q2 4 4.5 4H9.6Q10.8 4 11.6 5L12.6 6.2H21.5Q24 6.2 24 8.7V17.5Q24 20 21.5 20H4.5Q2 20 2 17.5Z" fill="#F2CD5C"/><path d="M2 10Q2 8.3 3.7 8.3H22.3Q24 8.3 24 10V17.5Q24 20 21.5 20H4.5Q2 20 2 17.5Z" fill="#FFF"/><g fill="#1C1D22"><ellipse class="eye" cx="9.5" cy="14" rx="1.4" ry="1.8"/><ellipse class="eye" cx="16.5" cy="14" rx="1.4" ry="1.8"/></g></svg>
-            <span class="count" id="count">5</span>
-          </span>
-          <span>Mon 3:42 pm</span>
+          <svg width="12" height="14" viewBox="0 0 16 19" aria-hidden="true"><path fill="currentColor" d="M13.2 10.1c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3.7 4.8 2.2 5.7 1.4 7.2c-1.6 2.8-.4 6.9 1.1 9.2.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2-1.1 2.8-2.2.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.3-.9-2.3-3.8zM10.9 3.1c.6-.8 1.1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1.1.1 2.1-.5 2.8-1.3z"/></svg>
+          <b>Chrome</b><span class="opt">File</span><span class="opt">Edit</span><span class="opt">View</span><span class="grow"></span>
+          <span class="tray" id="tray" aria-hidden="true"><span data-folder="bare" data-mode="awake"></span><span class="zz">z</span><span class="zz">z</span></span>
+          <span>Mon 9:41 pm</span>
         </div>
         <div class="desk">
-          <div class="browser">
-            <div class="tabs">
-              <div class="tab fly" data-go><span class="fav" style="background:#e50914"></span><span>Below · Netflix</span></div>
-              <div class="tab fly" data-go><span class="fav" style="background:#f5c518"></span><span>Below (2026) · IMDb reviews</span></div>
-              <div class="tab fly" data-go><span class="fav" style="background:#4285f4"></span><span>something in the water below</span></div>
-              <div class="tab" id="stock"><span class="fav" style="background:#4285f4"></span><span>tsm stock · Google</span></div>
-            </div>
-            <div class="page" aria-hidden="true"><i style="width:62%"></i><i style="width:88%"></i><i style="width:74%"></i><i style="width:40%"></i></div>
+          <div class="chrome">
+            <div class="strip" id="strip"><span class="lights" aria-hidden="true"><i></i><i></i><i></i></span></div>
+            <div class="bar"><span class="url" id="url"></span></div>
+            <div class="view" id="view"></div>
           </div>
-          <div class="others">
-            <div class="thing fly" data-go><span class="ico" style="background:#2b579a">W</span><span><b>Below review notes</b><small>Word</small></span></div>
-            <div class="thing fly" data-go><span class="ico" style="background:#d97757">✳</span><span><b>Below ending explained</b><small>Claude chat</small></span></div>
+          <div class="windows" id="windows">
+            <div class="win" data-pack><span class="appicon word">W</span><span><b>Below · episode notes.docx</b><small>Word</small></span></div>
+            <div class="win" data-pack><span class="appicon claude">✳</span><span><b>What did the Below finale mean?</b><small>Claude chat</small></span></div>
           </div>
         </div>
-
+        <div class="scrim" id="scrim"></div>
         <div class="savebox" id="savebox" role="dialog" aria-label="Stashd save box">
-          <h3>Below</h3>
-          <div class="label">Going in</div>
-          <div class="pills">
-            <span class="pill">Below · Netflix</span><span class="pill">IMDb reviews</span><span class="pill">something in the water</span><span class="pill">Review notes</span><span class="pill">Claude chat</span>
-          </div>
-          <div class="label">Probably something else</div>
-          <div class="pills"><span class="pill out">tsm stock</span></div>
-          <div class="row"><button class="btn btn-small ghost" id="cancel" type="button">Cancel</button><button class="btn btn-main btn-small" id="pack" type="button">Pack up</button></div>
+          <div class="sb-head"><span data-folder="tile" data-mode="awake" id="sbFolder"></span><div><div class="sb-eyebrow">New folder</div><div class="sb-name">Below</div></div></div>
+          <div class="sb-note" id="sbNote"></div>
+          <div class="sb-label">Going in</div>
+          <div class="pills" id="goingIn"></div>
+          <div class="sb-label">Probably something else</div>
+          <div class="pills" id="leftOut"></div>
+          <div class="sb-foot"><span class="grow" id="sbCount"></span><button class="btn btn-small ghost" id="cancel" type="button">Cancel</button><button class="btn btn-main btn-small" id="pack" type="button">Pack up</button></div>
+        </div>
+        <div class="toast" id="toast"><span data-folder="tile" data-mode="asleep"></span><span><b>Below</b> · 6 packed</span><button type="button" id="undo">Undo</button></div>
+        <div class="briefpop" id="briefpop" role="status">
+          <div class="bp-name">Below · just now</div>
+          <div class="bp-head">Watching Below and writing a review.</div>
+          <dl class="bp-rows">
+            <div><dt>Last on</dt><dd>IMDb reviews for episode 4.</dd></div>
+            <div><dt>So far</dt><dd>Notes done up to episode 3.</dd></div>
+            <div class="next"><dt>Next</dt><dd>Finish your episode 4 notes.</dd></div>
+          </dl>
         </div>
       </div>
       <div class="demo-bar">
         <button class="btn btn-main" id="demo" type="button">Press ⌃S</button>
-        <p class="demo-note" id="note" aria-live="polite">Try it. Or press Control-S on your keyboard.</p>
+        <p class="demo-note" id="note" aria-live="polite">Click through the tabs, then press ⌃S (or Control-S on your keyboard).</p>
       </div>
     </div>
   </div>
@@ -261,8 +359,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       <div class="features">
         <div class="feature">
           <h3>One project, not every tab</h3>
-          <p>Researching a show with a stock tab open on the side? Only the show goes in. Stashd reads what your tabs are about, so it groups by meaning, not just matching words.</p>
-          <div class="show pills" aria-hidden="true"><span class="pill">Carbon tax · Wikipedia</span><span class="pill">Paris Agreement</span><span class="pill">Climate essay draft</span><span class="pill out">Nike Air Max 90</span></div>
+          <p>Writing an essay with a shoe sale open on the side? Only the essay goes in. Stashd reads what your tabs are about, so "Carbon tax" and "Paris Agreement" land together even with no words in common.</p>
+          <div class="show pills sort-pills" id="sortPills" aria-hidden="true"></div>
         </div>
         <div class="feature">
           <h3>A brief that says where you stopped</h3>
@@ -291,7 +389,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
         <div class="feature">
           <h3>Back to the exact chat</h3>
           <p>Working something out with Claude? Stashd saves which chat you were in and opens that one again, so you never hunt for it by name.</p>
-          <div class="show card chat"><span class="ico" aria-hidden="true">✳</span><div><b>Grant budget</b><div class="small">Claude chat, reopened on Unpack</div></div></div>
+          <div class="show card chat"><span class="appicon claude" aria-hidden="true">✳</span><div><b>Grant budget for the RA stipends</b><div class="small">Claude chat, reopened on Unpack</div></div></div>
         </div>
       </div>
     </div>
@@ -314,10 +412,10 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 
   <section class="end">
     <div class="wrap">
-      <svg class="sleepy" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="22" fill="#F2CD5C"/><path d="M16 33 Q16 25 24 25 H37 Q41 25 43.5 28.5 L46.5 32 H72 Q80 32 80 40 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FBEFC6"/><path d="M16 45 Q16 39 22 39 H74 Q80 39 80 45 V70 Q80 78 72 78 H24 Q16 78 16 70 Z" fill="#FFF"/><g fill="none" stroke="#1C1D22" stroke-width="3" stroke-linecap="round"><path d="M32 58 Q37 63 42 58"/><path d="M54 58 Q59 63 64 58"/></g></svg>
+      <div class="end-mascot sleeping" id="endMascot"><span data-folder="tile" data-mode="asleep" data-watch></span><span class="zz">z</span><span class="zz">z</span></div>
       <h2>Stash it. Close the laptop.</h2>
       <p>Free for Mac. Takes a minute to set up.</p>
-      <a class="btn btn-main" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download for Mac</a>
+      <a class="btn btn-main" id="endCta" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download for Mac</a>
     </div>
   </section>
 </main>
@@ -331,63 +429,231 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 
 <script>
 (() => {
-  const mac = document.getElementById('mac');
-  const tray = document.getElementById('tray');
-  const count = document.getElementById('count');
-  const box = document.getElementById('savebox');
-  const demo = document.getElementById('demo');
-  const note = document.getElementById('note');
-  const things = [...document.querySelectorAll('[data-go]')];
-  let state = 'open';
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const $ = (id) => document.getElementById(id);
+  const wait = (ms) => new Promise((r) => setTimeout(r, reduce ? 0 : ms));
 
-  const set = (s, text, label) => { state = s; note.textContent = text; demo.textContent = label; };
+  // ---------- the folder, with eyes ----------
+  const TILE = '<rect width="96" height="96" rx="22" fill="#F2CD5C"/>';
+  const BODY = '<path d="M16 33Q16 25 24 25H37Q41 25 43.5 28.5L46.5 32H72Q80 32 80 40V70Q80 78 72 78H24Q16 78 16 70Z" fill="#FBEFC6"/><path d="M16 45Q16 39 22 39H74Q80 39 80 45V70Q80 78 72 78H24Q16 78 16 70Z" fill="#FFF"/>';
+  const EYES = '<g class="open"><g class="lids"><g class="pupils" fill="#1C1D22"><ellipse cx="37" cy="59" rx="3.6" ry="4.6"/><ellipse cx="59" cy="59" rx="3.6" ry="4.6"/></g></g></g><g class="closed" fill="none" stroke="#1C1D22" stroke-width="3" stroke-linecap="round"><path d="M32 58Q37 63 42 58"/><path d="M54 58Q59 63 64 58"/></g>';
+  const folders = [];
+  document.querySelectorAll('[data-folder]').forEach((slot) => {
+    const tile = slot.dataset.folder === 'tile';
+    const vb = tile ? '0 0 96 96' : '12 20 72 62';
+    slot.outerHTML = `<svg class="folder ${slot.dataset.mode === 'asleep' ? 'asleep' : ''}" ${slot.id ? `id="${slot.id}"` : ''} ${slot.hasAttribute('data-watch') ? 'data-watch' : ''} viewBox="${vb}" aria-hidden="true">${tile ? TILE : ''}${BODY}${EYES}</svg>`;
+  });
+  document.querySelectorAll('svg.folder').forEach((f) => folders.push(f));
+  const heroFolder = document.querySelector('#heroMascot .folder');
+  const trayFolder = document.querySelector('#tray .folder');
+  const endFolder = document.querySelector('#endMascot .folder');
+  const sbFolder = $('sbFolder');
 
-  function stash() {
-    if (state !== 'open') return;
-    box.classList.add('on');
-    set('asking', 'Stashd ticked the show. The stock tab is something else.', 'Pack up');
-    document.getElementById('pack').focus({ preventScroll: true });
-  }
+  const look = (f, x, y) => { const p = f.querySelector('.pupils'); if (p) p.style.transform = `translate(${x}px, ${y}px)`; };
+  const lookAtPoint = (f, px, py) => {
+    const r = f.getBoundingClientRect();
+    const dx = px - (r.left + r.width / 2), dy = py - (r.top + r.height * 0.62);
+    const d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 260);
+    look(f, (dx / d) * 4 * k, (dy / d) * 3 * k);
+  };
+  const sleep = (f, on) => { f.classList.toggle('asleep', on); f.parentElement.classList.toggle('sleeping', on); };
+  const wide = async (f) => { f.classList.add('wide'); await wait(520); f.classList.remove('wide'); };
+  const hop = (el) => { el.classList.remove('hop'); void el.getBoundingClientRect(); el.classList.add('hop'); };
 
-  function packUp() {
-    if (state !== 'asking') return;
-    box.classList.remove('on');
-    const t = tray.getBoundingClientRect();
-    things.forEach((el, i) => {
-      const r = el.getBoundingClientRect();
-      el.style.setProperty('--dx', `${t.left + t.width / 2 - (r.left + r.width / 2)}px`);
-      el.style.setProperty('--dy', `${t.top + t.height / 2 - (r.top + r.height / 2)}px`);
-      el.style.transitionDelay = `${i * 70}ms`;
-      el.classList.add('flying');
+  // Blinking: now and then, never all at once.
+  if (!reduce) folders.forEach((f) => {
+    const blink = () => {
+      if (!f.classList.contains('asleep')) { f.classList.add('blink'); setTimeout(() => f.classList.remove('blink'), 130); }
+      setTimeout(blink, 2400 + Math.random() * 3600);
+    };
+    setTimeout(blink, 800 + Math.random() * 3000);
+  });
+  // Watching the cursor (mouse only, not while something else has its attention).
+  let busyEyes = false;
+  if (finePointer && !reduce) addEventListener('pointermove', (e) => {
+    folders.forEach((f) => {
+      if (f.classList.contains('asleep') || (busyEyes && f === heroFolder)) return;
+      lookAtPoint(f, e.clientX, e.clientY);
     });
-    setTimeout(() => {
-      things.forEach((el) => el.classList.add('gone'));
-      mac.classList.add('asleep');
-      count.classList.add('on');
-    }, 700 + things.length * 70);
-    set('packed', 'Packed. Only the stock tab is left on screen.', 'Unpack');
+  }, { passive: true });
+
+  // The closing folder wakes up when you reach for the button.
+  const endCta = $('endCta');
+  endCta.addEventListener('pointerenter', () => { sleep(endFolder, false); wide(endFolder); });
+  endCta.addEventListener('pointerleave', () => setTimeout(() => { if (!endCta.matches(':hover')) sleep(endFolder, true); }, 900));
+  endCta.addEventListener('focus', () => sleep(endFolder, false));
+  endCta.addEventListener('blur', () => sleep(endFolder, true));
+
+  // ---------- the browser ----------
+  const TABS = [
+    { id: 'netflix', title: 'Below | Netflix', url: 'netflix.com/title/81725634', fav: ['#e50914', 'N'], go: true },
+    { id: 'imdb', title: 'Below (TV Mini Series 2026) · User reviews · IMDb', url: 'imdb.com/title/tt35934755/reviews', fav: ['#f5c518', 'I', '#000'], go: true },
+    { id: 'search', title: 'something in the water below ending - Google Search', url: 'google.com/search?q=something+in+the+water+below+ending', fav: ['#4285f4', 'G'], go: true },
+    { id: 'reddit', title: 'r/television · Below finale discussion', url: 'reddit.com/r/television/comments/below_finale', fav: ['#ff4500', 'r'], go: true },
+    { id: 'stock', title: 'tsm stock - Google Search', url: 'google.com/search?q=tsm+stock', fav: ['#4285f4', 'G'], go: false },
+  ];
+  const PAGES = {
+    netflix: '<div class="pg netflix"><span class="meta" style="color:#bbb">Limited series · 2026 · 6 episodes</span><h4>BELOW</h4><span>Episode 4 · The Undertow</span><span class="play">▶ Resume</span></div>',
+    imdb: '<div class="pg imdb"><div class="poster"></div><div><h4>Below</h4><div class="meta">TV Mini Series · 2026 · 6 episodes</div><div class="stars">★ 8.1/10 · 2,140 reviews</div><div class="review"><b>Quietly terrifying</b><br>The island feels alive. Episode 4 is where it all clicks.</div><div class="review"><b>That ending though</b><br>Still thinking about the lighthouse scene.</div></div></div>',
+    search: '<div class="pg goog"><div class="q">something in the water below ending</div><div class="r"><a>Below ending explained: what was in the water?</a><small>vulture.com · 2 days ago</small></div><div class="r"><a>Below (TV Mini Series 2026) · Plot summary</a><small>imdb.com</small></div><div class="r"><a>Who is the keeper in Below? Theories</a><small>reddit.com</small></div></div>',
+    reddit: '<div class="pg reddit"><div class="post"><b>Below · Series finale discussion</b><span class="meta">r/television · 1.4k comments</span><div class="c">The lighthouse was a clock the whole time.</div><div class="c">Rewatch episode 2 after this. Everything is set up there.</div></div></div>',
+    stock: '<div class="pg goog"><div class="q">tsm stock</div><div class="stock"><span class="meta">Taiwan Semiconductor · NYSE: TSM</span><div class="price">182.41 USD</div><span class="up">+2.18 (1.21%) today</span><svg viewBox="0 0 200 40" style="margin-top:6px;width:100%;height:36px"><path d="M0 32L20 28L40 30L60 22L80 24L100 16L120 19L140 12L160 14L180 8L200 10" fill="none" stroke="#137333" stroke-width="2"/></svg></div></div>',
+  };
+  const strip = $('strip'), view = $('view'), url = $('url');
+  let active = 'imdb';
+  TABS.forEach((t) => {
+    const b = document.createElement('button');
+    b.className = 'tab'; b.type = 'button'; b.dataset.id = t.id; b.title = t.title;
+    if (t.go) b.dataset.pack = '';
+    b.innerHTML = `<span class="fav" style="background:${t.fav[0]};${t.fav[2] ? `color:${t.fav[2]}` : ''}">${t.fav[1]}</span><span class="t">${t.title}</span>`;
+    b.addEventListener('click', () => show(t.id));
+    strip.appendChild(b);
+  });
+  function show(id) {
+    active = id;
+    strip.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.id === id));
+    url.textContent = TABS.find((t) => t.id === id).url;
+    view.innerHTML = PAGES[id];
+  }
+  show('imdb');
+
+  // Pills in the "It knows what belongs" section sort themselves once, when you get there.
+  const TICK = '<span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>';
+  const pill = (text, out) => `<span class="pill ${out ? 'out' : ''}">${out ? '<span class="tick"></span>' : TICK}${text}</span>`;
+  const sortPills = $('sortPills');
+  sortPills.innerHTML = [pill('Carbon tax · Wikipedia'), pill('Paris Agreement · UNFCCC'), pill('Climate essay draft.docx'), pill('Nike Air Max 90', true)].join('');
+  new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { setTimeout(() => sortPills.classList.add('sorted'), 400); o.disconnect(); } }), { threshold: 0.6 }).observe(sortPills);
+
+  // ---------- the demo ----------
+  const mac = $('mac'), box = $('savebox'), scrim = $('scrim'), demo = $('demo'), note = $('note'), toast = $('toast'), briefpop = $('briefpop');
+  const tray = $('tray');
+  let state = 'open', typing = 0;
+  const say = (text, label) => { note.textContent = text; demo.textContent = label; };
+  const packables = () => [...mac.querySelectorAll('[data-pack]')];
+
+  async function typeNote() {
+    const el = $('sbNote'), text = 'finish episode 4 notes', run = ++typing;
+    el.innerHTML = '<span class="ph">Note for later</span><span class="caret"></span>';
+    await wait(520);
+    for (let i = 1; i <= text.length; i++) {
+      if (run !== typing || state !== 'asking') return;
+      el.innerHTML = `${text.slice(0, i)}<span class="caret"></span>`;
+      await wait(38 + Math.random() * 40);
+    }
   }
 
-  function unpack() {
+  async function stash() {
+    if (state !== 'open') return;
+    state = 'asking';
+    briefpop.classList.remove('on');
+    $('goingIn').innerHTML = TABS.filter((t) => t.go).map((t) => pill(t.title.split(' · ')[0].split(' - ')[0].split(' | ')[0])).join('') + pill('Episode notes') + pill('Claude chat');
+    $('leftOut').innerHTML = pill('tsm stock', true);
+    [...box.querySelectorAll('.pill')].forEach((p, i) => { p.classList.add('pop'); p.style.animationDelay = `${120 + i * 45}ms`; });
+    $('sbCount').textContent = '4 tabs · 1 file · 1 chat';
+    scrim.classList.add('on'); box.classList.add('on');
+    busyEyes = true;
+    look(heroFolder, 4, 0);
+    look(sbFolder, 0, 3);
+    say('Stashd ticked the show. The stock tab is something else.', 'Pack up');
+    typeNote();
+  }
+
+  function cancel() {
+    if (state !== 'asking') return;
+    box.classList.remove('on'); scrim.classList.remove('on');
+    state = 'open'; busyEyes = false; typing++;
+    say('Nothing saved. Everything stays open.', 'Press ⌃S');
+  }
+
+  // Each thing flies in an arc to the menu bar folder, which hops as it lands.
+  function fly(el, from, to, back) {
+    const clone = el.cloneNode(true);
+    clone.classList.add('flyer');
+    Object.assign(clone.style, { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` });
+    document.body.appendChild(clone);
+    const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+    const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+    const lift = Math.min(90, Math.abs(dx) * 0.25 + 30);
+    const frames = [
+      { transform: 'none', opacity: 1 },
+      { transform: `translate(${dx * 0.55}px, ${dy * 0.35 - lift}px) scale(0.55) rotate(${dx > 0 ? 6 : -6}deg)`, opacity: 1, offset: 0.55 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0.06)`, opacity: 0.2 },
+    ];
+    const a = clone.animate(back ? frames.slice().reverse() : frames, { duration: reduce ? 1 : 720, easing: 'cubic-bezier(0.45, 0, 0.25, 1)', fill: 'forwards' });
+    return a.finished.then(() => clone.remove());
+  }
+
+  async function packUp() {
+    if (state !== 'asking') return;
+    state = 'busy'; typing++;
+    box.classList.remove('on'); scrim.classList.remove('on');
+    say('Packing up…', 'Packing…');
+    await wait(160);
+    const to = tray.getBoundingClientRect();
+    const items = packables();
+    await Promise.all(items.map(async (el, i) => {
+      await wait(i * 80);
+      const from = el.getBoundingClientRect();
+      el.classList.add('hidden-thing');
+      const r = heroFolder.getBoundingClientRect();
+      look(heroFolder, 4, -2 + (r.top < from.top ? 1 : -1));
+      await fly(el, from, to, false);
+      hop(tray);
+      if (el.classList.contains('tab')) el.classList.add('collapsed');
+    }));
+    show('stock');
+    sleep(trayFolder, true);
+    toast.classList.add('on');
+    await wait(260);
+    sleep(heroFolder, true);
+    state = 'packed';
+    say('Packed. The folder is asleep, and only the stock tab is left.', 'Unpack');
+    setTimeout(() => toast.classList.remove('on'), 3200);
+  }
+
+  async function unpack() {
     if (state !== 'packed') return;
-    mac.classList.remove('asleep');
-    count.classList.remove('on');
-    things.forEach((el) => el.classList.remove('gone'));
-    requestAnimationFrame(() => requestAnimationFrame(() =>
-      things.forEach((el, i) => { el.style.transitionDelay = `${i * 110}ms`; el.classList.remove('flying'); })));
-    set('open', 'Everything came back, one at a time.', 'Press ⌃S');
+    state = 'busy';
+    toast.classList.remove('on');
+    sleep(trayFolder, false); sleep(heroFolder, false);
+    wide(trayFolder); wide(heroFolder);
+    say('Waking up…', 'Unpacking…');
+    await wait(360);
+    const items = packables();
+    items.forEach((el) => el.classList.remove('collapsed'));
+    await wait(320);
+    const from = tray.getBoundingClientRect();
+    await Promise.all(items.map(async (el, i) => {
+      await wait(i * 110);
+      await fly(el, el.getBoundingClientRect(), from, true);
+      el.classList.remove('hidden-thing');
+    }));
+    show('imdb');
+    briefpop.classList.add('on');
+    busyEyes = false;
+    state = 'open';
+    say('Everything came back, with a note on where you stopped.', 'Press ⌃S');
+    setTimeout(() => briefpop.classList.remove('on'), 7000);
   }
 
-  demo.addEventListener('click', () => (state === 'open' ? stash() : state === 'asking' ? packUp() : unpack()));
-  document.getElementById('pack').addEventListener('click', packUp);
-  document.getElementById('cancel').addEventListener('click', () => { box.classList.remove('on'); set('open', 'Nothing saved.', 'Press ⌃S'); });
+  demo.addEventListener('click', () => (state === 'open' ? stash() : state === 'asking' ? packUp() : state === 'packed' ? unpack() : null));
+  $('pack').addEventListener('click', packUp);
+  $('cancel').addEventListener('click', cancel);
+  $('undo').addEventListener('click', unpack);
+  briefpop.addEventListener('click', () => briefpop.classList.remove('on'));
   document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); state === 'packed' ? unpack() : state === 'asking' ? packUp() : stash(); }
-    if (e.key === 'Escape' && state === 'asking') document.getElementById('cancel').click();
+    if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      if (state === 'open') stash(); else if (state === 'asking') packUp(); else if (state === 'packed') unpack();
+    }
+    if (e.key === 'Escape') cancel();
+    if (e.key === 'Enter' && state === 'asking' && document.activeElement?.closest('#savebox') == null) { e.preventDefault(); packUp(); }
   });
 
+  // ---------- open by type ----------
   const chips = [...document.querySelectorAll('.chip')];
-  const out = document.getElementById('chipout');
+  const out = $('chipout');
   chips.forEach((c) => c.addEventListener('click', () => {
     c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
     const n = chips.filter((x) => x.getAttribute('aria-pressed') === 'true').reduce((a, x) => a + Number(x.dataset.n), 0);
