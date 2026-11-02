@@ -4,6 +4,17 @@ The example folders in the app are named for what they show: **Unpack ·**, **Br
 
 Before you start: close unrelated tabs, so the screen is easy to follow. Make sure Stashd has the Accessibility permission (for the Claude chat demo) and that a Claude key is connected (for the briefs).
 
+## The 5-minute run
+
+Before the demo, click each folder once so Claude writes its brief (a couple of seconds each). Then go in this order. Each step builds on the last.
+
+1. **The problem (live, 1 min).** Open a TV show's tabs plus one stock search, as in "Two projects in one window" below. Press Ctrl+S: only the show goes in. Click **Pack up** and watch the tabs fly into the menu bar.
+2. **Coming back (1 min).** Open **Unpack · Everything comes back** and read the brief out loud. Click **Unpack**: pages, essay and PDF return, with the essay in front.
+3. **It knows your work (1 min).** Open the 3 Lisbon tabs and press Ctrl+S: "Your folder". Then show **Ctrl+S · Learned what you leave out**.
+4. **Beyond tabs (1 min).** **Unpack · Apps reopen**, then **Unpack · Back to the exact Claude chat**.
+5. **It's honest (30 s).** **Unpack · A file went missing**.
+6. **Close (30 s).** Point at **Finished · Toronto trip**: done work stays out of the way. Everything is stored on this Mac.
+
 ## Example folders
 
 ### Unpack · Everything comes back
