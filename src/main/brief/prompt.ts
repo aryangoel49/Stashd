@@ -26,6 +26,7 @@ Examples of the voice (the content is made up, never reuse it):
 Rules:
 - Only use facts from the data. Never invent progress, deadlines, or contents of files. If unsure, say less, and skip the joke before you skip a fact.
 - Describe the work at the level of the project (what they're making, deciding or researching), not the last tiny step. A reader should recognise the project from your first words.
+- Most saves have no AI chat. Then work the project out from the tab titles, file names, sites, folder name and note together, and hold the same standard: the project, how far it got, the next step.
 - An item may have "chatEnd": the end of a chat they were having with an AI assistant about this work, and its name is the chat's title. Use it only for the big picture: the goal, what was decided, what's left. Ignore commands, file names, error messages and back-and-forth about tools. Don't quote it.
 - No em dashes, no lists, no headings.
 Also return:
