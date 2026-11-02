@@ -2,8 +2,10 @@
 // badge that says what it is (a site's letter in its colour, a file's type, Finder blue for folders).
 // No network: site badges are drawn, not downloaded favicons.
 
-import type { CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { iconSource } from '../shared/icons';
 import type { Item } from '../shared/types';
+import { api } from './api';
 import { motion } from './ui';
 
 // ---------- folder colours ----------
@@ -127,8 +129,47 @@ function lookFor(item: Item): Look {
   return { text: (item.app[0] ?? 'A').toUpperCase(), bg: `hsl(${hash(item.app) % 360} 35% 45%)` };
 }
 
-/** The little square that says what something is. */
+// Real icons from this Mac (a file's icon, the app's icon, the browser for a tab), fetched in batches
+// and kept for the session. Until one arrives, or if there is none, the coloured square stands in.
+const icons = new Map<string, string | null>();
+const waiting = new Map<string, Set<() => void>>();
+let queued: string[] = [];
+function requestIcon(source: string, done: () => void): void {
+  const set = waiting.get(source);
+  if (set) return void set.add(done);
+  waiting.set(source, new Set([done]));
+  queued.push(source);
+  if (queued.length > 1) return;
+  setTimeout(() => {
+    const batch = queued.splice(0, 60);
+    queued = [];
+    api.icons(batch).then(
+      (got) => batch.forEach((s, i) => icons.set(s, got[i] ?? null)),
+      () => batch.forEach((s) => icons.set(s, null)),
+    ).finally(() => batch.forEach((s) => {
+      waiting.get(s)?.forEach((f) => f());
+      waiting.delete(s);
+    }));
+  }, 0);
+}
+
+function useItemIcon(item: Item): string | null {
+  const source = iconSource(item);
+  // A file that's gone (or never saved) shows its app's icon instead.
+  const backup = source === item.app ? null : item.app;
+  const [, bump] = useState(0);
+  useEffect(() => {
+    const redraw = () => bump((n) => n + 1);
+    if (!icons.has(source)) requestIcon(source, redraw);
+    else if (backup && icons.get(source) === null && !icons.has(backup)) requestIcon(backup, redraw);
+  });
+  return icons.get(source) ?? (backup ? (icons.get(backup) ?? null) : null);
+}
+
+/** The little picture that says what something is. */
 export function ItemBadge({ item, size = 28 }: { item: Item; size?: number }) {
+  const icon = useItemIcon(item);
+  if (icon) return <img className={`badge-icon badge-${item.kind}`} src={icon} width={size} height={size} alt="" aria-hidden="true" draggable={false} />;
   const look = lookFor(item);
   const small = look.text.length > 2;
   return (

@@ -5,8 +5,8 @@
 //   wwi-helper brief     Reads {"instructions": "...", "prompt": "..."} on stdin and asks Apple's
 //                        on-device model (Apple Intelligence) for a brief. Runs entirely on this Mac.
 //   wwi-helper status    Prints whether Apple Intelligence is available.
-//   wwi-helper icons     Reads a JSON list of file or app paths on stdin and prints their Finder
-//                        icons as small PNG data URLs (for the tidy-up animation).
+//   wwi-helper icons     Reads a JSON list of file or app paths (or app names) on stdin and prints their
+//                        Finder icons as small PNG data URLs (for item badges and the tidy-up animation).
 //   wwi-helper hide      Reads a JSON list of app names on stdin and hides those apps (like ⌘H), for
 //                        Pack up. Nothing is quit, so no work is lost; reopening the app shows it again.
 //   wwi-helper quit      Reads a JSON list of app names on stdin and asks those apps to quit (like ⌘Q), for
@@ -123,8 +123,10 @@ func iconsCommand() {
         return
     }
     var out: [Any] = []
-    for path in paths.prefix(24) {
-        guard FileManager.default.fileExists(atPath: path) else { out.append(NSNull()); continue }
+    for source in paths.prefix(60) {
+        // A file or app path, or just an app's name ("Microsoft Word"), which is looked up.
+        let path = source.hasPrefix("/") ? source : (NSWorkspace.shared.fullPath(forApplication: source) ?? "")
+        guard !path.isEmpty, FileManager.default.fileExists(atPath: path) else { out.append(NSNull()); continue }
         let icon = NSWorkspace.shared.icon(forFile: path)
         let size = NSSize(width: 128, height: 128)
         guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 128, pixelsHigh: 128, bitsPerSample: 8,

@@ -33,6 +33,7 @@ const api = {
   getBrief: (jobId: string, entryId?: string) => invoke<BriefView>('jobs:brief', jobId, entryId ?? null),
   rewriteBrief: (jobId: string, entryId: string) => invoke<BriefView>('jobs:rewriteBrief', jobId, entryId),
   sendFeedback: (jobId: string, entryId: string, helpful: boolean, comment?: string) => invoke<void>('jobs:feedback', jobId, entryId, helpful, comment ?? null),
+  icons: (sources: string[]) => invoke<(string | null)[]>('icons:get', sources),
   openJob: (jobId: string, entryId: string | null, mode: 'needed' | 'all', keys?: string[]) => invoke<OpenResult>('jobs:open', jobId, entryId, mode, keys),
   openItem: (jobId: string, key: string) => invoke<OpenResult>('jobs:openItem', jobId, key),
   removeItem: (jobId: string, key: string) => invoke<void>('jobs:removeItem', jobId, key),

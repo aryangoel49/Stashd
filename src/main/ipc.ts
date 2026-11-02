@@ -111,6 +111,10 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('jobs:open', (_e, id, entry, mode, keys) =>
     core.open(v.jobId(id), entry == null ? undefined : v.entryId(entry), v.openMode(mode), hooks.beforeOpen, v.openKeys(keys)),
   );
+  handle('icons:get', (_e, sources) => {
+    if (!Array.isArray(sources) || sources.length > 60) throw new Error('bad icon list');
+    return core.icons.get(sources.map((s) => v.str(s, 'icon', 1024)));
+  });
   handle('jobs:openItem', (_e, id, key) => core.openItem(v.jobId(id), v.itemKey(key)));
   handle('jobs:removeItem', (_e, id, key) => core.removeItem(v.jobId(id), v.itemKey(key)));
   handle('jobs:moveItem', (_e, from, key, to) => core.moveItem(v.jobId(from), v.itemKey(key), v.jobId(to)));

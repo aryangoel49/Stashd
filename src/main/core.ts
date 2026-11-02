@@ -23,6 +23,7 @@ import type { Meaning } from './meaning';
 import { openItems } from './open';
 import type { SettingsStore } from './settings';
 import { JobStore, writeFileAtomic } from './store';
+import { IconCache } from './icons';
 import { looseKey, matchKeys, siteOf } from './urls';
 
 interface State {
@@ -60,6 +61,8 @@ export class Core {
   private suggestCache: { at: number; result: Promise<Suggestion[]> } | null = null;
   /** The last accepted suggestion, so it can be undone for a few seconds. */
   private lastUndo: { id: string; run: () => Promise<void> } | null = null;
+  /** Real file and app icons, fetched once and kept. */
+  readonly icons: IconCache;
   /** The on-device meaning model (optional: sorting works without it). */
   meaning?: Meaning;
 
@@ -72,6 +75,7 @@ export class Core {
     /** Development only: a canned capture, so testing the UI never asks other apps anything. */
     private readonly fakeCapture?: () => Promise<Capture>,
   ) {
+    this.icons = new IconCache(helper);
     this.stateFile = path.join(dataDir, 'state.json');
     let raw: Partial<State> = {};
     try {

@@ -7,6 +7,7 @@ import { screen, type Rectangle } from 'electron';
 import type { FlyItem, Item, NamingRequest, OverlayPlay, Route, ToastInfo } from '../shared/types';
 import { CHAT_APPS } from './capture';
 import type { Core } from './core';
+import { iconSource } from './icons';
 import { openItems } from './open';
 import { canName, cleanFileName, closeItems, freePath, saveUntitled, suggestedFileName } from './tidy';
 import type { UrlOptions } from './urls';
@@ -164,22 +165,12 @@ export class TidyFlow {
 
   // ---------- animation ----------
 
-  /** App and file icons, kept once fetched so the next animation can start straight away. */
-  private iconCache = new Map<string, string | null>();
-
   private async withIcons(items: Item[]): Promise<FlyItem[]> {
     const shown = items.slice(0, 12);
-    const paths = shown.map((it) => (it.kind === 'tab' ? browserAppPath(it.app) : it.path) ?? '');
-    const missing = [...new Set(paths.filter((p) => p && !this.iconCache.has(p)))];
-    if (missing.length) {
-      // Don't hold the animation up for long: whatever isn't back in time flies as a plain card.
-      const fetch = this.core.helper.icons(missing).then(
-        (icons) => missing.forEach((p, i) => this.iconCache.set(p, icons[i] ?? null)),
-        () => undefined,
-      );
-      await Promise.race([fetch, wait(120)]);
-    }
-    return shown.map((it, i) => ({ label: it.label, icon: this.iconCache.get(paths[i]) ?? null }));
+    const sources = shown.map(iconSource);
+    // Don't hold the animation up for long: whatever isn't back in time flies as a plain card.
+    await Promise.race([this.core.icons.get(sources), wait(120)]);
+    return shown.map((it, i) => ({ label: it.label, icon: this.core.icons.peek(sources[i]) }));
   }
 
   /** Plays the fly-in (or fly-out) animation. Resolves when it has finished. */
@@ -316,7 +307,4 @@ function wait(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function browserAppPath(appName: string): string | null {
-  if (appName === 'Safari') return '/Applications/Safari.app';
-  return `/Applications/${appName}.app`;
-}
+
