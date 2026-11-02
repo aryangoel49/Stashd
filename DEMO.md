@@ -52,7 +52,7 @@ Before the demo, click each folder once so Claude writes its brief (a couple of 
 **Why it matters:** Stashd tells new work apart from work you're coming back to.
 
 ### Ctrl+S · Learned what you leave out
-**Do:** open the Runner's World plan (https://www.runnersworld.com/training/a20812270/marathon-training-plan/) and any YouTube running video, press **Ctrl+S**, and pick this folder in the dropdown.
+**Do:** open the Hal Higdon marathon plan (https://www.halhigdon.com/training-programs/marathon-training/novice-1-marathon/) and any YouTube running video, press **Ctrl+S**, and pick this folder in the dropdown.
 **Point out:** the YouTube tab is left unticked, and hovering it says "you usually leave out youtube.com". This folder learned that from past saves.
 **Why it matters:** Stashd gets better the more you use it, with no settings to fiddle with.
 

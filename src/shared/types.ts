@@ -54,6 +54,9 @@ export interface Item {
   /** For a chat app (Claude, ChatGPT): the chat that was open. `url` names the exact chat when the app shows one;
    *  `excerpt` is the end of the conversation on screen (secrets removed), so the brief knows where it got to. */
   chat?: { title: string; url?: string; excerpt?: string };
+  /** For tabs: where this address went after Unpack opened it (a login page, a redirect), as loose keys.
+   *  The tab still counts as this item there, so Pack up closes it and the folder shows as open. */
+  seenAs?: string[];
 }
 
 export interface CollectorError {

@@ -15,7 +15,7 @@
 // when it isn't, everything above still works on its own.
 
 import type { Item } from '../../shared/types';
-import { looseKey } from '../urls';
+import { looseKey, matchKeys } from '../urls';
 
 // ---------- tokens ----------
 
@@ -164,7 +164,7 @@ function addTokens(p: Profile, tokens: string[], weight: number, cap = 4): void 
 export function addItem(p: Profile, item: Item, weight = 1, asMember = true): void {
   if (asMember) {
     p.keys.add(item.key);
-    p.loose.add(looseKey(item));
+    for (const k of matchKeys(item)) p.loose.add(k);
     if (item.chat) p.chats.add(item.chat.url ?? item.chat.title);
   }
   addTokens(p, itemTokens(item), weight);

@@ -23,7 +23,7 @@ import type { Meaning } from './meaning';
 import { openItems } from './open';
 import type { SettingsStore } from './settings';
 import { JobStore, writeFileAtomic } from './store';
-import { looseKey } from './urls';
+import { looseKey, matchKeys, siteOf } from './urls';
 
 interface State {
   currentJobId: string | null;
@@ -194,13 +194,13 @@ export class Core {
     // Things that belong to this job but aren't open right now (closed by accident, say) are kept.
     const openKeys = new Set(cap.items.map(looseKey));
     const kept = previous
-      .filter((i) => !openKeys.has(looseKey(i)) && (job?.prefs.hide[i.key] ?? 0) < 2 && !isLifestyle(i, settings, learned))
+      .filter((i) => !matchKeys(i).some((k) => openKeys.has(k)) && (job?.prefs.hide[i.key] ?? 0) < 2 && !isLifestyle(i, settings, learned))
       .map((i) => ({ ...i, notOpen: true, active: false }));
     pending.offered = offered;
     pending.kept = kept;
     const visibleItems = [...offered.sure, ...offered.likely, ...offered.maybe];
     const front = frontItemKey(visibleItems, cap.appOrder);
-    const before = new Set(previous.map(looseKey));
+    const before = new Set(previous.flatMap(matchKeys));
     return {
       jobId: job?.id ?? null,
       jobName: job?.name ?? null,
@@ -232,7 +232,15 @@ export class Core {
     const cap = await pending.capture;
     const offered = pending.offered ?? { sure: cap.items, likely: [], maybe: [], hidden: [], why: {} };
     const wanted = new Set(req.keys);
-    const open = cap.items.filter((i) => wanted.has(i.key)).map((i) => ({ ...i, notOpen: undefined }));
+    // A tab sitting where it redirected after Unpack (a sign-in page) is saved as the original address.
+    const before = req.jobId ? ((await this.store.latest(req.jobId).catch(() => null))?.items ?? []) : [];
+    const original = (i: Item) => before.find((p) => p.kind === 'tab' && looseKey(p) !== looseKey(i) && (p.seenAs ?? []).includes(looseKey(i)));
+    const open = cap.items
+      .filter((i) => wanted.has(i.key))
+      .map((i) => {
+        const p = i.kind === 'tab' ? original(i) : undefined;
+        return p ? { ...p, window: i.window, active: i.active, notOpen: undefined } : { ...i, notOpen: undefined };
+      });
     const openKeys = new Set(open.map((i) => i.key));
     const items = [...open, ...(pending.kept ?? []).filter((i) => wanted.has(i.key) && !openKeys.has(i.key))];
     const now = new Date();
@@ -344,7 +352,7 @@ export class Core {
       // An app counts as open only with a window showing, not just running in the background or hidden.
       const hidden = new Set(win?.apps.filter((a) => a.hidden).map((a) => a.name) ?? []);
       const showing = win ? new Set(win.order.filter((n) => !hidden.has(n))) : null;
-      const isOpen = (i: Item) => (i.kind === 'app' && showing ? showing.has(i.app) : open.has(looseKey(i)));
+      const isOpen = (i: Item) => (i.kind === 'app' && showing ? showing.has(i.app) : matchKeys(i).some((k) => open.has(k)));
       const out: Record<string, OpenState> = {};
       for (const [n, j] of jobs.entries()) {
         // Apps don't count (Slack being open doesn't mean a folder is), unless a folder holds only apps.
@@ -501,11 +509,13 @@ export class Core {
   async open(jobId: string, entryId: string | undefined, mode: 'needed' | 'all', before?: (items: Item[]) => void): Promise<OpenResult> {
     const { entry, items } = await this.itemsToOpen(jobId, entryId, mode);
     before?.(items);
-    const result = await openItems(items, entry.frontKey, this.settings.get());
+    let openBefore = new Set<string>();
+    const result = await openItems(items, entry.frontKey, this.settings.get(), (b) => (openBefore = b));
     await this.setCurrent(jobId);
     this.notify();
-    // A moment later, note what's open, so anything opened after this can be suggested for the job.
-    setTimeout(() => void this.recordBaseline(jobId), 2500);
+    // A moment later, note what's open, so anything opened after this can be suggested for the job,
+    // and where tabs ended up (a sign-in page, say), so they still count as this folder's.
+    setTimeout(() => void this.recordBaseline(jobId, { entryId: entry.id, opened: items, before: openBefore }), 2500);
     return result;
   }
 
@@ -560,14 +570,43 @@ export class Core {
     await this.removeItem(fromJobId, key);
   }
 
-  private async recordBaseline(jobId: string): Promise<void> {
+  private async recordBaseline(jobId: string, unpacked?: { entryId: string; opened: Item[]; before: Set<string> }): Promise<void> {
     try {
       const cap = await (this.fakeCapture ? this.fakeCapture() : capture(this.settings.get(), this.helper, this.selfNames));
+      if (unpacked) await this.noteRedirects(jobId, unpacked, cap.items).catch(() => undefined);
       if (this.state.currentJobId !== jobId) return;
       this.state.baseline = { jobId, keys: cap.items.map((i) => i.key) };
       await this.saveState();
     } catch {
       // without a baseline, new things simply show under "Not sure"
+    }
+  }
+
+  /**
+   * A tab Unpack opened that isn't open under its own address went somewhere else (Strava's dashboard
+   * becomes its sign-in page when you're signed out). If exactly one new tab on the same site appeared,
+   * that's it: remember the address, so it still counts as this folder's tab.
+   */
+  private async noteRedirects(jobId: string, unpacked: { entryId: string; opened: Item[]; before: Set<string> }, now: Item[]): Promise<void> {
+    const entry = await this.store.entry(jobId, unpacked.entryId);
+    const tabs = now.filter((t) => t.kind === 'tab' && t.url);
+    const openNow = new Set(tabs.map(looseKey));
+    const claimed = new Set(entry.items.flatMap(matchKeys));
+    const opened = new Set(unpacked.opened.map((i) => i.key));
+    let changed = false;
+    for (const it of entry.items) {
+      if (it.kind !== 'tab' || !it.url || !opened.has(it.key) || matchKeys(it).some((k) => openNow.has(k))) continue;
+      const site = siteOf(it.url);
+      const found = tabs.filter((t) => siteOf(t.url!) === site && !unpacked.before.has(looseKey(t)) && !claimed.has(looseKey(t)));
+      if (found.length !== 1) continue;
+      const k = looseKey(found[0]);
+      it.seenAs = [...(it.seenAs ?? []), k].slice(-5);
+      claimed.add(k);
+      changed = true;
+    }
+    if (changed) {
+      await this.store.saveEntry(entry);
+      this.notify();
     }
   }
 

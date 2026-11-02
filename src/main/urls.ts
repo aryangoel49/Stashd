@@ -73,6 +73,20 @@ export function displayUrl(raw: string): string {
  * The same tab or file, even if its address changed a little after reopening (http → https, www.,
  * a trailing slash or #section), so a folder you opened yourself still shows as open.
  */
+/** Every loose key an item can be open under: its own, plus where it redirected after Unpack. */
+export function matchKeys(item: Item): string[] {
+  return [looseKey(item), ...(item.seenAs ?? [])];
+}
+
+/** "app.strava.com" -> "strava.com": a site and its sign-in pages count as one. */
+export function siteOf(url: string): string | null {
+  try {
+    return new URL(url).hostname.toLowerCase().split('.').slice(-2).join('.');
+  } catch {
+    return null;
+  }
+}
+
 export function looseKey(item: Item): string {
   if (item.kind !== 'tab' || !item.url) return item.key;
   try {

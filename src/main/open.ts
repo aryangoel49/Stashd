@@ -6,7 +6,7 @@ import type { Item, OpenResult, Settings } from '../shared/types';
 import { BROWSERS } from '../shared/validate';
 import { BROWSER_APPS, collectTabs } from './collectors/browsers';
 import { run } from './exec';
-import { looseKey } from './urls';
+import { looseKey, matchKeys } from './urls';
 
 /**
  * The link that opens a saved chat in its app: claude.ai/chat/<id> -> claude://claude.ai/chat/<id>.
@@ -76,6 +76,8 @@ export async function openItems(
   items: Item[],
   frontKey: string | null,
   settings: Settings,
+  /** Told which tabs (loose keys) were open before anything was opened. */
+  onBefore?: (open: Set<string>) => void,
 ): Promise<OpenResult> {
   const result: OpenResult = {
     opened: 0,
@@ -112,6 +114,7 @@ export async function openItems(
       // can't tell: open everything
     }
   }
+  onBefore?.(openUrls);
 
   const ordered = [
     ...items.filter((i) => i.key !== frontKey),
@@ -122,7 +125,7 @@ export async function openItems(
   const tabsByBrowser = new Map<string, Item[]>();
   for (const item of ordered) {
     if (item.kind !== 'tab') continue;
-    if (item.url && openUrls.has(looseKey(item))) {
+    if (item.url && matchKeys(item).some((k) => openUrls.has(k))) {
       result.alreadyOpen++;
       continue;
     }
