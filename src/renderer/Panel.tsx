@@ -202,8 +202,6 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
   // Open now: you unpacked it here, or most of its tabs and files are open anyway. A finished folder
   // you unpacked counts too, so it can be packed up again; it still stays under Finished.
   const openNow = job.current || mostlyOpen(state);
-  const [busy, setBusy] = useState(false);
-  const [opened, setOpened] = useState<string | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const [reaction, setReaction] = useState<Reaction>(null);
 
@@ -224,11 +222,7 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
       <span className="grow">
         <span className="name" style={{ display: 'block' }}>{job.name}</span>
         <span className="hint" style={{ display: 'block' }}>
-          {opened ?? (
-            <>
-              <span>{allOpen ? 'All open' : someOpen ? `${state!.open} of ${state!.total} open` : job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
-            </>
-          )}
+          <span>{allOpen ? 'All open' : someOpen ? `${state!.open} of ${state!.total} open` : job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
         </span>
       </span>
       {openNow && <span className="live" />}
@@ -248,27 +242,14 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
         <Button
           size="small"
           className="unpack-btn"
-          disabled={busy}
-          title={someOpen ? `Open the other ${state!.total - state!.open}` : 'Open what you need to carry on'}
+          title={someOpen ? `Choose which of the other ${state!.total - state!.open} to open` : 'Choose what to open'}
           onClick={(e) => {
+            // Unpack first shows the folder, so you can pick files, tabs, apps or chats before anything opens.
             e.stopPropagation();
-            setBusy(true);
-            void api
-              .openJob(job.id, null, 'all')
-              .then((r) => {
-                const missing = r.missing.length + r.failed.length;
-                setOpened(
-                  r.opened === 0 && r.alreadyOpen > 0
-                    ? 'Already open'
-                    : `Opened ${r.opened}${r.alreadyOpen ? `, ${r.alreadyOpen} already open` : ''}${missing ? `, ${missing} not found` : ''}`,
-                );
-                setTimeout(() => setOpened(null), 4000);
-              })
-              .catch(() => setOpened("Couldn't open this folder"))
-              .finally(() => setBusy(false));
+            onPick(job.id);
           }}
         >
-          {busy ? <span className="spinner" /> : 'Unpack'}
+          Unpack
         </Button>
       )}
       <Button

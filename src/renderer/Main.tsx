@@ -266,7 +266,6 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
   const openNow = job.current || mostlyOpen(state);
   const tone = folderTone(job.id);
   const [hover, setHover] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [menu, setMenu] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -380,14 +379,13 @@ function FolderCard({ job, index, state, onOpen }: { job: JobSummary; index: num
           <Button
             size="small"
             className="tone-btn"
-            disabled={busy}
             onClick={(e) => {
+              // Unpack first shows the folder, so you can pick what to open.
               e.stopPropagation();
-              setBusy(true);
-              void api.openJob(job.id, null, 'all').finally(() => setBusy(false));
+              onOpen();
             }}
           >
-            {busy ? <span className="spinner" /> : 'Unpack'}
+            Unpack
           </Button>
         )}
       </div>
