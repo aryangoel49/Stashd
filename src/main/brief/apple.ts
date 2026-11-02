@@ -7,7 +7,7 @@ import { acceptAiBrief, extractJson } from './basic';
 import { buildPromptData, cleanAiName, INSTRUCTIONS, NAME_INSTRUCTIONS, namePayload } from './prompt';
 
 const FORMAT = `
-Answer with only a JSON object, nothing else: {"sentence": "...", "highlights": ["..."], "needed": ["i1"]}`;
+Answer with only a JSON object, nothing else: {"sentence": "...", "lastOn": "...", "soFar": "...", "next": "...", "highlights": ["..."], "needed": ["i1"]}`;
 
 export function appleWriter(helper: Helper, isAvailable: () => boolean): BriefWriter {
   return {

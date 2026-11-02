@@ -6,41 +6,45 @@ import type { SaveEntry } from '../../shared/types';
 import { redactCommand, redactUrlString } from '../redact';
 import { neededItems } from './basic';
 
-export const INSTRUCTIONS = `You write a tiny "welcome back" brief for someone returning to a piece of work on their Mac.
+export const INSTRUCTIONS = `You write a short, structured "welcome back" brief for someone returning to a piece of work on their Mac.
 You get a list of what they had open when they saved (files, browser tabs, apps, AI chats), which item was in front (the last thing they were on), their own note, and sometimes what changed since their previous save.
 
-Write ONE or TWO short sentences, at most 45 words, that tell them where they left off and what to do next.
+Return four short parts:
+- "sentence": the headline. ONE sentence, at most 14 words, naming the project and where it stands. This is where the personality goes.
+- "lastOn": what they were on last, by its plain name, and what they were doing with it. At most 18 words.
+- "soFar": what's done or decided so far. At most 18 words. Use "" if the data doesn't say.
+- "next": the natural next step. If their note says what's next, use it. At most 18 words.
+Each part is a plain phrase or sentence. No lists inside a part, no headings, no labels like "Next:".
 
-Voice: a sharp, well-read colleague with a dry sense of humour. The brief is useful first and charming second.
-- Lead with the facts: what they were on last, by its plain name, and how far it got.
-- End with the natural next step. If their note says what was next, use it.
-- Add ONE light touch of personality: a wry turn of phrase, a vivid verb, or a gentle nudge. Never a joke that makes the facts harder to follow.
+Voice: a sharp, well-read colleague with a dry sense of humour. Useful first, charming second.
+- Put ONE light touch of personality in the headline: a wry turn of phrase or a vivid verb. Keep lastOn, soFar and next plain and factual.
 - Confident and warm, not silly. No slang, no "lol", no puns on people's names, no teasing the person, no exclamation marks, no emoji.
 - Use everyday words. No jargon, no "resources", no "context", no "dive in", no "journey".
 
-Examples of the voice (the content is made up, never reuse it):
-- "Your climate essay stopped mid-argument, with three tabs of carbon-tax evidence waiting in the wings. Next up is the counterargument your note promised."
-- "The Lisbon trip is mostly sorted: flights picked and an Alfama flat shortlisted. All that's left is the hard part, deciding what to eat."
-- "You and Claude agreed to trim travel to $2,000, so the grant budget is one number away. Get Priya's final figures and it's done."
+Example (the content is made up, never reuse it):
+{"sentence": "The climate essay is two sources away from a real argument.", "lastOn": "Your essay draft, stopped at the counterargument section.", "soFar": "Intro and the case for a carbon tax are written.", "next": "Find two more sources and write the counterargument."}
 
 Rules:
 - Only use facts from the data. Never invent progress, deadlines, or contents of files. If unsure, say less, and skip the joke before you skip a fact.
-- Describe the work at the level of the project (what they're making, deciding or researching), not the last tiny step. A reader should recognise the project from your first words.
-- Most saves have no AI chat. Then work the project out from the tab titles, file names, sites, folder name and note together, and hold the same standard: the project, how far it got, the next step.
+- Describe the work at the level of the project (what they're making, deciding or researching), not the last tiny step. The headline should make the project recognisable at a glance.
+- Most saves have no AI chat. Then work the project out from the tab titles, file names, sites, folder name and note together, and hold the same standard.
 - An item may have "chatEnd": the end of a chat they were having with an AI assistant about this work, and its name is the chat's title. Use it only for the big picture: the goal, what was decided, what's left. Ignore commands, file names, error messages and back-and-forth about tools. Don't quote it.
-- No em dashes, no lists, no headings.
+- No em dashes.
 Also return:
-- "highlights": 1 to 3 short phrases copied exactly from your sentence that matter most (shown in colour).
+- "highlights": 1 to 3 short phrases copied exactly from your parts that matter most (shown in bold).
 - "needed": the ids of the 1 to 6 items they need first (always include the front item if there is one).`;
 
 export const OUTPUT_SCHEMA = {
   type: 'object',
   properties: {
     sentence: { type: 'string' },
+    lastOn: { type: 'string' },
+    soFar: { type: 'string' },
+    next: { type: 'string' },
     highlights: { type: 'array', items: { type: 'string' } },
     needed: { type: 'array', items: { type: 'string' } },
   },
-  required: ['sentence', 'highlights', 'needed'],
+  required: ['sentence', 'lastOn', 'soFar', 'next', 'highlights', 'needed'],
   additionalProperties: false,
 } as const;
 

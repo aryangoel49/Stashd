@@ -21,7 +21,8 @@ function entry(over: Partial<SaveEntry> = {}): SaveEntry {
 describe('basic brief', () => {
   it('says what you were on last, what else was open, and your note, in plain words', () => {
     const b = basicBrief(entry());
-    expect(b.sentence).toBe('You were last on Climate essay.docx, with 1 other file and 2 other tabs open. Your note: need 2 more sea level sources.');
+    expect(b.sentence).toBe('Here is where you left off.');
+    expect(b.sections).toEqual({ lastOn: 'Climate essay.docx', soFar: '2 files and 2 tabs saved.', next: 'need 2 more sea level sources' });
     expect(b.highlights).toEqual(['Climate essay.docx']);
     expect(b.source).toBe('basic');
     expect(b.sentence).not.toMatch(/—/);
@@ -101,7 +102,7 @@ describe('AI job names', () => {
 
 describe('menu helpers', () => {
   it('makes a short hint and picks an icon', () => {
-    expect(hintFrom(entry({ brief: basicBrief(entry()) }))).toBe('Climate essay.docx, with 1 other file and 2 other tabs open');
+    expect(hintFrom(entry({ brief: basicBrief(entry()) }))).toBe('need 2 more sea level sources');
     expect(iconFor([jstor, scholar, essay])).toBe('tab');
     expect(iconFor([])).toBe('stack');
   });

@@ -6,16 +6,38 @@ import { Icon } from './icons';
 import { Button, motion, Reveal } from './ui';
 import { ItemBadge, titleOf } from './visuals';
 
-/** Shows the sentence with its key words in the accent colour. */
+/** Text with the brief's key words in the accent colour. */
+function Marked({ text, marks }: { text: string; marks: string[] }) {
+  if (!marks.length) return <>{text}</>;
+  const re = new RegExp(`(${marks.map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g');
+  return <>{text.split(re).map((p, i) => (marks.includes(p) ? <em key={i}>{p}</em> : <span key={i}>{p}</span>))}</>;
+}
+
+/** The brief: a headline, then Last on, So far and Next (older briefs are just the sentence). */
 export function Sentence({ brief }: { brief: Brief }) {
   const marks = brief.highlights.filter(Boolean);
-  if (!marks.length) return <p className="sentence selectable">{brief.sentence}</p>;
-  const re = new RegExp(`(${marks.map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g');
-  const parts = brief.sentence.split(re);
+  const s = brief.sections;
+  const rows: [string, string | undefined][] = s ? [['Last on', s.lastOn], ['So far', s.soFar], ['Next', s.next]] : [];
   return (
-    <p className="sentence selectable">
-      {parts.map((p, i) => (marks.includes(p) ? <em key={i}>{p}</em> : <span key={i}>{p}</span>))}
-    </p>
+    <>
+      <p className="sentence selectable">
+        <Marked text={brief.sentence} marks={marks} />
+      </p>
+      {s && (
+        <dl className="brief-points selectable">
+          {rows
+            .filter(([, text]) => text)
+            .map(([label, text]) => (
+              <div key={label} className={label === 'Next' ? 'next' : undefined}>
+                <dt>{label}</dt>
+                <dd>
+                  <Marked text={text!} marks={marks} />
+                </dd>
+              </div>
+            ))}
+        </dl>
+      )}
+    </>
   );
 }
 

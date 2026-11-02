@@ -57,7 +57,16 @@ export function basicBrief(entry: SaveEntry, now = new Date()): Brief {
     const n = trim(entry.note.replace(/\s+/g, ' '), 140);
     sentence += ` Your note: ${n.endsWith('.') ? n : `${n}.`}`;
   }
-  return { source: 'basic', sentence, highlights, needed: neededItems(entry), createdAt: now.toISOString() };
+  const sections = front
+    ? {
+        lastOn: trim(an(front), 90),
+        ...(tabs + docs > 1 ? { soFar: `${[docs && plural(docs, 'file'), tabs && plural(tabs, 'tab')].filter(Boolean).join(' and ')} saved.` } : {}),
+        ...(entry.note ? { next: trim(entry.note.replace(/\s+/g, ' '), 140) } : {}),
+      }
+    : undefined;
+  // With sections, the headline stays short: the details are in Last on, So far and Next.
+  if (sections) sentence = 'Here is where you left off.';
+  return { source: 'basic', sentence, ...(sections ? { sections } : {}), highlights, needed: neededItems(entry), createdAt: now.toISOString() };
 }
 
 /** Clean up and check an AI's answer. Returns null if it's unusable. */
@@ -69,20 +78,29 @@ export function acceptAiBrief(
   now = new Date(),
 ): Brief | null {
   if (!raw || typeof raw !== 'object') return null;
-  const r = raw as { sentence?: unknown; highlights?: unknown; needed?: unknown };
+  const r = raw as { sentence?: unknown; lastOn?: unknown; soFar?: unknown; next?: unknown; highlights?: unknown; needed?: unknown };
   if (typeof r.sentence !== 'string') return null;
-  const sentence = r.sentence
-    .replace(/\s*[—–]\s*/g, ', ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (sentence.length < 8 || sentence.length > 400) return null;
+  const clean = (v: unknown) =>
+    typeof v === 'string'
+      ? v
+          .replace(/\s*[—–]\s*/g, ', ')
+          .replace(/\s+/g, ' ')
+          .replace(/^(last on|so far|next( up)?)\s*:\s*/i, '')
+          .trim()
+          .slice(0, 240)
+      : '';
+  const sentence = clean(r.sentence);
+  if (sentence.length < 8) return null;
+  const lastOn = clean(r.lastOn);
+  const sections = lastOn ? { lastOn, ...(clean(r.soFar) ? { soFar: clean(r.soFar) } : {}), ...(clean(r.next) ? { next: clean(r.next) } : {}) } : undefined;
+  const allText = [sentence, lastOn, clean(r.soFar), clean(r.next)].join(' ');
   const highlights = Array.isArray(r.highlights)
-    ? r.highlights.filter((h): h is string => typeof h === 'string' && h.length > 1 && sentence.includes(h)).slice(0, 3)
+    ? r.highlights.filter((h): h is string => typeof h === 'string' && h.length > 1 && allText.includes(h)).slice(0, 3)
     : [];
   const needed = Array.isArray(r.needed)
     ? [...new Set(r.needed.filter((id): id is string => typeof id === 'string').map((id) => idToKey.get(id)).filter((k): k is string => !!k))].slice(0, 8)
     : [];
-  return { source, sentence, highlights, needed: needed.length ? needed : fallbackNeeded, createdAt: now.toISOString() };
+  return { source, sentence, ...(sections ? { sections } : {}), highlights, needed: needed.length ? needed : fallbackNeeded, createdAt: now.toISOString() };
 }
 
 /** Pull a JSON object out of model text (it may be wrapped in ``` fences or have extra words). */

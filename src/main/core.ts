@@ -648,9 +648,10 @@ export function iconFor(items: Item[]): JobSummary['icon'] {
   return n > 0 ? kind : 'stack';
 }
 
-/** A short hint for the menu: the brief's first sentence, or the note. */
+/** A short hint for the menu: what's next, else the brief's headline, else the note. */
 export function hintFrom(entry: SaveEntry): string {
-  const text = entry.brief?.sentence ?? entry.note ?? '';
+  const s = entry.brief?.sections;
+  const text = (entry.brief?.source !== 'basic' ? entry.brief?.sentence : undefined) ?? s?.next ?? s?.lastOn ?? entry.brief?.sentence ?? entry.note ?? '';
   const first = text.split(/(?<=[.!?])\s/)[0] ?? '';
   return first.replace(/^You were (last )?(on |working on |writing )?/i, '').replace(/\.$/, '').slice(0, 70);
 }

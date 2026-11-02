@@ -86,10 +86,18 @@ export interface Capture {
   errors: CollectorError[];
 }
 
+export interface BriefSections {
+  lastOn: string;
+  soFar?: string;
+  next?: string;
+}
+
 export interface Brief {
   source: 'claude' | 'apple' | 'basic';
-  /** One or two plain sentences. */
+  /** The headline: one short sentence (older briefs: one or two sentences, and no sections). */
   sentence: string;
+  /** The structured part: what you were on last, how far it got, and what's next. */
+  sections?: BriefSections;
   /** Short phrases inside the sentence to show in the accent colour. */
   highlights: string[];
   /** Item keys for "Pick up where I left off". */
