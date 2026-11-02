@@ -1,6 +1,7 @@
 // Development only (WWI_LIVE_TEST=<log file>): runs Stash → Pack up → Unpack against the real
 // browser, on test tabs only (example.com, example.org, example.net), and writes what happened
-// at each step to the log file. Nothing but those test tabs is ever closed.
+// at each step to the log file. Nothing but those test tabs is ever closed, plus the apps named in
+// WWI_LIVE_TEST_APPS (comma-separated, e.g. "Calculator,Chess"), which Pack up quits and Unpack reopens.
 
 import { appendFileSync, writeFileSync } from 'node:fs';
 import { app } from 'electron';
@@ -14,10 +15,16 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function runLiveTest(core: Core, tidy: TidyFlow, logFile: string): Promise<void> {
   writeFileSync(logFile, '');
   const log = (step: string, data: unknown) => appendFileSync(logFile, `${JSON.stringify({ at: new Date().toISOString(), step, data })}\n`);
+  const testApps = (process.env.WWI_LIVE_TEST_APPS ?? '').split(',').map((a) => a.trim()).filter(Boolean);
   const testTabs = async () => {
     const s = core.settings.get();
     const { tabs, errors } = await collectTabs(['chrome'], { keepQueryStrings: s.keepQueryStrings, excludedDomains: s.excludedDomains });
-    return { open: tabs.filter((t) => TEST.test(t.url)).map((t) => t.url), errors: errors.map((e) => e.message) };
+    const running = new Set((await core.helper.windows().catch(() => null))?.apps.map((a) => a.name) ?? []);
+    return {
+      open: tabs.filter((t) => TEST.test(t.url)).map((t) => t.url),
+      appsRunning: testApps.filter((a) => running.has(a)),
+      errors: errors.map((e) => e.message),
+    };
   };
   try {
     log('1 before', await testTabs());
@@ -33,7 +40,7 @@ export async function runLiveTest(core: Core, tidy: TidyFlow, logFile: string): 
       everydayHidden: p.hiddenCount,
       errors: p.errors.map((e) => e.message),
     });
-    const keys = all.filter((i) => i.kind === 'tab' && TEST.test(i.url ?? '')).map((i) => i.key);
+    const keys = all.filter((i) => (i.kind === 'tab' && TEST.test(i.url ?? '')) || (i.kind === 'app' && testApps.includes(i.app))).map((i) => i.key);
     if (!keys.length) throw new Error('No test tabs were captured');
 
     // Pack up: save as a new folder and close those tabs (with the fly-in and toast).
