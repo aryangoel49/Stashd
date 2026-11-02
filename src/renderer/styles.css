@@ -184,7 +184,15 @@ button { cursor: default; }
 .brief .open-kinds + .actions { margin-top: 10px; }
 .brief .open-kinds .pill svg:not(.pill-mark svg) { width: 13px; height: 13px; }
 .brief .actions > :first-child { flex: 1; }
-.brief .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--faint); font-size: 11px; gap: 8px; }
+.brief .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 10px; border-top: 0.5px solid var(--hair); color: var(--faint); font-size: 11px; gap: 8px; }
+/* What's inside: one box with a header you click, and the list below it. */
+.inside { margin-top: 12px; border-radius: 12px; background: var(--well); box-shadow: inset 0 0.5px 0 var(--rim), inset 0 0 0 0.5px var(--hair); overflow: hidden; }
+.inside-toggle { width: 100%; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: none; background: none; font-size: 13px; font-weight: 500; color: var(--text); text-align: left; transition: background var(--dur-quick) var(--ease-out); }
+.inside-toggle:hover { background: var(--well-hover); }
+.inside-count { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 400; }
+.inside-chev { width: 14px; height: 14px; color: var(--muted); transition: transform var(--dur-quick) var(--ease-out); }
+.inside.open .inside-chev { transform: rotate(90deg); }
+.inside .items-list { margin: 0; padding: 4px 6px 6px; border-top: 0.5px solid var(--hair); }
 .items-list { margin-top: 12px; display: flex; flex-direction: column; gap: 2px; max-height: 190px; overflow-y: auto; }
 .item-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 8px; font-size: 12px; }
 .item-row .lbl { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

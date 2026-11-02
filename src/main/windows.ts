@@ -230,6 +230,13 @@ async function captureForTests(win: BrowserWindow, route: Route): Promise<void> 
     await win.webContents.executeJavaScript(`document.querySelector('${next[route]}')?.click()`);
     await new Promise((r) => setTimeout(r, 1800));
     await shot(`${route}-2`);
+    // Optionally a third picture after another click (WWI_CAPTURE_PANEL_CLICK2), e.g. to open a section.
+    const again = route === 'panel' ? process.env.WWI_CAPTURE_PANEL_CLICK2 : undefined;
+    if (again) {
+      await win.webContents.executeJavaScript(`document.querySelector('${again}')?.click()`);
+      await new Promise((r) => setTimeout(r, 1200));
+      await shot(`${route}-3`);
+    }
   }
 }
 

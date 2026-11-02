@@ -4,7 +4,7 @@ import { openKindOf } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
 import { Button, motion, Reveal } from './ui';
-import { ItemBadge, titleOf } from './visuals';
+import { describe, ItemBadge, titleOf } from './visuals';
 
 /** Text with the brief's key words in the accent colour. */
 function Marked({ text, marks }: { text: string; marks: string[] }) {
@@ -154,17 +154,23 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
       )}
       {error && <div className="banner" style={{ marginTop: 10 }}>{error}</div>}
 
-      <Button variant="ghost" size="small" style={{ marginTop: 8, paddingLeft: 0 }} onClick={() => setShowItems(!showItems)}>
-        {showItems ? 'Hide' : 'Show'} what's inside ({entry.items.length})
-      </Button>
-      <Reveal show={showItems}>
+      {/* What's inside: a clear box you open to see, and tick, each thing in the folder. */}
+      <div className={`inside ${showItems ? 'open' : ''}`}>
+        <button type="button" className="inside-toggle" aria-expanded={showItems} onClick={() => setShowItems(!showItems)}>
+          <span>What's inside</span>
+          <span className="inside-count">
+            {current || pickedCount === entry.items.length ? `${entry.items.length} ${entry.items.length === 1 ? 'thing' : 'things'}` : `${pickedCount} of ${entry.items.length} to open`}
+          </span>
+          <Icon name="chevron" className="i inside-chev" />
+        </button>
+        <Reveal show={showItems}>
         <div className="items-list">
           {entry.items.map((it) =>
             current ? (
               <div key={it.key} className={`item-row ${needed.has(it.key) ? 'need' : ''}`} title={it.detail}>
                 <ItemBadge item={it} size={18} />
                 <span className="lbl">{titleOf(it)}</span>
-                <span className="det">{it.kind === 'app' ? '' : it.detail}</span>
+                <span className="det">{it.kind === 'app' ? (it.chat ? `${it.app} chat` : '') : describe(it)}</span>
               </div>
             ) : (
               <button
@@ -178,12 +184,13 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
                 <span className="item-check">{picked.has(it.key) && <Icon name="check" />}</span>
                 <ItemBadge item={it} size={18} />
                 <span className="lbl">{titleOf(it)}</span>
-                <span className="det">{it.kind === 'app' ? '' : it.detail}</span>
+                <span className="det">{it.kind === 'app' ? (it.chat ? `${it.app} chat` : '') : describe(it)}</span>
               </button>
             ),
           )}
         </div>
       </Reveal>
+      </div>
 
       <div className="foot">
         <span title={brief.fallbackReason}>{SOURCE[brief.source]}</span>
