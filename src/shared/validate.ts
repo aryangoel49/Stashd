@@ -23,6 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
   launchAtLogin: false,
   shortcutSave: 'Control+S',
   shortcutRecap: 'Control+W',
+  shortcutOpen: 'Control+O',
   accent: 'indigo',
   tidyUp: false,
   aiModel: 'claude-haiku-5-5',
@@ -120,6 +121,7 @@ export function settingsPatch(v: unknown, current: Settings): Settings {
       case 'launchAtLogin': next.launchAtLogin = bool(val, k); break;
       case 'shortcutSave': next.shortcutSave = accelerator(val, 'save shortcut'); break;
       case 'shortcutRecap': next.shortcutRecap = accelerator(val, 'brief shortcut'); break;
+      case 'shortcutOpen': next.shortcutOpen = accelerator(val, 'open shortcut'); break;
       case 'accent': {
         if (!ACCENTS.includes(val as Accent)) fail('unknown colour');
         next.accent = val as Accent;

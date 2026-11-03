@@ -16,6 +16,8 @@ export interface Settings {
   launchAtLogin: boolean;
   shortcutSave: string;
   shortcutRecap: string;
+  /** Opens the pinned folder, or the one opened last. */
+  shortcutOpen: string;
   accent: Accent;
   /** The last choice of the "Tidy up" toggle. Off until the user turns it on. */
   tidyUp: boolean;
@@ -149,14 +151,19 @@ export interface Job {
   updatedAt: string;
   done: boolean;
   prefs: LearnedPrefs;
-  /** You've given it a name yourself (until then, a pencil invites you to). */
+  /** You've given it a name yourself. */
   renamed?: boolean;
+  /** Pinned: the folder ⌃O opens (only one at a time). */
+  pinned?: boolean;
+  /** When you last opened it (Unpack), for ⌃O when nothing is pinned. */
+  openedAt?: string;
 }
 
 export interface JobSummary {
   id: string;
   name: string;
   renamed: boolean;
+  pinned: boolean;
   updatedAt: string;
   done: boolean;
   /** First words of the latest brief, for the menu. */

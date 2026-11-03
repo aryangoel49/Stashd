@@ -40,6 +40,7 @@ const api = {
   moveItem: (fromJobId: string, key: string, toJobId: string) => invoke<void>('jobs:moveItem', fromJobId, key, toJobId),
   renameJob: (jobId: string, name: string) => invoke<void>('jobs:rename', jobId, name),
   setDone: (jobId: string, done: boolean) => invoke<void>('jobs:done', jobId, done),
+  setPinned: (jobId: string, pinned: boolean) => invoke<void>('jobs:pin', jobId, pinned),
   deleteJob: (jobId: string) => invoke<boolean>('jobs:delete', jobId),
   confirmDelete: (jobId: string) => invoke<boolean>('jobs:confirmDelete', jobId),
 

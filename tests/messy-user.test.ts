@@ -376,3 +376,26 @@ describe('Tidy all quits apps', () => {
     expect(appsToQuit(['Finder', 'Claude', 'Notes', 'Phone', 'Google Chrome', 'Spotify', 'Stashd'])).toEqual(['Notes', 'Phone', 'Google Chrome', 'Spotify']);
   });
 });
+
+describe('Pinning and ⌃O', () => {
+  it('opens the pinned folder, else the one opened last; only one pin at a time', async () => {
+    const core = makeCore();
+    const make = async (name: string, n: number) => {
+      open = [tab(n, `${name} page`)];
+      core.beginSave();
+      await core.preview({ asNew: true });
+      return (await core.commitSave({ jobId: null, name, note: '', keys: open.map((i) => i.key), tidy: true })).jobId;
+    };
+    const a = await make('Alpha', 1);
+    const b = await make('Beta', 2);
+    expect(await core.quickOpenTarget()).toBe(b);
+    open = [];
+    await core.open(a, undefined, 'all');
+    expect(await core.quickOpenTarget()).toBe(a);
+    await core.setPinned(b, true);
+    expect(await core.quickOpenTarget()).toBe(b);
+    await core.setPinned(a, true);
+    const pins = (await core.listJobs()).filter((j) => j.pinned).map((j) => j.id);
+    expect(pins).toEqual([a]);
+  });
+});

@@ -120,7 +120,8 @@ function JobList(props: {
 }) {
   const { jobs, openMap, settings, showDone, setShowDone, onPick } = props;
   const current = (jobs ?? []).find((j) => j.current && !j.done) ?? null;
-  const active = (jobs ?? []).filter((j) => !j.done && j !== current);
+  // The pinned folder (what ⌃O opens) comes first.
+  const active = (jobs ?? []).filter((j) => !j.done && j !== current).sort((a, b) => Number(b.pinned) - Number(a.pinned));
   const done = (jobs ?? []).filter((j) => j.done);
   return (
     <>
@@ -183,7 +184,7 @@ function JobList(props: {
 
       {active.map((j, i) => (
         <motion.div key={j.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.03 }}>
-          <JobRow job={j} state={openMap[j.id]} onPick={onPick} />
+          <JobRow job={j} state={openMap[j.id]} onPick={onPick} openKey={prettyShortcut(settings.shortcutOpen)} />
         </motion.div>
       ))}
 
@@ -202,7 +203,7 @@ function JobList(props: {
   );
 }
 
-function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; onPick: (id: string) => void }) {
+function JobRow({ job, state, onPick, openKey }: { job: JobSummary; state?: OpenState; onPick: (id: string) => void; openKey?: string }) {
   const allOpen = !!state && state.total > 0 && state.open === state.total;
   const someOpen = !!state && state.open > 0 && !allOpen;
   // Open now: you unpacked it here, or most of its tabs and files are open anyway. A finished folder
@@ -229,6 +230,7 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
         <NameEdit jobId={job.id} name={job.name} renamed={job.renamed} className="name" onClick={() => onPick(job.id)} />
         <span className="hint" style={{ display: 'block' }}>
           <span>{allOpen ? 'All open' : someOpen ? `${state!.open} of ${state!.total} open` : job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
+          {job.pinned && openKey && <span className="pin-key">{openKey} opens this</span>}
         </span>
       </span>
       {openNow && <span className="live" />}
@@ -258,6 +260,22 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
           Unpack
         </Button>
       )}
+      {!job.done && (
+        <Button
+          variant="ghost"
+          size="small"
+          className={`tool-btn pin-btn ${job.pinned ? 'on' : ''}`}
+          title={job.pinned ? 'Unpin' : `Pin: ${openKey ?? '⌃O'} opens this folder`}
+          aria-label={job.pinned ? `Unpin ${job.name}` : `Pin ${job.name}`}
+          aria-pressed={job.pinned}
+          onClick={(e) => {
+            e.stopPropagation();
+            void api.setPinned(job.id, !job.pinned);
+          }}
+        >
+          <Icon name="pin" />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="small"
@@ -281,6 +299,11 @@ function JobMenu({ view, onGone }: { view: BriefView; onGone: () => void }) {
     <div style={{ display: 'flex', gap: 2 }}>
       {open ? (
         <>
+          {!view.job.done && (
+            <Button variant="ghost" size="small" className="tiny" onClick={() => void api.setPinned(view.job.id, !view.job.pinned).then(() => setOpen(false))}>
+              {view.job.pinned ? 'Unpin' : 'Pin'}
+            </Button>
+          )}
           <Button variant="ghost" size="small" className="tiny" onClick={() => void api.setDone(view.job.id, !view.job.done).then(onGone)}>
             {view.job.done ? 'Not finished' : 'Mark finished'}
           </Button>

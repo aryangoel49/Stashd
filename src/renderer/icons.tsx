@@ -68,6 +68,12 @@ const paths: Record<string, ReactElement> = {
       <path d="M3 13l9 5 9-5" />
     </>
   ),
+  pin: (
+    <>
+      <path d="M9 4h6l-1 5 3 3v2H7v-2l3-3z" />
+      <path d="M12 14v6" />
+    </>
+  ),
 };
 
 export function Icon({ name, className }: { name: keyof typeof paths | string; className?: string }) {

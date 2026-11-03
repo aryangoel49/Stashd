@@ -498,6 +498,7 @@ export class Core {
         id: j.id,
         name: j.name,
         renamed: !!j.renamed,
+        pinned: !!j.pinned,
         updatedAt: j.updatedAt,
         done: j.done,
         hint: latest ? hintFrom(latest) : '',
@@ -707,6 +708,11 @@ export class Core {
     const name = (await this.store.get(jobId).catch(() => null))?.name;
     const result = await openItems(items, entry.frontKey, this.settings.get(), (b) => (openBefore = b), name);
     await this.setCurrent(jobId);
+    const opened = await this.store.get(jobId).catch(() => null);
+    if (opened) {
+      opened.openedAt = new Date().toISOString();
+      await this.store.put(opened);
+    }
     this.notify();
     // A moment later, note what's open, so anything opened after this can be suggested for the job,
     // and where tabs ended up (a sign-in page, say), so they still count as this folder's.
@@ -803,6 +809,26 @@ export class Core {
       await this.store.saveEntry(entry);
       this.notify();
     }
+  }
+
+  /** Pin a folder (unpinning any other: one at a time), or unpin it. */
+  async setPinned(jobId: string, pinned: boolean): Promise<void> {
+    for (const j of await this.store.list()) {
+      const want = pinned && j.id === jobId;
+      if (!!j.pinned === want) continue;
+      j.pinned = want;
+      await this.store.put(j);
+    }
+    this.notify();
+  }
+
+  /** What ⌃O opens: the pinned folder, else the one you opened last (else the last saved). */
+  async quickOpenTarget(): Promise<string | null> {
+    const jobs = (await this.store.list()).filter((j) => !j.done);
+    const pinned = jobs.find((j) => j.pinned);
+    if (pinned) return pinned.id;
+    const when = (j: Job) => Math.max(Date.parse(j.openedAt ?? '') || 0, Date.parse(j.updatedAt) || 0);
+    return jobs.sort((a, b) => when(b) - when(a))[0]?.id ?? null;
   }
 
   async rename(jobId: string, name: string): Promise<void> {

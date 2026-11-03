@@ -3,7 +3,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { app, globalShortcut, Menu, nativeTheme, type Rectangle } from 'electron';
-import type { AppInfo, Item, Route, Settings } from './shared/types';
+import type { AppInfo, Item, OpenState, Route, Settings } from './shared/types';
 import { appleWriter } from './main/brief/apple';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
 import { Core } from './main/core';
@@ -43,6 +43,8 @@ function start(): void {
 
   let core: Core;
   let tray: AppTray;
+  /** Hides the panel and plays the Unpack animation (set once the app is ready). */
+  let beforeOpen: (items: Item[]) => void = () => undefined;
   let shortcutErrors: string[] = [];
   let appleStatus: AppInfo['appleAi'] = 'unknown';
 
@@ -83,12 +85,22 @@ function start(): void {
     togglePanel(tray.bounds(), target?.id);
   }
 
+  /** ⌃O: Unpack the pinned folder, or the one you opened last. Already all open? Show its brief instead. */
+  async function quickOpen(): Promise<void> {
+    const id = await core.quickOpenTarget();
+    if (!id) return togglePanel(tray.bounds());
+    const state = (await core.openState().catch(() => ({}) as Record<string, OpenState>))[id];
+    if (state && state.total > 0 && state.open === state.total) return togglePanel(tray.bounds(), id);
+    await core.open(id, undefined, 'all', beforeOpen);
+  }
+
   function applyShortcuts(s: Settings): void {
     globalShortcut.unregisterAll();
     shortcutErrors = [];
     const pairs: [string, () => void][] = [
       [s.shortcutSave, () => openSave()],
       [s.shortcutRecap, () => void openBrief()],
+      [s.shortcutOpen, () => void quickOpen()],
     ];
     for (const [accel, fn] of pairs) {
       try {
@@ -150,7 +162,7 @@ function start(): void {
       },
       () => !!getWindow('save')?.isVisible(),
     );
-    const beforeOpen = (items: Item[]) => {
+    beforeOpen = (items: Item[]) => {
       getWindow('panel')?.hide();
       tidy.unpackAnimation(items);
     };
@@ -191,7 +203,7 @@ function start(): void {
     applyLoginItem(initial);
 
     settings.onChange((next, prev) => {
-      if (next.shortcutSave !== prev.shortcutSave || next.shortcutRecap !== prev.shortcutRecap) applyShortcuts(next);
+      if (next.shortcutSave !== prev.shortcutSave || next.shortcutRecap !== prev.shortcutRecap || next.shortcutOpen !== prev.shortcutOpen) applyShortcuts(next);
       if (next.launchAtLogin !== prev.launchAtLogin) applyLoginItem(next);
       if (next.appearance !== prev.appearance) nativeTheme.themeSource = next.appearance;
       broadcast('settings:changed');
