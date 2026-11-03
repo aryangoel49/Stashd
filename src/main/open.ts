@@ -1,8 +1,6 @@
 // Reopens a job's items. It only opens things; it never closes or changes anything.
 
 import { promises as fs } from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { shell } from 'electron';
 import type { BrowserName, Item, OpenResult, Settings } from '../shared/types';
 import { BROWSERS } from '../shared/validate';
@@ -119,43 +117,47 @@ export function groupPageUrl(name: string, urls: string[]): string {
   return `chrome-extension://${CHROME_HELPER_ID}/open.html#${encodeURIComponent(JSON.stringify({ name, urls }))}`;
 }
 
+// Opens the extension's page and waits a moment: it either closes itself (it opened the group) or shows
+// "Stashd" while it works. Without the extension it's an error page, which is closed again.
+// (macOS doesn't let other apps read Chrome's settings, so trying is the only way to know it's there.)
 const GROUP_SCRIPT = `on run wwiArgs
   tell application id "com.google.Chrome"
     if (count of windows) is 0 then make new window
-    tell front window to make new tab at end of tabs with properties {URL:(item 1 of wwiArgs)}
+    set wwiId to id of (make new tab at end of tabs of front window with properties {URL:(item 1 of wwiArgs)})
     activate
+    repeat 30 times
+      delay 0.1
+      set wwiFound to false
+      repeat with wwiW in windows
+        repeat with wwiT in tabs of wwiW
+          if id of wwiT is wwiId then
+            set wwiFound to true
+            if title of wwiT is "Stashd" then return "ok"
+          end if
+        end repeat
+      end repeat
+      if not wwiFound then return "ok"
+    end repeat
+    repeat with wwiW in windows
+      repeat with wwiT in tabs of wwiW
+        if id of wwiT is wwiId then close wwiT
+      end repeat
+    end repeat
+    return "missing"
   end tell
 end run`;
 
-let helperCheck: { at: number; installed: Promise<boolean> } | null = null;
-/** Is Stashd's extension in a Chrome profile, and turned on? Looked up at most every 30 seconds. */
-export function chromeHelperInstalled(): Promise<boolean> {
-  if (helperCheck && Date.now() - helperCheck.at < 30_000) return helperCheck.installed;
-  const installed = (async () => {
-    const base = path.join(os.homedir(), 'Library', 'Application Support', 'Google', 'Chrome');
-    const profiles = await fs.readdir(base).catch(() => [] as string[]);
-    for (const p of profiles.filter((d) => d === 'Default' || d.startsWith('Profile '))) {
-      for (const file of ['Secure Preferences', 'Preferences']) {
-        const prefs = await fs.readFile(path.join(base, p, file), 'utf8').catch(() => '');
-        if (helperEnabled(prefs)) return true;
-      }
-    }
-    return false;
-  })();
-  helperCheck = { at: Date.now(), installed };
-  return installed;
-}
+/** After finding the extension missing, don't try again for a while (each try flashes an error tab). */
+const RETRY_HELPER_MS = 10 * 60_000;
+let helperMissingAt = 0;
 
-/** From a Chrome preferences file: is the extension there, and not turned off? */
-export function helperEnabled(prefsJson: string): boolean {
-  if (!prefsJson.includes(CHROME_HELPER_ID)) return false;
-  try {
-    const ext = JSON.parse(prefsJson)?.extensions?.settings?.[CHROME_HELPER_ID];
-    // Turned off in chrome://extensions: Chrome records why ("disable_reasons").
-    return !!ext && !(Array.isArray(ext.disable_reasons) ? ext.disable_reasons.length : ext.disable_reasons);
-  } catch {
-    return false;
-  }
+/** Opens the tabs in a Chrome tab group through Stashd's extension. False if it isn't installed. */
+async function openChromeGroup(name: string, urls: string[]): Promise<boolean> {
+  if (Date.now() - helperMissingAt < RETRY_HELPER_MS) return false;
+  const r = await run('osascript', ['-e', GROUP_SCRIPT, '--', groupPageUrl(name, urls)], { timeoutMs: 20_000 });
+  if (r.stdout.trim() === 'ok') return true;
+  helperMissingAt = Date.now();
+  return false;
 }
 
 /** Gap between things opening, and the most tabs opened one by one before it's done in one go. */
@@ -259,8 +261,8 @@ async function openAll(
         if (!app || !urls.length) throw new Error('one by one');
         const together = urls.length >= 2 ? newWindowScript(browser as BrowserName) : null;
         const web = urls.filter((u) => /^https?:/i.test(u));
-        if (browser === 'chrome' && groupName && web.length === urls.length && (await isRunning('chrome')) && (await chromeHelperInstalled())) {
-          await run('osascript', ['-e', GROUP_SCRIPT, '--', groupPageUrl(groupName, urls)], { timeoutMs: 20_000 });
+        if (browser === 'chrome' && groupName && web.length === urls.length && (await isRunning('chrome')) && (await openChromeGroup(groupName, urls))) {
+          // opened in a tab group
         } else if (together && (await isRunning(browser as BrowserName))) {
           // '--' so an address is never read as an option.
           await run('osascript', ['-e', together, '--', ...urls], { timeoutMs: 30_000 });
