@@ -215,7 +215,7 @@ export class Core {
     ]);
 
     // How well does what's open fit each of your jobs? (Best first, for the "Save to" picker.)
-    const fits = jobs.map((j) => ({ job: j.job, latest: j.latest, fit: j.profile ? jobFit(candidates, j.profile, lookup) : 0 }));
+    const fits = jobs.map((j) => ({ job: j.job, latest: j.latest, fit: j.profile ? jobFit(candidates, j.profile, lookup, frontKey) : 0 }));
     fits.sort((a, b) => b.fit - a.fit);
 
     // Which job is this? The one you picked, the one you have open, or a clear match. Otherwise new.

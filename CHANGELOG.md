@@ -34,6 +34,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Folder rows are calmer: pin and delete appear on hover, the pinned folder is highlighted, and finished folders live in the Stashd window.
 
 ### Fixed
+- ⌃S picks the right folder when the tab you're on clearly belongs to it (same site, its name), even with lots of unrelated tabs open next to it. Before, it offered a new folder.
 - A Claude or ChatGPT chat open on its own no longer makes ⌃S guess a folder, and unticking a chat is remembered straight away.
 - Enter in the save box works wherever the focus is.
 - Something you left out of a folder before is no longer hidden for good: it's offered unticked, under "looks related" when it clearly fits.

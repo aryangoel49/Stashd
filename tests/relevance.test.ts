@@ -140,6 +140,33 @@ describe('which job does this belong to', () => {
     const [, fit] = best([dogs, preview, textEdit]);
     expect(fit).toBeLessThan(FIT_SUGGEST);
   });
+
+  // From a screenshot: the Stashd install page was in front, with six unrelated tabs open beside it.
+  // ⌃S offered a new folder instead of "Stashd project", because the other tabs watered the fit down.
+  describe('the tab you are on picks the folder', () => {
+    const stashd = jobProfile('Stashd project', '', [
+      tab('https://github.com/aryangoel49/Stashd', 'aryangoel49/Stashd: Where Was I? A Mac menu bar app'),
+      tab('https://vercel.com/aryangoel4900-4007/stashd', 'stashd - Overview – Vercel'),
+      tab('https://getstashd.vercel.app/', 'Stashd · Put your work to bed'),
+    ]);
+    const others = [
+      tab('https://www.google.com/search?q=github+repo+for+saving+tokens', 'github repo for saving tokens - Google Search'),
+      tab('https://caveman.so/', 'Caveman | Cut AI agent token costs'),
+      tab('https://github.com/JuliusBrussee/caveman', 'JuliusBrussee/caveman: why use many token when few token do trick'),
+      tab('https://app.caveman.so/activate', 'Authorize device · Caveman Cloud'),
+      tab('https://platform.claude.com/oauth/code/success', 'Sign in successful | Claude Platform'),
+    ];
+
+    it('a clear match in front is enough, whatever else is open', () => {
+      const install = tab('https://getstashd.vercel.app/download.html', 'Install Stashd', 1, true);
+      expect(jobFit([install, ...others], stashd, undefined, install.key)).toBeGreaterThanOrEqual(FIT_SUGGEST);
+    });
+
+    it('one shared word in front is not', () => {
+      const ideas = tab('https://docs.google.com/document/d/1', 'Project ideas for class', 1, true);
+      expect(jobFit([ideas, ...others], stashd, undefined, ideas.key)).toBeLessThan(FIT_SUGGEST);
+    });
+  });
 });
 
 describe('harder cases', () => {

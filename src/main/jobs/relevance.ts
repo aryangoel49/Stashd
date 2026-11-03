@@ -433,14 +433,30 @@ export function group(opts: {
   return out;
 }
 
-/** How well a set of open items fits a job (0 = not at all). Used to suggest and rank jobs. */
-export function jobFit(candidates: Item[], profile: Profile, meaning?: MeaningLookup): number {
+/**
+ * Enough for one item on its own to say which job you're on: it was in the job, or it shares the job's
+ * site, file folder, topic or several words. One shared word ("project") is a coincidence.
+ */
+function clearMatch(why: string[]): boolean {
+  return why.some((w) => /was in this job|tab group|same site|same folder|similar topic/.test(w) || (w.startsWith('mentions ') && w.includes(',')));
+}
+
+/**
+ * How well a set of open items fits a job (0 = not at all). Used to suggest and rank jobs.
+ * `frontKey` is what you were looking at when you pressed ⌃S: when that clearly belongs to the job,
+ * other tabs open about other things don't water it down.
+ */
+export function jobFit(candidates: Item[], profile: Profile, meaning?: MeaningLookup, frontKey?: string | null): number {
   const df = documentFrequency(candidates);
   const scored = candidates.filter((i) => i.kind !== 'app' || i.chat).map((i) => Math.max(0, Math.min(scoreItem(i, profile, df, null, meaning).score, 4)));
   if (!scored.length) return 0;
   // Clear matches count fully, "probably related" ones half.
   const strong = scored.reduce((n, s) => n + (s >= SURE ? 1 : s >= LIKELY ? 0.5 : 0), 0);
-  return (scored.reduce((a, b) => a + b, 0) / scored.length) * (strong / scored.length);
+  const fit = (scored.reduce((a, b) => a + b, 0) / scored.length) * (strong / scored.length);
+  const front = frontKey ? candidates.find((i) => i.key === frontKey && (i.kind !== 'app' || i.chat)) : undefined;
+  if (!front) return fit;
+  const f = scoreItem(front, profile, df, null, meaning);
+  return f.score >= SURE && hasProof(f.why) && clearMatch(f.why) ? Math.max(fit, Math.min(f.score, 4)) : fit;
 }
 
 /** A fit above this suggests the job automatically. */
