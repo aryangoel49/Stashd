@@ -622,9 +622,12 @@ details summary { cursor: default; }
 .job-row .name { font-size: 14px; line-height: 1.25; color: var(--text); }
 .job-row .hint { margin-top: 3px; font-size: 11.5px; line-height: 1.2; font-weight: 450; color: var(--faint); font-variant-numeric: tabular-nums; }
 
-/* Pin and delete show on hover (a pinned folder keeps its pin, in the folder's colour). */
-.job-row .pin-btn, .job-row .tool-btn.delete { flex: none; opacity: 0; transition: opacity 150ms ease-out, background 0.15s, color 0.15s; }
-.job-row:hover .pin-btn, .job-row:hover .tool-btn.delete, .job-row .tool-btn:focus-visible, .job-row .pin-btn.on { opacity: 1; }
+/* Pin and delete take no room until you hover (Unpack slides over a little); a pinned folder keeps its pin. */
+.job-row .pin-btn, .job-row .tool-btn.delete { flex: none; width: 0; margin-left: -10px; opacity: 0; overflow: hidden; transition: width 160ms var(--ease-out, ease-out), margin 160ms var(--ease-out, ease-out), opacity 120ms ease-out, background 0.15s, color 0.15s; }
+.job-row:hover .pin-btn, .job-row:hover .tool-btn.delete, .job-row .tool-btn:focus-visible, .job-row .pin-btn.on { width: 24px; margin-left: 0; opacity: 1; }
 .job-row .tool-btn:focus:not(:focus-visible) { outline: none; box-shadow: none; }
-.job-row .pin-btn.on { color: var(--tone-ink, var(--accent)); }
+/* One pin colour for every folder, and the pinned folder sits on a soft highlight. */
+.job-row .pin-btn.on { color: var(--accent-ink); }
 .job-row .pin-btn.on svg { fill: currentColor; }
+.job-row.pinned { background: var(--accent-soft); box-shadow: inset 0 0 0 0.5px var(--accent-line); }
+.job-row.pinned:hover { background: color-mix(in srgb, var(--accent) 32%, transparent); }

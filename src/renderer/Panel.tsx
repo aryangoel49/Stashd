@@ -216,7 +216,7 @@ function JobRow({ job, state, onPick, openKey }: { job: JobSummary; state?: Open
   return (
     <div
       ref={rowRef}
-      className={`job-row ${openNow ? 'current' : ''}`}
+      className={`job-row ${openNow ? 'current' : ''} ${job.pinned ? 'pinned' : ''}`}
       style={{ ...toneStyle(folderTone(job.id)), ...(job.done ? { opacity: 0.6 } : {}) }}
       role="button"
       tabIndex={0}
