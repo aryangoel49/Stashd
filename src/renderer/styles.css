@@ -602,7 +602,8 @@ details summary { cursor: default; }
 @media (prefers-color-scheme: dark) { .name-edit { background: rgba(255, 255, 255, 0.08); } }
 .tidy-all-btn { gap: 5px; font-size: 12px; }
 
-/* A folder's name softens when you hover over it, to show it can be changed. Double-click to rename. */
+/* Hovering a folder's name marks it like a highlighter pen (the row's own hover only tints the row),
+   to show the name itself can be changed. Double-click to rename. */
 .name-wrap { display: flex; align-items: center; min-width: 0; max-width: 100%; }
-.name-wrap .name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; transition: opacity 150ms ease-out; }
-@media (hover: hover) { .name-wrap .name-text:hover { opacity: 0.55; } }
+.name-wrap .name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; padding: 0 2px; margin: 0 -2px; border-radius: 3px; background: linear-gradient(transparent 58%, var(--tone-line) 58%) no-repeat 0 0 / 0% 100%; transition: background-size 220ms var(--ease, ease-out); }
+@media (hover: hover) { .name-wrap .name-text:hover { background-size: 100% 100%; } }
