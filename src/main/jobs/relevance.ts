@@ -341,6 +341,17 @@ export function scoreItem(item: Item, p: Profile, df: Map<string, number>, front
   return { score, why };
 }
 
+/**
+ * Real evidence that something belongs, beyond the meaning model saying it "sounds similar": it was in
+ * the job, it's in the job's tab group, or it shares words with the job (words plus similar meaning).
+ * Videos and other break things need this to count as work: a vague title like "Stop Sending Clips"
+ * can sound a bit like anything.
+ */
+export function hasProof(why: string[] | string): boolean {
+  const text = Array.isArray(why) ? why.join('; ') : why;
+  return /was in this job|tab group|mentions |similar topic|same folder/.test(text);
+}
+
 export const SURE = 1.5;
 export const LIKELY = 0.6;
 

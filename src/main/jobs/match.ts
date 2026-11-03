@@ -6,6 +6,7 @@
 //   hidden  not shown: everyday apps and sites, and things you keep leaving out
 
 import { isBreakItem } from '../breaks';
+import { hasProof } from './relevance';
 import type { Item, Job, LearnedPrefs, Settings } from '../../shared/types';
 import { group, hostOf, isGeneralHost, itemTokens, jobProfile, meaningText, textTokens, type MeaningLookup } from './relevance';
 
@@ -121,10 +122,12 @@ export function classify(input: ClassifyInput): Classified {
   });
   // Break things (a Shark Tank episode, a game score) stay out of work unless they clearly fit it:
   // a tutorial about the project is still ticked.
+  // A video counts as work only with real evidence (shared words, the folder's tab group, it was in
+  // the folder before), never on "sounds similar" alone.
   const isBreak = (it: Item) => isBreakItem(it) && !(prefs.add[it.key] ?? 0);
-  const breaks = [...g.likely, ...g.maybe].filter(isBreak);
+  const breaks = [...g.likely, ...g.maybe, ...g.sure.filter((i) => !hasProof(g.why[i.key] ?? '') && !(input.frontKey === i.key && !job))].filter(isBreak);
   const off = new Set(breaks.map((i) => i.key));
-  return { sure: g.sure, likely: g.likely.filter((i) => !off.has(i.key)), maybe: g.maybe.filter((i) => !off.has(i.key)), hidden, breaks, why: g.why };
+  return { sure: g.sure.filter((i) => !off.has(i.key)), likely: g.likely.filter((i) => !off.has(i.key)), maybe: g.maybe.filter((i) => !off.has(i.key)), hidden, breaks, why: g.why };
 }
 
 /**

@@ -17,7 +17,7 @@ import {
   suggestName,
   type Classified,
 } from './jobs/match';
-import { documentFrequency, FIT_SUGGEST, jobFit, jobProfile, meaningText, profileTexts, scoreItem, SURE, type MeaningLookup, type Profile } from './jobs/relevance';
+import { documentFrequency, FIT_SUGGEST, hasProof, jobFit, jobProfile, meaningText, profileTexts, scoreItem, SURE, type MeaningLookup, type Profile } from './jobs/relevance';
 import { suggest, type FolderData } from './jobs/suggest';
 import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
@@ -390,8 +390,7 @@ export class Core {
     // Tabs left over: one that clearly belongs to one of your other folders is added to it. The rest
     // belong nowhere and just close (they stay in "Recently closed" for a while, in case one mattered).
     const strays = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
-    // Break things (any video, a show, a game) never get filed into a work folder: they go on the Break shelf.
-    const homes = await this.homesFor(strays.filter((i) => !isBreakItem(i)), new Set(plan.saved.map((s) => s.jobId)));
+    const homes = await this.homesFor(strays, new Set(plan.saved.map((s) => s.jobId)));
     for (const [jobId, items] of homes) {
       const name = await this.addToFolder(jobId, items);
       plan.filed.push({ jobId, name, count: items.length });
@@ -432,9 +431,11 @@ export class Core {
     const lookup: MeaningLookup | undefined = vectors.size ? (t) => vectors.get(t) : undefined;
     const df = documentFrequency(strays);
     for (const item of strays) {
-      const ranked = folders.map((f) => ({ id: f.id, score: scoreItem(item, f.profile, df, null, lookup).score })).sort((a, b) => b.score - a.score);
+      const ranked = folders.map((f) => ({ id: f.id, ...scoreItem(item, f.profile, df, null, lookup) })).sort((a, b) => b.score - a.score);
       const [best, next] = ranked;
       if (best.score < SURE || (next && best.score < next.score * HOME_MARGIN)) continue;
+      // A video joins a work folder only with real evidence (shared words, the folder's group), else it's a break.
+      if (isBreakItem(item) && !hasProof(best.why)) continue;
       homes.set(best.id, [...(homes.get(best.id) ?? []), item]);
     }
     return homes;

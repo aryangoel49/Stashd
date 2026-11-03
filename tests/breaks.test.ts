@@ -42,3 +42,30 @@ describe('the unused-things nudge', () => {
     expect(dormantApps(['Preview', 'Google Chrome', 'Spotify', 'Claude', 'Notes'], last, ['Spotify'], now)).toEqual(['Preview', 'Google Chrome']);
   });
 });
+
+describe('which videos are work', () => {
+  const grant: Item = { key: 'doc:/x/Grant budget.docx', kind: 'doc', label: 'Grant budget.docx', detail: '', app: 'Microsoft Word', path: '/x/Grant budget.docx' };
+  const clip = t('https://www.youtube.com/watch?v=Qt', '(182) Stop Sending Clips... - YouTube');
+  // A meaning model that (wrongly) says the clip sounds like the grant.
+  const vec = (x: number) => [x, Math.sqrt(1 - x * x)];
+  const lookup = (text: string) => (/clips/i.test(text) ? vec(1) : /grant/i.test(text) ? vec(0.9) : vec(0));
+
+  it('"sounds similar" alone does not make a video work', () => {
+    const r = classify({ items: [grant, clip], job: job('Grant application'), previous: [grant], name: 'Grant application', settings: DEFAULT_SETTINGS, meaning: lookup });
+    expect(r.breaks).toEqual([clip]);
+  });
+
+  it('a video in the folder\'s tab group is work', () => {
+    const inGroup = { ...clip, group: 'Grant application' };
+    const r = classify({ items: [grant, inGroup], job: job('Grant application'), previous: [grant], name: 'Grant application', settings: DEFAULT_SETTINGS });
+    expect(r.sure).toContain(inGroup);
+    expect(r.breaks).toEqual([]);
+  });
+
+  it('a video that shares the project\'s words is work', () => {
+    const talk = t('https://www.youtube.com/watch?v=g1', 'How to write a winning grant budget - YouTube');
+    const r = classify({ items: [grant, talk], job: job('Grant application'), previous: [grant], name: 'Grant application', settings: DEFAULT_SETTINGS });
+    expect([...r.sure, ...r.likely]).toContain(talk);
+    expect(r.breaks).toEqual([]);
+  });
+});
