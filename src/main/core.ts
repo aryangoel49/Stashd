@@ -67,6 +67,15 @@ export interface TidyAllPlan {
   loose: number;
 }
 
+/** Tidy all quits every app except these: Claude (you work with it alongside everything), Finder and Stashd. */
+const KEEP_RUNNING = ['Claude', 'Finder', 'Stashd', 'Electron'];
+
+/** After Tidy all has closed things, the apps still running that should quit. Each quits like ⌘Q, so unsaved work still asks. */
+export function appsToQuit(running: string[]): string[] {
+  const keep = new Set(KEEP_RUNNING.map((a) => a.toLowerCase()));
+  return running.filter((a) => !keep.has(a.toLowerCase()));
+}
+
 /**
  * A stray tab joins a folder only when it clearly belongs: a sure match, and clearly a better match
  * than for any other folder. Otherwise it's left out.

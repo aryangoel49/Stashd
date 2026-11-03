@@ -369,3 +369,10 @@ describe('Tidy all', () => {
     expect(await core.store.entryIds(first.jobId)).toHaveLength(1);
   });
 });
+
+describe('Tidy all quits apps', () => {
+  it('quits every app except Claude, Finder and Stashd', async () => {
+    const { appsToQuit } = await import('../src/main/core');
+    expect(appsToQuit(['Finder', 'Claude', 'Notes', 'Phone', 'Google Chrome', 'Spotify', 'Stashd'])).toEqual(['Notes', 'Phone', 'Google Chrome', 'Spotify']);
+  });
+});

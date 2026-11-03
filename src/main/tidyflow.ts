@@ -6,7 +6,7 @@ import path from 'node:path';
 import { screen, type Rectangle } from 'electron';
 import type { FlyItem, Item, NamingRequest, OverlayPlay, Route, ToastInfo } from '../shared/types';
 import { CHAT_APPS } from './capture';
-import type { Core } from './core';
+import { appsToQuit, type Core } from './core';
 import { iconSource } from './icons';
 import { openItems } from './open';
 import { canName, cleanFileName, closeItems, freePath, saveUntitled, suggestedFileName } from './tidy';
@@ -73,16 +73,25 @@ export class TidyFlow {
         // The apps of the folders it packed go too, like Pack up: quit (asking about unsaved work),
         // Claude and ChatGPT only hidden. Apps that belong to no folder are left alone.
         const apps = saved.flatMap((e) => e.items.filter((i) => i.kind === 'app' && !i.notOpen));
-        if (!items.length && !apps.length) {
-          this.toast({ title: 'Already tidy', detail: 'Nothing to close.', canUndo: false, mood: 'awake' });
-          return;
-        }
+
         const animation = this.play([...items, ...apps], false);
         await wait(120);
         const [{ closed }, doneNames] = await Promise.all([closeItems(items, this.urlOptions()), this.quitOrHide(apps)]);
         const done = new Set(doneNames.map((n) => n.toLowerCase()));
         closed.push(...apps.filter((a) => done.has(a.app.toLowerCase())));
+        // Then every other app except Claude (only Tidy all does this; Pack up quits just the folder's apps).
+        // Each quits like ⌘Q, so anything unsaved still asks first.
+        const win = await Promise.resolve().then(() => this.core.helper.windows()).catch(() => null);
+        if (win) {
+          const others = appsToQuit(win.apps.map((a) => a.name).filter((n) => !done.has(n.toLowerCase())));
+          const quit = new Set((await this.core.helper.quitApps(others).catch(() => [] as string[])).map((n) => n.toLowerCase()));
+          closed.push(...others.filter((n) => quit.has(n.toLowerCase())).map((n): Item => ({ key: `app:${n}`, kind: 'app', label: n, detail: '', app: n })));
+        }
         await animation;
+        if (!closed.length) {
+          this.toast({ title: 'Already tidy', detail: 'Nothing to close.', canUndo: false, mood: 'awake' });
+          return;
+        }
         this.setUndo(closed, null);
         await this.core.rememberTidied(closed);
         const filed = plan.filed.reduce((n, f) => n + f.count, 0);
