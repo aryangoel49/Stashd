@@ -233,6 +233,8 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .demo-cap { margin-top: 18px; background: #1c1d22; color: #fffdf6; border-radius: 20px; padding: 16px 20px 14px; box-shadow: 0 22px 44px -24px rgba(28,29,34,0.7); }
 /* The four steps as one progress bar: a label over each segment, done ones filled, the current one filling. */
 .cap-track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.cap-track b { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-right: 5px; border-radius: 50%; font: 700 10px/1 var(--body); background: rgba(255,253,246,0.14); color: rgba(255,253,246,0.7); vertical-align: 1px; transition: background 0.25s, color 0.25s; }
+.cap-track .done b, .cap-track .on b { background: var(--butter); color: #1c1d22; }
 .cap-track span { font: 600 12.5px var(--body); color: rgba(255,253,246,0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.25s; }
 .cap-track span::after { content: ""; display: block; height: 3px; margin-top: 6px; border-radius: 2px; background: linear-gradient(var(--butter), var(--butter)) 0 0 / 0% 100% no-repeat, rgba(255,253,246,0.16); transition: background-size 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
 .cap-track .done, .cap-track .on { color: #fffdf6; }
@@ -405,30 +407,35 @@ section { padding-block: 112px; }
 .big-brief .rows dt { font-size: 13.5px; }
 .big-brief .rows > div { transition: opacity 0.45s, transform 0.55s var(--ease); }
 .js .big-brief:not(.played) .rows > div { opacity: 0; transform: translateY(8px); }
-.chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 8px 14px; font-size: 15px; border: 1px solid #dcd3b5; color: var(--ink); background: #fff; cursor: pointer; transition: background 0.2s, border-color 0.2s, transform 0.16s var(--ease-out); }
-.chip:active { transform: scale(0.96); }
-.chip[aria-pressed="true"] { background: var(--butter); border-color: var(--butter); }
-.olist { display: grid; gap: 6px; margin-top: 16px; }
-.orow { display: flex; align-items: center; gap: 10px; width: 100%; font-size: 15px; padding: 9px 12px; border-radius: 12px; background: #fff; border: 1px solid #eee8d5; color: var(--ink); text-align: left; cursor: pointer; transition: opacity 0.3s, border-color 0.2s; }
-.orow:hover { border-color: #e2d29a; }
-.orow .ck { width: 18px; height: 18px; border-radius: 50%; background: var(--butter); display: grid; place-items: center; flex: none; transition: background 0.2s, box-shadow 0.2s; }
-.orow .ck svg { width: 10px; height: 10px; transition: opacity 0.2s; }
-.orow.off { opacity: 0.4; }
-.orow.off .ck { background: none; box-shadow: inset 0 0 0 1.5px #c9c3b2; }
-.orow.off .ck svg { opacity: 0; }
-.orow small { margin-left: auto; color: var(--ink-soft); font-size: 13px; }
 .ofoot { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; gap: 12px; }
 .ofoot .count { font-size: 15px; color: var(--ink-soft); }
-.chatwin { display: grid; grid-template-columns: 180px 1fr; border-radius: 18px; overflow: hidden; background: #f5f4ef; border: 1px solid #e7e2d2; min-height: 260px; }
-.chatside { background: #ecebe4; padding: 12px 8px; display: grid; align-content: start; gap: 4px; position: relative; }
-.chatside .h { font-size: 12px; font-weight: 600; color: #8a887e; padding: 4px 10px 8px; }
-.citem { font-size: 13.5px; padding: 7px 10px; border-radius: 8px; position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.chatside .hl { position: absolute; left: 8px; right: 8px; height: 33px; border-radius: 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: top 0.6s var(--ease); top: 36px; }
-.chatmain { padding: 16px 18px; display: grid; align-content: start; gap: 10px; background: #faf9f5; }
-.chatmain .title { font-weight: 700; font-size: 14px; }
-.bubble { background: #fff; border: 1px solid #ece9df; border-radius: 12px; padding: 9px 12px; font-size: 13.5px; max-width: 92%; transition: opacity 0.4s; }
-.bubble.me { justify-self: end; background: #f2efe6; }
+/* Tidy all: each open thing shows where it goes, then the sorted ones slide away. */
+.ic-pdf { background: linear-gradient(160deg, #e5534b, #b3261e); font-size: 7px !important; font-weight: 800; }
+.tidy-panel .trow .tag { color: transparent; }
+.tidy-panel.sorting .trow { transition-delay: calc(var(--i) * 160ms); }
+.tidy-panel.sorting .trow .tag { transition-delay: calc(var(--i) * 160ms); }
+.tidy-panel.sorting .trow[data-go="trip"], .tidy-panel.sorting .trow[data-go="essay"] { background: var(--cream); border-color: #e9d27f; }
+.tidy-panel.sorting .trow[data-go="trip"] .tag, .tidy-panel.sorting .trow[data-go="essay"] .tag { color: #8a6a00; }
+.tidy-panel.sorting .trow[data-go="close"] .tag, .tidy-panel.sorting .trow[data-go="stay"] .tag { color: var(--ink-soft); }
+.tidy-panel.gone .trow:not([data-go="stay"]) { opacity: 0; transform: translateX(24px) scale(0.98); }
+.tidy-panel.gone .trow { transition-delay: calc(var(--i) * 70ms); }
+/* Looks like the Claude app: cream window, sidebar of chats, your message in a soft bubble, Claude's reply
+   in plain serif under its orange mark, and the reply box at the bottom. */
+.chatwin { display: grid; grid-template-columns: 180px 1fr; border-radius: 16px; overflow: hidden; background: #faf9f5; border: 1px solid #e8e4d8; min-height: 300px; box-shadow: 0 24px 60px -30px rgba(28,29,34,0.35); }
+.chatside { background: #f3f1ea; border-right: 1px solid #e8e4d8; padding: 12px 8px; display: grid; align-content: start; gap: 2px; position: relative; }
+.chatside .brandrow { display: flex; align-items: center; gap: 7px; padding: 2px 10px 12px; font: 600 15px Georgia, "Times New Roman", serif; color: #3d3929; }
+.spark { color: #d97757; font: 700 16px/1 var(--body); }
+.chatside .h { font-size: 11.5px; font-weight: 600; color: #8a887e; padding: 4px 10px 6px; }
+.citem { font-size: 13px; color: #3d3929; padding: 7px 10px; border-radius: 8px; position: relative; z-index: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chatside .hl { position: absolute; left: 8px; right: 8px; height: 31px; border-radius: 8px; background: #e8e5db; transition: top 0.6s var(--ease); top: 36px; }
+.chatmain { padding: 14px 20px 14px; display: flex; flex-direction: column; gap: 14px; }
+.chatmain .title { font-size: 13.5px; font-weight: 600; color: #3d3929; text-align: center; padding-bottom: 10px; border-bottom: 1px solid #ece8dd; }
+.bubble { font-size: 14px; transition: opacity 0.4s; color: #3d3929; }
+.bubble.me { align-self: flex-end; max-width: 85%; background: #ede9de; border-radius: 14px; padding: 9px 13px; }
+.bubble.ai { font: 15px/1.55 Georgia, "Times New Roman", serif; max-width: 95%; }
+.bubble.ai::before { content: "✳"; display: block; color: #d97757; font: 700 15px/1 var(--body); margin-bottom: 6px; }
+.composer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; border: 1px solid #e3ded1; border-radius: 14px; background: #fff; padding: 10px 10px 10px 14px; font-size: 13.5px; color: #a3a091; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+.composer i { width: 26px; height: 26px; border-radius: 8px; background: #d97757; display: grid; place-items: center; color: #fff; font: 700 13px/1 var(--body); font-style: normal; }
 .chatcap { margin-top: 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-soft); }
 .chatcap .folder { width: 24px; height: 24px; }
 
@@ -596,11 +603,11 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
           <button class="mp-back" type="button" id="mpBack">‹ Folders</button>
           <div class="mp-title">Japan trip</div>
           <div class="mp-time">Sun 10:12 pm · just now</div>
-          <p class="mp-head2">Planning your 10-day trip to Japan.</p>
+          <p class="mp-head2">Planning a trip to Japan.</p>
           <dl class="mp-rows">
-            <div><dt>Last on</dt><dd>Ryokan options in Kyoto.</dd></div>
+            <div><dt>Last on</dt><dd>Hotels in Kyoto.</dd></div>
             <div><dt>So far</dt><dd>Flights picked, Rail Pass in the cart.</dd></div>
-            <div class="next"><dt>Next</dt><dd>Book the Kyoto ryokan this week.</dd></div>
+            <div class="next"><dt>Next</dt><dd>Book the hotel this week.</dd></div>
           </dl>
           <div class="mp-kinds" id="mpKinds"></div>
           <div class="mp-acts"><button class="sbtn main" type="button" id="mpUnpack">Unpack</button><button class="sbtn" type="button" id="mpAll">Open everything</button></div>
@@ -611,8 +618,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       <p id="note" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></p>
     </div>
     <div class="demo-cap" id="demoCap">
-      <div class="cap-track" id="capTrack" role="img" aria-label="Step 1 of 4: Stash"><span class="on">Stash</span><span>Pack up</span><span>Open</span><span>Unpack</span></div>
-      <p class="cap-text" id="capText">You're planning a trip to Japan, with a basketball game open too. Press ⌃S to stash the trip.</p>
+      <div class="cap-track" id="capTrack" role="img" aria-label="Step 1 of 4: Stash"><span class="on"><b>1</b>Stash</span><span><b>2</b>Pack up</span><span><b>3</b>Open</span><span><b>4</b>Unpack</span></div>
+      <p class="cap-text" id="capText">Planning a trip, with a basketball game open too. Press ⌃S.</p>
       <div class="cap-ctrl"><button type="button" class="cap-btn" id="autoBtn">▶ Play</button><span>or try it yourself</span></div>
     </div>
     </div>
@@ -652,7 +659,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     <div class="wrap chapter">
       <div class="copy reveal">
         <h2>It knows what goes together.</h2>
-        <p>You're planning a trip to Japan, with a basketball game and your inbox open on the side. Press ⌃S and Stashd picks out the flights, the ryokan, the rail pass and your itinerary, because it understands what each one is about. The game and your inbox stay open.</p>
+        <p>You're planning a trip to Japan, with a basketball game and your inbox open on the side. Press ⌃S and Stashd picks out the flights, the hotel, the train pass and your plan, because it understands what each one is about. The basketball game and your inbox stay open.</p>
         <p class="eg">It learns as you go: leave something out twice and it remembers. All of this runs on your Mac.</p>
       </div>
       <div class="panel reveal" style="--d:120ms">
@@ -660,7 +667,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
         <div class="tablist" id="tablist">
           <div class="trow in" style="--i:0"><span class="ic ic-chrome"></span><span class="t">Flights to Tokyo · Google Flights</span><span class="tag">Goes in</span></div>
           <div class="trow no" style="--i:1"><span class="ic ic-chrome"></span><span class="t">Warriors vs Lakers · ESPN</span><span class="tag">Stays open</span></div>
-          <div class="trow in" style="--i:2"><span class="ic ic-chrome"></span><span class="t">Ryokans in Kyoto · Booking.com</span><span class="tag">Goes in</span></div>
+          <div class="trow in" style="--i:2"><span class="ic ic-chrome"></span><span class="t">Hotels in Kyoto · Booking.com</span><span class="tag">Goes in</span></div>
           <div class="trow no" style="--i:3"><span class="ic ic-chrome"></span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
           <div class="trow in" style="--i:4"><span class="ic ic-chrome"></span><span class="t">Japan Rail Pass · 7-day</span><span class="tag">Goes in</span></div>
           <div class="trow in" style="--i:5"><span class="ic ic-word">W</span><span class="t">Japan itinerary.docx</span><span class="tag">Goes in</span></div>
@@ -676,36 +683,32 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
         <p class="eg">Written by Apple Intelligence on your Mac, or by Claude with your own key.</p>
       </div>
       <div class="panel big-brief reveal" style="--d:120ms" id="bigBrief">
-        <div class="head"><span data-folder="tile" id="briefFolder"></span><div><div class="name">Japan trip · 6 days ago</div><h3>Planning your 10-day trip to Japan.</h3></div></div>
+        <div class="head"><span data-folder="tile" id="briefFolder"></span><div><div class="name">Japan trip · 6 days ago</div><h3>Planning a trip to Japan.</h3></div></div>
         <dl class="rows">
-          <div><dt>Last on</dt><dd>Ryokan options in Kyoto on Booking.com.</dd></div>
-          <div><dt>So far</dt><dd>Flights picked and the Rail Pass in your cart.</dd></div>
-          <div class="next"><dt>Next</dt><dd>Book a ryokan for nights 4 to 6.</dd></div>
+          <div><dt>Last on</dt><dd>Hotels in Kyoto.</dd></div>
+          <div><dt>So far</dt><dd>Flights picked, train pass in your cart.</dd></div>
+          <div class="next"><dt>Next</dt><dd>Book the hotel.</dd></div>
         </dl>
       </div>
     </div>
 
     <div class="wrap chapter">
       <div class="copy reveal">
-        <h2>Open only what you need.</h2>
-        <p>Bring back just the files, just the tabs, or everything. Untick anything you don't want this time. Try it here.</p>
-        <p class="eg">Things open one at a time, so your screen doesn't explode.</p>
+        <h2>Tidy up at the end of the day.</h2>
+        <p>One click and everything goes where it belongs. The trip goes into Japan trip, the essay into its folder, and the basketball game just closes. Your mail stays open.</p>
+        <p class="eg">Closed something by mistake? It's in Recently closed for 10 minutes. Coming in the next update.</p>
       </div>
-      <div class="panel reveal" style="--d:120ms">
-        <div class="panel-title"><span data-folder="tile"></span>Spotify job application</div>
-        <div class="chips" role="group" aria-label="What to open">
-          <button class="chip" type="button" aria-pressed="true" data-kind="file">1 file</button>
-          <button class="chip" type="button" aria-pressed="true" data-kind="tab">3 tabs</button>
-          <button class="chip" type="button" aria-pressed="true" data-kind="chat">1 chat</button>
+      <div class="panel tidy-panel reveal" style="--d:120ms" id="tidyPanel">
+        <div class="panel-title"><span data-folder="tile" id="tidyFolder"></span>Open on your Mac</div>
+        <div class="tablist">
+          <div class="trow" data-go="trip" style="--i:0"><span class="ic ic-chrome"></span><span class="t">Flights to Tokyo · Google Flights</span><span class="tag">→ Japan trip</span></div>
+          <div class="trow" data-go="essay" style="--i:1"><span class="ic ic-word">W</span><span class="t">Climate essay.docx</span><span class="tag">→ Essay</span></div>
+          <div class="trow" data-go="trip" style="--i:2"><span class="ic ic-chrome"></span><span class="t">Hotels in Kyoto · Booking.com</span><span class="tag">→ Japan trip</span></div>
+          <div class="trow" data-go="close" style="--i:3"><span class="ic ic-chrome"></span><span class="t">Warriors vs Lakers · ESPN</span><span class="tag">Closes</span></div>
+          <div class="trow" data-go="essay" style="--i:4"><span class="ic ic-pdf">PDF</span><span class="t">Sea level study.pdf</span><span class="tag">→ Essay</span></div>
+          <div class="trow" data-go="stay" style="--i:5"><span class="ic ic-chrome"></span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
         </div>
-        <div class="olist" id="olist">
-          <button class="orow" type="button" data-kind="file"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>Resume 2026.pdf<small>Preview</small></button>
-          <button class="orow" type="button" data-kind="tab"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>Product Designer · Spotify Jobs<small>lifeatspotify.com</small></button>
-          <button class="orow" type="button" data-kind="tab"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>Spotify reviews · Glassdoor<small>glassdoor.com</small></button>
-          <button class="orow" type="button" data-kind="tab"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>Your portfolio · Notion<small>notion.so</small></button>
-          <button class="orow" type="button" data-kind="chat"><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg></span>Cover letter for Spotify<small>Claude chat</small></button>
-        </div>
-        <div class="ofoot"><span class="count" id="ocount">5 things will open</span><button class="btn btn-main btn-small" type="button" id="ounpack">Unpack</button></div>
+        <div class="ofoot"><span class="count" id="tidyCount">6 things open</span><button class="btn btn-main btn-small" type="button" id="tidyBtn">Tidy all</button></div>
       </div>
     </div>
 
@@ -716,7 +719,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       </div>
       <div class="reveal" style="--d:120ms">
         <div class="chatwin" id="chatwin">
-          <div class="chatside"><div class="h">Recents</div><span class="hl" id="chatHl"></span>
+          <div class="chatside"><div class="brandrow"><span class="spark">✳</span>Claude</div><div class="h">Recents</div><span class="hl" id="chatHl"></span>
             <div class="citem">Weeknight pasta ideas</div>
             <div class="citem">Explain compound interest</div>
             <div class="citem">Fix my Excel formula</div>
@@ -726,7 +729,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
           <div class="chatmain">
             <div class="title" id="chatTitle">Weeknight pasta ideas</div>
             <div class="bubble me" id="chatQ">What can I make with spinach and feta?</div>
-            <div class="bubble" id="chatA">Try a spinach and feta orzo. It takes about 20 minutes.</div>
+            <div class="bubble ai" id="chatA">Try a spinach and feta orzo. It takes about 20 minutes.</div>
+            <div class="composer">Reply to Claude…<i>↑</i></div>
           </div>
         </div>
         <div class="chatcap"><span data-folder="tile" id="chatFolder"></span><span id="chatCapText">Unpacking "Spotify job application"…</span></div>
@@ -867,14 +871,14 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   // ---------- the hero demo: planning a trip to Japan, step for step like the real app ----------
   const TABS = [
     { id: 'flights', title: 'Flights to Tokyo · Google Flights', url: 'google.com/travel/flights?q=SFO+to+HND+Apr+3', fav: ['#4285f4', 'G'], go: true },
-    { id: 'booking', title: 'Ryokans in Kyoto · Booking.com', url: 'booking.com/searchresults.html?ss=Kyoto&nflt=ht_id=209', fav: ['#003b95', 'B'], go: true },
+    { id: 'booking', title: 'Hotels in Kyoto · Booking.com', url: 'booking.com/searchresults.html?ss=Kyoto&nflt=ht_id=209', fav: ['#003b95', 'B'], go: true },
     { id: 'jr', title: 'Japan Rail Pass · 7-day', url: 'japanrailpass.net/en/purchase', fav: ['#1a7f4b', 'J'], go: true },
     { id: 'reddit', title: 'r/JapanTravel · 10 day itinerary check', url: 'reddit.com/r/JapanTravel/comments/10_day_itinerary', fav: ['#ff4500', 'r'], go: true },
     { id: 'espn', title: 'Warriors vs Lakers · ESPN', url: 'espn.com/nba/game/_/gameId/401704112', fav: ['#d50a0a', 'E'], go: false },
   ];
   const PAGES = {
     flights: '<div class="pg flights"><h4>San Francisco to Tokyo</h4><span class="meta">Thu, Apr 3 · 1 adult · Economy</span><div class="row"><span>ANA · Nonstop · 11h 20m</span><span class="price">$842</span></div><div class="row"><span>JAL · Nonstop · 11h 05m</span><span class="price">$899</span></div><div class="row"><span>United · 1 stop · 14h 40m</span><span class="price">$711</span></div></div>',
-    booking: '<div class="pg booking"><div class="img"></div><div><h4>Ryokan Sanga, Gion</h4><span class="meta">Kyoto · Traditional inn · Breakfast included</span><div style="margin:8px 0"><span class="score">9.1</span> <b>Wonderful</b> · 1,284 reviews</div><span class="meta">Apr 6 to Apr 9 · 3 nights · <b style="color:#111">¥96,000</b></span></div></div>',
+    booking: '<div class="pg booking"><div class="img"></div><div><h4>Hotel Gion, Kyoto</h4><span class="meta">Kyoto · Breakfast included</span><div style="margin:8px 0"><span class="score">9.1</span> <b>Wonderful</b> · 1,284 reviews</div><span class="meta">Apr 6 to Apr 9 · 3 nights · <b style="color:#111">¥96,000</b></span></div></div>',
     jr: '<div class="pg jr"><h4>Japan Rail Pass</h4><span class="meta">Unlimited JR trains, including most shinkansen</span><div class="pass"><b>7-day pass · ¥50,000</b><br>In your cart · Starts Apr 5</div></div>',
     reddit: '<div class="pg reddit"><div class="post"><b>10 days: Tokyo, Hakone, Kyoto, Osaka. Too much?</b><span class="meta">r/JapanTravel · 214 comments</span><div class="c">Do Hakone on your way to Kyoto, not as a day trip.</div><div class="c">Two nights in Osaka is plenty. Give Kyoto the extra day.</div></div></div>',
     espn: '<div class="pg espn"><h4>NBA · Final</h4><div class="game"><span>Warriors</span><span>118</span></div><div class="game"><span>Lakers</span><span>112</span></div><span class="meta">Curry 34 PTS · 7 AST</span></div>',
@@ -921,7 +925,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const packables = () => [...mac.querySelectorAll('[data-pack]')];
 
   async function typeNote() {
-    const el = $('sbNote'), text = 'book the Kyoto ryokan this week', run = ++typing;
+    const el = $('sbNote'), text = 'book the hotel this week', run = ++typing;
     el.innerHTML = '<span class="ph">Note for later, like “need 2 more sources”</span>';
     await wait(700);
     for (let i = 1; i <= text.length; i++) {
@@ -934,14 +938,14 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     if (state !== 'open') return;
     state = 'asking';
     nudge.classList.add('off'); demo.classList.remove('pulse');
-    $('goingIn').innerHTML = [rpill('tab', 'Flights to Tokyo · Google Flights'), rpill('tab', 'Ryokans in Kyoto · Booking.com'), rpill('tab', 'Japan Rail Pass · 7-day'), rpill('tab', 'r/JapanTravel · 10 day itinerary'), rpill('doc', 'Japan itinerary'), rpill('chat', '10 days in Japan: what order?')].join('');
+    $('goingIn').innerHTML = [rpill('tab', 'Flights to Tokyo · Google Flights'), rpill('tab', 'Hotels in Kyoto · Booking.com'), rpill('tab', 'Japan Rail Pass · 7-day'), rpill('tab', 'r/JapanTravel · 10 day itinerary'), rpill('doc', 'Japan itinerary'), rpill('chat', '10 days in Japan: what order?')].join('');
     $('leftOut').innerHTML = rpill('tab', 'Warriors vs Lakers · ESPN', true);
     [...box.querySelectorAll('.rpill')].forEach((p, i) => { p.classList.add('pop'); p.style.animationDelay = `${100 + i * 40}ms`; });
     scrim.classList.add('on'); box.classList.add('on');
     held.add(heroF); held.add(sbF);
     lookAtEl(heroF, box); wide(sbF);
     setTimeout(() => lookAtEl(sbF, $('leftOut')), 700);
-    step(1, 'Pack up ↵', 'Stashd picked the 6 things for your trip and left the basketball game out. Now press Pack up.');
+    step(1, 'Pack up ↵', 'It picked only the trip, not the basketball game. Press Pack up.');
     typeNote();
   }
   function cancel() {
@@ -988,7 +992,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     sleep(heroF, true);
     state = 'packed';
     tray.classList.add('call');
-    step(2, 'Open the folder', 'The trip flew into the menu bar and the folder went to sleep. Your screen is clear. Later, click the folder up top.');
+    step(2, 'Open the folder', 'All put away. Later, click the folder up top.');
     setTimeout(() => toast.classList.remove('on'), 3400);
   }
   // Clicking the menu bar folder opens the panel with your folders, like the real menu.
@@ -999,14 +1003,14 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     $('mpList').hidden = false; $('mpBrief').hidden = true;
     panel.classList.add('on');
     sleep(heroF, false); lookAtEl(heroF, panel);
-    step(2, 'Open Japan trip', 'Your folders live in the menu bar. Open "Japan trip".');
+    step(2, 'Open Japan trip', 'Pick "Japan trip".');
   }
   function openBrief() {
     if (state !== 'list') return;
     state = 'brief';
     $('mpKinds').innerHTML = [rpill('tab', '4 tabs'), rpill('doc', '1 file'), rpill('chat', '1 chat')].join('');
     $('mpList').hidden = true; $('mpBrief').hidden = false;
-    step(3, 'Unpack', 'A short note says where you stopped and what is next. Press Unpack.');
+    step(3, 'Unpack', 'A note says where you stopped. Press Unpack.');
   }
   async function unpack() {
     if (state !== 'brief' && state !== 'packed') return;
@@ -1027,7 +1031,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     show('booking');
     smile(heroF); held.clear();
     state = 'open';
-    step(0, 'Press ⌃S', 'Everything came back, one at a time, right where you left it. That is all Stashd does.');
+    step(0, 'Press ⌃S', 'Everything is back, right where you left it.');
   }
   const next = () => ({ open: stash, asking: packUp, packed: openPanel, list: openBrief, brief: unpack }[state] || (() => {}))();
 
@@ -1143,22 +1147,19 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const bigBrief = $('bigBrief');
   [...bigBrief.querySelectorAll('.rows > div')].forEach((d, i) => (d.style.transitionDelay = `${300 + i * 260}ms`));
   whenSeen(bigBrief, () => { bigBrief.classList.add('played'); wide($('briefFolder')); });
-  // Chapter 3: open by type, with single items too.
-  const olist = $('olist'), chips = [...document.querySelectorAll('.chip')];
-  const countOpen = () => {
-    const n = olist.querySelectorAll('.orow:not(.off)').length;
-    $('ocount').textContent = n ? `${n} ${n === 1 ? 'thing' : 'things'} will open` : 'Tick something to open';
-    $('ounpack').textContent = n === 5 ? 'Unpack' : `Unpack ${n}`;
-    chips.forEach((c) => c.setAttribute('aria-pressed', [...olist.querySelectorAll(`.orow[data-kind="${c.dataset.kind}"]`)].some((r) => !r.classList.contains('off')) ? 'true' : 'false'));
+  // Chapter 3: Tidy all sorts what's open, then the sorted things slide away.
+  const tidyP = $('tidyPanel');
+  const playTidy = async () => {
+    tidyP.classList.remove('sorting', 'gone'); $('tidyCount').textContent = '6 things open';
+    await wait(300);
+    tidyP.classList.add('sorting');
+    await wait(6 * 160 + 900);
+    tidyP.classList.add('gone');
+    $('tidyCount').textContent = '2 folders saved, 1 closed. Gmail stays.';
+    smile($('tidyFolder'), 1600);
   };
-  chips.forEach((c) => c.addEventListener('click', () => {
-    const rows = [...olist.querySelectorAll(`.orow[data-kind="${c.dataset.kind}"]`)];
-    const on = rows.some((r) => !r.classList.contains('off'));
-    rows.forEach((r) => r.classList.toggle('off', on));
-    countOpen();
-  }));
-  olist.querySelectorAll('.orow').forEach((r) => r.addEventListener('click', () => { r.classList.toggle('off'); countOpen(); }));
-  $('ounpack').addEventListener('click', () => { replay($('ounpack'), 'hop'); });
+  whenSeen(tidyP, playTidy);
+  $('tidyBtn').addEventListener('click', () => { replay($('tidyBtn'), 'hop'); playTidy(); });
   // Chapter 4: Stashd jumps to the exact chat.
   const hl = $('chatHl'), citems = [...document.querySelectorAll('.citem')], chatF = $('chatFolder');
   const placeHl = (i) => { hl.style.top = `${citems[i].offsetTop}px`; };
