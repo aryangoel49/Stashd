@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Stashd · Put your work to bed</title>
-<meta name="description" content="Stashd is a Mac menu bar app. Press Control-S to put away the tabs, files and apps for what you're working on. Open the folder later and it all comes back.">
+<meta name="description" content="Stashd is a Mac menu bar app that works out which tabs, files, apps and chats belong to the project you're on. Press Control-S to put them away together, and bring them back later with a note on where you stopped.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta property="og:title" content="Stashd · Put your work to bed">
 <meta property="og:description" content="Press Control-S. Your tabs, files and apps go into a folder in the menu bar. Open it later and everything comes back.">
@@ -92,6 +92,11 @@ p { margin: 0; }
 .hero-mascot { width: 88px; height: 88px; margin-bottom: 28px; cursor: pointer; }
 .hero-mascot .folder { width: 88px; height: 88px; filter: drop-shadow(0 10px 18px rgba(214,170,40,0.35)); }
 .hero h1 { font-size: clamp(50px, 5.6vw, 78px); line-height: 0.95; font-weight: 800; }
+/* The key in the headline looks like the key you press. */
+.h1-key { display: inline-block; font-size: 0.78em; padding: 0.02em 0.2em 0.06em; border-radius: 0.2em; background: #fff; border: 2px solid var(--line); border-bottom-width: 6px; transform: translateY(-0.06em); }
+.all-feats { padding-block: 8px 24px; }
+.all-feats a { display: inline-flex; font: 600 18px var(--body); color: var(--ink); text-decoration: none; border-bottom: 2px solid var(--butter); padding-bottom: 2px; }
+.all-feats a:hover { border-color: var(--butter-deep); }
 .hero .lede { margin-top: 24px; font-size: 21px; color: var(--ink-soft); max-width: 30ch; }
 .hero-cta { margin-top: 32px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .small { font-size: 15px; color: var(--ink-soft); }
@@ -469,7 +474,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   <a class="brand" href="#top" aria-label="Stashd home"><span data-folder="tile"></span>Stashd</a>
   <nav class="nav-links" aria-label="Main">
     <a href="#how">How it works</a>
-    <a href="#features">What it knows</a>
+    <a href="features.html">Features</a>
     <a href="#privacy">Privacy</a>
     <a href="download.html">Install guide</a>
     <a href="https://github.com/aryangoel49/Stashd">GitHub</a>
@@ -481,8 +486,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   <div class="wrap hero">
     <div>
       <div class="hero-mascot" id="heroMascot" title="Hello"><span data-folder="tile"></span></div>
-      <h1>Put your work to bed.</h1>
-      <p class="lede">Press <kbd>⌃S</kbd> and Stashd puts the tabs, files and apps for what you're working on into a folder in your menu bar. Open it later and everything comes back.</p>
+      <h1>Press <span class="h1-key">⌃S</span>. Your project packs itself.</h1>
+      <p class="lede">Stashd looks at the tabs, files, apps and chats open on your Mac and works out which ones belong to what you're doing. One key puts them away together. Later, it brings them all back with a note on where you stopped.</p>
       <div class="hero-cta">
         <a class="btn btn-main" data-smile href="download.html?start">
           <svg class="apple" viewBox="0 0 16 19" aria-hidden="true"><path fill="currentColor" d="M13.2 10.1c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3.7 4.8 2.2 5.7 1.4 7.2c-1.6 2.8-.4 6.9 1.1 9.2.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2-1.1 2.8-2.2.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.3-.9-2.3-3.8zM10.9 3.1c.6-.8 1.1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1.1.1 2.1-.5 2.8-1.3z"/></svg>
@@ -577,7 +582,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
         <div class="three-copy">
           <p class="three-kicker">That's the whole app.</p>
           <h2>Just three steps.<br>Two of them are one key.</h2>
-          <p>No setup, no folders to organise, nothing to learn. Stashd sits in your menu bar and remembers your work for you.</p>
+          <p>You never make a folder or drag anything into one. Stashd reads what's open and sorts it for you, right on your Mac.</p>
         </div>
       </div>
       <div class="steps">
@@ -600,9 +605,9 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   <div id="features">
     <div class="wrap chapter">
       <div class="copy reveal">
-        <h2>Only your project goes in.</h2>
-        <p>Say you're planning a trip to Japan, with a basketball game and your email open on the side. Press ⌃S and only the trip goes into the folder. The rest stays where it is.</p>
-        <p class="eg">No setup. Stashd works it out on your Mac.</p>
+        <h2>It knows what goes together.</h2>
+        <p>You're planning a trip to Japan, with a basketball game and your inbox open on the side. Press ⌃S and Stashd picks out the flights, the ryokan, the rail pass and your itinerary, because it understands what each one is about. The game and your inbox stay open.</p>
+        <p class="eg">It learns as you go: leave something out twice and it remembers. All of this runs on your Mac.</p>
       </div>
       <div class="panel reveal" style="--d:120ms">
         <div class="panel-title"><span data-folder="tile" id="sortFolder"></span><span id="sortTitle">Open on your Mac</span></div>
@@ -681,6 +686,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
         <div class="chatcap"><span data-folder="tile" id="chatFolder"></span><span id="chatCapText">Unpacking "Spotify job application"…</span></div>
       </div>
     </div>
+    <div class="wrap all-feats reveal"><a href="features.html">See everything Stashd does</a></div>
   </div>
 
   <section id="privacy">

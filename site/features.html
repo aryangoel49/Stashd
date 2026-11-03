@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stashd features</title>
+<meta name="description" content="Everything Stashd does, in plain words: it sorts your work into folders by itself, puts it away, and brings it back with a note on where you stopped.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Same look as the home page. The page reads like a well-made index: each part of the day with Stashd
+   (saving, putting away, coming back, privacy) on the left, its features listed on the right in plain
+   words. A butter sparkle marks the features where Stashd's intelligence does the work. */
+:root {
+  --paper: #fffcf3; --ink: #1c1d22; --ink-soft: #55554f; --butter: #f2cd5c; --butter-deep: #e4b93b; --cream: #fbefc6; --line: #ece3c7;
+  --card: rgba(255, 253, 246, 0.85);
+  --display: "Geist", "Helvetica Neue", system-ui, sans-serif;
+  --logo: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Hanken Grotesk", -apple-system, system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 18px/1.6 var(--body); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: inherit; }
+svg { display: block; }
+h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -0.025em; text-wrap: balance; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--butter-deep); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+.sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.sky .blob { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; opacity: 0.55; }
+.sky .b1 { background: radial-gradient(closest-side, rgba(242,205,92,0.55), rgba(242,205,92,0)); left: -18vmax; top: -22vmax; animation: d1 38s ease-in-out infinite alternate; }
+.sky .b2 { background: radial-gradient(closest-side, rgba(247,201,170,0.5), rgba(247,201,170,0)); right: -24vmax; top: 20vh; animation: d2 46s ease-in-out infinite alternate; }
+.sky .b3 { background: radial-gradient(closest-side, rgba(214,226,240,0.6), rgba(214,226,240,0)); left: 20vw; bottom: -36vmax; animation: d1 52s ease-in-out infinite alternate-reverse; }
+@keyframes d1 { to { transform: translate(14vw, 10vh) scale(1.12); } }
+@keyframes d2 { to { transform: translate(-16vw, 18vh) scale(0.92); } }
+
+.nav { display: flex; align-items: center; gap: 20px; padding-block: 18px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 22px/1 var(--logo); text-decoration: none; letter-spacing: -0.02em; }
+.brand svg { width: 34px; height: 34px; }
+.nav .links { margin-left: auto; display: flex; align-items: center; gap: 18px; font-size: 16px; }
+.nav .links a { color: var(--ink-soft); text-decoration: none; }
+.nav .links a:hover { color: var(--ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; font: 600 17px var(--body); text-decoration: none; cursor: pointer; background: var(--butter); color: var(--ink) !important; padding: 14px 22px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 6px 18px rgba(214,170,40,0.3); transition: transform 0.16s, background 0.2s; }
+.btn:hover { background: #f5d672; }
+.btn:active { transform: scale(0.97); }
+.btn.small { padding: 9px 16px; font-size: 15px; border-radius: 11px; }
+
+.top { padding-block: 44px 8px; max-width: 760px; }
+.top h1 { font-size: clamp(42px, 6.4vw, 72px); line-height: 1; font-weight: 800; }
+.top p { margin-top: 16px; font-size: 20px; color: var(--ink-soft); }
+.legend { margin-top: 18px; display: inline-flex; align-items: center; gap: 10px; font-size: 15.5px; color: var(--ink-soft); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px 6px 8px; }
+.spark { width: 22px; height: 22px; flex: none; color: #b88a00; }
+.legend .spark { width: 26px; height: 26px; padding: 4px; border-radius: 50%; background: var(--cream); }
+
+/* A part of the day: its name on the left (sticky on wide screens), the features on the right. */
+.part { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 48px; padding-block: 56px; border-top: 1px solid var(--line); }
+.part:first-of-type { margin-top: 40px; }
+.part-head { position: sticky; top: 24px; align-self: start; }
+.part-head .no { font: 800 15px var(--display); color: #9a7300; }
+.part-head h2 { font-size: clamp(28px, 3.4vw, 38px); line-height: 1.05; margin-top: 6px; }
+.part-head p { margin-top: 12px; color: var(--ink-soft); font-size: 17px; }
+.list { list-style: none; margin: 0; padding: 0; }
+.feat { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 14px; padding: 18px 0; border-bottom: 1px solid rgba(236,227,199,0.7); }
+.feat:first-child { padding-top: 4px; }
+.feat:last-child { border-bottom: 0; }
+.feat .mark { padding-top: 3px; }
+.feat .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); margin: 8px 0 0 7px; }
+.feat h3 { font-size: 21px; line-height: 1.25; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.feat p { margin-top: 4px; color: var(--ink-soft); font-size: 17px; max-width: 60ch; }
+.feat p b { color: var(--ink); font-weight: 600; }
+kbd { font: 600 0.88em var(--body); background: #fff; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 0 6px; color: var(--ink); }
+.soon { font: 600 12.5px var(--body); letter-spacing: 0; color: var(--ink-soft); background: rgba(28,29,34,0.06); border-radius: 999px; padding: 2px 9px; }
+
+.end { margin-top: 24px; background: #1c1d22; color: #fffdf6; border-radius: 28px; padding: 40px 44px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; justify-content: space-between; }
+.end h2 { font-size: clamp(28px, 4vw, 40px); }
+.end p { margin-top: 6px; color: rgba(255,253,246,0.7); }
+
+footer { margin-top: 72px; border-top: 1px solid var(--line); padding-block: 26px 40px; font-size: 15px; color: var(--ink-soft); }
+footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space-between; }
+.folder .closed, .folder .happy { opacity: 0; }
+.folder.smile .open { opacity: 0; }
+.folder.smile .happy { opacity: 1; }
+.folder .lids { transform-box: fill-box; transform-origin: 50% 60%; transition: transform 0.14s; }
+.folder.blink .lids { transform: scaleY(0.1); }
+
+@media (max-width: 800px) {
+  .part { grid-template-columns: 1fr; gap: 18px; padding-block: 40px; }
+  .part-head { position: static; }
+  .nav .links a.hide-sm { display: none; }
+  .end { padding: 30px 26px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="spark" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5l1.9 5.6a3 3 0 0 0 2 2L21.5 12l-5.6 1.9a3 3 0 0 0-2 2L12 21.5l-1.9-5.6a3 3 0 0 0-2-2L2.5 12l5.6-1.9a3 3 0 0 0 2-2z"/></symbol>
+</svg>
+
+<header class="wrap nav">
+  <a class="brand" href="./"><span data-folder></span>Stashd</a>
+  <div class="links">
+    <a class="hide-sm" href="./">Home</a>
+    <a class="hide-sm" href="download.html">Install guide</a>
+    <a class="btn small" href="download.html?start">Download</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="top">
+    <h1>Everything Stashd does.</h1>
+    <p>Stashd reads what's open on your Mac and works out which project each tab, file, app and chat belongs to. Everything below comes from that.</p>
+    <div class="legend"><svg class="spark"><use href="#spark"/></svg>Where Stashd's intelligence does the work.</div>
+  </div>
+
+  <section class="part">
+    <div class="part-head">
+      <div class="no">1</div>
+      <h2>Saving your work</h2>
+      <p>One key, and the right things go in the right folder.</p>
+    </div>
+    <ul class="list">
+      <li class="feat"><span class="mark"><svg class="spark"><use href="#spark"/></svg></span><div><h3>Press <kbd>⌃S</kbd></h3><p>Stashd reads what you have open and understands what each thing is about. It ticks only what belongs to the project you're on. The basketball game you had on the side stays out.</p></div></li>
+      <li class="feat"><span class="mark"><svg class="spark"><use href="#spark"/></svg></span><div><h3>Knows your folders</h3><p>Working on something you saved before? Stashd recognises it and adds to that folder instead of making a new one.</p></div></li>
+      <li class="feat"><span class="mark"><svg class="spark"><use href="#spark"/></svg></span><div><h3>Learns from you</h3><p>Leave something out twice and Stashd stops suggesting it. Add something twice and it's always ticked. Mail, music and messages are never packed.</p></div></li>
+      <li class="feat"><span class="mark"><span class="dot"></span></span><div><h3>The exact chat</h3><p>If you're working with Claude or ChatGPT, the chat you're in is saved with the folder, and Unpack takes you back to that same Claude chat.</p></div></li>
+      <li class="feat"><span class="mark"><span class="dot"></span></span><div><h3>A note for later</h3><p>Type a line when you save, like "book the ryokan this week". It shows up when you come back.</p></div></li>
+    </ul>
+  </section>
+
+  <section class="part">
+    <div class="part-head">
+      <div class="no">2</div>
+      <h2>Putting it away</h2>
+      <p>Your screen goes clean. Nothing is lost.</p>
+    </div>
+    <ul class="list">
+      <li class="feat"><span class="mark"><span class="dot"></span></span><div><h3>Pack up</h3><p>The folder's windows fly into the menu bar and close. The folder's apps quit like <kbd>⌘Q</kbd>, so anything unsaved still asks first.</p></div></li>
+      <li class="feat"><span class="mark"><svg class="spark"><use href="#spark"/></svg></span><div><h3>Tidy all <span class="soon">Next update</span></h3><p>One button for the end of the day. It saves the folders you're working in, adds a stray tab to a folder only when it clearly belongs there, and closes everything else.</p></div></li>
+      <li class="feat"><span class="mark"><span class="dot"></span></span><div><h3>Recently closed <span class="soon">Next update</span></h3><p>Everything Tidy all closed stays listed for 10 minutes. Reopen one thing, or all of it.</p></div></li>
+    </ul>
+  </section>
+
+  <section class="part">
+    <div class="part-head">
+      <div class="no">3</div>
+      <h2>Coming back</h2>
+      <p>Pick up where you left off, not where you think you did.</p>
+    </div>
+    <ul class="list">
+      <li class="feat"><span class="mark"><svg class="spark"><use href="#spark"/></svg></span><div><h3>A brief on where you stopped</h3><p>Each folder tells you in three short lines what you were last on, what's done and what's next. Written by Apple Intelligence on your Mac, or by Claude if you add your own key.</p></div></li>
+      <li class="feat"><span class="mark"><span class="dot"></span></span><div><h3>Unpack what you need</h3><p>Open everything, or only the files, the tabs or the chats. Untick anything you don't want this time. Something already open never opens twice.</p></div></li>
+      <li class="feat"><span class="mark"><span class="dot"></span></span><div><h3>Tabs stay together <span class="soon">Next update</span></h3><p>A folder's tabs open side by side in their own window, or in a Chrome tab group named after the folder.</p></div></li>
+      <li class="feat"><span class="mark"><span class="dot"></span></span><div><h3>Pin a folder, press <kbd>⌃O</kbd> <span class="soon">Next update</span></h3><p>Pin the project you're on, and <kbd>⌃O</kbd> opens it from anywhere. Nothing pinned? It opens the folder you used last.</p></div></li>
+      <li class="feat"><span class="mark"><svg class="spark"><use href="#spark"/></svg></span><div><h3>"You were working on this" <span class="soon">Next update</span></h3><p>Open a tab or file from a folder you packed away, and Stashd offers to bring back the rest.</p></div></li>
+    </ul>
+  </section>
+
+  <section class="part">
+    <div class="part-head">
+      <div class="no">4</div>
+      <h2>Keeping it yours</h2>
+      <p>Your work stays on your Mac.</p>
+    </div>
+    <ul class="list">
+      <li class="feat"><span class="mark"><span class="dot"></span></span><div><h3>Sorted on your Mac</h3><p>The intelligence that sorts your work runs on your Mac. Your folders are saved on your Mac too, not in a cloud.</p></div></li>
+      <li class="feat"><span class="mark"><span class="dot"></span></span><div><h3>Private windows are skipped</h3><p>Incognito and private windows are never saved, and passwords or tokens in web addresses are removed before anything is kept.</p></div></li>
+      <li class="feat"><span class="mark"><span class="dot"></span></span><div><h3>Free and open source</h3><p>Anyone can read the code on GitHub. No account, no subscription.</p></div></li>
+    </ul>
+  </section>
+
+  <div class="end">
+    <div>
+      <h2>Try it on your Mac.</h2>
+      <p>Free. Apple silicon, macOS 12 or later.</p>
+    </div>
+    <a class="btn" href="download.html?start">Download Stashd</a>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Stashd, made by Aryan Goel. Open source under MIT.</span>
+    <a href="./">Back to home</a>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const BODY = '<path d="M16 33Q16 25 24 25H37Q41 25 43.5 28.5L46.5 32H72Q80 32 80 40V70Q80 78 72 78H24Q16 78 16 70Z" fill="#FBEFC6"/><path d="M16 45Q16 39 22 39H74Q80 39 80 45V70Q80 78 72 78H24Q16 78 16 70Z" fill="#FFF"/>';
+  const EYES = '<g class="open"><g class="lids"><g class="pupils" fill="#1C1D22"><ellipse cx="37" cy="59" rx="3.6" ry="4.6"/><ellipse cx="59" cy="59" rx="3.6" ry="4.6"/></g></g></g><g class="happy" fill="none" stroke="#1C1D22" stroke-width="3" stroke-linecap="round"><path d="M32 61Q37 54 42 61"/><path d="M54 61Q59 54 64 61"/></g>';
+  document.querySelectorAll('[data-folder]').forEach((s) => {
+    s.outerHTML = `<svg class="folder" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="22" fill="#F2CD5C"/>${BODY}${EYES}</svg>`;
+  });
+  if (!reduce) document.querySelectorAll('svg.folder').forEach((f) => { const b = () => { f.classList.add('blink'); setTimeout(() => f.classList.remove('blink'), 130); setTimeout(b, 2600 + Math.random() * 3600); }; setTimeout(b, 1200); });
+})();
+</script>
+</body>
+</html>
