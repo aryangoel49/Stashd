@@ -90,7 +90,7 @@ describe('classify', () => {
 
 describe('learn', () => {
   it('counts unticks in a row and resets when ticked', () => {
-    const offered = { sure: [essay, reddit], likely: [], maybe: [jstor], hidden: [], why: {} };
+    const offered = { sure: [essay, reddit], likely: [], maybe: [jstor], hidden: [], breaks: [], why: {} };
     let prefs = learn({ hide: {}, add: {} }, offered, [essay.key, jstor.key]);
     expect(prefs.hide[reddit.key]).toBe(1);
     expect(prefs.add[jstor.key]).toBe(1);

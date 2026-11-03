@@ -312,7 +312,8 @@ describe('Tidy all', () => {
     open = [...trip, stray, mail];
     const plan = await core.tidyAll();
     expect(plan.saved.map((s) => s.name)).toContain('Japan trip');
-    expect(plan.loose).toBe(1);
+    expect(plan.loose + plan.breaks).toBe(1);
+    expect(plan.breaks).toBe(1); // the ESPN game goes on the Break shelf
     expect(plan.close.map((i) => i.key)).toEqual([stray.key]);
     expect((await core.listJobs()).map((j) => j.name)).toEqual(['Japan trip']);
     expect((await core.store.latest(first.jobId))!.items.map((i) => i.key).sort()).toEqual(trip.map((i) => i.key).sort());
@@ -334,7 +335,8 @@ describe('Tidy all', () => {
     open = [rail, random];
     const plan = await core.tidyAll();
     expect(plan.filed).toEqual([{ jobId: japan.jobId, name: 'Japan trip', count: 1 }]);
-    expect(plan.loose).toBe(1);
+    expect(plan.loose + plan.breaks).toBe(1);
+    expect(plan.breaks).toBe(1); // the ESPN game goes on the Break shelf
     expect(plan.close.map((i) => i.key).sort()).toEqual([rail.key, random.key].sort());
     expect((await core.store.latest(japan.jobId))!.items.map((i) => i.key)).toContain(rail.key);
   });

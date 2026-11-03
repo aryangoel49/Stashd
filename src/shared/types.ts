@@ -228,6 +228,8 @@ export interface SavePreview {
   /** In the job before but not open now. Kept unless you untick them. */
   kept: Item[];
   hiddenCount: number;
+  /** Break things left open (YouTube, Netflix…) because they aren't about this work. */
+  breakCount: number;
   frontKey: string | null;
   tidyUp: boolean;
   errors: CollectorError[];
@@ -314,4 +316,21 @@ export interface ToastInfo {
   mood?: 'awake' | 'sleep' | 'curious' | 'wide';
   /** A button that does something else than Undo (Unpack a folder you seem to be back on). */
   action?: string;
+}
+
+/** A place on the Break shelf you go to often (YouTube, Netflix…). */
+export interface BreakPlace {
+  name: string;
+  url: string;
+}
+
+/** Something you were watching or listening to, put on the shelf by Tidy all. */
+export type BreakItem = Item & { savedAt?: string };
+
+/** The Break shelf: what you were watching, your places, and where breaks open. */
+export interface BreakShelf {
+  items: BreakItem[];
+  places: BreakPlace[];
+  /** Where break things open: a browser, or a clean window of its own. Null until you choose. */
+  browser: BrowserName | 'window' | null;
 }

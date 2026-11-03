@@ -670,3 +670,42 @@ details summary { cursor: default; }
 .pchip button { border: none; background: none; color: var(--faint); font-size: 10px; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; padding: 0; }
 .pchip button:hover { color: var(--text); background: var(--well-hover); }
 .pchip-add .field { width: 120px; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; }
+
+/* Work / Break: a two-way switch under the panel's top bar; the pill slides to the side you pick. */
+.mode-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 3px; margin: 2px 0 10px; border-radius: 11px; background: var(--well); }
+.mode-seg button { position: relative; border: none; background: none; padding: 6px 0; border-radius: 8px; font: 600 13px var(--body, inherit); color: var(--muted); cursor: pointer; }
+.mode-seg button.on { color: var(--text); }
+.mode-pill { position: absolute; inset: 0; border-radius: 8px; background: var(--well-hover); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), inset 0 0 0 0.5px var(--hair); }
+.mode-label { position: relative; }
+
+/* The Break side. */
+.break-view { display: flex; flex-direction: column; }
+.site-tile { display: grid; place-items: center; flex: none; border-radius: 9px; font-weight: 800; line-height: 1; }
+.site-tile.add { background: var(--well); color: var(--faint); border-radius: 10px; }
+.site-tile.add svg { width: 16px; height: 16px; }
+.break-rows { display: flex; flex-direction: column; gap: 2px; }
+.break-row { display: flex; align-items: center; gap: 4px; border-radius: 14px; padding-right: 4px; transition: background 0.2s var(--ease); }
+.break-row:hover { background: var(--well); }
+.break-main { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 8px; border: none; background: none; text-align: left; color: inherit; cursor: pointer; }
+.break-title { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.break-sub { display: block; margin-top: 3px; font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.break-play { font-size: 11px; color: var(--faint); opacity: 0; transition: opacity 150ms ease-out; }
+.break-row:hover .break-play { opacity: 1; }
+.break-row .tool-btn.delete { opacity: 0; width: 0; margin-left: -4px; overflow: hidden; transition: width 160ms var(--ease-out, ease-out), opacity 120ms ease-out; }
+.break-row:hover .tool-btn.delete { opacity: 1; width: 24px; margin-left: 0; }
+.break-empty { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--well); font-size: 12.5px; color: var(--muted); }
+.place-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.place { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px 8px; border: none; border-radius: 12px; background: none; font-size: 11.5px; color: var(--muted); cursor: pointer; transition: background 0.2s var(--ease), transform var(--dur-press, 160ms) var(--ease-out, ease-out); }
+.place:hover { background: var(--well); color: var(--text); }
+.place:active { transform: scale(0.97); }
+.place-add { grid-column: span 2; display: flex; align-items: center; }
+.place-add .field { width: 100%; }
+.break-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding: 10px 4px 2px; border-top: 0.5px solid var(--hair); font-size: 12px; color: var(--faint); }
+.pick-head { padding: 4px 4px 10px; }
+.pick-title { display: block; font-size: 15px; font-weight: 600; }
+.pick-sub { display: block; margin-top: 3px; font-size: 12px; color: var(--faint); }
+.pick-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.pick-row { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 12px; border: none; background: var(--well); color: inherit; font-size: 13.5px; text-align: left; cursor: pointer; transition: background 0.2s var(--ease); }
+.pick-row:hover { background: var(--well-hover); }
+.pick-row.on { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.pick-row .i { width: 15px; height: 15px; color: var(--accent-ink); }

@@ -105,6 +105,7 @@ export class TidyFlow {
         const parts = [
           plan.saved.length ? `${plan.saved.length} ${plan.saved.length === 1 ? 'folder' : 'folders'} packed` : '',
           filed ? `${filed} ${filed === 1 ? 'tab' : 'tabs'} added to ${plan.filed.length === 1 ? shortName(plan.filed[0].name) : `${plan.filed.length} folders`}` : '',
+          plan.breaks ? `${plan.breaks} on your Break shelf` : '',
         ].filter(Boolean);
         this.toast({
           title: `Tidied up · ${closed.length} closed`,
@@ -283,6 +284,12 @@ export class TidyFlow {
   }
 
   // ---------- toast and undo ----------
+
+  /** Things have sat unused for a while: offer Tidy all. */
+  offerTidy(apps: string[]): void {
+    const names = apps.slice(0, 2).join(' and ') + (apps.length > 2 ? ` and ${apps.length - 2} more` : '');
+    this.toast({ title: 'Some things are just sitting open', detail: `${names} ${apps.length === 1 ? "hasn't" : "haven't"} been used in a while.`, canUndo: false, action: 'Tidy all', mood: 'curious' });
+  }
 
   /** Something you opened is in a packed folder: offer to bring back the rest. */
   offerUnpack(name: string, more: number): void {

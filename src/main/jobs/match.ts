@@ -5,6 +5,7 @@
 //   maybe   unticked, one click to add ("Not sure about these")
 //   hidden  not shown: everyday apps and sites, and things you keep leaving out
 
+import { isBreakItem } from '../breaks';
 import type { Item, Job, LearnedPrefs, Settings } from '../../shared/types';
 import { group, hostOf, isGeneralHost, itemTokens, jobProfile, meaningText, textTokens, type MeaningLookup } from './relevance';
 
@@ -57,6 +58,8 @@ export interface Classified {
   likely: Item[];
   maybe: Item[];
   hidden: Item[];
+  /** Watching and listening (YouTube, Netflix…) that isn't about this work: left open, never offered. */
+  breaks: Item[];
   /** Why each item was placed where it was, in plain words (for tooltips). */
   why: Record<string, string>;
 }
@@ -116,7 +119,12 @@ export function classify(input: ClassifyInput): Classified {
     leftOut: (it) => (prefs.hide[it.key] ?? 0) >= 2,
     meaning: input.meaning,
   });
-  return { sure: g.sure, likely: g.likely, maybe: g.maybe, hidden, why: g.why };
+  // Break things (a Shark Tank episode, a game score) stay out of work unless they clearly fit it:
+  // a tutorial about the project is still ticked.
+  const isBreak = (it: Item) => isBreakItem(it) && !(prefs.add[it.key] ?? 0);
+  const breaks = [...g.likely, ...g.maybe].filter(isBreak);
+  const off = new Set(breaks.map((i) => i.key));
+  return { sure: g.sure, likely: g.likely.filter((i) => !off.has(i.key)), maybe: g.maybe.filter((i) => !off.has(i.key)), hidden, breaks, why: g.why };
 }
 
 /**

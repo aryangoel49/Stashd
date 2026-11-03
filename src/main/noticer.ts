@@ -93,3 +93,52 @@ export class Noticer {
     }
   }
 }
+
+/** An app you haven't switched to in this long counts as sitting unused. */
+const DORMANT_MS = 45 * 60_000;
+/** The nudge comes at most this often. */
+const NUDGE_EVERY_MS = 3 * 60 * 60_000;
+/** Never counted as unused: they're meant to stay open. */
+const ALWAYS_OPEN = ['Finder', 'Stashd', 'Electron', 'Claude'];
+
+/**
+ * Apps with windows open that you haven't switched to for a while (a video you finished, a document you
+ * forgot). `lastFront` holds when each app was last in front; apps first seen count from then.
+ */
+export function dormantApps(withWindows: string[], lastFront: Map<string, number>, everyday: string[], now = Date.now()): string[] {
+  const skip = new Set([...ALWAYS_OPEN, ...everyday].map((a) => a.toLowerCase()));
+  return withWindows.filter((a) => !skip.has(a.toLowerCase()) && now - (lastFront.get(a) ?? now) >= DORMANT_MS);
+}
+
+/** Watches which app is in front, and nudges you to Tidy all when things sit unused. */
+export class DormantWatcher {
+  private lastFront = new Map<string, number>();
+  private nudgedAt = Date.now() - NUDGE_EVERY_MS + DORMANT_MS;
+  private timer: NodeJS.Timeout | null = null;
+
+  constructor(
+    private readonly windows: () => Promise<{ front: string | null; apps: { name: string }[]; order: string[] }>,
+    private readonly everyday: () => string[],
+    private readonly nudge: (apps: string[]) => void,
+    private readonly busy: () => boolean,
+  ) {}
+
+  start(): void {
+    this.timer ??= setInterval(() => void this.tick(), 30_000);
+  }
+
+  async tick(now = Date.now()): Promise<void> {
+    if (powerMonitor.getSystemIdleTime() > 120) return;
+    const win = await this.windows().catch(() => null);
+    if (!win) return;
+    const regular = new Set(win.apps.map((a) => a.name));
+    const open = win.order.filter((n) => regular.has(n));
+    for (const a of open) if (!this.lastFront.has(a)) this.lastFront.set(a, now);
+    if (win.front) this.lastFront.set(win.front, now);
+    if (now - this.nudgedAt < NUDGE_EVERY_MS || this.busy()) return;
+    const idle = dormantApps(open, this.lastFront, this.everyday(), now);
+    if (!idle.length) return;
+    this.nudgedAt = now;
+    this.nudge(idle);
+  }
+}

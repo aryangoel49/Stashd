@@ -125,6 +125,20 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('jobs:rename', (_e, id, name) => core.rename(v.jobId(id), v.jobName(name)));
   handle('jobs:done', (_e, id, done) => core.setDone(v.jobId(id), v.bool(done, 'done')));
   handle('jobs:pin', (_e, id, pinned) => core.setPinned(v.jobId(id), v.bool(pinned, 'pinned')));
+  handle('break:shelf', () => core.breakShelf());
+  handle('break:open', (_e, url) => core.openBreak(v.str(url, 'address', 4000)));
+  handle('break:change', (_e, change) => {
+    const c = (change ?? {}) as Record<string, unknown>;
+    const browsers = ['chrome', 'arc', 'safari', 'window'];
+    if (c.browser != null && !browsers.includes(String(c.browser))) throw new Error('bad browser');
+    const place = c.addPlace as Record<string, unknown> | undefined;
+    return core.changeBreak({
+      browser: c.browser == null ? undefined : (String(c.browser) as 'chrome'),
+      removeItem: c.removeItem == null ? undefined : v.itemKey(c.removeItem),
+      addPlace: place ? { name: v.str(place.name, 'name', 40).trim() || 'Place', url: new URL(v.str(place.url, 'address', 2000)).toString() } : undefined,
+      removePlace: c.removePlace == null ? undefined : v.str(c.removePlace, 'address', 2000),
+    });
+  });
   handle('jobs:card', async (_e, id) => {
     const jobId = v.jobId(id);
     return (await core.store.get(jobId)).card ?? core.refreshCard(jobId);

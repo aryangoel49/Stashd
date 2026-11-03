@@ -8,6 +8,7 @@ import { Icon } from './icons';
 import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './deleteFx';
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
 import { playMerge } from './mergeFx';
+import { BreakView, ModeSwitch } from './Break';
 import { useRecentlyTidied } from './Recent';
 import { useSuggestions } from './Suggestions';
 import { describe, folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
@@ -28,6 +29,22 @@ function PanelView() {
   const [view, setView] = useState<BriefView | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Work (your folders) or Break (what you watch and listen to). Remembered between openings.
+  const [mode, setModeState] = useState<'work' | 'break'>(() => {
+    try {
+      return localStorage.getItem('panelMode') === 'break' ? 'break' : 'work';
+    } catch {
+      return 'work';
+    }
+  });
+  const setMode = (m: 'work' | 'break') => {
+    setModeState(m);
+    try {
+      localStorage.setItem('panelMode', m);
+    } catch {
+      // not remembered this time
+    }
+  };
   const [openMap, setOpenMap] = useState<Record<string, OpenState>>({});
   const loadJobs = useCallback(() => {
     api.listJobs().then(setJobs, (e) => setError(errorText(e)));
@@ -103,7 +120,13 @@ function PanelView() {
             )}
           </div>
         ) : (
-          <JobList jobs={jobs} openMap={openMap} settings={settings} onPick={setSelected} />
+          <div>
+            <PanelHead settings={settings} />
+            <ModeSwitch mode={mode} onChange={setMode} />
+            <Swap id={mode} direction={mode === 'break' ? 1 : -1}>
+              {mode === 'break' ? <BreakView /> : <JobList jobs={jobs} openMap={openMap} settings={settings} onPick={setSelected} />}
+            </Swap>
+          </div>
         )}
       </Swap>
       {error && <div className="banner">{error}</div>}
@@ -111,17 +134,8 @@ function PanelView() {
   );
 }
 
-function JobList(props: {
-  jobs: JobSummary[] | null;
-  openMap: Record<string, OpenState>;
-  settings: Settings;
-  onPick: (id: string) => void;
-}) {
-  const { jobs, openMap, settings, onPick } = props;
-  const current = (jobs ?? []).find((j) => j.current && !j.done) ?? null;
-  // The pinned folder (what ⌃O opens) comes first.
-  const active = (jobs ?? []).filter((j) => !j.done && j !== current).sort((a, b) => Number(b.pinned) - Number(a.pinned));
-  const doneOpen = (jobs ?? []).filter((j) => j.done && (j.current || mostlyOpen(openMap[j.id])));
+/** The panel's top bar: the app, Tidy all, stash, the window and Settings. */
+function PanelHead({ settings }: { settings: Settings }) {
   return (
     <>
       <div className="panel-head">
@@ -151,6 +165,23 @@ function JobList(props: {
           </Button>
         </span>
       </div>
+    </>
+  );
+}
+
+function JobList(props: {
+  jobs: JobSummary[] | null;
+  openMap: Record<string, OpenState>;
+  settings: Settings;
+  onPick: (id: string) => void;
+}) {
+  const { jobs, openMap, settings, onPick } = props;
+  const current = (jobs ?? []).find((j) => j.current && !j.done) ?? null;
+  // The pinned folder (what ⌃O opens) comes first.
+  const active = (jobs ?? []).filter((j) => !j.done && j !== current).sort((a, b) => Number(b.pinned) - Number(a.pinned));
+  const doneOpen = (jobs ?? []).filter((j) => j.done && (j.current || mostlyOpen(openMap[j.id])));
+  return (
+    <>
 
       {current ? (
         <motion.div layout className="now-card" style={toneStyle(folderTone(current.id))} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>

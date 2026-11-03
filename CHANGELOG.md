@@ -6,6 +6,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased (1.4.0)
 
 ### Added
+- **Break**: a Work / Break switch in the menu bar panel. Tidy all puts what you were watching on your Break shelf (episodes of a show together), next to your places (YouTube, Netflix, Spotify, or your own). It asks once which browser to open them in.
+- ⌃S keeps break tabs (a Shark Tank episode, a game score) out of your work, unless they're about the project, like a tutorial.
+- A gentle nudge to Tidy all when apps have sat open unused for a while.
 - **Tidy all**, in the menu bar panel: saves the folders you're working in, adds a stray tab to another folder only when it clearly belongs there, closes everything else and quits every app except Claude. Anything unsaved still asks first.
 - **Recently closed**: what Tidy all closed stays for 10 minutes, in the menu bar panel and as a page in the Stashd window, with Reopen for each item or all of them.
 - **Pin a folder**, and press **⌃O** to open it. With nothing pinned, ⌃O opens the folder you opened last.

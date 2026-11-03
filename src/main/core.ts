@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { mostlyOpen, type BriefView, type Capture, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult } from '../shared/types';
+import { mostlyOpen, type BriefView, type Capture, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, CHAT_APPS, frontItemKey } from './capture';
@@ -21,7 +21,8 @@ import { documentFrequency, FIT_SUGGEST, jobFit, jobProfile, meaningText, profil
 import { suggest, type FolderData } from './jobs/suggest';
 import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
-import { changeChromeGroup, openItems } from './open';
+import { changeChromeGroup, openForBreak, openItems } from './open';
+import { BreakStore, isBreakItem } from './breaks';
 import type { SettingsStore } from './settings';
 import { JobStore, writeFileAtomic } from './store';
 import { IconCache } from './icons';
@@ -66,6 +67,8 @@ export interface TidyAllPlan {
   /** Stray tabs added to a folder they clearly belong to (and closed). */
   filed: { jobId: string; name: string; count: number }[];
   loose: number;
+  /** Break tabs put on the Break shelf. */
+  breaks: number;
 }
 
 /** Tidy all quits every app except these: Claude (you work with it alongside everything), Finder and Stashd. */
@@ -104,6 +107,8 @@ export class Core {
   private removed = new Map<string, Item>();
   /** Real file and app icons, fetched once and kept. */
   readonly icons: IconCache;
+  /** The Break shelf (what you watch and listen to). */
+  readonly breaks: BreakStore;
   /** The on-device meaning model (optional: sorting works without it). */
   meaning?: Meaning;
 
@@ -117,6 +122,7 @@ export class Core {
     private readonly fakeCapture?: () => Promise<Capture>,
   ) {
     this.icons = new IconCache(helper);
+    this.breaks = new BreakStore(dataDir);
     this.stateFile = path.join(dataDir, 'state.json');
     let raw: Partial<State> = {};
     try {
@@ -261,6 +267,7 @@ export class Core {
       maybe: offered.maybe,
       kept,
       hiddenCount: offered.hidden.length,
+      breakCount: offered.breaks.length,
       frontKey: front,
       tidyUp: settings.tidyUp,
       errors: cap.errors,
@@ -278,7 +285,7 @@ export class Core {
     const pending = this.pending;
     if (!pending) throw new Error('Nothing to save. Press the shortcut again.');
     const cap = await pending.capture;
-    const offered = pending.offered ?? { sure: cap.items, likely: [], maybe: [], hidden: [], why: {} };
+    const offered = pending.offered ?? { sure: cap.items, likely: [], maybe: [], hidden: [], breaks: [], why: {} };
     const wanted = new Set(req.keys);
     // A tab sitting where it redirected after Unpack (a sign-in page) is saved as the original address.
     const before = req.jobId ? ((await this.store.latest(req.jobId).catch(() => null))?.items ?? []) : [];
@@ -351,7 +358,7 @@ export class Core {
     const cap = this.fakeCapture ? await this.fakeCapture() : await capture(settings, this.helper, this.selfNames);
     const learned = learnedLifestyleApps(this.state.appUnticks);
     const openKeys = new Set(cap.items.map(looseKey));
-    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0 };
+    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0 };
     const claimed = new Set<string>();
     const claim = (items: Item[]) => items.forEach((i) => matchKeys(i).forEach((k) => claimed.add(k)));
     const openItem = (i: Item) => cap.items.find((c) => matchKeys(i).includes(looseKey(c)));
@@ -390,7 +397,11 @@ export class Core {
     }
     const homed = new Set([...homes.values()].flat().map((i) => i.key));
     plan.close.push(...strays);
-    plan.loose = strays.filter((i) => !homed.has(i.key)).length;
+    // What you were watching or listening to goes on the Break shelf, to pick up later.
+    const breakItems = strays.filter((i) => !homed.has(i.key) && isBreakItem(i));
+    if (breakItems.length) await this.breaks.add(breakItems);
+    plan.breaks = breakItems.length;
+    plan.loose = strays.filter((i) => !homed.has(i.key)).length - breakItems.length;
     this.pending = null;
     this.notify();
     return plan;
@@ -442,6 +453,27 @@ export class Core {
     await this.refreshCard(jobId).catch(() => undefined);
     void this.ensureBrief(jobId, entry.id).catch(() => undefined);
     return job.name;
+  }
+
+  // ---------- the Break shelf ----------
+
+  breakShelf(): Promise<BreakShelf> {
+    return this.breaks.get();
+  }
+
+  /** Open something from the Break shelf (or one of your places) where you chose. */
+  async openBreak(url: string): Promise<void> {
+    const shelf = await this.breaks.get();
+    await openForBreak(url, shelf.browser);
+  }
+
+  async changeBreak(change: { browser?: BrowserName | 'window'; removeItem?: string; addPlace?: BreakPlace; removePlace?: string }): Promise<BreakShelf> {
+    if (change.browser) await this.breaks.setBrowser(change.browser);
+    if (change.removeItem) await this.breaks.remove(change.removeItem);
+    if (change.addPlace) await this.breaks.addPlace(change.addPlace);
+    if (change.removePlace) await this.breaks.removePlace(change.removePlace);
+    this.notify();
+    return this.breaks.get();
   }
 
   /** What Tidy all just closed: kept for 10 minutes, then forgotten. */

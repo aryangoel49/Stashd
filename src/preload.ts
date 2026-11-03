@@ -2,7 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppInfo, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion } from './shared/types';
+import type { AppInfo, BreakShelf, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -43,6 +43,9 @@ const api = {
   setDone: (jobId: string, done: boolean) => invoke<void>('jobs:done', jobId, done),
   setPinned: (jobId: string, pinned: boolean) => invoke<void>('jobs:pin', jobId, pinned),
   projectCard: (jobId: string) => invoke<ProjectCard>('jobs:card', jobId),
+  breakShelf: () => invoke<BreakShelf>('break:shelf'),
+  openBreak: (url: string) => invoke<void>('break:open', url),
+  changeBreak: (change: { browser?: 'chrome' | 'arc' | 'safari' | 'window'; removeItem?: string; addPlace?: { name: string; url: string }; removePlace?: string }) => invoke<BreakShelf>('break:change', change),
   editCard: (jobId: string, change: { add?: string; hide?: string; unadd?: string }) => invoke<ProjectCard>('jobs:editCard', jobId, change),
   deleteJob: (jobId: string) => invoke<boolean>('jobs:delete', jobId),
   confirmDelete: (jobId: string) => invoke<boolean>('jobs:confirmDelete', jobId),

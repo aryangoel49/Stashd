@@ -222,6 +222,22 @@ async function openChromeGroup(name: string, urls: string[]): Promise<boolean> {
   return false;
 }
 
+/**
+ * Opens a break thing where you chose: a browser, or a clean window of its own (a Chrome app window,
+ * with no tabs or address bar around it). Falls back to your Mac's default browser.
+ */
+export async function openForBreak(url: string, where: BrowserName | 'window' | null): Promise<void> {
+  const u = new URL(url);
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Only web addresses can be opened');
+  try {
+    if (where === 'window') await run('open', ['-na', BROWSER_APPS.chrome.appName, '--args', `--app=${u.toString()}`], { timeoutMs: 10_000 });
+    else if (where) await run('open', ['-a', BROWSER_APPS[where].appName, u.toString()], { timeoutMs: 10_000 });
+    else throw new Error('no choice');
+  } catch {
+    await shell.openExternal(u.toString());
+  }
+}
+
 /** Gap between things opening, and the most tabs opened one by one before it's done in one go. */
 const GAP_MS = 150;
 const GENTLE_MAX = 12;

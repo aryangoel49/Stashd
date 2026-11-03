@@ -352,6 +352,11 @@ function SaveBox() {
                       <Pills items={preview.maybe} picked={picked} preview={preview} onToggle={toggle} />
                     </Group>
                   )}
+                  {preview.breakCount > 0 && (
+                    <div className="faint tiny" style={{ padding: '0 4px' }}>
+                      {preview.breakCount} break {preview.breakCount === 1 ? 'tab stays' : 'tabs stay'} open. Tidy all puts {preview.breakCount === 1 ? 'it' : 'them'} on your Break shelf.
+                    </div>
+                  )}
                   {preview.hiddenCount > 0 && (
                     <div className="faint tiny" style={{ padding: '0 4px' }}>
                       Left out {preview.hiddenCount} everyday {preview.hiddenCount === 1 ? 'thing' : 'things'}, like music and email.
