@@ -8,7 +8,7 @@ import { Icon } from './icons';
 import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './deleteFx';
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
 import { useRecentlyTidied } from './Recent';
-import { folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
+import { describe, folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
 
 export function Panel() {
   return (
@@ -25,7 +25,6 @@ function PanelView() {
   const [selected, setSelected] = useState<string | null>(null);
   const [view, setView] = useState<BriefView | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showDone, setShowDone] = useState(false);
 
   const [openMap, setOpenMap] = useState<Record<string, OpenState>>({});
   const loadJobs = useCallback(() => {
@@ -102,7 +101,7 @@ function PanelView() {
             )}
           </div>
         ) : (
-          <JobList jobs={jobs} openMap={openMap} settings={settings} showDone={showDone} setShowDone={setShowDone} onPick={setSelected} />
+          <JobList jobs={jobs} openMap={openMap} settings={settings} onPick={setSelected} />
         )}
       </Swap>
       {error && <div className="banner">{error}</div>}
@@ -114,15 +113,13 @@ function JobList(props: {
   jobs: JobSummary[] | null;
   openMap: Record<string, OpenState>;
   settings: Settings;
-  showDone: boolean;
-  setShowDone: (v: boolean) => void;
   onPick: (id: string) => void;
 }) {
-  const { jobs, openMap, settings, showDone, setShowDone, onPick } = props;
+  const { jobs, openMap, settings, onPick } = props;
   const current = (jobs ?? []).find((j) => j.current && !j.done) ?? null;
   // The pinned folder (what ⌃O opens) comes first.
   const active = (jobs ?? []).filter((j) => !j.done && j !== current).sort((a, b) => Number(b.pinned) - Number(a.pinned));
-  const done = (jobs ?? []).filter((j) => j.done);
+  const doneOpen = (jobs ?? []).filter((j) => j.done && (j.current || mostlyOpen(openMap[j.id])));
   return (
     <>
       <div className="panel-head">
@@ -188,14 +185,10 @@ function JobList(props: {
         </motion.div>
       ))}
 
-      {done.length > 0 && (
-        <>
-          <Button variant="ghost" size="small" style={{ justifyContent: 'flex-start' }} onClick={() => setShowDone(!showDone)}>
-            {showDone ? 'Hide' : 'Show'} finished ({done.length})
-          </Button>
-          {showDone && done.map((j) => <JobRow key={j.id} job={j} onPick={onPick} />)}
-        </>
-      )}
+      {/* Finished folders live in the Stashd window. One you've opened again shows here, so it can be packed up. */}
+      {doneOpen.map((j) => (
+        <JobRow key={j.id} job={j} state={openMap[j.id]} onPick={onPick} />
+      ))}
 
       <RecentlyClosed />
 
@@ -324,29 +317,43 @@ function JobMenu({ view, onGone }: { view: BriefView; onGone: () => void }) {
   );
 }
 
-/** What Tidy all closed in the last 10 minutes, so a tab closed by mistake can come back. Then it's gone. */
+/**
+ * What Tidy all closed in the last 10 minutes, so a tab closed by mistake can come back. Then it's gone.
+ * Set apart from the folders above: a tray of its own, marked with Tidy all's sparkle.
+ */
 function RecentlyClosed() {
   const { recent, minutesLeft } = useRecentlyTidied();
   const [open, setOpen] = useState(false);
   if (!recent) return null;
   return (
     <div className="recent-closed">
-      <Button variant="ghost" size="small" style={{ justifyContent: 'flex-start' }} onClick={() => setOpen(!open)}>
-        {open ? 'Hide' : 'Show'} recently closed ({recent.items.length})
-        <span className="muted"> · clears in {minutesLeft} min</span>
-      </Button>
+      <button type="button" className="recent-head" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <Icon name="spark" />
+        <span className="grow">
+          <span className="recent-head-title">Closed by Tidy all</span>
+          <span className="recent-head-sub">
+            {recent.items.length} {recent.items.length === 1 ? 'thing' : 'things'}, cleared in {minutesLeft} min
+          </span>
+        </span>
+        <motion.span animate={{ rotate: open ? 90 : 0 }} style={{ display: 'inline-flex' }}>
+          <Icon name="chevron" />
+        </motion.span>
+      </button>
       {open && (
-        <>
+        <div className="recent-body">
           {recent.items.map((it) => (
             <div key={it.key} className="recent-row">
-              <ItemBadge item={it} size={22} />
-              <span className="grow recent-title">{titleOf(it)}</span>
+              <ItemBadge item={it} size={24} />
+              <span className="grow" style={{ minWidth: 0 }}>
+                <span className="recent-title">{titleOf(it)}</span>
+                <span className="recent-detail">{describe(it)}</span>
+              </span>
               <Button size="small" className="tiny" onClick={() => void api.reopenTidied(it.key)}>
                 Reopen
               </Button>
             </div>
           ))}
-          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+          <div className="recent-foot">
             {recent.items.length > 1 && (
               <Button size="small" className="tiny" onClick={() => void api.reopenTidied()}>
                 Reopen all
@@ -356,7 +363,7 @@ function RecentlyClosed() {
               See in Stashd
             </Button>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
