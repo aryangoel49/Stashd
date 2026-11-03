@@ -72,7 +72,7 @@ const api = {
   onOverlayPlay: (cb: (play: OverlayPlay) => void) => on('overlay:play', (p) => cb(p as OverlayPlay)),
   onToastShow: (cb: (info: ToastInfo) => void) => on('toast:show', (p) => cb(p as ToastInfo)),
   onToastLeave: (cb: () => void) => on('toast:leave', cb),
-  onMainShow: (cb: (view: 'main' | 'settings') => void) => on('main:show', (v) => cb(v === 'settings' ? 'settings' : 'main')),
+  onMainShow: (cb: (view: 'main' | 'settings' | 'recent') => void) => on('main:show', (v) => cb(v === 'settings' || v === 'recent' ? v : 'main')),
 };
 
 export type Api = typeof api;

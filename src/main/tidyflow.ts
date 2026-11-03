@@ -71,12 +71,16 @@ export class TidyFlow {
         const saved = await Promise.all(plan.saved.map((s) => this.core.store.entry(s.jobId, s.entryId)));
         const items = [...saved.flatMap((e) => e.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen)), ...plan.close];
         // The apps of the folders it packed go too, like Pack up: quit (asking about unsaved work),
-        // Claude and ChatGPT only hidden. Apps that belong to no folder are left alone.
+        // Claude and ChatGPT only hidden. Every other app quits after (see below).
         const apps = saved.flatMap((e) => e.items.filter((i) => i.kind === 'app' && !i.notOpen));
 
         const animation = this.play([...items, ...apps], false);
         await wait(120);
-        const [{ closed }, doneNames] = await Promise.all([closeItems(items, this.urlOptions()), this.quitOrHide(apps)]);
+        // Documents aren't closed one by one: their apps quit below anyway (asking about unsaved work),
+        // and some (Preview) are slow to answer a close. Tabs and Finder windows are closed, since
+        // Finder stays and a browser might reopen its tabs.
+        const docs = items.filter((i) => i.kind === 'doc');
+        const [{ closed }, doneNames] = await Promise.all([closeItems(items.filter((i) => i.kind !== 'doc'), this.urlOptions()), this.quitOrHide(apps)]);
         const done = new Set(doneNames.map((n) => n.toLowerCase()));
         closed.push(...apps.filter((a) => done.has(a.app.toLowerCase())));
         // Then every other app except Claude (only Tidy all does this; Pack up quits just the folder's apps).
@@ -86,7 +90,10 @@ export class TidyFlow {
           const others = appsToQuit(win.apps.map((a) => a.name).filter((n) => !done.has(n.toLowerCase())));
           const quit = new Set((await this.core.helper.quitApps(others).catch(() => [] as string[])).map((n) => n.toLowerCase()));
           closed.push(...others.filter((n) => quit.has(n.toLowerCase())).map((n): Item => ({ key: `app:${n}`, kind: 'app', label: n, detail: '', app: n })));
+          for (const n of quit) done.add(n);
         }
+        // A document counts as closed once its app has quit.
+        closed.push(...docs.filter((d) => done.has(d.app.toLowerCase())));
         await animation;
         if (!closed.length) {
           this.toast({ title: 'Already tidy', detail: 'Nothing to close.', canUndo: false, mood: 'awake' });

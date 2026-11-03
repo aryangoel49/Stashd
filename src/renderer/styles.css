@@ -613,3 +613,7 @@ details summary { cursor: default; }
 .recent-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 10px; }
 .recent-row:hover { background: var(--well); }
 .recent-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+
+.recent-page-sub { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 14px; }
+.recent-page-list { display: flex; flex-direction: column; gap: 6px; max-width: 760px; }
+.recent-page-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--card, rgba(255, 255, 255, 0.6)); }

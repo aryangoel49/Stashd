@@ -7,6 +7,7 @@ import { mostlyOpen, type BriefView, type Item, type JobSummary, type OpenState,
 import { api, errorText, prettyShortcut, timeAgo, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
+import { RecentPage, useRecentlyTidied } from './Recent';
 import { SettingsView } from './SettingsView';
 import { FolderMergeHint, SuggestionStrip, useSuggestions } from './Suggestions';
 import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './deleteFx';
@@ -29,13 +30,14 @@ function MainView() {
   const [view, setView] = useState<View>('home');
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [showFinished, setShowFinished] = useState(false);
+  const { recent, minutesLeft } = useRecentlyTidied();
 
   // What's open right now, so a folder you opened yourself shows as open (not "Unpack").
   const [openMap, setOpenMap] = useState<Record<string, OpenState>>({});
   const load = useCallback(() => {
     void api.listJobs().then((list) => {
       setJobs(list);
-      setView((cur) => (cur === 'home' || cur === 'settings' || list.some((j) => j.id === cur) ? cur : 'home'));
+      setView((cur) => (cur === 'home' || cur === 'settings' || cur === 'recent' || list.some((j) => j.id === cur) ? cur : 'home'));
     });
     api.openState().then(setOpenMap, () => undefined);
   }, []);
@@ -49,7 +51,7 @@ function MainView() {
       api.onJobsChanged(load),
       api.onMainShow((v) => {
         // "Open Stashd" always lands on your folders; only the gear opens Settings.
-        setView(v === 'settings' ? 'settings' : 'home');
+        setView(v === 'settings' || v === 'recent' ? v : 'home');
         load();
       }),
     ];
@@ -106,6 +108,13 @@ function MainView() {
             </span>
             <span className="side-count">{active.length}</span>
           </button>
+          <button className={`side-row nav ${view === 'recent' ? 'on' : ''}`} onClick={() => setView('recent')} title="What Tidy all closed in the last 10 minutes">
+            <Icon name="stack" />
+            <span className="grow">
+              <span className="t">Recently closed</span>
+            </span>
+            {recent && <span className="side-count" title={`Clears in ${minutesLeft} min`}>{recent.items.length}</span>}
+          </button>
           <button className="side-row nav soon" disabled title="Ask about your folders and pick up work by chatting. Coming in a future version.">
             <Icon name="spark" />
             <span className="grow">
@@ -149,6 +158,8 @@ function MainView() {
           >
             {view === 'settings' ? (
               <SettingsView />
+            ) : view === 'recent' ? (
+              <RecentPage />
             ) : view === 'home' ? (
               <Home jobs={jobs} openMap={openMap} onOpen={setView} shortcut={settings ? prettyShortcut(settings.shortcutSave) : '⌃S'} />
             ) : (

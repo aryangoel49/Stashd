@@ -150,7 +150,9 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     if (route === 'save' || route === 'pack') hooks.openSave(route, jobId == null ? undefined : v.jobId(jobId));
     else if (route === 'main' || route === 'settings') {
       getWindow('panel')?.hide();
-      showWindow('main', { onReady: (w) => w.webContents.send('main:show', route) });
+      // The panel's "See in Stashd" opens the window on Recently closed.
+      const page = route === 'main' && jobId === 'recent' ? 'recent' : route;
+      showWindow('main', { onReady: (w) => w.webContents.send('main:show', page) });
     } else throw new Error('bad window');
     return true;
   });

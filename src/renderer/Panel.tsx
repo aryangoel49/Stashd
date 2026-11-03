@@ -1,12 +1,13 @@
 // The panel under the menu bar icon: your folders, and the brief for the one you pick.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { mostlyOpen, type BriefView, type Item, type JobSummary, type OpenState, type Settings } from '../shared/types';
+import { mostlyOpen, type BriefView, type JobSummary, type OpenState, type Settings } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useFitWindow, useSettings } from './api';
 import { BriefCard, NameEdit } from './BriefCard';
 import { Icon } from './icons';
 import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './deleteFx';
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
+import { useRecentlyTidied } from './Recent';
 import { folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
 
 export function Panel() {
@@ -303,26 +304,14 @@ function JobMenu({ view, onGone }: { view: BriefView; onGone: () => void }) {
 
 /** What Tidy all closed in the last 10 minutes, so a tab closed by mistake can come back. Then it's gone. */
 function RecentlyClosed() {
-  const [recent, setRecent] = useState<{ at: string; until: string; items: Item[] } | null>(null);
+  const { recent, minutesLeft } = useRecentlyTidied();
   const [open, setOpen] = useState(false);
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const load = () => api.recentlyTidied().then(setRecent, () => undefined);
-    load();
-    const offs = [api.onJobsChanged(load), api.onWindowShown(load)];
-    const tick = setInterval(() => setNow(Date.now()), 30_000);
-    return () => {
-      offs.forEach((o) => o());
-      clearInterval(tick);
-    };
-  }, []);
-  if (!recent || !recent.items.length || now > Date.parse(recent.until)) return null;
-  const left = Math.max(1, Math.ceil((Date.parse(recent.until) - now) / 60_000));
+  if (!recent) return null;
   return (
     <div className="recent-closed">
       <Button variant="ghost" size="small" style={{ justifyContent: 'flex-start' }} onClick={() => setOpen(!open)}>
         {open ? 'Hide' : 'Show'} recently closed ({recent.items.length})
-        <span className="muted"> · gone in {left} min</span>
+        <span className="muted"> · clears in {minutesLeft} min</span>
       </Button>
       {open && (
         <>
@@ -335,11 +324,16 @@ function RecentlyClosed() {
               </Button>
             </div>
           ))}
-          {recent.items.length > 1 && (
-            <Button size="small" className="tiny" style={{ alignSelf: 'flex-start', marginTop: 4 }} onClick={() => void api.reopenTidied()}>
-              Reopen all
+          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+            {recent.items.length > 1 && (
+              <Button size="small" className="tiny" onClick={() => void api.reopenTidied()}>
+                Reopen all
+              </Button>
+            )}
+            <Button variant="ghost" size="small" className="tiny" onClick={() => void api.openWindow('main', 'recent')}>
+              See in Stashd
             </Button>
-          )}
+          </div>
         </>
       )}
     </div>
