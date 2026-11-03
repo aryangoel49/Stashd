@@ -571,7 +571,7 @@ export class Core {
       for (const j of await this.store.list()) {
         if (j.done) continue;
         const latest = await this.store.latest(j.id);
-        if (latest) folders.push({ id: j.id, name: j.name, note: latest.note, items: latest.items });
+        if (latest) folders.push({ id: j.id, name: j.name, note: latest.note, items: latest.items, keep: !!j.pinned || !!j.renamed });
       }
       const texts = [...new Set(folders.flatMap((f) => [f.name, f.note, ...f.items.map(meaningText)]).filter((t): t is string => !!t && t.trim().length > 1))];
       const vectors = await this.meaning?.vectors(texts, 4000).catch(() => null);

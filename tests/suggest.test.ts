@@ -81,3 +81,18 @@ describe('suggestions', () => {
     expect(suggest([toronto, torontoFlights, climate, resume]).length).toBeLessThanOrEqual(3);
   });
 });
+
+describe('which folder stays in a merge', () => {
+  const site = tab('https://getstashd.vercel.app/', 'Stashd · Put your work to bed');
+  const repo = tab('https://github.com/aryangoel49/Stashd', 'aryangoel49/Stashd');
+  const dash = tab('https://vercel.com/me/stashd', 'stashd · Vercel');
+  const docs = tab('https://vercel.com/docs/deployments', 'Environments · Vercel');
+  const main: FolderData = { id: 'main', name: 'Stashd MAIN', note: '', items: [site, repo, dash, docs] };
+  const project: FolderData = { id: 'project', name: 'Stashd project', note: '', items: [site, repo, dash] };
+  it('the bigger folder stays, unless the other is pinned or named by you', () => {
+    const plain = suggest([main, project]).find((s) => s.kind === 'merge');
+    expect(plain).toMatchObject({ from: 'project', into: 'main' });
+    const kept = suggest([main, { ...project, keep: true }]).find((s) => s.kind === 'merge');
+    expect(kept).toMatchObject({ from: 'main', into: 'project' });
+  });
+});

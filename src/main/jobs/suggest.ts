@@ -11,6 +11,8 @@ export interface FolderData {
   name: string;
   note: string;
   items: Item[];
+  /** Pinned, or named by you: in a merge, this is the folder that stays. */
+  keep?: boolean;
 }
 
 /** Share of the smaller folder's items that are also in the other one, at which two folders are one. */
@@ -85,8 +87,8 @@ export function suggest(folders: FolderData[], opts: { meaning?: MeaningLookup; 
       const fit = Math.min(ab.fit, ba.fit);
       const names = sharedNameWords(a.name, b.name);
       if (overlap < MERGE_OVERLAP && !(fit >= MERGE_FIT && (names.length > 0 || fit >= MERGE_FIT * 1.5) && strongReason([...ab.why, ...ba.why]))) continue;
-      // The smaller folder goes into the bigger one.
-      const [from, into] = ai.length <= bi.length ? [a, b] : [b, a];
+      // The folder you care about stays (pinned or named by you); otherwise the smaller goes into the bigger.
+      const [from, into] = !!a.keep !== !!b.keep ? (a.keep ? [b, a] : [a, b]) : ai.length <= bi.length ? [a, b] : [b, a];
       const why = [
         ...(shared ? [`${shared} ${shared === 1 ? 'thing' : 'things'} in both`] : []),
         ...(names.length ? [`both about ${names.slice(0, 2).join(' and ')}`] : []),

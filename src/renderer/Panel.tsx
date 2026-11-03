@@ -7,7 +7,9 @@ import { BriefCard, NameEdit } from './BriefCard';
 import { Icon } from './icons';
 import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './deleteFx';
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
+import { playMerge } from './mergeFx';
 import { useRecentlyTidied } from './Recent';
+import { useSuggestions } from './Suggestions';
 import { describe, folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
 
 export function Panel() {
@@ -169,6 +171,8 @@ function JobList(props: {
         </motion.div>
       ) : null}
 
+      <MergeOffer />
+
       {active.length > 0 && <div className="eyebrow list-label">Folders</div>}
 
       {jobs && jobs.length === 0 && (
@@ -209,6 +213,7 @@ function JobRow({ job, state, onPick, openKey }: { job: JobSummary; state?: Open
   return (
     <div
       ref={rowRef}
+      data-job={job.id}
       className={`job-row ${openNow ? 'current' : ''} ${job.pinned ? 'pinned' : ''}`}
       style={{ ...toneStyle(folderTone(job.id)), ...(job.done ? { opacity: 0.6 } : {}) }}
       role="button"
@@ -216,7 +221,7 @@ function JobRow({ job, state, onPick, openKey }: { job: JobSummary; state?: Open
       onClick={() => onPick(job.id)}
       onKeyDown={(e) => e.key === 'Enter' && onPick(job.id)}
     >
-      <motion.span style={{ display: 'flex' }} animate={reaction === 'startled' ? FLINCH : { x: 0 }}>
+      <motion.span className="row-mark" style={{ display: 'flex' }} animate={reaction === 'startled' ? FLINCH : { x: 0 }}>
         <FolderMark size={30} awake={openNow} mood={reactionMood(reaction)} tone={folderTone(job.id)} />
       </motion.span>
       <span className="grow">
@@ -366,5 +371,72 @@ function RecentlyClosed() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Two folders that are really one piece of work: Stashd offers to merge them (the pinned or named one
+ * stays). Merge plays the merge on the rows below, then Undo is there for a few seconds.
+ */
+function MergeOffer() {
+  const [list] = useSuggestions();
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+  useEffect(() => {
+    if (!done) return;
+    const t = setTimeout(() => setDone(null), 5000);
+    return () => clearTimeout(t);
+  }, [done]);
+  const s = list.find((x): x is Extract<typeof x, { kind: 'merge' }> => x.kind === 'merge');
+  if (done) {
+    return (
+      <motion.div className="merge-done" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+        <Icon name="check" />
+        <span className="grow">{done}</span>
+        <button
+          type="button"
+          className="link tiny"
+          onClick={() => {
+            setDone(null);
+            void api.undoSuggestion();
+          }}
+        >
+          Undo
+        </button>
+      </motion.div>
+    );
+  }
+  if (!s) return null;
+  const merge = async () => {
+    setBusy(true);
+    try {
+      await playMerge(s.from, s.into, folderTone(s.into).tile);
+      await api.acceptSuggestion(s.id);
+      setDone(`Merged into ${s.intoName}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <motion.div className="merge-offer" style={toneStyle(folderTone(s.into))} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
+      <span className="merge-art" aria-hidden="true">
+        <FolderMark size={26} tone={folderTone(s.from)} />
+        <FolderMark size={26} tone={folderTone(s.into)} awake />
+      </span>
+      <span className="grow" style={{ minWidth: 0 }}>
+        <span className="merge-title">
+          {s.fromName} and {s.intoName} look like the same work
+        </span>
+        <span className="merge-why">{s.why.length ? s.why.join(', ') : 'Same kind of things in both'}</span>
+      </span>
+      <span className="merge-acts">
+        <Button variant="primary" size="small" disabled={busy} onClick={() => void merge()} title={`Put ${s.fromName} into ${s.intoName}`}>
+          Merge
+        </Button>
+        <Button variant="ghost" size="small" className="tool-btn" disabled={busy} title="Not now (asks again in a week)" aria-label="Not now" onClick={() => void api.dismissSuggestion(s.id, false)}>
+          ✕
+        </Button>
+      </span>
+    </motion.div>
   );
 }
