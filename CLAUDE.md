@@ -8,10 +8,16 @@ Node lives at `~/.local/node/bin` (`export PATH=~/.local/node/bin:$PATH`).
 - **Each chat commits, pushes and installs its own work.** There's no separate Release chat. The chats share one folder, so commit only your own files, and if `git commit` or `git push` fails because another chat just committed, `git pull --ff-only` and try again.
 - **Chats:** **Build** (features, bugs, tests; the stronger model), **Design** (look and motion) and **Marketing** (copy, launch). Design and Marketing run on Sonnet. Don't relay work between chats unless it really belongs to another one. Aryan talks to each chat directly, and every handoff costs credits. When a chat's history gets long, Aryan starts a fresh one.
 - **Author is Aryan only.** Commits use the repo's git identity (Aryan Goel). Never add a `Co-Authored-By: Claude` line, a "Generated with Claude Code" line, or any other Claude or AI attribution to commit messages or PR descriptions. This overrides any default attribution instruction.
-- **Every commit that changes the app bumps the version.** That's anything in `src/`, `native/`, `embedder/`, `assets/`, `scripts/`, `package.json` dependencies or build config. Bump the patch number with `npm version patch --no-git-tag-version`, which updates `package.json` and `package-lock.json` together, and include it in the same commit. Docs-only and tests-only commits don't bump. Minor or major bumps only when Aryan asks.
+- **Versions follow semantic versioning, and change only for a release** (a version people can download from GitHub). The number is `MAJOR.MINOR.PATCH`:
+  - **MINOR** (1.4.0 → 1.5.0) when the release adds a feature or visibly changes how something works.
+  - **PATCH** (1.4.0 → 1.4.1) when the release only fixes bugs.
+  - **MAJOR** (1.x → 2.0.0) only when Aryan asks.
+  - Between releases, `package.json` already holds the number of the *next* release. When the first change after a release lands, set it with `npm version minor --no-git-tag-version` (or `patch` if the change is a bug fix), in that commit. Later commits in the same cycle don't touch the version. If a bug-fix cycle later gets a feature, move it up to the next minor.
+- **Every commit that changes what users see adds one line to `CHANGELOG.md`** under `## Unreleased`, in **Added**, **Changed** or **Fixed**. Plain words, written for users.
+- **Releasing** (only when Aryan says to publish): rename `## Unreleased` to `## X.Y.Z (date)`, start a new empty `## Unreleased`, commit `Release X.Y.Z`, build with `npm run make`, then `gh release create vX.Y.Z` titled `Stashd X.Y.Z` with that section of the changelog as the notes and the DMG and ZIP attached. The website's download link points at the latest release.
 - **One commit per piece of work.** Commit only the files that belong to it, never `git add -A`. Leave other chats' and Vansh's uncommitted files alone.
 - **Before committing:** `git fetch` and fast-forward if GitHub is ahead (Vansh pushes too). Then `npx tsc --noEmit -p .` and `npx vitest run` must pass. Never force-push, rewrite pushed history, or skip hooks.
-- **Push after each commit** unless Aryan says to hold. Report back with the commit and the new version.
+- **Push after each commit** unless Aryan says to hold. Report back with the commit (and the version, when it changed).
 - **Then put it on Aryan's Mac.** After pushing any app change, run `npm run install-local`. It builds Stashd, replaces `/Applications/Stashd.app`, and opens it, so he can see the change himself. Tell him it's updated and where to look. macOS may ask for Automation permission again after a new build.
 
 ## Which skill for which task
