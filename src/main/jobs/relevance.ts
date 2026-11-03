@@ -80,7 +80,39 @@ export function isGeneralHost(h: string): boolean {
   return GENERAL_HOSTS.some((g) => h === g || h.endsWith(`.${g}`)) || /^(www\.)?google\.[a-z.]+$/.test(h);
 }
 
-/** Tokens for an item: its title (minus app names), plus the site's own name for special-purpose sites. */
+/** Hosting services where each site is a subdomain: the site's own name is that subdomain (getstashd.vercel.app). */
+const SHARED_HOSTS = ['vercel.app', 'netlify.app', 'github.io', 'pages.dev', 'web.app', 'firebaseapp.com', 'herokuapp.com', 'onrender.com', 'fly.dev', 'glitch.me', 'replit.app', 'notion.site', 'framer.website', 'webflow.io', 'carrd.co', 'substack.com'];
+/** Words in web addresses that say nothing about the page ("/en/docs/index.html"). */
+const PATH_STOP = new Set('html htm php aspx index search results searchresults en us uk gb de fr app view edit watch wiki comments comment r u d s p q id home dashboard overview settings new the www static assets public api v1 v2 tree blob main master issues pull pulls status embed share'.split(' '));
+/** "getstashd" -> also "stashd": product sites often add get/use/try to the name. */
+const NAME_PREFIX = /^(get|use|try|join|go|my|hey|with|the)(?=[a-z]{4,})/;
+
+/** The site's own name: "booking" for booking.com, "getstashd" (and "stashd") for getstashd.vercel.app. Nothing for general sites. */
+function siteTokens(h: string): string[] {
+  if (isGeneralHost(h)) return [];
+  const labels = h.split('.');
+  const shared = SHARED_HOSTS.find((g) => h.endsWith(`.${g}`));
+  const site = shared ? labels[labels.length - shared.split('.').length - 1] : labels.slice(-2, -1)[0];
+  if (!site || site.length < 3) return [];
+  const out = textTokens(site);
+  const bare = site.toLowerCase().replace(NAME_PREFIX, '');
+  if (bare !== site.toLowerCase()) out.push(...textTokens(bare));
+  return out;
+}
+
+/** Words in a web address's path and search: github.com/aryangoel49/Stashd -> "stashd". Ids and filler are skipped. */
+function urlPathTokens(url: string): string[] {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split('/').filter(Boolean).slice(0, 4);
+    const q = u.searchParams.get('q') ?? u.searchParams.get('query') ?? '';
+    return textTokens([...parts, q].join(' ').replace(/[-_.+]/g, ' ')).filter((t) => !PATH_STOP.has(t) && !/\d.*\d/.test(t) && t.length <= 24);
+  } catch {
+    return [];
+  }
+}
+
+/** Tokens for an item: its title (minus app names), the site's own name, and the words in its address. */
 export function itemTokens(item: Item): string[] {
   if (item.kind === 'app') return item.chat ? [...new Set(textTokens(item.chat.title))] : [];
   let text = item.label;
@@ -88,10 +120,8 @@ export function itemTokens(item: Item): string[] {
   if (item.untitled && /^(document|book|workbook|presentation|untitled)\s*\d*$/i.test(text)) text = '';
   const tokens = textTokens(text);
   const h = hostOf(item);
-  if (h && !isGeneralHost(h)) {
-    const site = h.split('.').slice(-2, -1)[0];
-    if (site && site.length >= 3) tokens.push(...textTokens(site));
-  }
+  if (h) tokens.push(...siteTokens(h));
+  if (item.kind === 'tab' && item.url) tokens.push(...urlPathTokens(item.url));
   return [...new Set(tokens)];
 }
 

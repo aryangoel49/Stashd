@@ -167,3 +167,23 @@ describe('harder cases', () => {
     expect(g.likely).toEqual([]);
   });
 });
+
+describe('words from web addresses', () => {
+  const t = (url: string, label: string): Item => ({ key: `tab:${url}`, kind: 'tab', label, detail: '', app: 'Google Chrome', url, browser: 'chrome' });
+  it('reads the site name on shared hosting, without get/use prefixes', async () => {
+    const { itemTokens } = await import('../src/main/jobs/relevance');
+    expect(itemTokens(t('https://getstashd.vercel.app/features.html', 'Features'))).toEqual(expect.arrayContaining(['getstashd', 'stashd', 'feature']));
+  });
+  it('reads the project name from a GitHub or Vercel address, but not ids', async () => {
+    const { itemTokens } = await import('../src/main/jobs/relevance');
+    expect(itemTokens(t('https://github.com/aryangoel49/Stashd', 'Repository'))).toContain('stashd');
+    expect(itemTokens(t('https://github.com/aryangoel49/Stashd', 'Repository'))).not.toContain('aryangoel49');
+    expect(itemTokens(t('https://vercel.com/aryangoel4900-4007/stashd', 'Overview'))).toContain('stashd');
+  });
+  it('a page of the project with an unhelpful title still joins the project folder', async () => {
+    const { jobProfile, scoreItem, SURE } = await import('../src/main/jobs/relevance');
+    const p = jobProfile('Stashd project', '', [t('https://getstashd.vercel.app/', 'Put your work to bed')]);
+    const docs = t('https://github.com/aryangoel49/Stashd/issues', 'Issues');
+    expect(scoreItem(docs, p, new Map()).score).toBeGreaterThanOrEqual(SURE);
+  });
+});
