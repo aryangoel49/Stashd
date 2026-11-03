@@ -99,6 +99,7 @@ The build prompt is in `design/BUILD-PROMPT-v1.md`. Until we decide otherwise, p
 - **Chrome extension:** knows which tab was opened from which and reads Chrome tab groups, for near-perfect matching.
 - Automatic save when the laptop closes.
 - Putting windows back exactly where they were on screen.
+- **Ask Stashd to change a folder:** in the Ask Stashd chat (the "Soon" item in the Stashd window), say things like "add the GitHub repo and the Vercel dashboard to my Stashd folder" or "take the ESPN tab out of Japan trip". Stashd finds the right folder and the real addresses (from your open tabs, history of saves, or the web) and adds them as a new save, so nothing is lost.
 
 ---
 
