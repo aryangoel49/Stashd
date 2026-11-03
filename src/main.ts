@@ -169,6 +169,7 @@ function start(): void {
       finishNaming: (names) => tidy.finishNaming(names),
       undoTidy: () => tidy.undoLast(),
       dismissToast: () => tidy.dismissToast(),
+      tidyAll: () => tidy.tidyAll().then(() => tray.wink()),
       toastAction: async () => {
         tidy.dismissToast();
         const jobId = offered;

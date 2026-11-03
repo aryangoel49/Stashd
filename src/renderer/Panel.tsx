@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { mostlyOpen, type BriefView, type JobSummary, type OpenState, type Settings } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useFitWindow, useSettings } from './api';
-import { BriefCard } from './BriefCard';
+import { BriefCard, NameEdit } from './BriefCard';
 import { Icon } from './icons';
 import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './deleteFx';
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
@@ -129,6 +129,9 @@ function JobList(props: {
           <span className="display" style={{ fontSize: 15 }}>Stashd</span>
         </button>
         <span className="head-tools">
+          <Button variant="ghost" size="small" className="tidy-all-btn" onClick={() => void api.tidyAll()} title="Save your open folders, keep loose tabs in a folder of their own, and close it all">
+            <Icon name="spark" /> Tidy all
+          </Button>
           <Button
             variant="ghost"
             size="small"
@@ -150,12 +153,12 @@ function JobList(props: {
 
       {current ? (
         <motion.div layout className="now-card" style={toneStyle(folderTone(current.id))} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-          <button className="now-main" onClick={() => onPick(current.id)} title="See the brief">
+          <div className="now-main" role="button" tabIndex={0} onClick={() => onPick(current.id)} onKeyDown={(e) => e.key === 'Enter' && onPick(current.id)} title="See the brief">
             <span className="eyebrow now-eyebrow">
               <span className="live" /> Open now
             </span>
-            <span className="now-name">{current.name}</span>
-          </button>
+            <NameEdit jobId={current.id} name={current.name} className="now-name" onClick={() => onPick(current.id)} />
+          </div>
           <div className="now-actions">
             <Button variant="primary" size="small" onClick={() => void api.openWindow('pack', current.id)} title="Save this folder and close its windows">
               <Icon name="stack" /> Pack up <span className="enter">{prettyShortcut(settings.shortcutSave)}</span>
@@ -205,7 +208,7 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
   const rowRef = useRef<HTMLDivElement>(null);
   const [reaction, setReaction] = useState<Reaction>(null);
 
-  // Renaming happens in the app window (click a folder's title there); here a click just opens it.
+  // A click opens it; double-click the name to rename it.
   return (
     <div
       ref={rowRef}
@@ -220,7 +223,7 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
         <FolderMark size={30} awake={openNow} mood={reactionMood(reaction)} tone={folderTone(job.id)} />
       </motion.span>
       <span className="grow">
-        <span className="name" style={{ display: 'block' }}>{job.name}</span>
+        <NameEdit jobId={job.id} name={job.name} className="name" onClick={() => onPick(job.id)} />
         <span className="hint" style={{ display: 'block' }}>
           <span>{allOpen ? 'All open' : someOpen ? `${state!.open} of ${state!.total} open` : job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
         </span>

@@ -55,6 +55,7 @@ const api = {
   undoTidy: () => invoke<void>('tidy:undo'),
   dismissToast: () => invoke<boolean>('toast:dismiss'),
   toastAction: () => invoke<void>('toast:action'),
+  tidyAll: () => invoke<boolean>('tidy:all'),
   overlayDone: () => invoke<boolean>('overlay:done'),
 
   onJobsChanged: (cb: () => void) => on('jobs:changed', cb),

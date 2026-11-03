@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import type { BriefView, Capture, Item, Job, JobSummary, OpenResult, OpenState, Suggestion, SaveEntry, SavePreview, SaveRequest, SaveResult } from '../shared/types';
+import { mostlyOpen, type BriefView, type Capture, type Item, type Job, type JobSummary, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, CHAT_APPS, frontItemKey } from './capture';
@@ -53,6 +53,15 @@ export interface OpenLook {
   open: Set<string>;
   jobs: Job[];
   latest: (SaveEntry | null)[];
+}
+
+export interface TidyAllPlan {
+  /** Folders saved just now (open ones, and the loose tabs' folder): their open things close. */
+  saved: { jobId: string; entryId: string; name: string }[];
+  /** Other things to close: open, and already in a folder. */
+  close: Item[];
+  loose: number;
+  looseFolder: string | null;
 }
 
 /** How long one look at what's open is reused. */
@@ -301,6 +310,63 @@ export class Core {
     // The folder may be deleted while its brief is still being written; that's fine.
     void this.ensureBrief(job.id, entry.id).catch(() => undefined);
     return { jobId: job.id, entryId: entry.id, needsNaming: req.tidy ? items.filter((i) => i.untitled) : [] };
+  }
+
+  /**
+   * Tidy all. Every folder you have open is saved (what clearly belongs to it, like Pack up), anything
+   * open that's already in another folder is just closed, and the tabs left over that belong nowhere
+   * are kept in a finished folder of their own, so nothing is lost. Everyday sites (mail, music) stay.
+   * Returns the things to close; closing is up to the caller.
+   */
+  async tidyAll(): Promise<TidyAllPlan> {
+    const settings = this.settings.get();
+    const cap = this.fakeCapture ? await this.fakeCapture() : await capture(settings, this.helper, this.selfNames);
+    const learned = learnedLifestyleApps(this.state.appUnticks);
+    const openKeys = new Set(cap.items.map(looseKey));
+    const plan: TidyAllPlan = { saved: [], close: [], loose: 0, looseFolder: null };
+    const claimed = new Set<string>();
+    const claim = (items: Item[]) => items.forEach((i) => matchKeys(i).forEach((k) => claimed.add(k)));
+    const openItem = (i: Item) => cap.items.find((c) => matchKeys(i).includes(looseKey(c)));
+
+    for (const job of await this.store.list()) {
+      const latest = await this.store.latest(job.id);
+      if (!latest) continue;
+      const content = latest.items.filter((i) => i.kind !== 'app');
+      const openNow = content.filter((i) => matchKeys(i).some((k) => openKeys.has(k)));
+      if (!openNow.length) continue;
+      const isOpen = !job.done && (job.id === this.state.currentJobId || mostlyOpen({ open: openNow.length, total: content.length }));
+      if (!isOpen) {
+        // Already saved in this folder: close it, nothing to save.
+        claim(openNow);
+        plan.close.push(...openNow.map(openItem).filter((i): i is Item => !!i));
+        continue;
+      }
+      // An open folder: save it the way Pack up would, then close what was saved.
+      this.pending = { capture: Promise.resolve(cap), target: job.id };
+      const p = await this.preview({ jobId: job.id });
+      // (Not what another folder already holds.)
+      const keys = [...p.sure, ...p.kept].filter((i) => !matchKeys(i).some((k) => claimed.has(k))).map((i) => i.key);
+      const r = await this.commitSave({ jobId: job.id, name: job.name, note: latest.note ?? '', keys, tidy: true });
+      claim(p.sure);
+      claim(content);
+      plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
+    }
+
+    // Tabs that belong nowhere: kept in a finished folder, then closed.
+    const loose = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
+    if (loose.length) {
+      this.pending = { capture: Promise.resolve(cap) };
+      await this.preview({ asNew: true });
+      const day = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+      const r = await this.commitSave({ jobId: null, name: `Loose tabs · ${day}`, note: '', keys: loose.map((i) => i.key), tidy: true });
+      await this.setDone(r.jobId, true);
+      plan.looseFolder = (await this.store.get(r.jobId)).name;
+      plan.loose = loose.length;
+      plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: plan.looseFolder });
+    }
+    this.pending = null;
+    this.notify();
+    return plan;
   }
 
   /** A better name for a new job from Claude or Apple Intelligence, if either is set up. */

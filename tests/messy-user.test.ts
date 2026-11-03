@@ -297,3 +297,39 @@ describe('closing a tab by accident after Unpack', () => {
     expect(latest!.items.map((i) => i.key)).toEqual(expect.arrayContaining([a.key, b.key]));
   });
 });
+
+describe('Tidy all', () => {
+  it('saves the open folder, keeps loose tabs in a finished folder, and leaves everyday sites alone', async () => {
+    const core = makeCore();
+    const trip = [tab(1, 'Flights to Tokyo'), tab(2, 'Ryokans in Kyoto')];
+    open = trip;
+    core.beginSave();
+    await core.preview({ asNew: true });
+    const first = await core.commitSave({ jobId: null, name: 'Japan trip', note: '', keys: trip.map((i) => i.key), tidy: false });
+    // Still working on it, with a stray tab and mail open too.
+    const stray: Item = { ...tab(9, 'Warriors vs Lakers'), key: 'tab:https://www.espn.com/nba/game', url: 'https://www.espn.com/nba/game', detail: 'espn.com' };
+    const mail: Item = { ...tab(10, 'Inbox'), key: 'tab:https://mail.google.com/mail/u/0/', url: 'https://mail.google.com/mail/u/0/', detail: 'mail.google.com' };
+    open = [...trip, stray, mail];
+    const plan = await core.tidyAll();
+    expect(plan.saved.map((s) => s.name)).toContain('Japan trip');
+    expect(plan.loose).toBe(1);
+    const jobs = await core.listJobs();
+    const loose = jobs.find((j) => j.name.startsWith('Loose tabs'))!;
+    expect(loose.done).toBe(true);
+    expect((await core.store.latest(loose.id))!.items.map((i) => i.key)).toEqual([stray.key]);
+    expect((await core.store.latest(first.jobId))!.items.map((i) => i.key).sort()).toEqual(trip.map((i) => i.key).sort());
+  });
+
+  it('only closes what a packed folder already holds, without saving it again', async () => {
+    const core = makeCore();
+    open = [tab(1, 'Flights to Tokyo'), tab(2, 'Ryokans in Kyoto')];
+    core.beginSave();
+    await core.preview({ asNew: true });
+    const first = await core.commitSave({ jobId: null, name: 'Japan trip', note: '', keys: open.map((i) => i.key), tidy: true });
+    open = [tab(1, 'Flights to Tokyo')];
+    const plan = await core.tidyAll();
+    expect(plan.saved).toEqual([]);
+    expect(plan.close.map((i) => i.key)).toEqual([tab(1).key]);
+    expect(await core.store.entryIds(first.jobId)).toHaveLength(1);
+  });
+});

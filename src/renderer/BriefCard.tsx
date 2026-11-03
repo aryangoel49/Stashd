@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Brief, BriefView, OpenKind, OpenResult } from '../shared/types';
 import { openKindOf } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
@@ -102,7 +102,7 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
 
   return (
     <div className="brief">
-      {!hideTitle && <div className="display">{job.name}</div>}
+      {!hideTitle && <NameEdit jobId={job.id} name={job.name} className="display" />}
       <div className="muted small">
         {new Date(entry.savedAt).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })} · {timeAgo(entry.savedAt)}
       </div>
@@ -217,5 +217,62 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
         </form>
       )}
     </div>
+  );
+}
+
+/**
+ * A folder's name: double-click to rename it (Enter saves, Esc cancels). A single click still does
+ * `onClick`, a moment later, so a double-click doesn't also open the folder.
+ */
+export function NameEdit({ jobId, name, className, onClick, children }: { jobId: string; name: string; className?: string; onClick?: () => void; children?: ReactNode }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(name);
+  const click = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => setValue(name), [name]);
+  useEffect(() => () => clearTimeout(click.current), []);
+  const finish = (save: boolean) => {
+    setEditing(false);
+    const next = value.trim();
+    if (save && next && next !== name) void api.renameJob(jobId, next);
+    else setValue(name);
+  };
+  if (editing) {
+    return (
+      <input
+        className={`${className ?? ''} name-edit`}
+        autoFocus
+        value={value}
+        maxLength={60}
+        aria-label="Folder name"
+        onClick={(e) => e.stopPropagation()}
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => finish(true)}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === 'Enter') finish(true);
+          if (e.key === 'Escape') finish(false);
+        }}
+      />
+    );
+  }
+  return (
+    <span
+      className={className}
+      title="Double-click to rename"
+      onClick={(e) => {
+        if (!onClick) return;
+        e.stopPropagation();
+        clearTimeout(click.current);
+        if (e.detail === 1) click.current = setTimeout(onClick, 220);
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        clearTimeout(click.current);
+        setEditing(true);
+      }}
+    >
+      {children ?? name}
+    </span>
   );
 }

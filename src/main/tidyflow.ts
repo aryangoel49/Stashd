@@ -62,6 +62,35 @@ export class TidyFlow {
     return this.queue;
   }
 
+  /** Tidy all: save open folders, keep loose tabs in a folder of their own, then close it all at once. */
+  tidyAll(): Promise<void> {
+    if (this.naming) this.finishNaming([]);
+    this.queue = this.queue.then(async () => {
+      try {
+        const plan = await this.core.tidyAll();
+        const saved = await Promise.all(plan.saved.map((s) => this.core.store.entry(s.jobId, s.entryId)));
+        const items = [...saved.flatMap((e) => e.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen)), ...plan.close];
+        if (!items.length) {
+          this.toast({ title: 'Already tidy', detail: 'Nothing to close.', canUndo: false, mood: 'awake' });
+          return;
+        }
+        const animation = this.play(items, false);
+        await wait(120);
+        const { closed } = await closeItems(items, this.urlOptions());
+        await animation;
+        this.setUndo(closed, null);
+        const folders = plan.saved.filter((s) => s.name !== plan.looseFolder).length;
+        const parts = [folders ? `${folders} ${folders === 1 ? 'folder' : 'folders'} packed` : '', plan.loose ? `${plan.loose} loose ${plan.loose === 1 ? 'tab' : 'tabs'} kept in ${plan.looseFolder}` : ''].filter(Boolean);
+        this.toast({ title: `Tidied up · ${closed.length} closed`, detail: `${parts.join('. ') || 'Saved'}. Undo brings them back.`, canUndo: closed.length > 0, mood: 'sleep' });
+      } catch {
+        this.toast({ title: "Couldn't tidy up", detail: 'Nothing was closed.', canUndo: false, mood: 'curious' });
+      } finally {
+        this.core.notify();
+      }
+    });
+    return this.queue;
+  }
+
   private urlOptions(): UrlOptions {
     const s = this.core.settings.get();
     return { keepQueryStrings: s.keepQueryStrings, excludedDomains: s.excludedDomains };

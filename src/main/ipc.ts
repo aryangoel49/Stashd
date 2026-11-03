@@ -37,6 +37,7 @@ export interface IpcHooks {
   undoTidy: () => Promise<void>;
   dismissToast: () => void;
   toastAction: () => Promise<void>;
+  tidyAll: () => Promise<void>;
   overlayDone: () => void;
   testClaude: (key: string) => Promise<void>;
   openSave: (mode: 'save' | 'pack', jobId?: string) => void;
@@ -188,6 +189,11 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     return true;
   });
   handle('toast:action', () => hooks.toastAction());
+  handle('tidy:all', () => {
+    getWindow('panel')?.hide();
+    void hooks.tidyAll();
+    return true;
+  });
   handle('toast:dismiss', () => {
     hooks.dismissToast();
     return true;
