@@ -602,13 +602,9 @@ details summary { cursor: default; }
 @media (prefers-color-scheme: dark) { .name-edit { background: rgba(255, 255, 255, 0.08); } }
 .tidy-all-btn { gap: 5px; font-size: 12px; }
 
-/* A folder's name with its rename pencil. */
-.name-wrap { display: flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; }
-.name-wrap .name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rename-pencil { flex: none; display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: none; border-radius: 6px; background: none; color: inherit; opacity: 0; cursor: pointer; transition: opacity 150ms ease-out, background 150ms ease-out; }
-.rename-pencil .i, .rename-pencil svg { width: 12px; height: 12px; }
-.name-wrap.unnamed .rename-pencil { opacity: 0.45; }
-.job-row:hover .rename-pencil, .now-card:hover .rename-pencil, .brief:hover .rename-pencil, .rename-pencil:focus-visible { opacity: 0.7; }
-.rename-pencil:hover { opacity: 1; background: var(--tone-soft, rgba(0, 0, 0, 0.06)); }
-.display.name-wrap .rename-pencil { width: 22px; height: 22px; }
-.display.name-wrap .rename-pencil svg { width: 15px; height: 15px; }
+/* A folder's name looks like a field you can type in: a soft box on hover, and until you've named it
+   yourself, a faint dashed box all the time. Double-click to rename. */
+.name-wrap { display: flex; align-items: center; min-width: 0; max-width: 100%; }
+.name-wrap .name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 6px; margin: -1px -6px; border-radius: 8px; cursor: text; transition: background 150ms ease-out, box-shadow 150ms ease-out; }
+.name-wrap.unnamed .name-text { box-shadow: none; outline: 1.5px dashed var(--tone-line, rgba(0, 0, 0, 0.18)); outline-offset: -1.5px; }
+@media (hover: hover) { .name-wrap .name-text:hover { background: var(--tone-soft, rgba(0, 0, 0, 0.05)); box-shadow: inset 0 0 0 1.5px var(--tone-line, rgba(0, 0, 0, 0.15)); outline-color: transparent; } }

@@ -275,19 +275,6 @@ export function NameEdit({ jobId, name, renamed, className, onClick, children }:
       >
         {children ?? name}
       </span>
-      {/* Until you've named it yourself, a pencil shows it can be renamed; after that, only on hover. */}
-      <button
-        type="button"
-        className="rename-pencil"
-        title="Rename"
-        aria-label={`Rename ${name}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          setEditing(true);
-        }}
-      >
-        <Icon name="pencil" />
-      </button>
     </span>
   );
 }
