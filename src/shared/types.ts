@@ -46,6 +46,8 @@ export interface Item {
   path?: string;
   browser?: BrowserName;
   /** Browser window number, for tabs. */
+  /** The Chrome tab group it's in right now (its title), if any. Only meaningful while it's open. */
+  group?: string;
   window?: number;
   /** For tabs: the active tab of its window. For docs: the front document of its app. */
   active?: boolean;

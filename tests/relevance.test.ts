@@ -187,3 +187,18 @@ describe('words from web addresses', () => {
     expect(scoreItem(docs, p, new Map()).score).toBeGreaterThanOrEqual(SURE);
   });
 });
+
+describe('Chrome tab groups', () => {
+  const t = (url: string, label: string, group?: string): Item => ({ key: `tab:${url}`, kind: 'tab', label, detail: '', app: 'Google Chrome', url, browser: 'chrome', group });
+  it('a tab in the folder\'s own tab group belongs, even with nothing else in common', async () => {
+    const { jobProfile, scoreItem, SURE } = await import('../src/main/jobs/relevance');
+    const p = jobProfile('Japan trip', '', [t('https://www.google.com/travel/flights', 'Flights to Tokyo')]);
+    const odd = t('https://www.timeanddate.com/worldclock', 'World clock', 'Japan trip');
+    expect(scoreItem(odd, p, new Map()).score).toBeGreaterThanOrEqual(SURE);
+    expect(scoreItem({ ...odd, group: 'Other' }, p, new Map()).score).toBeLessThan(SURE);
+  });
+  it('a new folder takes the name of the tab group its tabs share', async () => {
+    const { suggestName } = await import('../src/main/jobs/match');
+    expect(suggestName([t('https://a.com/x', 'A', 'Thesis research'), t('https://b.com/y', 'B', 'Thesis research')], null)).toBe('Thesis research');
+  });
+});

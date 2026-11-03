@@ -163,6 +163,57 @@ export async function changeChromeGroup(action: 'ungroup' | 'regroup', name: str
   await run('osascript', ['-e', script, '--', groupPageUrl(name, web, action)], { timeoutMs: 20_000 }).catch(() => undefined);
 }
 
+// Opens the report page in a background tab (the tab you're on stays in front), waits for it to write
+// the grouped tabs into its own address, reads that and closes it.
+const REPORT_SCRIPT = `on run wwiArgs
+  tell application id "com.google.Chrome"
+    if (count of windows) is 0 then return ""
+    set wwiWin to front window
+    set wwiPrev to active tab index of wwiWin
+    set wwiTab to make new tab at end of tabs of wwiWin with properties {URL:(item 1 of wwiArgs)}
+    set active tab index of wwiWin to wwiPrev
+    set wwiOut to ""
+    repeat 25 times
+      delay 0.08
+      try
+        set wwiU to URL of wwiTab
+        if wwiU contains "#R" then
+          set wwiOut to wwiU
+          exit repeat
+        end if
+      end try
+    end repeat
+    try
+      close wwiTab
+    end try
+    return wwiOut
+  end tell
+end run`;
+
+/**
+ * Which Chrome tab group each grouped tab is in, by the tab's loose key ("tab:host/path"). Empty without
+ * Chrome or Stashd's extension. A tab in a group named after a folder very likely belongs to it.
+ */
+export async function chromeTabGroups(clean: (url: string) => string | null): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (Date.now() - helperMissingAt < RETRY_HELPER_MS || !(await isRunning('chrome'))) return out;
+  try {
+    const r = await run('osascript', ['-e', REPORT_SCRIPT, '--', `chrome-extension://${CHROME_HELPER_ID}/open.html#${encodeURIComponent(JSON.stringify({ action: 'report' }))}`], { timeoutMs: 6_000 });
+    const at = r.stdout.indexOf('#R');
+    if (at < 0) return out;
+    const pairs = JSON.parse(decodeURIComponent(r.stdout.trim().slice(at + 2))) as unknown;
+    if (!Array.isArray(pairs)) return out;
+    for (const p of pairs) {
+      if (!Array.isArray(p) || typeof p[0] !== 'string' || typeof p[1] !== 'string') continue;
+      const url = clean(p[0]);
+      if (url) out.set(looseKey({ key: `tab:${url}`, kind: 'tab', label: '', detail: '', app: '', url }), p[1].slice(0, 60));
+    }
+  } catch {
+    // no report this time: the other signals still work
+  }
+  return out;
+}
+
 async function openChromeGroup(name: string, urls: string[]): Promise<boolean> {
   if (Date.now() - helperMissingAt < RETRY_HELPER_MS) return false;
   const r = await run('osascript', ['-e', GROUP_SCRIPT, '--', groupPageUrl(name, urls)], { timeoutMs: 20_000 });

@@ -180,7 +180,12 @@ export interface Profile {
   /** Learned from you: titles you left out of this job before, and sites you keep leaving out. */
   avoidTexts: string[];
   avoidHosts: Set<string>;
+  /** The job's name, lowercased: a Chrome tab group with this name is the job's own group. */
+  name?: string;
 }
+
+/** A tab in the job's own Chrome tab group (or a group with the job's name): it very likely belongs. */
+const IN_GROUP = 3;
 
 export function emptyProfile(): Profile {
   return { tokens: new Map(), keys: new Set(), loose: new Set(), chats: new Set(), hosts: new Set(), dirs: new Set(), refs: new Map(), avoidTexts: [], avoidHosts: new Set() };
@@ -209,6 +214,7 @@ export function addItem(p: Profile, item: Item, weight = 1, asMember = true): vo
 /** A job's profile: its name and note count double, then everything that was in it. */
 export function jobProfile(name: string, note: string, items: Item[], learned?: { avoidTexts?: string[]; avoidHosts?: string[] }): Profile {
   const p = emptyProfile();
+  p.name = name.trim().toLowerCase() || undefined;
   addTokens(p, textTokens(name), 2);
   addTokens(p, textTokens(note), 1.5);
   if (name.trim()) p.refs.set(name.trim(), name.trim());
@@ -265,6 +271,10 @@ export function scoreItem(item: Item, p: Profile, df: Map<string, number>, front
   if (d && p.dirs.has(d)) {
     score += 2;
     why.push('same folder');
+  }
+  if (item.group && p.name && item.group.trim().toLowerCase() === p.name) {
+    score += IN_GROUP;
+    why.push(`in the “${item.group}” tab group`);
   }
   const sameWindow = frontWindow !== null && item.kind === 'tab' && item.window === frontWindow;
   if (sameWindow) {

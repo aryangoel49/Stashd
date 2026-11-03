@@ -3,6 +3,8 @@
 //   { name, urls }                     open these tabs in a group named after the folder
 //   { action: 'ungroup', name, urls }  take these tabs out of the folder's group (they stay open)
 //   { action: 'regroup', name, urls }  put open tabs with these addresses back in the folder's group
+//   { action: 'report' }               list the tabs in groups, in this page's address (#R…), for Stashd to read;
+//                                      Stashd closes this page itself
 
 const COLORS = ['yellow', 'blue', 'green', 'pink', 'purple', 'cyan', 'orange', 'red', 'grey'];
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -35,8 +37,20 @@ async function intoGroup(ids, windowId, name) {
   }
 }
 
+let keepOpen = false;
+
 async function run() {
   const req = JSON.parse(decodeURIComponent(location.hash.slice(1)));
+  if (req.action === 'report') {
+    const titles = new Map((await chrome.tabGroups.query({})).map((g) => [g.id, g.title ?? '']));
+    const grouped = (await chrome.tabs.query({}))
+      .filter((t) => t.groupId !== -1 && /^https?:/.test(t.url ?? '') && titles.get(t.groupId))
+      .slice(0, 300)
+      .map((t) => [t.url, titles.get(t.groupId)]);
+    keepOpen = true;
+    history.replaceState(null, '', `#R${encodeURIComponent(JSON.stringify(grouped))}`);
+    return;
+  }
   const urls = (Array.isArray(req.urls) ? req.urls : []).filter((u) => typeof u === 'string' && /^https?:\/\//i.test(u)).slice(0, 200);
   const name = String(req.name ?? '').slice(0, 60);
   const self = await chrome.tabs.getCurrent();
@@ -67,6 +81,7 @@ async function run() {
 run()
   .catch(() => undefined)
   .finally(async () => {
+    if (keepOpen) return;
     const self = await chrome.tabs.getCurrent();
     if (self) chrome.tabs.remove(self.id);
   });

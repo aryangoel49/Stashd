@@ -189,6 +189,11 @@ export function recordAppUnticks(appUnticks: Record<string, string[]>, jobId: st
 /** A name for a new job. First choice: the topic shared by everything in the job (tab titles,
  *  document and folder names). Otherwise a saved document's name, then the tab you were on. */
 export function suggestName(items: Item[], frontKey: string | null): string {
+  // You already grouped these in Chrome: that group's name is the name.
+  const groups = new Map<string, number>();
+  for (const i of items) if (i.group?.trim()) groups.set(i.group.trim(), (groups.get(i.group.trim()) ?? 0) + 1);
+  const [topGroup] = [...groups.entries()].sort((a, b) => b[1] - a[1]);
+  if (topGroup && topGroup[1] >= 2) return topGroup[0].slice(0, 60);
   const topic = topicName(items);
   if (topic) return topic;
   const front = items.find((i) => i.key === frontKey);

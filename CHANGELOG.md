@@ -19,6 +19,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Real Mac icons for files, apps and browser tabs.
 
 ### Changed
+- Smarter ⌃S: Stashd reads a page's site and web address (not only its title), and a Chrome tab in a folder's tab group counts as that folder's. A new folder takes the name of the tab group its tabs share.
 - Briefs are structured and plain: a headline, then Last on, So far and Next.
 - A folder's tabs open together in a new window of the browser they came from, and never twice.
 - Pack up quits the folder's apps like ⌘Q; Claude and ChatGPT are only hidden.
