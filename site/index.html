@@ -88,7 +88,7 @@ p { margin: 0; }
 .apple { width: 16px; height: 18px; }
 
 /* ---------- hero ---------- */
-.hero { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 64px; align-items: center; padding-block: 48px 96px; }
+.hero { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 64px; align-items: center; padding-block: 48px 56px; }
 .hero-mascot { width: 64px; height: 64px; flex: none; cursor: pointer; }
 .hero-mascot .folder { width: 64px; height: 64px; filter: drop-shadow(0 10px 18px rgba(214,170,40,0.35)); }
 /* The problem, then the fix: a small pile of open windows, tucked into the folder once when the page opens. */
@@ -330,6 +330,9 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .mp-view[hidden] { display: none; }
 /* ---------- how it works ---------- */
 section { padding-block: 112px; }
+/* A quiet line between the demo and the steps, fading out at both ends. */
+.rule { border: 0; height: 1px; margin: 0; background: linear-gradient(90deg, transparent, var(--line) 18%, var(--line) 82%, transparent); }
+#how { padding-top: 72px; }
 .section-head { max-width: 640px; }
 .section-head h2 { font-size: clamp(36px, 4.6vw, 58px); line-height: 1.02; font-weight: 700; }
 .section-head p { margin-top: 18px; font-size: 20px; color: var(--ink-soft); }
@@ -457,10 +460,11 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 @media (max-width: 920px) {
   .hero, .chapter, .privacy { grid-template-columns: minmax(0, 1fr); gap: 36px; }
   .chapter.flip .copy { order: 0; }
-  .hero { padding-block: 20px 72px; }
+  .hero { padding-block: 20px 44px; }
   .steps { grid-template-columns: 1fr; }
   .nav-links a:not(.btn) { display: none; }
   section { padding-block: 80px; }
+  #how { padding-top: 52px; }
   .chapter { padding-block: 48px; }
 }
 @media (max-width: 560px) {
@@ -601,6 +605,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     </div>
     </div>
   </div>
+
+  <div class="wrap"><hr class="rule"></div>
 
   <section id="how">
     <div class="wrap">
