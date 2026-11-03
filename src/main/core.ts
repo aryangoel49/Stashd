@@ -21,12 +21,12 @@ import { documentFrequency, FIT_SUGGEST, hasProof, jobFit, jobProfile, meaningTe
 import { suggest, type FolderData } from './jobs/suggest';
 import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
-import { changeChromeGroup, openForBreak, openItems } from './open';
+import { changeChromeGroup, finished, openForBreak, openItems, videoProgress } from './open';
 import { BreakStore, isBreakItem } from './breaks';
 import type { SettingsStore } from './settings';
 import { JobStore, writeFileAtomic } from './store';
 import { IconCache } from './icons';
-import { looseKey, matchKeys, siteOf } from './urls';
+import { cleanTabUrl, looseKey, matchKeys, siteOf } from './urls';
 
 interface State {
   currentJobId: string | null;
@@ -409,7 +409,12 @@ export class Core {
         return false;
       }
     });
-    if (toShelf.length) await this.breaks.add(toShelf);
+    if (toShelf.length) {
+      // Videos you watched to the end don't need picking up.
+      const { finishedOnes, rest } = await this.splitFinished(toShelf);
+      for (const f of finishedOnes) await this.breaks.removeLoose(looseKey(f));
+      if (rest.length) await this.breaks.add(rest);
+    }
     plan.breaks = breakItems.length;
     plan.loose = strays.filter((i) => !homed.has(i.key)).length - breakItems.length;
     this.pending = null;
@@ -468,6 +473,24 @@ export class Core {
   }
 
   // ---------- the Break shelf ----------
+
+  /**
+   * Videos that just closed: the ones you watched to the end leave Continue watching, the rest go to the
+   * top of it.
+   */
+  async videosClosed(items: Item[]): Promise<void> {
+    const { finishedOnes, rest } = await this.splitFinished(items);
+    for (const f of finishedOnes) await this.breaks.removeLoose(looseKey(f));
+    if (rest.length) await this.breaks.add(rest);
+    this.notify();
+  }
+
+  private async splitFinished(items: Item[]): Promise<{ finishedOnes: Item[]; rest: Item[] }> {
+    const s = this.settings.get();
+    const progress = await videoProgress((u) => cleanTabUrl(u, { keepQueryStrings: s.keepQueryStrings, excludedDomains: s.excludedDomains })).catch(() => new Map());
+    const finishedOnes = items.filter((i) => finished(progress.get(looseKey(i))));
+    return { finishedOnes, rest: items.filter((i) => !finishedOnes.includes(i)) };
+  }
 
   breakShelf(): Promise<BreakShelf> {
     return this.breaks.get();

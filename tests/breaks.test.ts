@@ -96,3 +96,15 @@ describe('Continue watching', () => {
     expect(closed).toHaveBeenCalledWith([vid]);
   });
 });
+
+describe('finished videos', () => {
+  it('counts a video as finished at 95%, or with under 20 seconds left', async () => {
+    const { finished } = await import('../src/main/open');
+    expect(finished({ t: 600, d: 600 })).toBe(true);
+    expect(finished({ t: 585, d: 600 })).toBe(true);
+    expect(finished({ t: 300, d: 600 })).toBe(false);
+    expect(finished({ t: 3300, d: 3600 })).toBe(false);
+    expect(finished({ t: 3585, d: 3600 })).toBe(true);
+    expect(finished(undefined)).toBe(false);
+  });
+});

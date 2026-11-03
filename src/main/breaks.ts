@@ -125,6 +125,15 @@ export class BreakStore {
     return changed;
   }
 
+  /** Take a page off the shelf by its loose key (any address variant of it). */
+  async removeLoose(loose: string): Promise<void> {
+    const shelf = await this.get();
+    const kept = shelf.items.filter((i) => looseKey(i) !== loose);
+    if (kept.length === shelf.items.length) return;
+    shelf.items = kept;
+    await this.save(shelf);
+  }
+
   async remove(key: string): Promise<void> {
     const shelf = await this.get();
     shelf.items = shelf.items.filter((i) => i.key !== key);

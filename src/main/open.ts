@@ -214,6 +214,35 @@ export async function chromeTabGroups(clean: (url: string) => string | null): Pr
   return out;
 }
 
+/**
+ * How far into each video you got, from Stashd's extension (it notes the position and length every few
+ * seconds on video sites): loose key -> { t: seconds watched, d: length }. Empty without the extension.
+ */
+export async function videoProgress(clean: (url: string) => string | null): Promise<Map<string, { t: number; d: number }>> {
+  const out = new Map<string, { t: number; d: number }>();
+  if (Date.now() - helperMissingAt < RETRY_HELPER_MS || !(await isRunning('chrome'))) return out;
+  try {
+    const r = await run('osascript', ['-e', REPORT_SCRIPT, '--', `chrome-extension://${CHROME_HELPER_ID}/open.html#${encodeURIComponent(JSON.stringify({ action: 'progress' }))}`], { timeoutMs: 6_000 });
+    const at = r.stdout.indexOf('#R');
+    if (at < 0) return out;
+    const rows = JSON.parse(decodeURIComponent(r.stdout.trim().slice(at + 2))) as unknown;
+    if (!Array.isArray(rows)) return out;
+    for (const row of rows) {
+      if (!Array.isArray(row) || typeof row[0] !== 'string' || typeof row[1] !== 'number' || typeof row[2] !== 'number') continue;
+      const url = clean(row[0]);
+      if (url) out.set(looseKey({ key: `tab:${url}`, kind: 'tab', label: '', detail: '', app: '', url }), { t: row[1], d: row[2] });
+    }
+  } catch {
+    // can't tell: everything counts as unfinished
+  }
+  return out;
+}
+
+/** Watched to the end (or as good as: 95%, or under 20 seconds left). */
+export function finished(p: { t: number; d: number } | undefined): boolean {
+  return !!p && p.d > 0 && (p.t / p.d >= 0.95 || p.d - p.t <= 20);
+}
+
 async function openChromeGroup(name: string, urls: string[]): Promise<boolean> {
   if (Date.now() - helperMissingAt < RETRY_HELPER_MS) return false;
   const r = await run('osascript', ['-e', GROUP_SCRIPT, '--', groupPageUrl(name, urls)], { timeoutMs: 20_000 });
