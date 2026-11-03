@@ -346,16 +346,17 @@ section { padding-block: 112px; }
 .panel { background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 26px; padding: 26px; box-shadow: 0 24px 60px -30px rgba(28,29,34,0.35); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 .panel-title { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
 .panel-title .folder { width: 22px; height: 22px; }
-.tablist { display: grid; gap: 8px; }
+.tablist { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .trow { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #eee8d5; border-radius: 14px; padding: 11px 14px; font-size: 15px; transition: opacity 0.5s, transform 0.6s var(--ease), background 0.4s, border-color 0.4s; }
-.trow .fav { width: 20px; height: 20px; border-radius: 6px; font-size: 11px; }
+.trow .ic { width: 20px; height: 20px; border-radius: 6px; font-size: 11px; }
+.trow .ic-chrome { border-radius: 50%; }
 .trow .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .trow .tag { font-size: 12.5px; font-weight: 600; color: transparent; transition: color 0.4s; white-space: nowrap; }
 .sorted .trow { transition-delay: calc(var(--i) * 220ms); }
 .sorted .trow .tag { transition-delay: calc(var(--i) * 220ms); }
 .sorted .trow.in { background: var(--cream); border-color: #e9d27f; }
 .sorted .trow.in .tag { color: #8a6a00; }
-.sorted .trow.no { opacity: 0.45; transform: translateX(10px); }
+.sorted .trow.no { opacity: 0.45; }
 .sorted .trow.no .tag { color: var(--ink-soft); }
 .tally { margin-top: 14px; font-size: 15px; font-weight: 600; color: var(--ink-soft); min-height: 24px; transition: color 0.3s; }
 .tally.done { color: #8a6a00; }
@@ -431,7 +432,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 .js .reveal.in { opacity: 1; transform: none; }
 
 @media (max-width: 920px) {
-  .hero, .chapter, .privacy { grid-template-columns: 1fr; gap: 36px; }
+  .hero, .chapter, .privacy { grid-template-columns: minmax(0, 1fr); gap: 36px; }
   .chapter.flip .copy { order: 0; }
   .hero { padding-block: 20px 72px; }
   .steps { grid-template-columns: 1fr; }
@@ -606,12 +607,12 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       <div class="panel reveal" style="--d:120ms">
         <div class="panel-title"><span data-folder="tile" id="sortFolder"></span><span id="sortTitle">Open on your Mac</span></div>
         <div class="tablist" id="tablist">
-          <div class="trow in" style="--i:0"><span class="fav" style="background:#4285f4">G</span><span class="t">Flights to Tokyo · Google Flights</span><span class="tag">Goes in</span></div>
-          <div class="trow no" style="--i:1"><span class="fav" style="background:#d50a0a">E</span><span class="t">Warriors vs Lakers · ESPN</span><span class="tag">Stays open</span></div>
-          <div class="trow in" style="--i:2"><span class="fav" style="background:#003b95">B</span><span class="t">Ryokans in Kyoto · Booking.com</span><span class="tag">Goes in</span></div>
-          <div class="trow no" style="--i:3"><span class="fav" style="background:#ea4335">M</span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
-          <div class="trow in" style="--i:4"><span class="fav" style="background:#1a7f4b">J</span><span class="t">Japan Rail Pass · 7-day</span><span class="tag">Goes in</span></div>
-          <div class="trow in" style="--i:5"><span class="fav" style="background:#2b5fb4">W</span><span class="t">Japan itinerary.docx</span><span class="tag">Goes in</span></div>
+          <div class="trow in" style="--i:0"><span class="ic ic-chrome"></span><span class="t">Flights to Tokyo · Google Flights</span><span class="tag">Goes in</span></div>
+          <div class="trow no" style="--i:1"><span class="ic ic-chrome"></span><span class="t">Warriors vs Lakers · ESPN</span><span class="tag">Stays open</span></div>
+          <div class="trow in" style="--i:2"><span class="ic ic-chrome"></span><span class="t">Ryokans in Kyoto · Booking.com</span><span class="tag">Goes in</span></div>
+          <div class="trow no" style="--i:3"><span class="ic ic-chrome"></span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
+          <div class="trow in" style="--i:4"><span class="ic ic-chrome"></span><span class="t">Japan Rail Pass · 7-day</span><span class="tag">Goes in</span></div>
+          <div class="trow in" style="--i:5"><span class="ic ic-word">W</span><span class="t">Japan itinerary.docx</span><span class="tag">Goes in</span></div>
         </div>
         <div class="tally" id="tally">Press ⌃S…</div>
       </div>
