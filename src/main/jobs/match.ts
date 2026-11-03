@@ -102,7 +102,7 @@ export function classify(input: ClassifyInput): Classified {
     if (isLifestyle(it, input.settings, input.learnedLifestyleApps)) hidden.push(it);
     else candidates.push(it);
   }
-  const profile = job ? jobProfile(input.name || job.name, input.note ?? '', input.previous, learnedAvoid(prefs)) : null;
+  const profile = job ? jobProfile(input.name || job.name, input.note ?? '', input.previous, learnedAvoid(prefs), job.card) : null;
   const g = group({
     candidates,
     profile,

@@ -7,6 +7,7 @@ import { mostlyOpen, type BriefView, type Item, type JobSummary, type OpenState,
 import { api, errorText, prettyShortcut, timeAgo, useSettings } from './api';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
+import { ProjectCard } from './ProjectCard';
 import { RecentPage, useRecentlyTidied } from './Recent';
 import { SettingsView } from './SettingsView';
 import { FolderMergeHint, SuggestionStrip, useSuggestions } from './Suggestions';
@@ -485,6 +486,8 @@ function JobDetail({ jobId, jobs, isOpen }: { jobId: string; jobs: JobSummary[];
               ),
           )}
           {items.length === 0 && <span className="faint small">Empty</span>}
+
+          <ProjectCard jobId={jobId} />
 
           <section>
             <div className="section-head">

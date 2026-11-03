@@ -159,6 +159,21 @@ export interface Job {
   pinned?: boolean;
   /** When you last opened it (Unpack), for ⌃O when nothing is pinned. */
   openedAt?: string;
+  /** What the project is about, rebuilt after each save (see jobs/card.ts). */
+  card?: ProjectCard;
+  /** Your changes to the card: names you added, and names, sites or places you took out. */
+  cardEdits?: { add: string[]; hide: string[] };
+}
+
+/** A folder's project card: what Ctrl+S matches new things against, besides the latest save. */
+export interface ProjectCard {
+  /** Words that keep coming back in this project (and its name). */
+  names: string[];
+  /** Names you added yourself. */
+  added: string[];
+  sites: string[];
+  /** Folders on your Mac the project's files live in. */
+  places: string[];
 }
 
 export interface JobSummary {

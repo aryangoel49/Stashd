@@ -14,7 +14,7 @@
 // Barcelona" and "Soccer Streams"). When it's available, closeness in meaning adds to the score;
 // when it isn't, everything above still works on its own.
 
-import type { Item } from '../../shared/types';
+import type { Item, ProjectCard } from '../../shared/types';
 import { looseKey, matchKeys } from '../urls';
 
 // ---------- tokens ----------
@@ -212,7 +212,7 @@ export function addItem(p: Profile, item: Item, weight = 1, asMember = true): vo
 }
 
 /** A job's profile: its name and note count double, then everything that was in it. */
-export function jobProfile(name: string, note: string, items: Item[], learned?: { avoidTexts?: string[]; avoidHosts?: string[] }): Profile {
+export function jobProfile(name: string, note: string, items: Item[], learned?: { avoidTexts?: string[]; avoidHosts?: string[] }, card?: ProjectCard): Profile {
   const p = emptyProfile();
   p.name = name.trim().toLowerCase() || undefined;
   addTokens(p, textTokens(name), 2);
@@ -220,6 +220,16 @@ export function jobProfile(name: string, note: string, items: Item[], learned?: 
   if (name.trim()) p.refs.set(name.trim(), name.trim());
   if (note.trim()) p.refs.set(note.trim(), 'your note');
   for (const it of items) addItem(p, it, 1);
+  // The project card: what this project is about across all its saves, plus names you added.
+  if (card) {
+    addTokens(p, card.names, 1.5);
+    for (const a of card.added) {
+      addTokens(p, textTokens(a), 2);
+      if (a.trim()) p.refs.set(a.trim(), a.trim());
+    }
+    for (const s of card.sites) p.hosts.add(s);
+    for (const d of card.places) p.dirs.add(d);
+  }
   p.avoidTexts = learned?.avoidTexts ?? [];
   for (const h of learned?.avoidHosts ?? []) if (!p.hosts.has(h)) p.avoidHosts.add(h);
   return p;

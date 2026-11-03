@@ -19,6 +19,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Real Mac icons for files, apps and browser tabs.
 
 ### Changed
+- **Project cards**: each folder knows what its project is about across all its saves (names, websites, places on your Mac), and ⌃S matches new things against that. See and edit it on the folder's page in the Stashd window.
 - Smarter ⌃S: Stashd reads a page's site and web address (not only its title), and a Chrome tab in a folder's tab group counts as that folder's. A new folder takes the name of the tab group its tabs share.
 - Briefs are structured and plain: a headline, then Last on, So far and Next.
 - A folder's tabs open together in a new window of the browser they came from, and never twice.

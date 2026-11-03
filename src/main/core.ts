@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { mostlyOpen, type BriefView, type Capture, type Item, type Job, type JobSummary, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult } from '../shared/types';
+import { mostlyOpen, type BriefView, type Capture, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, CHAT_APPS, frontItemKey } from './capture';
@@ -19,6 +19,7 @@ import {
 } from './jobs/match';
 import { documentFrequency, FIT_SUGGEST, jobFit, jobProfile, meaningText, profileTexts, scoreItem, SURE, type MeaningLookup, type Profile } from './jobs/relevance';
 import { suggest, type FolderData } from './jobs/suggest';
+import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
 import { changeChromeGroup, openItems } from './open';
 import type { SettingsStore } from './settings';
@@ -188,7 +189,9 @@ export class Core {
     const jobs: { job: Job; latest: SaveEntry | null; profile: ReturnType<typeof jobProfile> | null }[] = [];
     for (const j of (await this.store.list()).filter((x) => !x.done).slice(0, 40)) {
       const latest = await this.store.latest(j.id);
-      jobs.push({ job: j, latest, profile: latest ? jobProfile(j.name, latest.note, latest.items, learnedAvoid(j.prefs)) : null });
+      // Folders saved before project cards existed get theirs now (once).
+      const card = j.card ?? (latest ? await this.refreshCard(j.id).catch(() => undefined) : undefined);
+      jobs.push({ job: j, latest, profile: latest ? jobProfile(j.name, latest.note, latest.items, learnedAvoid(j.prefs), card) : null });
     }
 
     // Meaning vectors from the on-device model, for everything open and every job. (Skipped if it's unavailable.)
@@ -223,7 +226,7 @@ export class Core {
     const latest = job ? (fits.find((f) => f.job.id === job!.id)?.latest ?? (await this.store.latest(job.id))) : null;
     const previous = latest?.items ?? [];
     const baseline = job && this.state.baseline?.jobId === job.id ? new Set(this.state.baseline.keys) : undefined;
-    if (job) await addVectors(profileTexts(jobProfile(job.name, latest?.note ?? '', previous, learnedAvoid(job.prefs))));
+    if (job) await addVectors(profileTexts(jobProfile(job.name, latest?.note ?? '', previous, learnedAvoid(job.prefs), job.card)));
     const offered = classify({
       items: cap.items,
       job,
@@ -331,6 +334,7 @@ export class Core {
     // Only clear it if no newer save box has started in the meantime.
     if (this.pending === pending) this.pending = null;
     this.notify();
+    await this.refreshCard(job.id).catch(() => undefined);
     // The folder may be deleted while its brief is still being written; that's fine.
     void this.ensureBrief(job.id, entry.id).catch(() => undefined);
     return { jobId: job.id, entryId: entry.id, needsNaming: req.tidy ? items.filter((i) => i.untitled) : [] };
@@ -399,7 +403,7 @@ export class Core {
     const folders: { id: string; profile: Profile }[] = [];
     for (const j of (await this.store.list()).filter((x) => !x.done && !skip.has(x.id))) {
       const latest = await this.store.latest(j.id);
-      if (latest) folders.push({ id: j.id, profile: jobProfile(j.name, latest.note, latest.items, learnedAvoid(j.prefs)) });
+      if (latest) folders.push({ id: j.id, profile: jobProfile(j.name, latest.note, latest.items, learnedAvoid(j.prefs), j.card) });
     }
     if (!folders.length) return homes;
     const vectors = new Map<string, number[]>();
@@ -435,6 +439,7 @@ export class Core {
     await this.store.prune(jobId);
     job.updatedAt = now.toISOString();
     await this.store.put(job);
+    await this.refreshCard(jobId).catch(() => undefined);
     void this.ensureBrief(jobId, entry.id).catch(() => undefined);
     return job.name;
   }
@@ -599,6 +604,7 @@ export class Core {
       into.items = withoutRepeats([...into.items, ...from.items]);
       delete into.brief; // written again for the merged folder
       await this.store.saveEntry(into);
+      await this.refreshCard(s.into).catch(() => undefined);
       await this.setDone(s.from, true); // the merged-in folder moves to Finished, history intact
       this.lastUndo = { id, run: async () => {
         const now = await this.store.entry(s.into, into.id);
@@ -836,6 +842,30 @@ export class Core {
     }
   }
 
+  /** Rebuild a folder's project card from all of its saves (and your edits). Returns it. */
+  async refreshCard(jobId: string): Promise<ProjectCard> {
+    const job = await this.store.get(jobId);
+    const saves: Item[][] = [];
+    for (const id of await this.store.entryIds(jobId)) saves.push((await this.store.entry(jobId, id).catch(() => null))?.items ?? []);
+    job.card = buildCard(job.name, saves, job.cardEdits);
+    await this.store.put(job);
+    return job.card;
+  }
+
+  /** Add a name to a folder's card, or take a name, site or place out of it. */
+  async editCard(jobId: string, change: { add?: string; hide?: string; unadd?: string }): Promise<ProjectCard> {
+    const job = await this.store.get(jobId);
+    const edits = job.cardEdits ?? { add: [], hide: [] };
+    if (change.add?.trim()) edits.add = [...new Set([...edits.add, change.add.trim().slice(0, 40)])].slice(-12);
+    if (change.unadd) edits.add = edits.add.filter((a) => a !== change.unadd);
+    if (change.hide?.trim()) edits.hide = [...new Set([...edits.hide, change.hide.trim().toLowerCase()])].slice(-40);
+    job.cardEdits = edits;
+    await this.store.put(job);
+    const card = await this.refreshCard(jobId);
+    this.notify();
+    return card;
+  }
+
   /** Pin a folder (unpinning any other: one at a time), or unpin it. */
   async setPinned(jobId: string, pinned: boolean): Promise<void> {
     for (const j of await this.store.list()) {
@@ -861,6 +891,7 @@ export class Core {
     job.name = name;
     job.renamed = true;
     await this.store.put(job);
+    await this.refreshCard(jobId).catch(() => undefined);
     this.notify();
   }
 

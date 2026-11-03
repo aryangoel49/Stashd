@@ -125,6 +125,15 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('jobs:rename', (_e, id, name) => core.rename(v.jobId(id), v.jobName(name)));
   handle('jobs:done', (_e, id, done) => core.setDone(v.jobId(id), v.bool(done, 'done')));
   handle('jobs:pin', (_e, id, pinned) => core.setPinned(v.jobId(id), v.bool(pinned, 'pinned')));
+  handle('jobs:card', async (_e, id) => {
+    const jobId = v.jobId(id);
+    return (await core.store.get(jobId)).card ?? core.refreshCard(jobId);
+  });
+  handle('jobs:editCard', (_e, id, change) => {
+    const c = (change ?? {}) as Record<string, unknown>;
+    const opt = (x: unknown, what: string) => (x == null ? undefined : v.str(x, what, 200));
+    return core.editCard(v.jobId(id), { add: opt(c.add, 'name'), hide: opt(c.hide, 'name'), unadd: opt(c.unadd, 'name') });
+  });
   // Deleting can be asked first (so the page can play its goodbye before the folder disappears), then
   // done within a few seconds without asking twice. A delete with no recent yes still asks.
   const confirmedDelete = new Map<string, number>();
