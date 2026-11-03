@@ -257,6 +257,9 @@ export class Core {
       .map((i) => ({ ...i, notOpen: true, active: false }));
     pending.offered = offered;
     pending.kept = kept;
+    // Nothing to work on is open, or you're on a video and nothing else would go in a new folder:
+    // ⌃S offers the Break shelf instead of making a folder out of the video.
+    const breakTime = !opts.jobId && !pending.target && (!workThere || (!job && !offered.sure.some((i) => !isBreakItem(i))));
     const visibleItems = [...offered.sure, ...offered.likely, ...offered.maybe];
     const front = frontItemKey(visibleItems, cap.appOrder);
     const before = new Set(previous.flatMap(matchKeys));
@@ -273,7 +276,7 @@ export class Core {
       kept,
       hiddenCount: offered.hidden.length,
       breakCount: offered.breaks.length,
-      onlyBreaks: !workThere && !opts.jobId && !pending.target ? candidates.filter((i) => isBreakItem(i) && !/^\/?$/.test(new URL(i.url!).pathname)) : [],
+      onlyBreaks: breakTime ? candidates.filter((i) => isBreakItem(i) && !/^\/?$/.test(new URL(i.url!).pathname)) : [],
       frontKey: front,
       tidyUp: settings.tidyUp,
       errors: cap.errors,

@@ -273,7 +273,7 @@ function SaveBox() {
               <FolderMark size={34} alive mood="happy" />
               <div className="grow">
                 <div className="save-break-title">Taking a break?</div>
-                <div className="muted small">Nothing to work on is open. Put {preview.onlyBreaks.length === 1 ? 'this' : 'these'} on your Break shelf to pick up later.</div>
+                <div className="muted small">Put {preview.onlyBreaks.length === 1 ? 'this' : 'these'} on your Break shelf to pick up later.</div>
               </div>
             </div>
             <div className="pills no-drag" style={{ padding: '4px 0 10px' }}>

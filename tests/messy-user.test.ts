@@ -440,6 +440,20 @@ describe('Merging keeps one copy of each page', () => {
   });
 });
 
+describe('Ctrl+S while watching a video, with unrelated tabs open', () => {
+  it('offers the Break shelf instead of making a folder out of the video', async () => {
+    const core = makeCore();
+    const video: Item = { ...tab(1, '(182) Your SUS Clips... - YouTube'), key: 'tab:https://www.youtube.com/watch?v=u0iATr7A5KM', url: 'https://www.youtube.com/watch?v=u0iATr7A5KM', detail: 'youtube.com', active: true };
+    const repo: Item = { ...tab(2, 'JuliusBrussee/caveman: why use many token'), key: 'tab:https://github.com/JuliusBrussee/caveman', url: 'https://github.com/JuliusBrussee/caveman' };
+    const search: Item = { ...tab(3, 'github repo for saving tokens - Google Search'), key: 'tab:https://www.google.com/search?q=tokens', url: 'https://www.google.com/search?q=tokens' };
+    open = [video, repo, search];
+    core.beginSave();
+    const p = await core.preview();
+    expect(p.jobId).toBeNull();
+    expect(p.onlyBreaks.map((i) => i.key)).toEqual([video.key]);
+  });
+});
+
 describe('Ctrl+S with only a chat and a video open', () => {
   it('guesses no folder from the chat, and offers to put the video on the Break shelf', async () => {
     const core = makeCore();
