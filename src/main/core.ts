@@ -20,7 +20,7 @@ import {
 import { documentFrequency, FIT_SUGGEST, jobFit, jobProfile, meaningText, profileTexts, scoreItem, SURE, type MeaningLookup, type Profile } from './jobs/relevance';
 import { suggest, type FolderData } from './jobs/suggest';
 import type { Meaning } from './meaning';
-import { openItems } from './open';
+import { changeChromeGroup, openItems } from './open';
 import type { SettingsStore } from './settings';
 import { JobStore, writeFileAtomic } from './store';
 import { IconCache } from './icons';
@@ -759,6 +759,8 @@ export class Core {
     job.prefs.hide[key] = 2;
     delete job.prefs.add[key];
     await this.store.put(job);
+    // Open in the folder's Chrome tab group? It leaves the group too (and stays open).
+    if (item?.kind === 'tab' && item.browser === 'chrome' && item.url) void changeChromeGroup('ungroup', job.name, [item.url]);
     this.notify();
   }
 
@@ -774,6 +776,7 @@ export class Core {
     const job = await this.store.get(jobId);
     delete job.prefs.hide[item.key];
     await this.store.put(job);
+    if (item.kind === 'tab' && item.browser === 'chrome' && item.url) void changeChromeGroup('regroup', job.name, [item.url]);
     this.notify();
   }
 

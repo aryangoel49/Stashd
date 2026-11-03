@@ -113,8 +113,8 @@ end run`;
 export const CHROME_HELPER_ID = 'ledhbdmigicjkhlpchllagcmkpmldjfb';
 
 /** The extension's page that opens these tabs in a group of this name, then closes itself. */
-export function groupPageUrl(name: string, urls: string[]): string {
-  return `chrome-extension://${CHROME_HELPER_ID}/open.html#${encodeURIComponent(JSON.stringify({ name, urls }))}`;
+export function groupPageUrl(name: string, urls: string[], action?: 'ungroup' | 'regroup'): string {
+  return `chrome-extension://${CHROME_HELPER_ID}/open.html#${encodeURIComponent(JSON.stringify(action ? { action, name, urls } : { name, urls }))}`;
 }
 
 // Opens the extension's page and waits a moment: it either closes itself (it opened the group) or shows
@@ -152,6 +152,17 @@ const RETRY_HELPER_MS = 10 * 60_000;
 let helperMissingAt = 0;
 
 /** Opens the tabs in a Chrome tab group through Stashd's extension. False if it isn't installed. */
+/**
+ * A tab taken out of a folder leaves the folder's Chrome tab group (it stays open); Undo puts it back.
+ * Quietly does nothing without Chrome or Stashd's extension, and never brings Chrome to the front.
+ */
+export async function changeChromeGroup(action: 'ungroup' | 'regroup', name: string, urls: string[]): Promise<void> {
+  const web = urls.filter((u) => /^https?:/i.test(u));
+  if (!web.length || Date.now() - helperMissingAt < RETRY_HELPER_MS || !(await isRunning('chrome'))) return;
+  const script = GROUP_SCRIPT.replace('    activate\n', '');
+  await run('osascript', ['-e', script, '--', groupPageUrl(name, web, action)], { timeoutMs: 20_000 }).catch(() => undefined);
+}
+
 async function openChromeGroup(name: string, urls: string[]): Promise<boolean> {
   if (Date.now() - helperMissingAt < RETRY_HELPER_MS) return false;
   const r = await run('osascript', ['-e', GROUP_SCRIPT, '--', groupPageUrl(name, urls)], { timeoutMs: 20_000 });
