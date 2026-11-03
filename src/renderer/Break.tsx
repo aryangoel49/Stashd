@@ -81,7 +81,9 @@ type Row = { key: string; title: string; sub: string; url: string; items: BreakI
 function rows(items: BreakItem[]): Row[] {
   const out: Row[] = [];
   const shows = new Map<string, Row>();
-  for (const it of items) {
+  for (const raw of items) {
+    // YouTube puts your notification count in front of titles: "(182) Stop Sending Clips".
+    const it = { ...raw, label: raw.label.replace(/^\(\d+\)\s+/, '') };
     const show = showOf(it.label);
     const site = hostOfUrl(it.url ?? '');
     if (show) {
