@@ -88,35 +88,19 @@ p { margin: 0; }
 .apple { width: 16px; height: 18px; }
 
 /* ---------- hero ---------- */
-.hero { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 64px; align-items: center; padding-block: 48px 56px; }
-.hero-mascot { width: 64px; height: 64px; flex: none; cursor: pointer; }
-.hero-mascot .folder { width: 64px; height: 64px; filter: drop-shadow(0 10px 18px rgba(214,170,40,0.35)); }
-/* The problem, then the fix: a small pile of open windows, tucked into the folder once when the page opens. */
-.pile { position: relative; height: 104px; max-width: 340px; }
-.pile .hero-mascot { position: absolute; left: 0; top: 18px; }
-.wcard { position: absolute; left: var(--x); top: var(--y); width: 66px; height: 48px; border-radius: 9px; background: #fff; box-shadow: 0 6px 16px rgba(28,29,34,0.14), 0 0 0 1px rgba(28,29,34,0.05); transform: rotate(var(--r)); padding: 7px 7px 0; display: flex; flex-direction: column; gap: 4px; }
-.wcard b { display: block; border-radius: 3px; }
-.wcard .bar { height: 5px; width: 22px; background: radial-gradient(circle, #ff5f57 2px, transparent 2.5px) 0 0 / 7px 5px repeat-x; }
-.wcard .url { height: 5px; background: #ecebe6; }
-.wcard .blk { flex: 1; margin-bottom: 7px; background: linear-gradient(135deg, #7ea86a, #4d7a3d); }
-.wcard .badge { align-self: flex-start; padding: 0 4px; height: 11px; font: 800 7.5px/11px var(--body); color: #fff; }
-.wcard .ln { height: 4px; background: #e6e3da; }
-.wcard .ln.s { width: 60%; }
-.wcard.term { background: #1c1d22; }
-.wcard .ln.g { background: #4ec27a; opacity: 0.85; }
-.wcard .grid { flex: 1; margin-bottom: 7px; background: linear-gradient(#e6e3da 1px, transparent 1px) 0 0 / 100% 7px, linear-gradient(90deg, #e6e3da 1px, transparent 1px) 0 0 / 12px 100%; }
-.problem { margin-top: 18px; font: 600 clamp(19px, 1.7vw, 22px)/1.3 var(--display); letter-spacing: -0.01em; color: var(--ink-soft); }
-.hero .problem + h1 { margin-top: 10px; }
-.lede-points { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 10px; max-width: 36ch; }
-.lede-points li { position: relative; padding-left: 26px; font-size: 19px; line-height: 1.45; color: var(--ink-soft); }
-.lede-points li::before { content: ""; position: absolute; left: 2px; top: 0.5em; width: 11px; height: 11px; border-radius: 4px; background: var(--butter); box-shadow: 0 2px 6px rgba(214,170,40,0.35); }
-.hero h1 { font-size: clamp(46px, 4.8vw, 68px); line-height: 0.98; font-weight: 800; }
+/* Headline and Download on one row, the demo right under them: both on screen before any scrolling. */
+.hero { max-width: 1040px; padding-block: 20px 56px; }
+.hero-copy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); gap: 20px 56px; align-items: end; }
+.hero h1 { font-size: clamp(46px, 5.6vw, 76px); line-height: 0.95; font-weight: 800; }
+.lede { font-size: 20px; line-height: 1.45; color: var(--ink-soft); max-width: 34ch; }
+.hero-cta { grid-column: 2; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.hero-copy .lede { grid-column: 2; grid-row: 1; }
+.hero-copy h1 { grid-row: 1 / span 2; align-self: center; }
+.demo-col { margin-top: 36px; }
 .all-feats { padding-block: 4px 56px; }
 .all-feats a { display: inline-flex; font: 600 18px var(--body); color: var(--ink); text-decoration: none; border-bottom: 2px solid var(--butter); padding-bottom: 2px; }
 .all-feats a:hover { border-color: var(--butter-deep); }
-.hero .lede { margin-top: 22px; font-size: 20px; line-height: 1.55; color: var(--ink-soft); max-width: 34ch; }
-.hero-cta { margin-top: 32px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
-.small { font-size: 15px; color: var(--ink-soft); }
+.small { font-size: 14px; color: var(--ink-soft); }
 kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 7px; padding: 1px 7px; }
 
 /* ---------- the little Mac ---------- */
@@ -170,52 +154,27 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .claude { background: #d97757; font-size: 19px; }
 .pdf { background: linear-gradient(160deg, #e5534b, #b3261e); font-size: 11px; }
 .hidden-thing { visibility: hidden; }
+/* The caption lives in the demo's own bottom bar: a few words per scene, swapped with a short blur-fade. */
+.cap-text { flex: 1; min-width: 0; font: 700 24px/1.15 var(--display); letter-spacing: -0.02em; color: #fffdf6; }
+.cap-text.swap { animation: capin 0.38s var(--ease-out); }
+@keyframes capin { from { opacity: 0; transform: translateY(6px); filter: blur(4px); } }
+/* The big ⌃S keycap, pressed in the middle of the screen. */
+.keycap { position: absolute; inset: 32px 0 0; z-index: 7; display: flex; align-items: center; justify-content: center; gap: 14px; background: rgba(20,22,28,0.3); opacity: 0; transform: scale(0.96); transition: opacity 0.18s, transform 0.3s var(--ease-out); pointer-events: none; }
+.keycap.on { opacity: 1; transform: none; }
+.keycap .key { min-width: 84px; height: 84px; padding: 0 20px; border-radius: 18px; background: #fffdf6; display: grid; place-items: center; font: 700 34px var(--display); color: var(--ink); box-shadow: 0 6px 0 #d9cfae, 0 22px 40px rgba(0,0,0,0.4); transition: transform 0.1s, box-shadow 0.1s, background 0.1s; }
+.keycap .key.wide { min-width: 150px; font-size: 20px; color: var(--ink-soft); }
+.keycap .key.down { transform: translateY(6px); background: var(--cream); box-shadow: 0 0 0 #d9cfae, 0 12px 26px rgba(0,0,0,0.35); }
+/* The menu bar clock; it lights up when the days roll by. */
+.clock { display: inline-grid; overflow: hidden; border-radius: 6px; padding: 1px 6px; white-space: nowrap; transition: background 0.3s, color 0.3s; }
+.clock > span { grid-area: 1 / 1; }
+.clock.lit { background: var(--butter); color: var(--ink); font-weight: 600; }
 .guide { display: flex; align-items: center; gap: 16px; padding: 12px 14px 12px 18px; background: rgba(255,255,255,0.06); border-top: 1px solid rgba(255,255,255,0.08); position: relative; z-index: 4; }
-.steps-mini { display: flex; gap: 6px; align-items: center; flex: 1; min-width: 0; color: #9d9b92; font-size: 13.5px; }
-.steps-mini > span { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; transition: color 0.25s; }
-.steps-mini i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: 700 11px var(--body); font-style: normal; background: rgba(255,255,255,0.1); transition: background 0.25s, color 0.25s; }
-.steps-mini .sep { width: 18px; height: 1px; background: rgba(255,255,255,0.18); flex: none; }
-.steps-mini .on { color: #fff; }
-.steps-mini .on i { background: var(--butter); color: var(--ink); }
-.steps-mini .done i { background: rgba(242,205,92,0.3); color: var(--butter); }
-.guide .btn { min-width: 132px; }
-.nudge { position: absolute; right: 16px; bottom: calc(100% + 8px); background: #fffdf6; color: var(--ink); font-size: 13.5px; font-weight: 600; padding: 7px 12px; border-radius: 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.3); pointer-events: none; transition: opacity 0.3s, transform 0.3s var(--ease); }
-.nudge::after { content: ""; position: absolute; right: 44px; bottom: -5px; width: 10px; height: 10px; background: #fffdf6; transform: rotate(45deg); }
-.nudge.off { opacity: 0; transform: translateY(4px); }
-.pulse { animation: pulse 2.2s ease-in-out infinite; }
-@keyframes pulse { 0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 0 0 0 rgba(242,205,92,0.55); } 50% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 0 0 9px rgba(242,205,92,0); } }
 .scrim { position: absolute; inset: 32px 0 0; background: rgba(20,22,28,0.25); opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 2; }
 .scrim.on { opacity: 1; }
-.savebox { position: absolute; left: 50%; top: 52px; width: min(400px, calc(100% - 28px)); transform: translate(-50%, 10px) scale(0.97); background: #fffdf6; color: var(--ink); border-radius: 18px; padding: 16px 16px 14px; box-shadow: 0 24px 60px rgba(0,0,0,0.4); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.32s var(--ease); z-index: 3; }
-.savebox.on { opacity: 1; transform: translate(-50%, 0) scale(1); pointer-events: auto; }
-.sb-head { display: flex; gap: 12px; align-items: center; }
-.sb-head .folder { width: 40px; height: 40px; flex: none; }
-.sb-eyebrow { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
-.sb-name { font: 700 21px/1.1 var(--display); }
-.sb-note { margin-top: 10px; border-radius: 10px; background: #fff; border: 1px solid var(--line); padding: 7px 11px; font-size: 13px; min-height: 34px; }
-.sb-note .ph { color: #a9a597; }
 .caret { display: inline-block; width: 1.5px; height: 14px; background: var(--ink); vertical-align: -2px; margin-left: 1px; animation: caret 1s steps(1) infinite; }
 @keyframes caret { 50% { opacity: 0; } }
-.sb-label { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); margin: 11px 0 6px; }
-.pills { display: flex; flex-wrap: wrap; gap: 6px; }
-.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px 4px 5px; border-radius: 999px; background: var(--cream); border: 1px solid #e9d27f; color: var(--ink); }
-.pill .tick { width: 15px; height: 15px; border-radius: 50%; background: var(--butter); display: grid; place-items: center; flex: none; }
-.pill .tick svg { width: 9px; height: 9px; }
-.pill.out { background: none; border: 1px dashed #c9c3b2; color: var(--ink-soft); }
-.pill.out .tick { background: none; box-shadow: inset 0 0 0 1px #c9c3b2; }
-.pill.pop { animation: pop 0.3s var(--ease-out) both; }
 @keyframes pop { from { opacity: 0; transform: scale(0.9); } }
 .sb-foot { display: flex; align-items: center; gap: 8px; margin-top: 13px; }
-.sb-foot .grow { flex: 1; font-size: 12px; color: var(--ink-soft); }
-.ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); }
-.toast, .briefpop { position: absolute; right: 12px; top: 40px; z-index: 5; background: #fffdf6; color: var(--ink); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.35); opacity: 0; transform: translateY(-8px) scale(0.98); transform-origin: top right; transition: opacity 0.2s, transform 0.3s var(--ease); pointer-events: none; }
-.toast.on, .briefpop.on { opacity: 1; transform: none; pointer-events: auto; }
-.toast { display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 9px; font-size: 13px; }
-.toast .folder { width: 26px; height: 26px; }
-.toast button { border: 0; background: none; color: #9a7300; font-weight: 700; cursor: pointer; padding: 0 0 0 6px; }
-.briefpop { width: min(320px, calc(100% - 24px)); padding: 14px 16px; cursor: pointer; }
-.bp-name { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
-.bp-head { font: 700 16px/1.25 var(--display); margin-top: 2px; }
 .rows { margin: 9px 0 0; display: grid; gap: 6px; font-size: 13px; }
 .rows div { display: grid; grid-template-columns: 56px 1fr; gap: 8px; }
 .rows dt { font-size: 11.5px; font-weight: 600; color: #7d7a6e; }
@@ -229,38 +188,17 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .cursor.on { opacity: 1; }
 .cursor.press { transform: scale(0.82); }
 .spot { box-shadow: 0 0 0 3px rgba(242,205,92,0.95), 0 0 0 9px rgba(242,205,92,0.28) !important; border-radius: 10px; transition: box-shadow 0.3s; }
-/* The caption is the demo's voice: dark and large, so it's read before anything else. */
-.demo-cap { margin-top: 18px; background: #1c1d22; color: #fffdf6; border-radius: 20px; padding: 16px 20px 14px; box-shadow: 0 22px 44px -24px rgba(28,29,34,0.7); }
-/* The four steps as one progress bar: a label over each segment, done ones filled, the current one filling. */
-.cap-track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-.cap-track b { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-right: 5px; border-radius: 50%; font: 700 10px/1 var(--body); background: rgba(255,253,246,0.14); color: rgba(255,253,246,0.7); vertical-align: 1px; transition: background 0.25s, color 0.25s; }
-.cap-track .done b, .cap-track .on b { background: var(--butter); color: #1c1d22; }
-.cap-track span { font: 600 12.5px var(--body); color: rgba(255,253,246,0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.25s; }
-.cap-track span::after { content: ""; display: block; height: 3px; margin-top: 6px; border-radius: 2px; background: linear-gradient(var(--butter), var(--butter)) 0 0 / 0% 100% no-repeat, rgba(255,253,246,0.16); transition: background-size 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
-.cap-track .done, .cap-track .on { color: #fffdf6; }
-.cap-track .done::after, .cap-track .on::after { background-size: 100% 100%; }
-.steps-mini { visibility: hidden; }
-.cap-text { font-size: 20px; font-weight: 500; line-height: 1.4; margin-top: 10px; min-height: 56px; animation: capin 0.4s var(--ease-out); }
-@keyframes capin { from { opacity: 0; transform: translateY(4px); } }
-.cap-ctrl { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 14px; color: rgba(255,253,246,0.6); flex-wrap: wrap; }
-.cap-btn { border: 1px solid rgba(255,253,246,0.22); background: rgba(255,253,246,0.08); border-radius: 999px; padding: 5px 14px; font: 600 14px var(--body); cursor: pointer; color: #fffdf6; }
-.cap-btn:hover { border-color: var(--butter); }
+.cap-ctrl { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-size: 14px; color: var(--ink-soft); }
+.cap-btn { border: 1px solid var(--line); background: rgba(255,253,246,0.8); border-radius: 999px; padding: 5px 14px; font: 600 14px var(--body); cursor: pointer; color: var(--ink); }
+@media (hover: hover) { .cap-btn:hover { border-color: var(--butter-deep); } }
 @media (max-width: 560px) {
   .sb { padding: 12px 12px 10px; top: 40px; }
-  .sb-top .sel { display: none; }
-  .sb-intro { display: none; }
-  .rpill .t { max-width: 112px; }
-  .sb-foot .sum { display: none; }
   .mpanel { right: 6px; left: 6px; width: auto; }
-  .menubar > span:last-child { display: none; }
-  .guide { gap: 10px; padding: 10px 10px 10px 12px; }
-  .guide .btn { min-width: 0; padding: 8px 12px; font-size: 14px; }
-  .steps-mini .sep { width: 8px; }
-  .nudge { display: none; }
-  .cap-text { font-size: 18px; min-height: 76px; }
-  .demo-cap { order: -1; margin: 0 0 12px; }
+  .guide { gap: 10px; padding: 10px 10px 10px 14px; }
+  .cap-text { font-size: 19px; }
+  .keycap .key { min-width: 64px; height: 64px; font-size: 26px; border-radius: 14px; }
+  .keycap .key.wide { min-width: 112px; font-size: 16px; }
   .cap-ctrl { display: none; }
-  .win b { max-width: 150px; }
 }
 
 /* ---------- the demo, drawn like the real app ---------- */
@@ -283,8 +221,6 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .sb-top .folder { width: 34px; height: 34px; }
 .sb-top .eb { font-size: 11px; font-weight: 600; color: var(--ink-soft); }
 .sb-top .nm { font: 700 19px/1.1 var(--display); }
-.sb-top .sel { font-size: 12px; border: 0.5px solid rgba(0,0,0,0.12); background: #fff; border-radius: 8px; padding: 4px 8px; white-space: nowrap; }
-.sb-intro { font-size: 12px; color: var(--ink-soft); margin-top: 8px; }
 .sb-field { margin-top: 8px; border-radius: 10px; background: #fff; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.1); padding: 7px 10px; font-size: 12.5px; min-height: 32px; }
 .sb-field .ph { color: #a9a597; }
 .glabel { font-size: 11px; font-weight: 600; color: var(--ink-soft); margin: 10px 0 5px; }
@@ -305,74 +241,28 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .toast2 { position: absolute; right: 10px; top: 40px; z-index: 5; display: flex; align-items: center; gap: 10px; background: #fbf7ea; color: var(--ink); border-radius: 14px; padding: 9px 12px 9px 9px; box-shadow: 0 16px 40px rgba(0,0,0,0.35); font-size: 12.5px; opacity: 0; transform: translateY(-8px); transition: opacity 0.2s, transform 0.3s var(--ease); pointer-events: none; max-width: calc(100% - 20px); }
 .toast2.on { opacity: 1; transform: none; pointer-events: auto; }
 .toast2 .folder { width: 28px; height: 28px; flex: none; }
-.toast2 small { display: block; color: var(--ink-soft); font-size: 11.5px; }
 .toast2 button { border: 0; background: none; color: #9a7300; font-weight: 700; cursor: pointer; font-size: 12.5px; }
 .mpanel { position: absolute; right: 8px; top: 36px; width: min(300px, calc(100% - 16px)); background: #fbf7ea; color: var(--ink); border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(0,0,0,0.12); padding: 12px; z-index: 6; opacity: 0; transform: translateY(-6px) scale(0.98); transform-origin: top right; transition: opacity 0.18s, transform 0.28s var(--ease); pointer-events: none; }
 .mpanel.on { opacity: 1; transform: none; pointer-events: auto; }
-.mp-head { display: flex; align-items: center; gap: 8px; }
-.mp-head .folder { width: 26px; height: 26px; }
-.mp-head b { font: 700 15px var(--display); flex: 1; }
-.mp-plus { width: 28px; height: 28px; border-radius: 9px; background: var(--butter); display: grid; place-items: center; font-weight: 700; }
-.mp-ico { width: 22px; text-align: center; color: var(--ink-soft); font-size: 13px; }
-.mp-label { font-size: 11px; font-weight: 600; color: var(--ink-soft); margin: 10px 2px 6px; }
-.mp-row { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 10px; }
-.mp-row:hover { background: rgba(28,29,34,0.04); }
-.mp-row .tile { width: 32px; height: 32px; flex: none; }
-.mp-row .nm { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; }
-.mp-row .nm small { display: block; font-weight: 400; color: var(--ink-soft); font-size: 11.5px; }
-.mp-row .sbtn { font-size: 12px; }
-.mp-back { font-size: 12.5px; color: var(--ink-soft); background: none; border: 0; padding: 0; cursor: pointer; }
-.mp-title { font: 700 17px/1.2 var(--display); margin-top: 8px; }
-.mp-time { font-size: 11.5px; color: var(--ink-soft); }
-.mp-head2 { font-size: 14px; line-height: 1.4; margin-top: 8px; }
+.mp-title { display: flex; align-items: center; gap: 8px; font: 700 17px/1.2 var(--display); }
+.mp-title .folder { width: 26px; height: 26px; }
+.mp-unpack { width: 100%; margin-top: 12px; padding: 8px 12px; }
 .mp-rows { margin: 8px 0 0; display: grid; gap: 4px; font-size: 12px; }
 .mp-rows div { display: grid; grid-template-columns: 46px 1fr; gap: 8px; }
 .mp-rows dt { font-size: 10.5px; font-weight: 600; color: #7d7a6e; }
 .mp-rows dd { margin: 0; }
 .mp-rows .next dt { color: #9a7300; }
-.mp-kinds { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
-.mp-acts { display: flex; gap: 6px; margin-top: 8px; }
-.mp-acts .main { flex: 1; }
-.mp-inside { margin-top: 8px; border-radius: 10px; background: #fff; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.1); padding: 7px 10px; font-size: 12px; font-weight: 500; display: flex; justify-content: space-between; }
-.mp-inside span { color: var(--ink-soft); }
-.mp-foot { display: flex; justify-content: space-between; font-size: 10.5px; color: #a9a597; margin-top: 8px; padding-top: 6px; border-top: 0.5px solid rgba(0,0,0,0.08); }
-.mp-view[hidden] { display: none; }
+.mp-time { font-size: 11.5px; color: var(--ink-soft); }
 /* ---------- how it works ---------- */
 section { padding-block: 112px; }
-/* A quiet line between the demo and the steps, fading out at both ends. */
 .rule { border: 0; height: 1px; margin: 0; background: linear-gradient(90deg, transparent, var(--line) 18%, var(--line) 82%, transparent); }
-#how { padding-top: 72px; padding-bottom: 64px; }
 #features { padding-block: 16px 8px; }
 #privacy { padding-block: 72px; }
 .end { padding-top: 88px; }
 .section-head { max-width: 640px; }
 .section-head h2 { font-size: clamp(36px, 4.6vw, 58px); line-height: 1.02; font-weight: 700; }
 .section-head p { margin-top: 18px; font-size: 20px; color: var(--ink-soft); }
-.steps { margin-top: 56px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-.step { background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 24px; padding: 22px 24px 26px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-.step .pic { height: 132px; border-radius: 16px; background: rgba(28,29,34,0.04); display: grid; place-items: center; position: relative; overflow: hidden; }
-/* Each step carries its own big number, so the "three" lives in the steps themselves. */
-.step-head { display: flex; align-items: baseline; gap: 12px; margin-top: 18px; }
-.step .n { font: 800 64px/0.8 var(--display); color: var(--butter); letter-spacing: -0.04em; text-shadow: 0 8px 22px rgba(214,170,40,0.3); flex: none; }
-.step h3 { font-size: 26px; }
-.step p { margin-top: 8px; color: var(--ink-soft); font-size: 17px; }
-.keys { display: flex; gap: 10px; align-items: flex-end; }
-.key { min-width: 56px; height: 56px; padding: 0 14px; border-radius: 12px; background: #fff; border: 1px solid var(--line); box-shadow: 0 4px 0 #e2d7b4; display: grid; place-items: center; font: 700 17px var(--display); transition: transform 0.12s, box-shadow 0.12s; }
-.key.wide { min-width: 92px; font-size: 14px; color: var(--ink-soft); }
-.key.down { transform: translateY(4px); box-shadow: 0 0 0 #e2d7b4; background: var(--cream); }
-.mini-bar { position: absolute; top: 0; left: 0; right: 0; height: 26px; background: rgba(28,29,34,0.08); display: flex; justify-content: flex-end; align-items: center; padding-right: 14px; }
-.mini-bar .folder { width: 22px; height: 19px; }
-.chiplets { display: flex; gap: 8px; margin-top: 20px; }
-.chiplet { width: 40px; height: 30px; border-radius: 8px; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.08); display: grid; place-items: center; font: 800 11px var(--body); color: #fff; }
-.mini-brief { background: #fff; border-radius: 12px; padding: 10px 14px; font-size: 13px; box-shadow: 0 6px 16px rgba(0,0,0,0.07); width: 78%; }
-.mini-brief b { font-family: var(--display); }
-.mini-brief .ln { height: 7px; border-radius: 4px; background: #eee8d5; margin-top: 6px; transform-origin: left; }
 
-/* "Just three steps": the big moment. A giant 3 that drops in with a bounce, then the words. */
-.three { max-width: 760px; }
-.three-kicker { font: 700 17px var(--body); color: #9a7300; }
-.three h2 { font-size: clamp(40px, 5.4vw, 68px); line-height: 1; font-weight: 800; margin-top: 6px; }
-.three-copy > p:last-child { margin-top: 18px; font-size: 20px; color: var(--ink-soft); max-width: 46ch; }
 
 
 /* ---------- feature chapters ---------- */
@@ -440,19 +330,11 @@ section { padding-block: 112px; }
 .chatcap .folder { width: 24px; height: 24px; }
 
 /* ---------- privacy ---------- */
-.privacy { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 72px; align-items: center; }
-.mac-map { position: relative; padding: 28px; border-radius: 28px; border: 2px dashed #d9cda6; background: var(--card); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-.mac-map .label { position: absolute; top: -14px; left: 24px; background: var(--paper); padding: 0 10px; font: 700 15px var(--display); }
-.vault { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; }
-.vault .folder { width: 92px; height: 92px; }
-.things { display: grid; gap: 8px; }
-.thing { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #eee8d5; border-radius: 12px; padding: 9px 12px; font-size: 15px; }
-.thing i { width: 8px; height: 8px; border-radius: 50%; background: #2f9e5e; flex: none; }
-.outside { margin-top: 22px; display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--ink-soft); padding-top: 18px; border-top: 1px dashed #d9cda6; }
-.outside .appicon { width: 30px; height: 30px; font-size: 15px; }
-.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 30px; }
-.fact { font-size: 16px; color: var(--ink-soft); }
-.fact b { display: block; color: var(--ink); font-weight: 600; }
+
+/* Privacy, in one line. */
+.privacy { text-align: center; }
+.privacy h2 { font-size: clamp(28px, 3.4vw, 42px); line-height: 1.1; font-weight: 700; }
+.soon { display: inline-block; vertical-align: middle; font: 600 13px var(--body); letter-spacing: 0; color: var(--ink-soft); background: rgba(28,29,34,0.06); border-radius: 999px; padding: 3px 10px; }
 
 /* ---------- end ---------- */
 .end { text-align: center; padding-block: 120px 128px; }
@@ -475,13 +357,14 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 .js .reveal.in { opacity: 1; transform: none; }
 
 @media (max-width: 920px) {
-  .hero, .chapter, .privacy { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .chapter, .hero-copy { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .hero-copy { gap: 16px; }
+  .hero-copy h1, .hero-copy .lede, .hero-cta { grid-column: 1; grid-row: auto; }
+  .demo-col { margin-top: 28px; }
   .chapter.flip .copy { order: 0; }
-  .hero { padding-block: 20px 44px; }
-  .steps { grid-template-columns: 1fr; }
+  .hero { padding-block: 12px 44px; }
   .nav-links a:not(.btn) { display: none; }
   section { padding-block: 80px; }
-  #how { padding-top: 52px; padding-bottom: 48px; }
   #privacy { padding-block: 52px; }
   .end { padding-top: 64px; }
   .chapter { padding-block: 40px; }
@@ -493,12 +376,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   .menubar .opt { display: none; }
   .view { height: 210px; }
   .mac { border-radius: 16px; }
-  .steps-mini .label { display: none; }
-  .steps-mini .on .label { display: inline; }
   .chatwin { grid-template-columns: 1fr; }
   .chatside { display: none; }
-  .facts { grid-template-columns: 1fr; }
-  .vault { grid-template-columns: 1fr; justify-items: start; }
   .panel { padding: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -513,7 +392,6 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 <header class="wrap nav">
   <a class="brand" href="#top" aria-label="Stashd home"><span data-folder="tile"></span>Stashd</a>
   <nav class="nav-links" aria-label="Main">
-    <a href="#how">How it works</a>
     <a href="features.html">Features</a>
     <a href="#privacy">Privacy</a>
     <a href="download.html">Install guide</a>
@@ -524,29 +402,19 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 
 <main id="top">
   <div class="wrap hero">
-    <div>
-      <!-- The problem in one glance: a little pile of open windows gets tucked into the folder, which goes to sleep. -->
-      <div class="pile" id="pile" aria-hidden="true">
-        <span class="wcard browser" style="--x:92px;--y:8px;--r:-7deg"><b class="bar"></b><b class="url"></b><b class="blk"></b></span><span class="wcard doc" style="--x:138px;--y:44px;--r:5deg"><b class="badge" style="background:#2b5fb4">W</b><b class="ln"></b><b class="ln s"></b><b class="ln"></b></span><span class="wcard pdf" style="--x:188px;--y:2px;--r:-3deg"><b class="badge" style="background:#e5322d">PDF</b><b class="ln"></b><b class="ln s"></b></span><span class="wcard term" style="--x:224px;--y:46px;--r:8deg"><b class="ln g"></b><b class="ln g s"></b><b class="ln g"></b></span><span class="wcard sheet" style="--x:270px;--y:10px;--r:-5deg"><b class="badge" style="background:#1d7044">X</b><b class="grid"></b></span>
-        <div class="hero-mascot" id="heroMascot" title="Hello"><span data-folder="tile"></span></div>
-      </div>
-      <p class="problem">Tabs, documents and apps all over your screen?</p>
+    <div class="hero-copy">
       <h1>Put your work to bed.</h1>
-      <ul class="lede-points">
-        <li>Press <kbd>⌃S</kbd> to put away everything you're working on.</li>
-        <li>Stashd works out by itself what belongs together.</li>
-        <li>Open the folder later and it all comes back.</li>
-      </ul>
+      <p class="lede">Press <kbd>⌃S</kbd> to put away what you're working on. Open it later, and it's all back.</p>
       <div class="hero-cta">
         <a class="btn btn-main" data-smile href="download.html?start">
           <svg class="apple" viewBox="0 0 16 19" aria-hidden="true"><path fill="currentColor" d="M13.2 10.1c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8C3.7 4.8 2.2 5.7 1.4 7.2c-1.6 2.8-.4 6.9 1.1 9.2.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2-1.1 2.8-2.2.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.3-.9-2.3-3.8zM10.9 3.1c.6-.8 1.1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1.1.1 2.1-.5 2.8-1.3z"/></svg>
           Download for Mac
         </a>
-        <span class="small">Free and open source. Apple silicon, macOS 12 or later.</span>
+        <span class="small">Free and open source · macOS 12+ · Apple silicon</span>
       </div>
     </div>
 
-    <div class="demo-col">
+    <div class="demo-col" id="demoCol">
     <div class="mac" id="mac" aria-label="A small Mac screen showing Stashd in action">
       <svg class="cursor" id="cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l14 8-6 1.5L10 19z" fill="#fff" stroke="#1c1d22" stroke-width="1.6" stroke-linejoin="round"/></svg>
       <div class="menubar">
@@ -555,7 +423,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
         <button class="tray-btn" id="tray" type="button" aria-label="Stashd in the menu bar"><span class="ring"></span>
           <svg viewBox="4 10 88 80" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 32Q12 22 22 22H36Q41 22 44 26L47 30H74Q84 30 84 40V72Q84 82 74 82H22Q12 82 12 72Z"/><g class="t-closed"><path d="M29 57Q36 64 43 57"/><path d="M53 57Q60 64 67 57"/></g></g><g class="t-open" fill="currentColor"><ellipse cx="36" cy="58" rx="6.5" ry="7.5"/><ellipse cx="60" cy="58" rx="6.5" ry="7.5"/></g></svg>
         </button>
-        <span>Sun 10:12 pm</span>
+        <span class="clock" id="clock"><span>Sun 10:12 pm</span></span>
       </div>
       <div class="desk">
         <div class="chrome">
@@ -569,89 +437,39 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
         </div>
       </div>
       <div class="guide">
-        <div class="steps-mini" id="stepsMini" aria-hidden="true">
-          <span class="on"><i>1</i><span class="label">Stash</span></span><span class="sep"></span>
-          <span><i>2</i><span class="label">Pack up</span></span><span class="sep"></span>
-          <span><i>3</i><span class="label">Open</span></span><span class="sep"></span>
-          <span><i>4</i><span class="label">Unpack</span></span>
-        </div>
-        <div class="nudge" id="nudge">Try it: press ⌃S</div>
-        <button class="btn btn-main btn-small pulse" id="demo" type="button">Press ⌃S</button>
+        <p class="cap-text" id="capText">Messy screen.</p>
+        <button class="btn btn-main btn-small" id="demo" type="button">Press ⌃S</button>
       </div>
       <div class="scrim" id="scrim"></div>
+      <div class="keycap" id="keycap" aria-hidden="true"><span class="key wide">control</span><span class="key">S</span></div>
 
       <div class="sb" id="savebox" role="dialog" aria-label="Stashd save box">
         <div class="sb-top"><span data-folder="tile" id="sbFolder"></span><div><div class="eb">New folder</div><div class="nm">Japan trip</div></div><span class="sel">New folder ▾</span></div>
-        <p class="sb-intro">I'll make a new folder for this. Tap anything to leave it out.</p>
-        <div class="sb-field" id="sbNote"></div>
         <div class="glabel">Going in</div>
         <div class="sb-pills" id="goingIn"></div>
-        <div class="glabel">Probably something else</div>
+        <div class="glabel">Leaving out</div>
         <div class="sb-pills" id="leftOut"></div>
-        <div class="sb-foot"><span class="sum">4 tabs · 1 file · 1 chat ⌃</span><button class="sbtn ghost2" id="cancel" type="button">Cancel</button><button class="sbtn" id="saveOnly" type="button">Save</button><button class="sbtn main" id="pack" type="button">Pack up<span class="enter">↵</span></button></div>
+        <div class="sb-foot"><span class="sum">4 tabs · 1 file · 1 chat</span><button class="sbtn ghost2" id="cancel" type="button">Cancel</button><button class="sbtn" id="saveOnly" type="button">Save</button><button class="sbtn main" id="pack" type="button">Pack up<span class="enter">↵</span></button></div>
       </div>
 
-      <div class="toast2" id="toast"><span data-folder="tile" data-mode="asleep"></span><span><b>Japan trip · 6 packed</b><small>Tucked away. Undo brings them back.</small></span><button type="button" id="undo">Undo</button></div>
+      <div class="toast2" id="toast"><span data-folder="tile" data-mode="asleep"></span><b>Japan trip · 6 put away</b><button type="button" id="undo">Undo</button></div>
 
       <div class="mpanel" id="mpanel" role="dialog" aria-label="Stashd menu">
-        <div class="mp-view" id="mpList">
-          <div class="mp-head"><span data-folder="tile"></span><b>Stashd</b><span class="mp-plus">+</span><span class="mp-ico">↗</span><span class="mp-ico">⚙</span></div>
-          <div class="mp-label">Folders</div>
-          <div class="mp-row"><span class="tile" data-folder="peach" data-mode="asleep"></span><span class="nm">Japan trip<small>just now</small></span><button class="sbtn" type="button" id="rowUnpack">Unpack</button></div>
-        </div>
-        <div class="mp-view" id="mpBrief" hidden>
-          <button class="mp-back" type="button" id="mpBack">‹ Folders</button>
-          <div class="mp-title">Japan trip</div>
-          <div class="mp-time">Sun 10:12 pm · just now</div>
-          <p class="mp-head2">Planning a trip to Japan.</p>
-          <dl class="mp-rows">
-            <div><dt>Last on</dt><dd>Hotels in Kyoto.</dd></div>
-            <div><dt>So far</dt><dd>Flights picked, Rail Pass in the cart.</dd></div>
-            <div class="next"><dt>Next</dt><dd>Book the hotel this week.</dd></div>
-          </dl>
-          <div class="mp-kinds" id="mpKinds"></div>
-          <div class="mp-acts"><button class="sbtn main" type="button" id="mpUnpack">Unpack</button><button class="sbtn" type="button" id="mpAll">Open everything</button></div>
-          <div class="mp-inside">What's inside<span>6 things ›</span></div>
-          <div class="mp-foot"><span>Brief by Claude</span><span>Helpful? Yes · No</span></div>
-        </div>
+        <div class="mp-title"><span data-folder="peach"></span>Japan trip</div>
+        <div class="mp-time">Packed Sunday</div>
+        <p class="mp-head2">Planning a trip to Japan.</p>
+        <dl class="mp-rows">
+          <div><dt>Last on</dt><dd>Hotels in Kyoto.</dd></div>
+          <div><dt>So far</dt><dd>Flights picked.</dd></div>
+          <div class="next"><dt>Next</dt><dd>Book the hotel.</dd></div>
+        </dl>
+        <button class="sbtn main mp-unpack" type="button" id="mpUnpack">Unpack</button>
       </div>
       <p id="note" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></p>
     </div>
-    <div class="demo-cap" id="demoCap">
-      <div class="cap-track" id="capTrack" role="img" aria-label="Step 1 of 4: Stash"><span class="on"><b>1</b>Stash</span><span><b>2</b>Pack up</span><span><b>3</b>Open</span><span><b>4</b>Unpack</span></div>
-      <p class="cap-text" id="capText">Planning a trip, with a basketball game open too. Press ⌃S.</p>
-      <div class="cap-ctrl"><button type="button" class="cap-btn" id="autoBtn">▶ Play</button><span>or try it yourself</span></div>
-    </div>
+    <div class="cap-ctrl"><button type="button" class="cap-btn" id="autoBtn">▶ Play</button><span>or try it yourself</span></div>
     </div>
   </div>
-
-  <div class="wrap"><hr class="rule"></div>
-
-  <section id="how">
-    <div class="wrap">
-      <div class="three reveal" id="three">
-        <div class="three-copy">
-          <p class="three-kicker">That's the whole app.</p>
-          <h2>Just three steps.<br>Two of them are one key.</h2>
-          <p>You never make a folder or drag anything into one. Stashd reads what's open and sorts it for you, right on your Mac.</p>
-        </div>
-      </div>
-      <div class="steps">
-        <div class="step reveal" style="--d:0ms">
-          <div class="pic"><div class="keys" id="keys"><span class="key wide">control</span><span class="key">S</span></div></div>
-          <div class="step-head"><span class="n" aria-label="Step 1">1</span><h3>Stash</h3></div><p>Press ⌃S. Stashd ticks only what belongs to the project you're on. Add a note for later if you like.</p>
-        </div>
-        <div class="step reveal" style="--d:140ms">
-          <div class="pic" id="packPic"><div class="mini-bar"><span data-folder="bare"></span></div><div class="chiplets"><span class="chiplet" style="background:#4285f4">G</span><span class="chiplet" style="background:#003b95">B</span><span class="chiplet" style="background:#2b5fb4">W</span></div></div>
-          <div class="step-head"><span class="n" aria-label="Step 2">2</span><h3>Pack up</h3></div><p>The windows fly into the menu bar and the folder goes to sleep. Unsaved work still asks to be saved first.</p>
-        </div>
-        <div class="step reveal" style="--d:280ms">
-          <div class="pic" id="unpackPic"><div class="mini-brief"><b>Japan trip</b><div class="ln" style="width:92%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:80%;background:#f2cd5c"></div></div></div>
-          <div class="step-head"><span class="n" aria-label="Step 3">3</span><h3>Unpack</h3></div><p>Open the folder when you're back. A short brief says where you stopped, and everything comes back.</p>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <div class="wrap"><hr class="rule"></div>
 
@@ -659,18 +477,17 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     <div class="wrap chapter">
       <div class="copy reveal">
         <h2>It knows what goes together.</h2>
-        <p>You're planning a trip to Japan, with a basketball game and your inbox open on the side. Press ⌃S and Stashd picks out the flights, the hotel, the train pass and your plan, because it understands what each one is about. The basketball game and your inbox stay open.</p>
-        <p class="eg">It learns as you go: leave something out twice and it remembers. All of this runs on your Mac.</p>
+        <p>Only the project you're on gets ticked. It learns as you go.</p>
       </div>
       <div class="panel reveal" style="--d:120ms">
         <div class="panel-title"><span data-folder="tile" id="sortFolder"></span><span id="sortTitle">Open on your Mac</span></div>
         <div class="tablist" id="tablist">
-          <div class="trow in" style="--i:0"><span class="ic ic-chrome"></span><span class="t">Flights to Tokyo · Google Flights</span><span class="tag">Goes in</span></div>
-          <div class="trow no" style="--i:1"><span class="ic ic-chrome"></span><span class="t">Warriors vs Lakers · ESPN</span><span class="tag">Stays open</span></div>
-          <div class="trow in" style="--i:2"><span class="ic ic-chrome"></span><span class="t">Hotels in Kyoto · Booking.com</span><span class="tag">Goes in</span></div>
-          <div class="trow no" style="--i:3"><span class="ic ic-chrome"></span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
-          <div class="trow in" style="--i:4"><span class="ic ic-chrome"></span><span class="t">Japan Rail Pass · 7-day</span><span class="tag">Goes in</span></div>
-          <div class="trow in" style="--i:5"><span class="ic ic-word">W</span><span class="t">Japan itinerary.docx</span><span class="tag">Goes in</span></div>
+          <div class="trow in" style="--i:0"><span class="ic ic-pdf">PDF</span><span class="t">Sea level study.pdf</span><span class="tag">Goes in</span></div>
+          <div class="trow no" style="--i:1"><span class="ic ic-chrome"></span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
+          <div class="trow in" style="--i:2"><span class="ic ic-chrome"></span><span class="t">Sea level rise · NASA</span><span class="tag">Goes in</span></div>
+          <div class="trow no" style="--i:3"><span class="ic ic-chrome"></span><span class="t">lofi beats to study to · YouTube</span><span class="tag">Stays open</span></div>
+          <div class="trow in" style="--i:4"><span class="ic ic-word">W</span><span class="t">Climate essay.docx</span><span class="tag">Goes in</span></div>
+          <div class="trow in" style="--i:5"><span class="ic ic-claude">✳</span><span class="t">Outline my climate essay</span><span class="tag">Goes in</span></div>
         </div>
         <div class="tally" id="tally">Press ⌃S…</div>
       </div>
@@ -679,33 +496,31 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     <div class="wrap chapter flip">
       <div class="copy reveal">
         <h2>A brief that says where you stopped.</h2>
-        <p>Come back a week later and the folder tells you, in three short lines, what you were on, what's done and what's next.</p>
-        <p class="eg">Written by Apple Intelligence on your Mac, or by Claude with your own key.</p>
+        <p>What you were on, what's done, what's next.</p>
       </div>
       <div class="panel big-brief reveal" style="--d:120ms" id="bigBrief">
-        <div class="head"><span data-folder="tile" id="briefFolder"></span><div><div class="name">Japan trip · 6 days ago</div><h3>Planning a trip to Japan.</h3></div></div>
+        <div class="head"><span data-folder="tile" id="briefFolder"></span><div><div class="name">Climate essay · 6 days ago</div><h3>Writing an essay on sea levels.</h3></div></div>
         <dl class="rows">
-          <div><dt>Last on</dt><dd>Hotels in Kyoto.</dd></div>
-          <div><dt>So far</dt><dd>Flights picked, train pass in your cart.</dd></div>
-          <div class="next"><dt>Next</dt><dd>Book the hotel.</dd></div>
+          <div><dt>Last on</dt><dd>The NASA sea level data.</dd></div>
+          <div><dt>So far</dt><dd>Intro and two sections done.</dd></div>
+          <div class="next"><dt>Next</dt><dd>Find two more sources.</dd></div>
         </dl>
       </div>
     </div>
 
     <div class="wrap chapter">
       <div class="copy reveal">
-        <h2>Tidy up at the end of the day.</h2>
-        <p>One click and everything goes where it belongs. The trip goes into Japan trip, the essay into its folder, and the basketball game just closes. Your mail stays open.</p>
-        <p class="eg">Closed something by mistake? It's in Recently closed for 10 minutes. Coming in the next update.</p>
+        <h2>Tidy up at the end of the day. <span class="soon">Next update</span></h2>
+        <p>One click puts everything where it belongs.</p>
       </div>
       <div class="panel tidy-panel reveal" style="--d:120ms" id="tidyPanel">
         <div class="panel-title"><span data-folder="tile" id="tidyFolder"></span>Open on your Mac</div>
         <div class="tablist">
-          <div class="trow" data-go="trip" style="--i:0"><span class="ic ic-chrome"></span><span class="t">Flights to Tokyo · Google Flights</span><span class="tag">→ Japan trip</span></div>
-          <div class="trow" data-go="essay" style="--i:1"><span class="ic ic-word">W</span><span class="t">Climate essay.docx</span><span class="tag">→ Essay</span></div>
-          <div class="trow" data-go="trip" style="--i:2"><span class="ic ic-chrome"></span><span class="t">Hotels in Kyoto · Booking.com</span><span class="tag">→ Japan trip</span></div>
-          <div class="trow" data-go="close" style="--i:3"><span class="ic ic-chrome"></span><span class="t">Warriors vs Lakers · ESPN</span><span class="tag">Closes</span></div>
-          <div class="trow" data-go="essay" style="--i:4"><span class="ic ic-pdf">PDF</span><span class="t">Sea level study.pdf</span><span class="tag">→ Essay</span></div>
+          <div class="trow" data-go="essay" style="--i:0"><span class="ic ic-word">W</span><span class="t">Climate essay.docx</span><span class="tag">→ Essay</span></div>
+          <div class="trow" data-go="trip" style="--i:1"><span class="ic ic-word">W</span><span class="t">Cover letter.docx</span><span class="tag">→ Job hunt</span></div>
+          <div class="trow" data-go="essay" style="--i:2"><span class="ic ic-pdf">PDF</span><span class="t">Sea level study.pdf</span><span class="tag">→ Essay</span></div>
+          <div class="trow" data-go="close" style="--i:3"><span class="ic ic-chrome"></span><span class="t">lofi beats to study to · YouTube</span><span class="tag">Closes</span></div>
+          <div class="trow" data-go="trip" style="--i:4"><span class="ic ic-chrome"></span><span class="t">Jobs · LinkedIn</span><span class="tag">→ Job hunt</span></div>
           <div class="trow" data-go="stay" style="--i:5"><span class="ic ic-chrome"></span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
         </div>
         <div class="ofoot"><span class="count" id="tidyCount">6 things open</span><button class="btn btn-main btn-small" type="button" id="tidyBtn">Tidy all</button></div>
@@ -715,7 +530,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     <div class="wrap chapter flip">
       <div class="copy reveal">
         <h2>Back to the exact chat.</h2>
-        <p>Working something out with Claude? Stashd remembers which chat you were in and opens that one again, so you never scroll through your history hunting for it.</p>
+        <p>It reopens the Claude chat you were in, not just Claude.</p>
       </div>
       <div class="reveal" style="--d:120ms">
         <div class="chatwin" id="chatwin">
@@ -733,7 +548,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
             <div class="composer">Reply to Claude…<i>↑</i></div>
           </div>
         </div>
-        <div class="chatcap"><span data-folder="tile" id="chatFolder"></span><span id="chatCapText">Unpacking "Spotify job application"…</span></div>
+        <div class="chatcap"><span data-folder="tile" id="chatFolder"></span><span id="chatCapText">Unpacking "Job hunt"…</span></div>
       </div>
     </div>
     <div class="wrap all-feats reveal"><a href="features.html">See everything Stashd does</a></div>
@@ -742,28 +557,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   <div class="wrap"><hr class="rule"></div>
 
   <section id="privacy">
-    <div class="wrap privacy">
-      <div class="reveal">
-        <div class="section-head">
-          <h2>Your work stays on your Mac.</h2>
-          <p>No account, no server. Your folders are plain files on your computer, and the sorting happens there too.</p>
-        </div>
-        <div class="facts">
-          <div class="fact"><b>Never reads inside files</b>Only names, tab titles and addresses.</div>
-          <div class="fact"><b>Private windows left alone</b>Incognito tabs are never saved or closed.</div>
-        </div>
-      </div>
-      <div class="mac-map reveal" style="--d:140ms">
-        <span class="label">Your Mac</span>
-        <div class="vault"><span data-folder="tile" id="vaultFolder"></span>
-          <div class="things">
-            <div class="thing"><i></i>Your folders and notes</div>
-            <div class="thing"><i></i>Which tabs belong together</div>
-            <div class="thing"><i></i>Briefs from Apple Intelligence</div>
-          </div>
-        </div>
-        <div class="outside"><span class="appicon claude">✳</span>Optional: Claude writes briefs if you connect your own key. It sees titles and your note, never your files.</div>
-      </div>
+    <div class="wrap privacy reveal">
+      <h2>Everything stays on your Mac. No account.</h2>
     </div>
   </section>
 
@@ -773,7 +568,6 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     <div class="wrap">
       <div class="end-mascot reveal" id="endMascot" title="Hi"><span data-folder="tile" data-mode="asleep"></span></div>
       <h2 class="reveal" style="--d:80ms">Stash it. Close the laptop.</h2>
-      <p class="reveal" style="--d:140ms">Free for Mac. Takes a minute to set up.</p>
       <a class="btn btn-main reveal" style="--d:200ms" id="endCta" href="download.html?start">Download for Mac</a>
     </div>
   </section>
@@ -810,7 +604,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     slot.outerHTML = `<svg class="folder ${slot.className || ''} ${slot.dataset.mode === 'asleep' ? 'asleep' : ''}" ${slot.id ? `id="${slot.id}"` : ''} viewBox="${tile ? '0 0 96 96' : '12 20 72 62'}" aria-hidden="true">${tile ? tileSvg : ''}${BODY}${EYES}</svg>`;
   });
   const folders = [...document.querySelectorAll('svg.folder')];
-  const heroF = document.querySelector('#heroMascot .folder');
+  // The logo folder watches the demo, and sleeps while your work is put away.
+  const heroF = document.querySelector('.brand .folder');
   const endF = document.querySelector('#endMascot .folder');
   const buddyF = document.querySelector('#buddy .folder');
   const sbF = $('sbFolder');
@@ -848,27 +643,9 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     b.addEventListener('pointerenter', () => folders.forEach((f) => !f.classList.contains('asleep') && f.classList.add('smile')));
     b.addEventListener('pointerleave', () => folders.forEach((f) => f.classList.remove('smile')));
   });
-  $('heroMascot').addEventListener('click', () => { replay($('heroMascot'), 'jump'); wide(heroF); });
-  // Once, as the page opens: the pile of windows is tucked into the folder, which bounces and goes to sleep.
-  setTimeout(async () => {
-    const m = $('heroMascot').getBoundingClientRect();
-    const cards = [...document.querySelectorAll('#pile .wcard')];
-    const runs = cards.map((c, i) => {
-      if (reduce) return c.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' }).finished;
-      const r = c.getBoundingClientRect();
-      const dx = m.left + m.width / 2 - (r.left + r.width / 2), dy = m.top + m.height / 2 - (r.top + r.height / 2);
-      const rot = getComputedStyle(c).getPropertyValue('--r');
-      return c.animate(
-        [{ transform: `rotate(${rot})`, opacity: 1 }, { transform: `translate(${dx}px, ${dy}px) rotate(0deg) scale(0.3)`, opacity: 0 }],
-        { duration: 520, delay: i * 70, easing: 'cubic-bezier(0.77, 0, 0.175, 1)', fill: 'forwards' },
-      ).finished;
-    });
-    await Promise.all(runs);
-    if (!reduce) $('heroMascot').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 380, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
-    sleep(heroF, true);
-  }, reduce ? 300 : 1400);
 
-  // ---------- the hero demo: planning a trip to Japan, step for step like the real app ----------
+  // ---------- the hero demo: five short scenes, like the real app ----------
+  // Messy screen → ⌃S → Put away → Four days later → All back. Plays by itself; every control also works by hand.
   const TABS = [
     { id: 'flights', title: 'Flights to Tokyo · Google Flights', url: 'google.com/travel/flights?q=SFO+to+HND+Apr+3', fav: ['#4285f4', 'G'], go: true },
     { id: 'booking', title: 'Hotels in Kyoto · Booking.com', url: 'booking.com/searchresults.html?ss=Kyoto&nflt=ht_id=209', fav: ['#003b95', 'B'], go: true },
@@ -899,60 +676,62 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   }
   show('booking');
 
-  const mac = $('mac'), box = $('savebox'), scrim = $('scrim'), demo = $('demo'), note = $('note'), toast = $('toast'), tray = $('tray'), nudge = $('nudge'), panel = $('mpanel');
-  const stepEls = [...$('stepsMini').querySelectorAll(':scope > span:not(.sep)')];
+  const mac = $('mac'), box = $('savebox'), scrim = $('scrim'), demo = $('demo'), note = $('note'), toast = $('toast'), tray = $('tray'), panel = $('mpanel');
+  const capText = $('capText'), keycap = $('keycap'), clock = $('clock');
   // Pills look like the real save box: a tick (or +), the app's own icon, the title.
   const ICON = { tab: '<span class="ic ic-chrome"></span>', doc: '<span class="ic ic-word">W</span>', chat: '<span class="ic ic-claude">✳</span>' };
   const rpill = (kind, text, out) => `<span class="rpill ${out ? 'out' : ''}"><span class="mk">${out ? '+' : CHECK}</span>${ICON[kind]}<span class="t">${text}</span></span>`;
-  let state = 'open', typing = 0;
-  const STEP_NAMES = ['Stash', 'Pack up', 'Open', 'Unpack'];
-  const capTrack = $('capTrack'), capText = $('capText');
-  // The glow follows whatever the caption is talking about.
-  const spotFor = () => ({ open: demo, asking: $('pack'), packed: tray, list: $('rowUnpack'), brief: $('mpUnpack') }[state]);
-  const spotlight = () => {
-    mac.querySelectorAll('.spot').forEach((el) => el.classList.remove('spot'));
-    if (state === 'asking') { $('goingIn').classList.add('spot'); setTimeout(() => { if (state === 'asking') { $('goingIn').classList.remove('spot'); $('leftOut').classList.add('spot'); } }, 1500); setTimeout(() => { if (state === 'asking') { $('leftOut').classList.remove('spot'); $('pack').classList.add('spot'); } }, 2700); return; }
-    const el = spotFor(); if (el && el !== demo) el.classList.add('spot');
-  };
-  const step = (n, label, text) => {
-    stepEls.forEach((el, i) => { el.classList.toggle('on', i === n); el.classList.toggle('done', i < n); });
-    demo.textContent = label; note.textContent = text;
-    capTrack.querySelectorAll('span').forEach((el, i) => { el.classList.toggle('on', i === n); el.classList.toggle('done', i < n); });
-    capTrack.setAttribute('aria-label', `Step ${n + 1} of 4: ${STEP_NAMES[n]}`);
-    if (text) { capText.textContent = text; capText.style.animation = 'none'; void capText.offsetWidth; capText.style.animation = ''; }
-    spotlight();
-  };
+  let state = 'open';
+  // The caption: a few words per scene, swapped in with a short blur-fade.
+  const say = (text) => { if (capText.textContent === text) return; capText.textContent = note.textContent = text; replay(capText, 'swap'); };
+  const spot = (el) => { mac.querySelectorAll('.spot').forEach((e) => e.classList.remove('spot')); if (el) el.classList.add('spot'); };
   const packables = () => [...mac.querySelectorAll('[data-pack]')];
 
-  async function typeNote() {
-    const el = $('sbNote'), text = 'book the hotel this week', run = ++typing;
-    el.innerHTML = '<span class="ph">Note for later, like “need 2 more sources”</span>';
-    await wait(700);
-    for (let i = 1; i <= text.length; i++) {
-      if (run !== typing || state !== 'asking') return;
-      el.innerHTML = `${text.slice(0, i)}<span class="caret"></span>`;
-      await wait(32 + Math.random() * 36);
-    }
+  // The menu bar clock rolls to a new day: the old time slides up and out as the new one rises in.
+  const EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
+  function setClock(text, roll) {
+    const old = clock.firstElementChild;
+    if (!roll) { clock.innerHTML = `<span>${text}</span>`; clock.classList.remove('lit'); return; }
+    const nu = document.createElement('span'); nu.textContent = text; clock.appendChild(nu);
+    clock.classList.add('lit');
+    old.animate([{ transform: 'none', opacity: 1 }, { transform: 'translateY(-80%)', opacity: 0 }], { duration: reduce ? 1 : 280, easing: EASE, fill: 'forwards' }).finished.then(() => old.remove());
+    nu.animate([{ transform: 'translateY(80%)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: reduce ? 1 : 360, delay: reduce ? 0 : 80, easing: EASE, fill: 'backwards' });
+  }
+
+  // A big ⌃S keycap is pressed in the middle of the screen, so the shortcut is seen, not explained.
+  async function pressKeys() {
+    const keys = [...keycap.children];
+    keycap.classList.add('on');
+    await hold(200);
+    for (const k of keys) { k.classList.add('down'); await hold(120); }
+    await hold(260);
+    keys.forEach((k) => k.classList.remove('down'));
+    keycap.classList.remove('on');
   }
   async function stash() {
     if (state !== 'open') return;
+    state = 'keys';
+    setClock('Sun 10:12 pm', false);
+    say('Press ⌃S.');
+    await pressKeys();
     state = 'asking';
-    nudge.classList.add('off'); demo.classList.remove('pulse');
-    $('goingIn').innerHTML = [rpill('tab', 'Flights to Tokyo · Google Flights'), rpill('tab', 'Hotels in Kyoto · Booking.com'), rpill('tab', 'Japan Rail Pass · 7-day'), rpill('tab', 'r/JapanTravel · 10 day itinerary'), rpill('doc', 'Japan itinerary'), rpill('chat', '10 days in Japan: what order?')].join('');
-    $('leftOut').innerHTML = rpill('tab', 'Warriors vs Lakers · ESPN', true);
-    [...box.querySelectorAll('.rpill')].forEach((p, i) => { p.classList.add('pop'); p.style.animationDelay = `${100 + i * 40}ms`; });
+    $('goingIn').innerHTML = [rpill('tab', 'Flights to Tokyo'), rpill('tab', 'Hotels in Kyoto'), rpill('tab', 'Japan Rail Pass'), rpill('tab', 'r/JapanTravel'), rpill('doc', 'Japan itinerary'), rpill('chat', '10 days in Japan')].join('');
+    $('leftOut').innerHTML = rpill('tab', 'Warriors vs Lakers', true);
+    [...box.querySelectorAll('.rpill')].forEach((p, i) => { p.classList.add('pop'); p.style.animationDelay = `${60 + i * 40}ms`; });
     scrim.classList.add('on'); box.classList.add('on');
     held.add(heroF); held.add(sbF);
     lookAtEl(heroF, box); wide(sbF);
-    setTimeout(() => lookAtEl(sbF, $('leftOut')), 700);
-    step(1, 'Pack up ↵', 'It picked only the trip, not the basketball game. Press Pack up.');
-    typeNote();
+    setTimeout(() => lookAtEl(sbF, $('leftOut')), 500);
+    demo.textContent = 'Pack up ↵';
+    // First the one thing it left out (that's the clever bit), then the button.
+    spot($('leftOut'));
+    setTimeout(() => { if (state === 'asking') spot($('pack')); }, 1300);
   }
+  function closeBox() { box.classList.remove('on'); scrim.classList.remove('on'); held.clear(); spot(null); }
   function cancel() {
     if (state !== 'asking') return;
-    box.classList.remove('on'); scrim.classList.remove('on');
-    state = 'open'; held.clear(); typing++;
-    step(0, 'Press ⌃S', 'Nothing saved.');
+    closeBox(); state = 'open';
+    demo.textContent = 'Press ⌃S'; say('Messy screen.');
   }
   function fly(el, from, to, back) {
     const clone = el.cloneNode(true);
@@ -967,19 +746,20 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       { transform: `translate(${dx * 0.55}px, ${dy * 0.35 - lift}px) scale(0.55) rotate(${dx > 0 ? 6 : -6}deg)`, opacity: 1, offset: 0.55 },
       { transform: `translate(${dx}px, ${dy}px) scale(0.06)`, opacity: 0.2 },
     ];
-    const a = clone.animate(back ? frames.slice().reverse() : frames, { duration: reduce ? 1 : 720, easing: 'cubic-bezier(0.45, 0, 0.25, 1)', fill: 'forwards' });
+    const a = clone.animate(back ? frames.slice().reverse() : frames, { duration: reduce ? 1 : 680, easing: 'cubic-bezier(0.45, 0, 0.25, 1)', fill: 'forwards' });
     return a.finished.then(() => clone.remove());
   }
   async function packUp() {
     if (state !== 'asking') return;
-    state = 'busy'; typing++;
-    box.classList.remove('on'); scrim.classList.remove('on');
+    state = 'busy';
+    closeBox();
+    say('Put away.');
     demo.textContent = 'Packing…';
-    await wait(160);
+    await wait(140);
     const to = tray.getBoundingClientRect();
     lookAtEl(heroF, tray);
     await Promise.all(packables().map(async (el, i) => {
-      await wait(i * 80);
+      await wait(i * 70);
       const from = el.getBoundingClientRect();
       el.classList.add('hidden-thing');
       await fly(el, from, to, false);
@@ -987,53 +767,55 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       if (el.classList.contains('tab')) el.classList.add('collapsed');
     }));
     show('espn');
-    tray.classList.add('asleep'); toast.classList.add('on');
-    await wait(300);
+    tray.classList.add('asleep', 'call'); toast.classList.add('on');
     sleep(heroF, true);
     state = 'packed';
-    tray.classList.add('call');
-    step(2, 'Open the folder', 'All put away. Later, click the folder up top.');
-    setTimeout(() => toast.classList.remove('on'), 3400);
+    demo.textContent = 'Open the folder';
+    setTimeout(() => toast.classList.remove('on'), 2200);
   }
-  // Clicking the menu bar folder opens the panel with your folders, like the real menu.
-  function openPanel() {
+  // Time passes: the clock rolls from Sunday night to Thursday morning.
+  function later() {
     if (state !== 'packed') return;
-    state = 'list';
-    toast.classList.remove('on'); tray.classList.remove('call'); tray.classList.add('on');
-    $('mpList').hidden = false; $('mpBrief').hidden = true;
+    state = 'later';
+    toast.classList.remove('on');
+    setClock('Thu 9:04 am', true);
+    say('Four days later.');
+  }
+  // Clicking the menu bar folder opens its brief: where you stopped, and Unpack.
+  function openBrief() {
+    if (state === 'packed') later();
+    if (state !== 'later') return;
+    state = 'brief';
+    tray.classList.remove('call'); tray.classList.add('on');
     panel.classList.add('on');
     sleep(heroF, false); lookAtEl(heroF, panel);
-    step(2, 'Open Japan trip', 'Pick "Japan trip".');
-  }
-  function openBrief() {
-    if (state !== 'list') return;
-    state = 'brief';
-    $('mpKinds').innerHTML = [rpill('tab', '4 tabs'), rpill('doc', '1 file'), rpill('chat', '1 chat')].join('');
-    $('mpList').hidden = true; $('mpBrief').hidden = false;
-    step(3, 'Unpack', 'A note says where you stopped. Press Unpack.');
+    demo.textContent = 'Unpack';
+    spot($('mpUnpack'));
   }
   async function unpack() {
     if (state !== 'brief' && state !== 'packed') return;
     state = 'busy';
+    spot(null);
     panel.classList.remove('on'); tray.classList.remove('on', 'call', 'asleep'); toast.classList.remove('on');
     sleep(heroF, false); wide(heroF); replay(tray, 'hop');
+    say('All back.');
     demo.textContent = 'Unpacking…';
-    await wait(260);
+    await wait(200);
     const items = packables();
     items.forEach((el) => el.classList.remove('collapsed'));
-    await wait(320);
+    await wait(300);
     const from = tray.getBoundingClientRect();
     await Promise.all(items.map(async (el, i) => {
-      await wait(i * 140);
+      await wait(i * 90);
       await fly(el, el.getBoundingClientRect(), from, true);
       el.classList.remove('hidden-thing');
     }));
     show('booking');
     smile(heroF); held.clear();
     state = 'open';
-    step(0, 'Press ⌃S', 'Everything is back, right where you left it.');
+    demo.textContent = 'Press ⌃S';
   }
-  const next = () => ({ open: stash, asking: packUp, packed: openPanel, list: openBrief, brief: unpack }[state] || (() => {}))();
+  const next = () => ({ open: stash, asking: packUp, packed: openBrief, later: openBrief, brief: unpack }[state] || (() => {}))();
 
   const cursor = $('cursor'), autoBtn = $('autoBtn');
   let auto = false, autoRun = 0;
@@ -1042,34 +824,40 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     cursor.style.left = `${r.left - m.left + r.width * 0.55}px`;
     cursor.style.top = `${r.top - m.top + r.height * 0.5}px`;
     cursor.classList.add('on');
-    await hold(700);
-    cursor.classList.add('press'); await hold(160); cursor.classList.remove('press');
+    await hold(650);
+    cursor.classList.add('press'); await hold(150); cursor.classList.remove('press');
   };
   async function autoplay() {
     const run = ++autoRun;
     const live = () => auto && run === autoRun;
     let first = true;
-    // Carries on from whatever step the demo is on, so it can pick up after you've tapped along.
-    const SEQ = { open: [() => demo, stash, 3900], asking: [() => $('pack'), packUp, 3400], packed: [() => tray, openPanel, 2600], list: [() => $('rowUnpack'), openBrief, 3600], brief: [() => $('mpUnpack'), unpack, 4200] };
+    // Each scene: what the pointer clicks (if anything), what happens, and how long to let it sit.
+    // Carries on from whatever scene the demo is on, so it can pick up after you've tapped along.
+    const SEQ = { open: [() => demo, stash, 2300], asking: [() => $('pack'), packUp, 1400], packed: [null, later, 1700], later: [() => tray, openBrief, 1600], brief: [() => $('mpUnpack'), unpack, 0] };
     while (live()) {
       const at = SEQ[state];
-      if (!at) { await hold(400); continue; }
-      if (state === 'open') { await hold(first ? 250 : 1800); if (!live()) break; }
+      if (!at) { await hold(300); continue; }
+      if (state === 'open') {
+        // "All back." sits for a beat, then the screen is just a messy screen again.
+        if (!first) { await hold(1700); if (!live()) break; }
+        say('Messy screen.'); setClock('Sun 10:12 pm', false);
+        await hold(first ? 1000 : 1700); if (!live()) break;
+      }
       first = false;
       const [el, fn, ms] = at;
-      await moveCursor(el()); if (!live()) break;
-      fn(); await hold(ms);
+      if (el) { await moveCursor(el()); if (!live()) break; }
+      await fn(); await hold(ms);
     }
     if (run === autoRun) cursor.classList.remove('on');
   }
   const setAuto = (on) => {
     auto = on;
     autoBtn.textContent = auto ? '❚❚ Pause' : '▶ Play';
-    if (auto) { nudge.classList.add('off'); demo.classList.remove('pulse'); autoplay(); } else { autoRun++; cursor.classList.remove('on'); }
+    if (auto) autoplay(); else { autoRun++; cursor.classList.remove('on'); }
   };
   let resume = 0;
   autoBtn.addEventListener('click', () => { clearTimeout(resume); setAuto(!auto); });
-  // A real click or key inside the demo means you want to drive.
+  // A real click or key inside the demo means you want to drive; it carries on by itself after a while.
   // (A tap, not a scroll: on a phone a finger dragging over the demo is just scrolling the page.)
   mac.addEventListener('click', (e) => {
     if (!e.isTrusted) return;
@@ -1082,15 +870,15 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   // (Reduce Motion doesn't stop it: the demo is how the page explains the app; its moves are just gentler.)
   new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { o.disconnect(); if (state === 'open' && !auto) setAuto(true); } }), { threshold: 0.3 }).observe(mac);
   demo.addEventListener('click', next);
-  tray.addEventListener('click', () => (state === 'packed' ? openPanel() : state === 'list' || state === 'brief' ? (panel.classList.remove('on'), tray.classList.remove('on'), state = 'packed', tray.classList.add('call'), step(2, 'Open the folder', '')) : null));
+  tray.addEventListener('click', () => {
+    if (state === 'packed' || state === 'later') openBrief();
+    else if (state === 'brief') { panel.classList.remove('on'); tray.classList.remove('on'); tray.classList.add('call'); spot(null); state = 'later'; demo.textContent = 'Open the folder'; }
+  });
   $('pack').addEventListener('click', packUp);
-  $('saveOnly').addEventListener('click', () => { if (state !== 'asking') return; box.classList.remove('on'); scrim.classList.remove('on'); state = 'open'; held.clear(); typing++; smile(heroF); step(0, 'Press ⌃S', 'Saved, and everything stays open. Try Pack up next time.'); });
+  $('saveOnly').addEventListener('click', () => { if (state !== 'asking') return; closeBox(); state = 'open'; smile(heroF); demo.textContent = 'Press ⌃S'; say('Saved. All still open.'); });
   $('cancel').addEventListener('click', cancel);
   $('undo').addEventListener('click', unpack);
-  $('rowUnpack').addEventListener('click', openBrief);
-  $('mpBack').addEventListener('click', () => { if (state === 'brief') { state = 'list'; $('mpList').hidden = false; $('mpBrief').hidden = true; step(2, 'Open Japan trip', ''); } });
   $('mpUnpack').addEventListener('click', unpack);
-  $('mpAll').addEventListener('click', unpack);
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); if (state === 'open') stash(); else if (state === 'asking') packUp(); }
     if (e.key === 'Enter' && state === 'asking') { e.preventDefault(); packUp(); }
@@ -1103,30 +891,6 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   // Run `fn` each time `el` comes well into view (`repeat`), or once.
   const whenSeen = (el, fn, repeat = false, threshold = 0.55) => new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { fn(); if (!repeat) o.disconnect(); } }), { threshold }).observe(el);
 
-  // Step pictures: the keys press, things fly into the menu bar folder, the brief fills in.
-  const keyEls = [...$('keys').children];
-  const pressKeys = async () => { for (const k of keyEls) { k.classList.add('down'); await wait(160); } await wait(380); keyEls.forEach((k) => k.classList.remove('down')); };
-  whenSeen($('keys'), () => { pressKeys(); if (!reduce) setInterval(pressKeys, 3600); });
-  const packPic = $('packPic'), miniF = packPic.querySelector('.folder');
-  const playPack = async () => {
-    sleep(miniF, false);
-    const chips = [...packPic.querySelectorAll('.chiplet')];
-    chips.forEach((c) => (c.style.cssText = c.style.cssText.replace(/transform[^;]*;?|opacity[^;]*;?/g, '')));
-    await wait(400);
-    const t = miniF.getBoundingClientRect();
-    await Promise.all(chips.map(async (c, i) => {
-      await wait(i * 120);
-      const r = c.getBoundingClientRect();
-      await c.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${t.left - r.left}px, ${t.top - r.top}px) scale(0.2)`, opacity: 0 }], { duration: reduce ? 1 : 650, easing: 'cubic-bezier(0.45, 0, 0.25, 1)', fill: 'forwards' }).finished;
-    }));
-    sleep(miniF, true);
-    await wait(2200);
-    packPic.querySelectorAll('.chiplet').forEach((c) => c.getAnimations().forEach((a) => a.cancel()));
-  };
-  whenSeen(packPic, () => { playPack(); if (!reduce) setInterval(playPack, 5200); });
-  const lns = [...$('unpackPic').querySelectorAll('.ln')];
-  whenSeen($('unpackPic'), () => lns.forEach((l, i) => l.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: reduce ? 1 : 600, delay: 200 + i * 220, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'both' })));
-
   // Chapter 1: the study tabs sort themselves.
   const tablist = $('tablist'), sortF = $('sortFolder');
   // Each tab is decided one after another, then the tally and the folder name catch up.
@@ -1138,8 +902,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     await wait(700);
     tablist.classList.add('sorted');
     await wait(6 * 220 + 300);
-    sortTitle.textContent = 'New folder: Japan trip';
-    tally.textContent = '4 things go into "Japan trip". 2 stay open.'; tally.classList.add('done');
+    sortTitle.textContent = 'New folder: Climate essay';
+    tally.textContent = '4 go into "Climate essay". 2 stay open.'; tally.classList.add('done');
     smile(sortF, 1400);
     held.delete(sortF);
   }, true);
@@ -1167,7 +931,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   whenSeen($('chatwin'), async () => {
     placeHl(0); $('chatTitle').textContent = 'Weeknight pasta ideas';
     $('chatQ').textContent = 'What can I make with spinach and feta?'; $('chatA').textContent = 'Try a spinach and feta orzo. It takes about 20 minutes.';
-    $('chatCapText').textContent = 'Unpacking "Spotify job application"…';
+    $('chatCapText').textContent = 'Unpacking "Job hunt"…';
     held.add(chatF); lookAtEl(chatF, $('chatwin'));
     await wait(900);
     placeHl(3);
@@ -1175,11 +939,9 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     $('chatTitle').textContent = 'Cover letter for Spotify';
     $('chatQ').textContent = 'Can you make the second paragraph sound less formal?';
     $('chatA').textContent = 'Sure. Here is a warmer version that keeps your point about the Wrapped redesign.';
-    $('chatCapText').textContent = 'Back in "Cover letter for Spotify", right where you left it.';
+    $('chatCapText').textContent = 'Back in "Cover letter for Spotify".';
     smile(chatF, 1600); held.delete(chatF);
   }, true);
-  // Privacy: the folder keeps an eye on your things.
-  whenSeen($('vaultFolder'), () => { const f = $('vaultFolder'); held.add(f); look(f, 4, 0); setTimeout(() => { look(f, -4, 0); setTimeout(() => { held.delete(f); smile(f, 1200); }, 700); }, 700); }, true);
 
   // The end: the folder wakes, looks to one side, then the other, then smiles at you.
   const endM = $('endMascot');
