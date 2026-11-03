@@ -531,7 +531,8 @@ export class Core {
     if (!items.length) return { opened: 0, alreadyOpen: 0, missing: [], failed: [] };
     before?.(items);
     let openBefore = new Set<string>();
-    const result = await openItems(items, entry.frontKey, this.settings.get(), (b) => (openBefore = b));
+    const name = (await this.store.get(jobId).catch(() => null))?.name;
+    const result = await openItems(items, entry.frontKey, this.settings.get(), (b) => (openBefore = b), name);
     await this.setCurrent(jobId);
     this.notify();
     // A moment later, note what's open, so anything opened after this can be suggested for the job,

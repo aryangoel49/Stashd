@@ -4,6 +4,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import type { AppInfo } from '../shared/types';
 import * as v from '../shared/validate';
+import { setupChromeHelper } from './chromehelper';
 import type { Core } from './core';
 import type { SecretStore } from './secrets';
 import { fitHeight, getWindow, holdWindow, isAppUrl, routeOf, showWindow } from './windows';
@@ -165,6 +166,10 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   });
   handle('system:openAutomationSettings', async () => {
     await shell.openExternal(AUTOMATION_SETTINGS);
+    return true;
+  });
+  handle('system:setupChromeGroups', async () => {
+    await setupChromeHelper();
     return true;
   });
   handle('system:openAppleAiSettings', async () => {

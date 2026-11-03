@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Stashd",
+  "version": "1.0",
+  "description": "Lets Stashd open a folder's tabs together in a named tab group.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApiSTC+wDhpU0dlvAPwN8GZ2bs1ita2yewhUn3wijPRVIHPq4SaXZMUgomztlTiQ7t7kh09VK9Tr9r7I2qOQIEMwtaaKMtGehBParCZddQx0oKff9ELrByf2hddtArN9AFiH8rBkjFgVhJBrbRLP9PTpHyCxxRpKJruKnRWzm+o+FfWgp1Us/CgQBKkzuMGcB+Z076bbKYIlsJtCUUK1E2ZGW+07llVEHLxySGIE1YAIXqtcWyfIFIbyZmAr+W775aW3AlYvvirXIiHwh1WTCojrpH8M1W2+j9djDr3dEz4a9TxBsLtInwwOPxkVnl4OVrpDm6dJufJ2BFvx0L6VfmQIDAQAB",
+  "permissions": ["tabGroups"],
+  "icons": { "128": "icon.png" }
+}

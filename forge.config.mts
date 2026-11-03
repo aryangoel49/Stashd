@@ -26,7 +26,7 @@ const config: ForgeConfig = {
     icon: 'assets/icon',
     asar: true,
     // The menu bar icon images live next to the app, outside the code bundle.
-    extraResource: ['assets/tray', 'native/build/wwi-helper', 'embedder'],
+    extraResource: ['assets/tray', 'assets/chrome-extension', 'native/build/wwi-helper', 'embedder'],
     extendInfo: {
       NSAppleEventsUsageDescription: 'Stashd reads the titles and addresses of your open tabs and the names of your open documents, so it can save where you left off and reopen them later.',
       // Menu bar app: no Dock icon, no app menu on launch.

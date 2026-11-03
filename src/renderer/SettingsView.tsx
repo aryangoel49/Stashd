@@ -135,7 +135,7 @@ export function SettingsView() {
           )}
           {tab === 'privacy' && (
             <>
-      <Card title="Privacy" hint="Stashd only looks when you press the shortcut. It never reads page contents, document text, passwords, cookies or private windows.">
+      <Card title="Privacy" hint="Stashd looks at what's open when you press the shortcut, and now and then to spot work you've packed. It never reads page contents, document text, passwords, cookies or private windows.">
         <ListRow label="Never save tabs from" value={s.excludedDomains} onSave={(v) => void update({ excludedDomains: v })} />
         {(['chrome', 'arc', 'safari'] as const).map((b) => (
           <Toggle key={b} label={`Read tabs from ${{ chrome: 'Google Chrome', arc: 'Arc', safari: 'Safari' }[b]}`} on={s.browsers[b]} onChange={(v) => void update({ browsers: { ...s.browsers, [b]: v } })} />
@@ -145,6 +145,17 @@ export function SettingsView() {
           <span>Permission to see your tabs and files</span>
           <Button size="small" onClick={() => void api.openAutomationSettings()}>
             Open System Settings
+          </Button>
+        </div>
+        <div className="srow">
+          <span>
+            Chrome tab groups
+            <span className="muted small" style={{ display: 'block' }}>
+              Unpack puts a folder's tabs in a group named after it. In Chrome: turn on Developer mode, click Load unpacked, pick the folder Stashd shows you.
+            </span>
+          </span>
+          <Button size="small" onClick={() => void api.setupChromeGroups()}>
+            Set up
           </Button>
         </div>
       </Card>

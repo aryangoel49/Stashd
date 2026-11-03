@@ -16,6 +16,7 @@ import { LEGACY_NAME, migrateLegacyData } from './main/legacy';
 import { JobStore } from './main/store';
 import { TidyFlow } from './main/tidyflow';
 import { Noticer } from './main/noticer';
+import { copyChromeHelper } from './main/chromehelper';
 import { runLiveTest } from './main/livetest';
 import { runScenarios } from './main/scenarios';
 import { runSuggestTest } from './main/suggesttest';
@@ -181,6 +182,7 @@ function start(): void {
     });
 
     tidy.prepare();
+    void copyChromeHelper().catch(() => undefined);
     if (!process.env.WWI_FAKE_CAPTURE) noticer.start();
     const initial = settings.get();
     nativeTheme.themeSource = initial.appearance;
