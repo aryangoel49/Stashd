@@ -70,20 +70,29 @@ export class TidyFlow {
         const plan = await this.core.tidyAll();
         const saved = await Promise.all(plan.saved.map((s) => this.core.store.entry(s.jobId, s.entryId)));
         const items = [...saved.flatMap((e) => e.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen)), ...plan.close];
-        if (!items.length) {
+        // The apps of the folders it packed go too, like Pack up: quit (asking about unsaved work),
+        // Claude and ChatGPT only hidden. Apps that belong to no folder are left alone.
+        const apps = saved.flatMap((e) => e.items.filter((i) => i.kind === 'app' && !i.notOpen));
+        if (!items.length && !apps.length) {
           this.toast({ title: 'Already tidy', detail: 'Nothing to close.', canUndo: false, mood: 'awake' });
           return;
         }
-        const animation = this.play(items, false);
+        const animation = this.play([...items, ...apps], false);
         await wait(120);
-        const { closed } = await closeItems(items, this.urlOptions());
+        const [{ closed }, doneNames] = await Promise.all([closeItems(items, this.urlOptions()), this.quitOrHide(apps)]);
+        const done = new Set(doneNames.map((n) => n.toLowerCase()));
+        closed.push(...apps.filter((a) => done.has(a.app.toLowerCase())));
         await animation;
         this.setUndo(closed, null);
         await this.core.rememberTidied(closed);
-        const folders = plan.saved.length;
+        const filed = plan.filed.reduce((n, f) => n + f.count, 0);
+        const parts = [
+          plan.saved.length ? `${plan.saved.length} ${plan.saved.length === 1 ? 'folder' : 'folders'} packed` : '',
+          filed ? `${filed} ${filed === 1 ? 'tab' : 'tabs'} added to ${plan.filed.length === 1 ? shortName(plan.filed[0].name) : `${plan.filed.length} folders`}` : '',
+        ].filter(Boolean);
         this.toast({
           title: `Tidied up · ${closed.length} closed`,
-          detail: folders ? `${folders} ${folders === 1 ? 'folder' : 'folders'} packed. The rest is in Recently closed for 10 min.` : 'In Recently closed for 10 min, in case.',
+          detail: parts.length ? `${parts.join(', ')}. All in Recently closed for 10 min.` : 'In Recently closed for 10 min, in case.',
           canUndo: closed.length > 0,
           mood: 'sleep',
         });
@@ -94,6 +103,17 @@ export class TidyFlow {
       }
     });
     return this.queue;
+  }
+
+  /** Quits apps (⌘Q, so they still ask about unsaved work); Claude and ChatGPT are only hidden. Returns the ones that went. */
+  private async quitOrHide(apps: Item[]): Promise<string[]> {
+    const hide = apps.filter((a) => CHAT_APPS.includes(a.app)).map((a) => a.app);
+    const quit = apps.filter((a) => !CHAT_APPS.includes(a.app)).map((a) => a.app);
+    const r = await Promise.all([
+      quit.length ? this.core.helper.quitApps(quit).catch(() => [] as string[]) : [],
+      hide.length ? this.core.helper.hideApps(hide).catch(() => [] as string[]) : [],
+    ]);
+    return r.flat();
   }
 
   private urlOptions(): UrlOptions {

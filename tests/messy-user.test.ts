@@ -318,6 +318,27 @@ describe('Tidy all', () => {
     expect((await core.store.latest(first.jobId))!.items.map((i) => i.key).sort()).toEqual(trip.map((i) => i.key).sort());
   });
 
+  it('files a stray tab into the packed folder it clearly belongs to, and leaves unclear ones out', async () => {
+    const core = makeCore();
+    const site = (host: string, p: string, title: string): Item => ({ ...tab(0, title), key: `tab:https://${host}${p}`, url: `https://${host}${p}`, detail: host });
+    const save = async (name: string, items: Item[]) => {
+      open = items;
+      core.beginSave();
+      await core.preview({ asNew: true });
+      return core.commitSave({ jobId: null, name, note: '', keys: items.map((i) => i.key), tidy: true });
+    };
+    const japan = await save('Japan trip', [site('www.google.com', '/travel/flights/tokyo', 'Flights to Tokyo Kyoto Japan'), site('www.booking.com', '/kyoto', 'Ryokans in Kyoto Japan')]);
+    await save('Tax return', [site('www.irs.gov', '/forms', 'IRS tax forms 1040'), site('turbotax.intuit.com', '/', 'TurboTax tax return')]);
+    const rail = site('www.japan-guide.com', '/e/e2361.html', 'Japan Rail Pass Tokyo to Kyoto');
+    const random = site('www.espn.com', '/nba/game', 'Warriors vs Lakers');
+    open = [rail, random];
+    const plan = await core.tidyAll();
+    expect(plan.filed).toEqual([{ jobId: japan.jobId, name: 'Japan trip', count: 1 }]);
+    expect(plan.loose).toBe(1);
+    expect(plan.close.map((i) => i.key).sort()).toEqual([rail.key, random.key].sort());
+    expect((await core.store.latest(japan.jobId))!.items.map((i) => i.key)).toContain(rail.key);
+  });
+
   it('lists what it closed for 10 minutes, then forgets it', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     try {

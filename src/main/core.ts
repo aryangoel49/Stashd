@@ -17,7 +17,7 @@ import {
   suggestName,
   type Classified,
 } from './jobs/match';
-import { FIT_SUGGEST, jobFit, jobProfile, meaningText, profileTexts, type MeaningLookup } from './jobs/relevance';
+import { documentFrequency, FIT_SUGGEST, jobFit, jobProfile, meaningText, profileTexts, scoreItem, SURE, type MeaningLookup, type Profile } from './jobs/relevance';
 import { suggest, type FolderData } from './jobs/suggest';
 import type { Meaning } from './meaning';
 import { openItems } from './open';
@@ -62,8 +62,16 @@ export interface TidyAllPlan {
   saved: { jobId: string; entryId: string; name: string }[];
   /** Other things to close: open, and already in a folder. */
   close: Item[];
+  /** Stray tabs added to a folder they clearly belong to (and closed). */
+  filed: { jobId: string; name: string; count: number }[];
   loose: number;
 }
+
+/**
+ * A stray tab joins a folder only when it clearly belongs: a sure match, and clearly a better match
+ * than for any other folder. Otherwise it's left out.
+ */
+export const HOME_MARGIN = 1.5;
 
 /** What Tidy all closed stays listed this long, so a tab closed by mistake can come back. */
 export const RECENT_TIDY_MS = 10 * 60_000;
@@ -328,7 +336,7 @@ export class Core {
     const cap = this.fakeCapture ? await this.fakeCapture() : await capture(settings, this.helper, this.selfNames);
     const learned = learnedLifestyleApps(this.state.appUnticks);
     const openKeys = new Set(cap.items.map(looseKey));
-    const plan: TidyAllPlan = { saved: [], close: [], loose: 0 };
+    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0 };
     const claimed = new Set<string>();
     const claim = (items: Item[]) => items.forEach((i) => matchKeys(i).forEach((k) => claimed.add(k)));
     const openItem = (i: Item) => cap.items.find((c) => matchKeys(i).includes(looseKey(c)));
@@ -357,13 +365,67 @@ export class Core {
       plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
     }
 
-    // Tabs that belong nowhere just close. They stay in "Recently closed" for a while, in case one mattered.
-    const loose = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
-    plan.close.push(...loose);
-    plan.loose = loose.length;
+    // Tabs left over: one that clearly belongs to one of your other folders is added to it. The rest
+    // belong nowhere and just close (they stay in "Recently closed" for a while, in case one mattered).
+    const strays = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
+    const homes = await this.homesFor(strays, new Set(plan.saved.map((s) => s.jobId)));
+    for (const [jobId, items] of homes) {
+      const name = await this.addToFolder(jobId, items);
+      plan.filed.push({ jobId, name, count: items.length });
+    }
+    const homed = new Set([...homes.values()].flat().map((i) => i.key));
+    plan.close.push(...strays);
+    plan.loose = strays.filter((i) => !homed.has(i.key)).length;
     this.pending = null;
     this.notify();
     return plan;
+  }
+
+  /** For each stray item, the one folder it clearly belongs to (if any). Finished folders and `skip` aren't offered. */
+  private async homesFor(strays: Item[], skip: Set<string>): Promise<Map<string, Item[]>> {
+    const homes = new Map<string, Item[]>();
+    if (!strays.length) return homes;
+    const folders: { id: string; profile: Profile }[] = [];
+    for (const j of (await this.store.list()).filter((x) => !x.done && !skip.has(x.id))) {
+      const latest = await this.store.latest(j.id);
+      if (latest) folders.push({ id: j.id, profile: jobProfile(j.name, latest.note, latest.items, learnedAvoid(j.prefs)) });
+    }
+    if (!folders.length) return homes;
+    const vectors = new Map<string, number[]>();
+    const texts = [...strays.map(meaningText).filter((t): t is string => !!t), ...folders.flatMap((f) => profileTexts(f.profile))];
+    (await this.meaning?.vectors(texts).catch(() => undefined))?.forEach((v, t) => vectors.set(t, v));
+    const lookup: MeaningLookup | undefined = vectors.size ? (t) => vectors.get(t) : undefined;
+    const df = documentFrequency(strays);
+    for (const item of strays) {
+      const ranked = folders.map((f) => ({ id: f.id, score: scoreItem(item, f.profile, df, null, lookup).score })).sort((a, b) => b.score - a.score);
+      const [best, next] = ranked;
+      if (best.score < SURE || (next && best.score < next.score * HOME_MARGIN)) continue;
+      homes.set(best.id, [...(homes.get(best.id) ?? []), item]);
+    }
+    return homes;
+  }
+
+  /** Adds items to a folder's latest save (a new save, so the brief is rewritten). Returns the folder's name. */
+  private async addToFolder(jobId: string, items: Item[]): Promise<string> {
+    const job = await this.store.get(jobId);
+    const latest = await this.store.latest(jobId);
+    const now = new Date();
+    const have = new Set((latest?.items ?? []).flatMap(matchKeys));
+    const added = items.filter((i) => !have.has(looseKey(i))).map((i) => ({ ...i, notOpen: undefined, active: false }));
+    const entry: SaveEntry = {
+      ...(latest ?? { version: 2, jobId, note: '', items: [], frontKey: null }),
+      id: await this.store.freeEntryId(jobId, now),
+      savedAt: now.toISOString(),
+      items: [...(latest?.items ?? []), ...added],
+      brief: undefined,
+      tidied: true,
+    } as SaveEntry;
+    await this.store.saveEntry(entry);
+    await this.store.prune(jobId);
+    job.updatedAt = now.toISOString();
+    await this.store.put(job);
+    void this.ensureBrief(jobId, entry.id).catch(() => undefined);
+    return job.name;
   }
 
   /** What Tidy all just closed: kept for 10 minutes, then forgotten. */
