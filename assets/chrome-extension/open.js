@@ -43,9 +43,9 @@ let keepOpen = false;
 async function run() {
   const req = JSON.parse(decodeURIComponent(location.hash.slice(1)));
   if (req.action === 'progress') {
-    // How far into each of these videos you got: [address, seconds watched, length].
+    // How far into each video you got: [address, seconds watched, length, when noted].
     const { progress = {} } = await chrome.storage.local.get('progress');
-    const out = Object.entries(progress).map(([url, p]) => [url, p.t, p.d]);
+    const out = Object.entries(progress).map(([url, p]) => [url, p.t, p.d, p.at]);
     keepOpen = true;
     history.replaceState(null, '', `#R${encodeURIComponent(JSON.stringify(out))}`);
     return;

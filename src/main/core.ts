@@ -22,7 +22,7 @@ import { suggest, type FolderData } from './jobs/suggest';
 import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
 import { changeChromeGroup, finished, openForBreak, openItems, videoProgress } from './open';
-import { BreakStore, isBreakItem } from './breaks';
+import { BreakStore, isBreakItem, videoKey } from './breaks';
 import type { SettingsStore } from './settings';
 import { JobStore, writeFileAtomic } from './store';
 import { IconCache } from './icons';
@@ -412,7 +412,7 @@ export class Core {
     if (toShelf.length) {
       // Videos you watched to the end don't need picking up.
       const { finishedOnes, rest } = await this.splitFinished(toShelf);
-      for (const f of finishedOnes) await this.breaks.removeLoose(looseKey(f));
+      for (const f of finishedOnes) await this.breaks.removeLoose(videoKey(f.url ?? ''));
       if (rest.length) await this.breaks.add(rest);
     }
     plan.breaks = breakItems.length;
@@ -480,7 +480,7 @@ export class Core {
    */
   async videosClosed(items: Item[]): Promise<void> {
     const { finishedOnes, rest } = await this.splitFinished(items);
-    for (const f of finishedOnes) await this.breaks.removeLoose(looseKey(f));
+    for (const f of finishedOnes) await this.breaks.removeLoose(videoKey(f.url ?? ''));
     if (rest.length) await this.breaks.add(rest);
     this.notify();
   }
@@ -488,7 +488,7 @@ export class Core {
   private async splitFinished(items: Item[]): Promise<{ finishedOnes: Item[]; rest: Item[] }> {
     const s = this.settings.get();
     const progress = await videoProgress((u) => cleanTabUrl(u, { keepQueryStrings: s.keepQueryStrings, excludedDomains: s.excludedDomains })).catch(() => new Map());
-    const finishedOnes = items.filter((i) => finished(progress.get(looseKey(i))));
+    const finishedOnes = items.filter((i) => finished(progress.get(videoKey(i.url ?? ''))));
     return { finishedOnes, rest: items.filter((i) => !finishedOnes.includes(i)) };
   }
 

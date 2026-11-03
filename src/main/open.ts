@@ -6,6 +6,7 @@ import type { BrowserName, Item, OpenResult, Settings } from '../shared/types';
 import { BROWSERS } from '../shared/validate';
 import { BROWSER_APPS, collectTabs, isRunning } from './collectors/browsers';
 import { run } from './exec';
+import { videoKey } from './breaks';
 import { looseKey, matchKeys } from './urls';
 
 /**
@@ -216,7 +217,7 @@ export async function chromeTabGroups(clean: (url: string) => string | null): Pr
 
 /**
  * How far into each video you got, from Stashd's extension (it notes the position and length every few
- * seconds on video sites): loose key -> { t: seconds watched, d: length }. Empty without the extension.
+ * seconds on video sites): video key (see videoKey) -> { t: seconds watched, d: length }. Empty without it.
  */
 export async function videoProgress(clean: (url: string) => string | null): Promise<Map<string, { t: number; d: number }>> {
   const out = new Map<string, { t: number; d: number }>();
@@ -227,10 +228,17 @@ export async function videoProgress(clean: (url: string) => string | null): Prom
     if (at < 0) return out;
     const rows = JSON.parse(decodeURIComponent(r.stdout.trim().slice(at + 2))) as unknown;
     if (!Array.isArray(rows)) return out;
+    // The most recent position of each video, whatever time the address started at.
+    const when = new Map<string, number>();
     for (const row of rows) {
       if (!Array.isArray(row) || typeof row[0] !== 'string' || typeof row[1] !== 'number' || typeof row[2] !== 'number') continue;
       const url = clean(row[0]);
-      if (url) out.set(looseKey({ key: `tab:${url}`, kind: 'tab', label: '', detail: '', app: '', url }), { t: row[1], d: row[2] });
+      if (!url) continue;
+      const k = videoKey(url);
+      const at = typeof row[3] === 'number' ? row[3] : 0;
+      if ((when.get(k) ?? -1) > at) continue;
+      when.set(k, at);
+      out.set(k, { t: row[1], d: row[2] });
     }
   } catch {
     // can't tell: everything counts as unfinished

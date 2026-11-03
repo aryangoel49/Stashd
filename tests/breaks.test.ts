@@ -108,3 +108,11 @@ describe('finished videos', () => {
     expect(finished(undefined)).toBe(false);
   });
 });
+
+describe('one video, any start time', () => {
+  it('ignores the time YouTube puts in the address', async () => {
+    const { videoKey } = await import('../src/main/breaks');
+    expect(videoKey('https://www.youtube.com/watch?v=aqz&t=626s')).toBe(videoKey('https://youtube.com/watch?v=aqz'));
+    expect(videoKey('https://www.youtube.com/watch?v=aqz')).not.toBe(videoKey('https://www.youtube.com/watch?v=other'));
+  });
+});

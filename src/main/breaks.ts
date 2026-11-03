@@ -18,6 +18,19 @@ export const BREAK_SITES = [
   'imdb.com', 'letterboxd.com', '9gag.com', 'instagram.com', 'tiktok.com', 'x.com', 'twitter.com', 'facebook.com',
 ];
 
+/** One video, whatever point in it the address starts at (YouTube adds &t=626s): its loose key without t/start. */
+export function videoKey(url: string): string {
+  try {
+    const u = new URL(url);
+    for (const p of ['t', 'start', 'time_continue']) u.searchParams.delete(p);
+    u.hash = '';
+    const s = u.toString();
+    return looseKey({ key: `tab:${s}`, kind: 'tab', label: '', detail: '', app: '', url: s });
+  } catch {
+    return url;
+  }
+}
+
 export function isBreakItem(item: Item): boolean {
   if (item.kind !== 'tab' || !item.url) return false;
   try {
@@ -97,8 +110,8 @@ export class BreakStore {
         const had = before.get(looseKey(i));
         return { ...i, active: false, notOpen: undefined, group: undefined, savedAt: now, openedAt: had?.openedAt, opens: had?.opens };
       });
-    const keys = new Set(fresh.map(looseKey));
-    shelf.items = [...fresh, ...shelf.items.filter((i) => !keys.has(looseKey(i)))].slice(0, MAX_SHELF);
+    const keys = new Set(fresh.map((i) => videoKey(i.url!)));
+    shelf.items = [...fresh, ...shelf.items.filter((i) => !keys.has(videoKey(i.url ?? '')))].slice(0, MAX_SHELF);
     await this.save(shelf);
   }
 
@@ -128,7 +141,7 @@ export class BreakStore {
   /** Take a page off the shelf by its loose key (any address variant of it). */
   async removeLoose(loose: string): Promise<void> {
     const shelf = await this.get();
-    const kept = shelf.items.filter((i) => looseKey(i) !== loose);
+    const kept = shelf.items.filter((i) => videoKey(i.url ?? '') !== loose);
     if (kept.length === shelf.items.length) return;
     shelf.items = kept;
     await this.save(shelf);
