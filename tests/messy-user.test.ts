@@ -416,3 +416,24 @@ describe('Removing from a folder', () => {
     await expect(core.restoreItem(jobId, tab(2).key)).rejects.toThrow();
   });
 });
+
+describe('Merging keeps one copy of each page', () => {
+  it('drops the same page saved with a slightly different address', async () => {
+    const { withoutRepeats } = await import('../src/main/core');
+    const a: Item = { ...tab(1), key: 'tab:https://www.github.com/me/repo', url: 'https://www.github.com/me/repo' };
+    const b: Item = { ...tab(1), key: 'tab:http://github.com/me/repo/', url: 'http://github.com/me/repo/' };
+    const c: Item = { ...tab(2), key: 'tab:https://vercel.com/me/stashd', url: 'https://vercel.com/me/stashd' };
+    expect(withoutRepeats([a, c, b, c]).map((i) => i.key)).toEqual([a.key, c.key]);
+  });
+
+  it('drops the same page on another address with the same title, but keeps different pages', async () => {
+    const { withoutRepeats } = await import('../src/main/core');
+    const site = (url: string, label: string): Item => ({ ...tab(0, label), key: `tab:${url}`, url });
+    const live = site('https://getstashd.vercel.app/', 'Stashd · Put your work to bed');
+    const preview = site('https://swift-flint-etetf54.vercel.app/', 'Stashd · Put your work to bed');
+    const features = site('https://getstashd.vercel.app/features.html', 'Stashd features');
+    const otherInbox = site('https://mail.example.com/', 'Inbox');
+    const inbox = site('https://mail.google.com/', 'Inbox');
+    expect(withoutRepeats([live, features, preview, inbox, otherInbox]).map((i) => i.url)).toEqual([live.url, features.url, inbox.url, otherInbox.url]);
+  });
+});

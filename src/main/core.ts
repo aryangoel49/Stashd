@@ -596,8 +596,7 @@ export class Core {
       const from = await this.store.latest(s.from);
       if (!into || !from) throw new Error('One of those folders has no saves yet.');
       const before = { items: into.items, brief: into.brief };
-      const have = new Set(into.items.map((i) => i.key));
-      into.items = [...into.items, ...from.items.filter((i) => !have.has(i.key))];
+      into.items = withoutRepeats([...into.items, ...from.items]);
       delete into.brief; // written again for the merged folder
       await this.store.saveEntry(into);
       await this.setDone(s.from, true); // the merged-in folder moves to Finished, history intact
@@ -878,6 +877,30 @@ export class Core {
     if (this.state.currentJobId === jobId) await this.setCurrent(null);
     this.notify();
   }
+}
+
+/**
+ * One copy of each thing: the same page saved twice (http and https, www., a trailing slash, or where
+ * it redirected) is kept once, the first time it appears. So is a tab with the same title and the same
+ * page on another address of the same site (a preview link of your website on vercel.app, say).
+ */
+export function withoutRepeats(items: Item[]): Item[] {
+  const seen = new Set<string>();
+  const samePageKey = (i: Item) => {
+    if (i.kind !== 'tab' || !i.url || !i.label.trim()) return [];
+    try {
+      const u = new URL(i.url);
+      return [`page:${siteOf(i.url)}|${i.label.trim().toLowerCase()}|${u.pathname.replace(/\/+$/, '') || '/'}${u.search}`];
+    } catch {
+      return [];
+    }
+  };
+  return items.filter((i) => {
+    const keys = [i.key, ...matchKeys(i), ...samePageKey(i)];
+    if (keys.some((k) => seen.has(k))) return false;
+    keys.forEach((k) => seen.add(k));
+    return true;
+  });
 }
 
 /** What a job holds most of: its icon in the menu. */
