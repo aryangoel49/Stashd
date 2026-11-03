@@ -9,6 +9,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - **Break**: a Work / Break switch in the menu bar panel. Tidy all puts what you were watching on your Break shelf (episodes of a show together), next to your places (YouTube, Netflix, Spotify, or your own). It asks once which browser to open them in.
 - Continue watching knows when you finished a video (with Stashd's Chrome extension) and leaves it out.
 - **Continue watching** on the Break side: videos you close (or Tidy all puts away) land there, the latest one up top with Resume. Remove anything with one click; one-off clips you never came back to fade after a week, shows and things you reopen stay a month.
+- ⌃S with only videos or shows open (no work) offers "Taking a break?": Enter puts them on Continue watching and closes the tabs.
 - ⌃S keeps break tabs (a Shark Tank episode, a game score) out of your work, unless they're about the project, like a tutorial.
 - A gentle nudge to Tidy all when apps have sat open unused for a while.
 - **Tidy all**, in the menu bar panel: saves the folders you're working in, adds a stray tab to another folder only when it clearly belongs there, closes everything else and quits every app except Claude. Anything unsaved still asks first.
@@ -33,6 +34,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Folder rows are calmer: pin and delete appear on hover, the pinned folder is highlighted, and finished folders live in the Stashd window.
 
 ### Fixed
+- A Claude or ChatGPT chat open on its own no longer makes ⌃S guess a folder, and unticking a chat is remembered straight away.
+- Enter in the save box works wherever the focus is.
 - Something you left out of a folder before is no longer hidden for good: it's offered unticked, under "looks related" when it clearly fits.
 - Tabs that redirect after Unpack (sign-in pages) still count as the folder's, so Pack up closes them.
 - Finished folders you open again can be packed up.

@@ -194,6 +194,7 @@ function start(): void {
       undoTidy: () => tidy.undoLast(),
       dismissToast: () => tidy.dismissToast(),
       tidyAll: () => tidy.tidyAll().then(() => tray.wink()),
+      afterShelve: (items) => void tidy.shelve(items).then(() => tray.wink()),
       toastAction: async () => {
         tidy.dismissToast();
         const act = toastAct;

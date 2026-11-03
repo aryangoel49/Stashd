@@ -230,6 +230,8 @@ export interface SavePreview {
   hiddenCount: number;
   /** Break things left open (YouTube, Netflix…) because they aren't about this work. */
   breakCount: number;
+  /** Nothing to work on is open, only these videos or shows: ⌃S offers to put them on the Break shelf. */
+  onlyBreaks: Item[];
   frontKey: string | null;
   tidyUp: boolean;
   errors: CollectorError[];

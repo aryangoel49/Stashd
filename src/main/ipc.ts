@@ -38,6 +38,7 @@ export interface IpcHooks {
   dismissToast: () => void;
   toastAction: () => Promise<void>;
   tidyAll: () => Promise<void>;
+  afterShelve: (items: import('../shared/types').Item[]) => void;
   overlayDone: () => void;
   testClaude: (key: string) => Promise<void>;
   openSave: (mode: 'save' | 'pack', jobId?: string) => void;
@@ -94,6 +95,12 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('save:aiName', (_e, keys) => {
     if (!Array.isArray(keys) || keys.length > v.MAX_ITEMS) throw new Error('bad items');
     return core.aiName(keys.filter((k) => typeof k !== 'string' || k.length <= v.MAX_KEY).map(v.itemKey));
+  });
+  handle('save:shelve', async (_e, keys) => {
+    if (!Array.isArray(keys) || keys.length > v.MAX_ITEMS) throw new Error('bad items');
+    const items = await core.shelveBreaks(keys.map(v.itemKey));
+    hooks.afterShelve(items);
+    return true;
   });
   handle('save:cancel', () => {
     core.cancelSave();

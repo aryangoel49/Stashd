@@ -135,7 +135,8 @@ function SaveBox() {
       // Enter saves from anywhere in the box (after clicking a pill, say), not just from a text field.
       // The footer buttons and the folder picker keep their own Enter.
       const t = e.target as HTMLElement;
-      if (e.key === 'Enter' && !e.isComposing && !e.shiftKey && !t.closest('.save-foot, select')) {
+      // (A focused button keeps its own Enter, except the "N things" summary, which isn't an action.)
+      if (e.key === 'Enter' && !e.isComposing && !e.shiftKey && !t.closest('select') && (t.tagName !== 'BUTTON' || t.classList.contains('summary'))) {
         e.preventDefault();
         ref.current?.requestSubmit();
       }
@@ -188,6 +189,16 @@ function SaveBox() {
   }, [note]);
   const isNew = !preview?.jobId;
 
+  // Only videos or shows open (no work): ⌃S puts them on the Break shelf and closes them.
+  const breakOnly = !!preview && preview.onlyBreaks.length > 0;
+  const [shelfOff, setShelfOff] = useState<Set<string>>(new Set());
+  const shelve = () => {
+    if (!preview) return;
+    const keys = preview.onlyBreaks.map((i) => i.key).filter((k) => !shelfOff.has(k));
+    if (!keys.length) return void cancel();
+    void api.shelveBreaks(keys).then(() => api.closeWindow(), (e) => setError(errorText(e)));
+  };
+
   const save = (tidy: boolean) => {
     if (!preview || state !== 'ready') return;
     if (!name.trim()) {
@@ -214,7 +225,8 @@ function SaveBox() {
       className="save drag"
       onSubmit={(e) => {
         e.preventDefault();
-        save(packFirst);
+        if (breakOnly) shelve();
+        else save(packFirst);
       }}
     >
       <AnimatePresence mode="wait" initial={false}>
@@ -255,7 +267,42 @@ function SaveBox() {
           </motion.div>
         )}
 
-        {state === 'ready' && (
+        {state === 'ready' && breakOnly && preview && (
+          <motion.div key="break" className="save-body" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={ease}>
+            <div className="save-head">
+              <FolderMark size={34} alive mood="happy" />
+              <div className="grow">
+                <div className="save-break-title">Taking a break?</div>
+                <div className="muted small">Nothing to work on is open. Put {preview.onlyBreaks.length === 1 ? 'this' : 'these'} on your Break shelf to pick up later.</div>
+              </div>
+            </div>
+            <div className="pills no-drag" style={{ padding: '4px 0 10px' }}>
+              {preview.onlyBreaks.map((it) => (
+                <Pill
+                  key={it.key}
+                  item={{ ...it, label: it.label.replace(/^\(\d+\)\s+/, '').replace(/\s+[-–|·]\s+YouTube$/i, '') }}
+                  on={!shelfOff.has(it.key)}
+                  front={false}
+                  tip={it.label}
+                  onToggle={() => setShelfOff((prev) => { const n = new Set(prev); if (n.has(it.key)) n.delete(it.key); else n.add(it.key); return n; })}
+                />
+              ))}
+            </div>
+            {error && <div className="banner no-drag">{error}</div>}
+            <div className="save-foot no-drag">
+              <span className="muted small">Closes the {preview.onlyBreaks.length === 1 ? 'tab' : 'tabs'}. Undo brings {preview.onlyBreaks.length === 1 ? 'it' : 'them'} back.</span>
+              <span className="grow" />
+              <Button variant="ghost" type="button" onClick={() => void cancel()} title="Close without doing anything (Esc)">
+                Cancel
+              </Button>
+              <Button ref={readyRef} variant="primary" type="submit" title="Put on the Break shelf and close">
+                Put away <span className="enter">↵</span>
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {state === 'ready' && !breakOnly && (
           <motion.div key="ready" className="save-body" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={ease}>
             <div className={`save-head${isNew ? '' : ' existing'}`}>
               <FolderMark size={34} alive mood={aiNaming ? 'curious' : isNew ? 'awake' : 'happy'} lookAt={glance} />

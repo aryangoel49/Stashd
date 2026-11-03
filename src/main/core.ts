@@ -219,13 +219,16 @@ export class Core {
     fits.sort((a, b) => b.fit - a.fit);
 
     // Which job is this? The one you picked, the one you have open, or a clear match. Otherwise new.
+    // Only a chat (Claude, ChatGPT) and break things open: a chat on its own doesn't mean you're back on
+    // a folder, so no folder is guessed. With a video or show open, ⌃S offers to put it on your Break shelf.
+    const workThere = candidates.some((i) => i.kind !== 'app' && !isBreakItem(i));
     let job: Job | null = null;
     let isSuggestion = false;
     if (!opts.asNew) {
       const wanted = opts.jobId ?? pending.target ?? this.state.currentJobId;
       if (wanted && (await this.store.exists(wanted))) job = await this.store.get(wanted);
       if (job?.done && !opts.jobId) job = null;
-      if (!job && fits[0] && fits[0].fit >= FIT_SUGGEST) {
+      if (!job && workThere && fits[0] && fits[0].fit >= FIT_SUGGEST) {
         job = fits[0].job;
         isSuggestion = true;
       }
@@ -270,6 +273,7 @@ export class Core {
       kept,
       hiddenCount: offered.hidden.length,
       breakCount: offered.breaks.length,
+      onlyBreaks: !workThere && !opts.jobId && !pending.target ? candidates.filter((i) => isBreakItem(i) && !/^\/?$/.test(new URL(i.url!).pathname)) : [],
       frontKey: front,
       tidyUp: settings.tidyUp,
       errors: cap.errors,
@@ -550,6 +554,24 @@ export class Core {
     const back = new Set(items.map((i) => i.key));
     await this.rememberTidied(r.items.filter((i) => !back.has(i.key)));
     return result;
+  }
+
+  /**
+   * ⌃S with only break things open: put these (by key) on the Break shelf. Videos you finished are left
+   * off. Returns the items, so they can be closed.
+   */
+  async shelveBreaks(keys: string[]): Promise<Item[]> {
+    const pending = this.pending;
+    if (!pending) throw new Error('Nothing to put away. Press the shortcut again.');
+    const cap = await pending.capture;
+    const wanted = new Set(keys);
+    const items = cap.items.filter((i) => wanted.has(i.key) && isBreakItem(i));
+    const { finishedOnes, rest } = await this.splitFinished(items);
+    for (const f of finishedOnes) await this.breaks.removeLoose(videoKey(f.url ?? ''));
+    if (rest.length) await this.breaks.add(rest);
+    if (this.pending === pending) this.pending = null;
+    this.notify();
+    return items;
   }
 
   /** A better name for a new job from Claude or Apple Intelligence, if either is set up. */

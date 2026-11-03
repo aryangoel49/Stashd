@@ -285,6 +285,30 @@ export class TidyFlow {
 
   // ---------- toast and undo ----------
 
+  /** ⌃S put these videos on the Break shelf: close them (into the menu bar), with Undo. */
+  shelve(items: Item[]): Promise<void> {
+    this.queue = this.queue.then(async () => {
+      try {
+        const animation = this.play(items, false);
+        await wait(120);
+        const { closed } = await closeItems(items, this.urlOptions());
+        await animation;
+        this.setUndo(closed, null);
+        this.toast({
+          title: closed.length === 1 ? 'On your Break shelf' : `${closed.length} on your Break shelf`,
+          detail: 'In Continue watching, ready when you are.',
+          canUndo: closed.length > 0,
+          mood: 'sleep',
+        });
+      } catch {
+        this.toast({ title: "Couldn't put that away", detail: 'It stays open.', canUndo: false, mood: 'curious' });
+      } finally {
+        this.core.notify();
+      }
+    });
+    return this.queue;
+  }
+
   /** Things have sat unused for a while: offer Tidy all. */
   offerTidy(apps: string[]): void {
     const names = apps.slice(0, 2).join(' and ') + (apps.length > 2 ? ` and ${apps.length - 2} more` : '');

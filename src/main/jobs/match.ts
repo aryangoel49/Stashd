@@ -117,7 +117,8 @@ export function classify(input: ClassifyInput): Classified {
     alwaysSure: (it) => it.untitled === true || (prefs.add[it.key] ?? 0) >= 2,
     // Left out of this job twice (or taken out): never ticked by itself, but never hidden either.
     // It's offered under "looks related" when it clearly fits, else under "Not sure".
-    leftOut: (it) => (prefs.hide[it.key] ?? 0) >= 2,
+    // (A chat you untick is left out from the next time: there's no doubt you meant it.)
+    leftOut: (it) => (prefs.hide[it.key] ?? 0) >= (it.kind === 'app' ? 1 : 2),
     meaning: input.meaning,
   });
   // Break things (a Shark Tank episode, a game score) stay out of work unless they clearly fit it:

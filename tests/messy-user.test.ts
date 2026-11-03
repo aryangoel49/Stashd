@@ -439,3 +439,24 @@ describe('Merging keeps one copy of each page', () => {
     expect(withoutRepeats([live, features, preview, inbox, otherInbox]).map((i) => i.url)).toEqual([live.url, features.url, inbox.url, otherInbox.url]);
   });
 });
+
+describe('Ctrl+S with only a chat and a video open', () => {
+  it('guesses no folder from the chat, and offers to put the video on the Break shelf', async () => {
+    const core = makeCore();
+    const chat: Item = { key: 'app:Claude', kind: 'app', label: 'Claude', detail: '', app: 'Claude', chat: { title: 'Stashd · Build', url: 'https://claude.ai/chat/abcdef123' } };
+    const repo: Item = { ...tab(1, 'Stashd repo'), key: 'tab:https://github.com/a/stashd', url: 'https://github.com/a/stashd' };
+    open = [chat, repo];
+    core.beginSave();
+    await core.preview({ asNew: true });
+    await core.commitSave({ jobId: null, name: 'Stashd project', note: '', keys: [chat.key, repo.key], tidy: true });
+    const video: Item = { ...tab(2, 'Some clip - YouTube'), key: 'tab:https://www.youtube.com/watch?v=x1', url: 'https://www.youtube.com/watch?v=x1', detail: 'youtube.com' };
+    open = [chat, video];
+    core.beginSave();
+    const p = await core.preview();
+    expect(p.jobId).toBeNull();
+    expect(p.onlyBreaks.map((i) => i.key)).toEqual([video.key]);
+    const shelved = await core.shelveBreaks([video.key]);
+    expect(shelved.map((i) => i.key)).toEqual([video.key]);
+    expect((await core.breakShelf()).items.map((i) => i.url)).toContain(video.url);
+  });
+});
