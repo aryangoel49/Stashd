@@ -77,6 +77,16 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
   const [result, setResult] = useState<OpenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showItems, setShowItems] = useState(false);
+  // Opening just one thing from the folder, with a word on the row while it does.
+  const [opening, setOpening] = useState<Record<string, string>>({});
+  const openOne = (it: Item) => {
+    const say = (text: string | null) => setOpening((o) => { const n = { ...o }; if (text) n[it.key] = text; else delete n[it.key]; return n; });
+    say('Opening…');
+    api.openItem(job.id, it.key).then(
+      (r) => say(r.opened ? 'Opened' : r.alreadyOpen ? 'Already open' : 'Couldn’t find it'),
+      () => say('Couldn’t open it'),
+    ).finally(() => setTimeout(() => say(null), 1800));
+  };
   // Taking something out of the folder: one click, with Undo for a few seconds.
   const isLatest = !view.history.length || view.history[0].id === entry.id;
   const [removed, setRemoved] = useState<Item | null>(null);
@@ -178,27 +188,29 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
         <div className="items-list">
           {entry.items.map((it) => (
             <div key={it.key} className="item-line">
-            {current ? (
-              <div key={it.key} className={`item-row ${needed.has(it.key) ? 'need' : ''}`} title={it.detail}>
+            {/* The tick chooses what Unpack brings back; the name opens just this one thing. */}
+            <div className={`item-row ${current ? '' : 'pickable'} ${needed.has(it.key) ? 'need' : ''} ${current || picked.has(it.key) ? '' : 'off'}`}>
+              {!current && (
+                <button
+                  type="button"
+                  className="item-tick"
+                  aria-pressed={picked.has(it.key)}
+                  aria-label={picked.has(it.key) ? `Leave ${titleOf(it)} closed on Unpack` : `Open ${titleOf(it)} on Unpack too`}
+                  title={picked.has(it.key) ? 'Unpack opens this. Click to leave it closed.' : 'Unpack leaves this closed. Click to open it too.'}
+                  onClick={() => toggleItem(it.key)}
+                >
+                  <span className="item-check">{picked.has(it.key) && <Icon name="check" />}</span>
+                </button>
+              )}
+              <button type="button" className="item-name" title={`Open ${titleOf(it)}`} onClick={() => openOne(it)}>
                 <ItemBadge item={it} size={18} />
                 <span className="lbl">{titleOf(it)}</span>
-                <span className="det">{it.kind === 'app' ? (it.chat ? `${it.app} chat` : '') : describe(it)}</span>
-              </div>
-            ) : (
-              <button
-                key={it.key}
-                type="button"
-                className={`item-row pickable ${needed.has(it.key) ? 'need' : ''} ${picked.has(it.key) ? '' : 'off'}`}
-                title={picked.has(it.key) ? `${it.detail} · click to leave it closed` : `${it.detail} · click to open it too`}
-                aria-pressed={picked.has(it.key)}
-                onClick={() => toggleItem(it.key)}
-              >
-                <span className="item-check">{picked.has(it.key) && <Icon name="check" />}</span>
-                <ItemBadge item={it} size={18} />
-                <span className="lbl">{titleOf(it)}</span>
-                <span className="det">{it.kind === 'app' ? (it.chat ? `${it.app} chat` : '') : describe(it)}</span>
+                <span className="det">{opening[it.key] ?? (it.kind === 'app' ? (it.chat ? `${it.app} chat` : '') : describe(it))}</span>
               </button>
-            )}
+            </div>
+            <button type="button" className="item-open" title="Open just this" aria-label={`Open ${titleOf(it)}`} onClick={() => openOne(it)}>
+              <Icon name="open" />
+            </button>
             {isLatest && (
               <button type="button" className="item-remove" title="Remove from this folder" aria-label={`Remove ${titleOf(it)} from this folder`} onClick={() => remove(it)}>
                 <Icon name="trash" />

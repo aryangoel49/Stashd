@@ -710,3 +710,20 @@ details summary { cursor: default; }
 .pick-row:hover { background: var(--well-hover); }
 .pick-row.on { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .pick-row .i { width: 15px; height: 15px; color: var(--accent-ink); }
+
+/* What's inside: the tick picks what Unpack opens, the name opens just that one thing, and on hover an
+   Open button and the trash appear at the end of the row. */
+.item-line { display: flex; align-items: center; gap: 2px; }
+.item-line .item-row { flex: 1; min-width: 0; padding: 0; gap: 0; }
+.item-tick { flex: none; display: grid; place-items: center; width: 26px; height: 28px; border: none; background: none; cursor: pointer; padding: 0; }
+.item-row:not(.off) .item-tick .item-check { background: var(--accent); box-shadow: none; color: var(--on-accent); }
+.item-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 4px 6px; border: none; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.item-row:not(.pickable) .item-name { padding-left: 6px; }
+.item-name:hover { background: var(--well); }
+.item-name:hover .lbl { text-decoration: underline; text-decoration-color: var(--hair); text-underline-offset: 2px; }
+.item-line .item-open, .item-line .item-remove { position: static; transform: none; flex: none; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: none; border-radius: 6px; background: none; color: var(--faint); opacity: 0; cursor: pointer; transition: opacity 120ms ease-out, color 0.15s, background 0.15s; }
+.item-line .item-open svg, .item-line .item-remove svg { width: 12px; height: 12px; }
+.item-line:hover .item-open, .item-line:hover .item-remove, .item-line .item-open:focus-visible, .item-line .item-remove:focus-visible { opacity: 1; }
+.item-line .item-open:hover { color: var(--text); background: var(--well-hover); }
+.item-line:hover .item-row .det { visibility: visible; }
+.item-line .item-row.pickable:hover { background: none; }

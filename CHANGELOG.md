@@ -16,6 +16,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - **Chrome tab groups**: Unpack puts a folder's Chrome tabs in a group named after the folder (needs Stashd's Chrome extension, Settings > Privacy).
 - **Rename in the menu bar panel**: double-click a folder's name.
 - **Merge look-alike folders** from the menu bar panel: Stashd spots two folders that are the same work and offers to merge them, keeping the one you pinned or named.
+- **Open one thing**: under What's inside, click a tab's or file's name to open just that one (the tick still chooses what Unpack brings back).
 - **Remove things from a folder**: hover over an item under What's inside and click the trash, with Undo. A removed tab also leaves the folder's Chrome tab group.
 - Save the Claude or ChatGPT chat you're in, and reopen that exact Claude chat on Unpack.
 - Unpack by type (files, tabs, apps, chats) or item by item, with Open everything beside it.
