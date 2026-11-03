@@ -231,7 +231,13 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .spot { box-shadow: 0 0 0 3px rgba(242,205,92,0.95), 0 0 0 9px rgba(242,205,92,0.28) !important; border-radius: 10px; transition: box-shadow 0.3s; }
 /* The caption is the demo's voice: dark and large, so it's read before anything else. */
 .demo-cap { margin-top: 18px; background: #1c1d22; color: #fffdf6; border-radius: 20px; padding: 16px 20px 14px; box-shadow: 0 22px 44px -24px rgba(28,29,34,0.7); }
-.cap-step { display: inline-flex; font: 700 13px var(--body); color: #1c1d22; background: var(--butter); border-radius: 999px; padding: 3px 11px; }
+/* The four steps as one progress bar: a label over each segment, done ones filled, the current one filling. */
+.cap-track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.cap-track span { font: 600 12.5px var(--body); color: rgba(255,253,246,0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.25s; }
+.cap-track span::after { content: ""; display: block; height: 3px; margin-top: 6px; border-radius: 2px; background: linear-gradient(var(--butter), var(--butter)) 0 0 / 0% 100% no-repeat, rgba(255,253,246,0.16); transition: background-size 0.5s cubic-bezier(0.23, 1, 0.32, 1); }
+.cap-track .done, .cap-track .on { color: #fffdf6; }
+.cap-track .done::after, .cap-track .on::after { background-size: 100% 100%; }
+.steps-mini { visibility: hidden; }
 .cap-text { font-size: 20px; font-weight: 500; line-height: 1.4; margin-top: 10px; min-height: 56px; animation: capin 0.4s var(--ease-out); }
 @keyframes capin { from { opacity: 0; transform: translateY(4px); } }
 .cap-ctrl { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 14px; color: rgba(255,253,246,0.6); flex-wrap: wrap; }
@@ -251,6 +257,7 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
   .nudge { display: none; }
   .cap-text { font-size: 18px; min-height: 76px; }
   .demo-cap { order: -1; margin: 0 0 12px; }
+  .cap-ctrl { display: none; }
   .win b { max-width: 150px; }
 }
 
@@ -604,9 +611,9 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       <p id="note" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></p>
     </div>
     <div class="demo-cap" id="demoCap">
-      <div class="cap-step" id="capStep">Step 1 of 4 · Stash</div>
+      <div class="cap-track" id="capTrack" role="img" aria-label="Step 1 of 4: Stash"><span class="on">Stash</span><span>Pack up</span><span>Open</span><span>Unpack</span></div>
       <p class="cap-text" id="capText">You're planning a trip to Japan, with a basketball game open too. Press ⌃S to stash the trip.</p>
-      <div class="cap-ctrl"><button type="button" class="cap-btn" id="autoBtn">▶ Play</button><span>or click along yourself</span></div>
+      <div class="cap-ctrl"><button type="button" class="cap-btn" id="autoBtn">▶ Play</button><span>or try it yourself</span></div>
     </div>
     </div>
   </div>
@@ -895,7 +902,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const rpill = (kind, text, out) => `<span class="rpill ${out ? 'out' : ''}"><span class="mk">${out ? '+' : CHECK}</span>${ICON[kind]}<span class="t">${text}</span></span>`;
   let state = 'open', typing = 0;
   const STEP_NAMES = ['Stash', 'Pack up', 'Open', 'Unpack'];
-  const capStep = $('capStep'), capText = $('capText');
+  const capTrack = $('capTrack'), capText = $('capText');
   // The glow follows whatever the caption is talking about.
   const spotFor = () => ({ open: demo, asking: $('pack'), packed: tray, list: $('rowUnpack'), brief: $('mpUnpack') }[state]);
   const spotlight = () => {
@@ -906,7 +913,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const step = (n, label, text) => {
     stepEls.forEach((el, i) => { el.classList.toggle('on', i === n); el.classList.toggle('done', i < n); });
     demo.textContent = label; note.textContent = text;
-    capStep.textContent = `Step ${n + 1} of 4 · ${STEP_NAMES[n]}`;
+    capTrack.querySelectorAll('span').forEach((el, i) => { el.classList.toggle('on', i === n); el.classList.toggle('done', i < n); });
+    capTrack.setAttribute('aria-label', `Step ${n + 1} of 4: ${STEP_NAMES[n]}`);
     if (text) { capText.textContent = text; capText.style.animation = 'none'; void capText.offsetWidth; capText.style.animation = ''; }
     spotlight();
   };
@@ -1037,13 +1045,16 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     const run = ++autoRun;
     const live = () => auto && run === autoRun;
     let first = true;
+    // Carries on from whatever step the demo is on, so it can pick up after you've tapped along.
+    const SEQ = { open: [() => demo, stash, 3900], asking: [() => $('pack'), packUp, 3400], packed: [() => tray, openPanel, 2600], list: [() => $('rowUnpack'), openBrief, 3600], brief: [() => $('mpUnpack'), unpack, 4200] };
     while (live()) {
-      if (state !== 'open') { await hold(400); continue; }
-      await hold(first ? 250 : 1800); first = false; if (!live()) break;
-      for (const [el, fn, ms] of [[() => demo, stash, 3900], [() => $('pack'), packUp, 3400], [() => tray, openPanel, 2600], [() => $('rowUnpack'), openBrief, 3600], [() => $('mpUnpack'), unpack, 4200]]) {
-        await moveCursor(el()); if (!live()) break;
-        fn(); await hold(ms); if (!live()) break;
-      }
+      const at = SEQ[state];
+      if (!at) { await hold(400); continue; }
+      if (state === 'open') { await hold(first ? 250 : 1800); if (!live()) break; }
+      first = false;
+      const [el, fn, ms] = at;
+      await moveCursor(el()); if (!live()) break;
+      fn(); await hold(ms);
     }
     if (run === autoRun) cursor.classList.remove('on');
   }
@@ -1052,9 +1063,16 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     autoBtn.textContent = auto ? '❚❚ Pause' : '▶ Play';
     if (auto) { nudge.classList.add('off'); demo.classList.remove('pulse'); autoplay(); } else { autoRun++; cursor.classList.remove('on'); }
   };
-  autoBtn.addEventListener('click', () => setAuto(!auto));
+  let resume = 0;
+  autoBtn.addEventListener('click', () => { clearTimeout(resume); setAuto(!auto); });
   // A real click or key inside the demo means you want to drive.
-  mac.addEventListener('pointerdown', (e) => { if (e.isTrusted && auto) setAuto(false); }, true);
+  // (A tap, not a scroll: on a phone a finger dragging over the demo is just scrolling the page.)
+  mac.addEventListener('click', (e) => {
+    if (!e.isTrusted) return;
+    if (auto) setAuto(false);
+    clearTimeout(resume);
+    resume = setTimeout(() => { if (!auto) setAuto(true); }, 9000);
+  }, true);
   addEventListener('keydown', (e) => { if (auto && e.ctrlKey && (e.key === 's' || e.key === 'S')) setAuto(false); }, true);
   // Starts playing by itself the first time the demo is on screen.
   // (Reduce Motion doesn't stop it: the demo is how the page explains the app; its moves are just gentler.)
