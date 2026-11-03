@@ -285,4 +285,6 @@ export interface ToastInfo {
   canUndo: boolean;
   /** How the folder in the toast looks: asleep after packing, wide-eyed when things come back. */
   mood?: 'awake' | 'sleep' | 'curious' | 'wide';
+  /** A button that does something else than Undo (Unpack a folder you seem to be back on). */
+  action?: string;
 }

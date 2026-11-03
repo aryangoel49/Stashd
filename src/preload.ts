@@ -53,6 +53,7 @@ const api = {
   finishNaming: (names: (string | null)[]) => invoke<boolean>('naming:done', names),
   undoTidy: () => invoke<void>('tidy:undo'),
   dismissToast: () => invoke<boolean>('toast:dismiss'),
+  toastAction: () => invoke<void>('toast:action'),
   overlayDone: () => invoke<boolean>('overlay:done'),
 
   onJobsChanged: (cb: () => void) => on('jobs:changed', cb),

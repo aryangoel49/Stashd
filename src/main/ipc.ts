@@ -35,6 +35,7 @@ export interface IpcHooks {
   finishNaming: (names: (string | null)[]) => void;
   undoTidy: () => Promise<void>;
   dismissToast: () => void;
+  toastAction: () => Promise<void>;
   overlayDone: () => void;
   testClaude: (key: string) => Promise<void>;
   openSave: (mode: 'save' | 'pack', jobId?: string) => void;
@@ -181,6 +182,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     hooks.overlayDone();
     return true;
   });
+  handle('toast:action', () => hooks.toastAction());
   handle('toast:dismiss', () => {
     hooks.dismissToast();
     return true;

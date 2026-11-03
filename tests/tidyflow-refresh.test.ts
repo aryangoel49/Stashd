@@ -19,6 +19,7 @@ describe('Pack up refreshes the views once windows are closed', () => {
       store: { entry: async () => ({ items: [item], frontKey: null }), get: async () => ({ name: 'Essay' }) },
       settings: { get: () => ({ keepQueryStrings: false, excludedDomains: [], sounds: false }) },
       helper: { windows: async () => ({ apps: [] }), icons: async () => [], hideApps: async () => [] },
+      icons: { get: async () => undefined, peek: () => undefined },
       notify: vi.fn(() => (closedAt = Date.now())),
     };
     const flow = new TidyFlow(core, () => ({ x: 0, y: 0, width: 10, height: 10 }));

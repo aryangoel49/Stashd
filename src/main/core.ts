@@ -47,6 +47,14 @@ interface PendingSave {
   target?: string;
 }
 
+export interface OpenLook {
+  state: Record<string, OpenState>;
+  /** Loose keys of every tab, document and folder open right now. */
+  open: Set<string>;
+  jobs: Job[];
+  latest: (SaveEntry | null)[];
+}
+
 /** How long one look at what's open is reused. */
 const OPEN_CHECK_MS = 6_000;
 
@@ -57,7 +65,7 @@ export class Core {
   private pending: PendingSave | null = null;
   private writing = new Set<string>();
   writers: BriefWriter[] = [];
-  private openCache: { at: number; result: Promise<Record<string, OpenState>> } | null = null;
+  private openCache: { at: number; result: Promise<OpenLook> } | null = null;
   private suggestCache: { at: number; result: Promise<Suggestion[]> } | null = null;
   /** The last accepted suggestion, so it can be undone for a few seconds. */
   private lastUndo: { id: string; run: () => Promise<void> } | null = null;
@@ -339,11 +347,16 @@ export class Core {
    * whose tabs and files are all open says so instead of offering an Unpack that would do nothing.
    * Apps don't count (Slack being open doesn't mean a folder is). Kept for a few seconds.
    */
-  openState(): Promise<Record<string, OpenState>> {
+  async openState(): Promise<Record<string, OpenState>> {
+    return (await this.lookAtOpen()).state;
+  }
+
+  /** One look at what's open: each folder's open count, and the loose keys of everything open. */
+  lookAtOpen(): Promise<OpenLook> {
     // Asking browsers and apps what's open costs a little battery, so one look is reused for a few seconds
     // (and thrown away as soon as you save, unpack or change a folder, via notify()).
     if (this.openCache && Date.now() - this.openCache.at < OPEN_CHECK_MS) return this.openCache.result;
-    const result = (async () => {
+    const result = (async (): Promise<OpenLook> => {
       // Only ask the apps your folders actually use (no folder has a Word file? Word isn't asked).
       const jobs = await this.store.list();
       const latest = await Promise.all(jobs.map((j) => this.store.latest(j.id)));
@@ -365,7 +378,7 @@ export class Core {
         const items = content.length ? content : all;
         out[j.id] = { open: items.filter(isOpen).length, total: items.length };
       }
-      return out;
+      return { state: out, open, jobs, latest };
     })();
     this.openCache = { at: Date.now(), result };
     result.catch(() => (this.openCache = null));

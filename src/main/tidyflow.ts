@@ -15,6 +15,8 @@ import { getWindow, prepareWindow, showWindow } from './windows';
 
 // Undo is offered briefly: long enough to catch a slip, short enough to stay out of the way.
 const UNDO_MS = 2_000;
+/** An offer stays a little longer than Undo: it needs reading first. */
+const OFFER_MS = 8_000;
 /** Just longer than the toast's 150ms fade-out, so the window hides after it has gone. */
 const TOAST_LEAVE_MS = 170;
 
@@ -212,6 +214,17 @@ export class TidyFlow {
 
   // ---------- toast and undo ----------
 
+  /** Something you opened is in a packed folder: offer to bring back the rest. */
+  offerUnpack(name: string, more: number): void {
+    this.toast({
+      title: 'You were working on this',
+      detail: `${shortName(name)} has ${more} more ${more === 1 ? 'thing' : 'things'} packed.`,
+      canUndo: false,
+      action: 'Unpack',
+      mood: 'curious',
+    });
+  }
+
   private toast(info: ToastInfo): void {
     this.payloads.set('toast', info);
     const win = prepareWindow('toast');
@@ -219,7 +232,7 @@ export class TidyFlow {
     // Let it draw the new text first, then slide it in under the menu bar icon.
     setTimeout(() => showWindow('toast', { near: this.trayBounds() }), 60);
     if (this.toastTimer) clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => this.hideToast(), info.canUndo ? UNDO_MS : 4000);
+    this.toastTimer = setTimeout(() => this.hideToast(), info.action ? OFFER_MS : info.canUndo ? UNDO_MS : 4000);
   }
 
   /** Let the toast fade up and away, then hide its window. A new toast cancels the hide. */

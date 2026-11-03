@@ -275,7 +275,19 @@ export function Toast() {
           <span className="toast-title">{info.title}</span>
           <span className="muted small toast-detail">{info.detail}</span>
         </span>
-        {info.canUndo ? (
+        {info.action ? (
+          <Button
+            size="small"
+            tabIndex={-1}
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              void api.toastAction();
+            }}
+          >
+            {info.action}
+          </Button>
+        ) : info.canUndo ? (
           <Button
             size="small"
             tabIndex={-1}

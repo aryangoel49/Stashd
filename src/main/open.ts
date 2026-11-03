@@ -2,9 +2,9 @@
 
 import { promises as fs } from 'node:fs';
 import { shell } from 'electron';
-import type { Item, OpenResult, Settings } from '../shared/types';
+import type { BrowserName, Item, OpenResult, Settings } from '../shared/types';
 import { BROWSERS } from '../shared/validate';
-import { BROWSER_APPS, collectTabs } from './collectors/browsers';
+import { BROWSER_APPS, collectTabs, isRunning } from './collectors/browsers';
 import { run } from './exec';
 import { looseKey, matchKeys } from './urls';
 
@@ -71,6 +71,42 @@ async function exists(p: string): Promise<boolean> {
   }
 }
 
+/** When Stashd last opened something, so what it opened is never mistaken for something you opened yourself. */
+let lastOpening = 0;
+let openingNow = 0;
+export function openedRecently(ms: number): boolean {
+  return openingNow > 0 || Date.now() - lastOpening < ms;
+}
+
+/**
+ * A folder's tabs open together in a new window of the browser they came from, a moment apart,
+ * the one you were on last ending up in front. Arc has no windows to speak of, so it isn't grouped.
+ */
+export function newWindowScript(browser: BrowserName): string | null {
+  const id = BROWSER_APPS[browser].bundleId;
+  const rest = `
+    repeat with wwiI from 2 to count of wwiUrls
+      delay ${GAP_MS / 1000}
+      tell wwiWin to make new tab at end of tabs with properties {URL:(item wwiI of wwiUrls)}
+    end repeat
+    activate`;
+  if (browser === 'chrome')
+    return `on run wwiUrls
+  tell application id "${id}"
+    set wwiWin to make new window
+    set URL of active tab of wwiWin to (item 1 of wwiUrls)${rest}
+  end tell
+end run`;
+  if (browser === 'safari')
+    return `on run wwiUrls
+  tell application id "${id}"
+    make new document with properties {URL:(item 1 of wwiUrls)}
+    set wwiWin to front window${rest}
+  end tell
+end run`;
+  return null;
+}
+
 /** Gap between things opening, and the most tabs opened one by one before it's done in one go. */
 const GAP_MS = 150;
 const GENTLE_MAX = 12;
@@ -82,6 +118,21 @@ export async function openItems(
   frontKey: string | null,
   settings: Settings,
   /** Told which tabs (loose keys) were open before anything was opened. */
+  onBefore?: (open: Set<string>) => void,
+): Promise<OpenResult> {
+  openingNow++;
+  try {
+    return await openAll(items, frontKey, settings, onBefore);
+  } finally {
+    openingNow--;
+    lastOpening = Date.now();
+  }
+}
+
+async function openAll(
+  items: Item[],
+  frontKey: string | null,
+  settings: Settings,
   onBefore?: (open: Set<string>) => void,
 ): Promise<OpenResult> {
   const result: OpenResult = {
@@ -135,7 +186,7 @@ export async function openItems(
       result.alreadyOpen++;
       continue;
     }
-    const b = item.browser ? BROWSER_APPS[item.browser].appName : '';
+    const b = item.browser ?? '';
     tabsByBrowser.set(b, [...(tabsByBrowser.get(b) ?? []), item]);
   }
   const openTabs = async () => {
@@ -145,13 +196,18 @@ export async function openItems(
         Number(a.some((i) => i.key === frontKey)) -
         Number(b.some((i) => i.key === frontKey)),
     );
-    for (const [app, group] of groups) {
+    for (const [browser, group] of groups) {
+      const app = browser ? BROWSER_APPS[browser as BrowserName].appName : '';
       const urls = group
         .map((i) => i.url)
         .filter((u): u is string => !!u && /^(https?:|file:.*\.pdf$)/i.test(u));
       try {
         if (!app || !urls.length) throw new Error('one by one');
-        if (urls.length <= GENTLE_MAX) {
+        const together = urls.length >= 2 ? newWindowScript(browser as BrowserName) : null;
+        if (together && (await isRunning(browser as BrowserName))) {
+          // '--' so an address is never read as an option.
+          await run('osascript', ['-e', together, '--', ...urls], { timeoutMs: 30_000 });
+        } else if (urls.length <= GENTLE_MAX) {
           for (const [n, url] of urls.entries()) {
             if (n) await pause(GAP_MS);
             await run('open', ['-a', app, url], { timeoutMs: 20_000 });

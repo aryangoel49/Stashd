@@ -3,7 +3,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { app, globalShortcut, Menu, nativeTheme, type Rectangle } from 'electron';
-import type { AppInfo, Route, Settings } from './shared/types';
+import type { AppInfo, Item, Route, Settings } from './shared/types';
 import { appleWriter } from './main/brief/apple';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
 import { Core } from './main/core';
@@ -15,6 +15,7 @@ import { SettingsStore } from './main/settings';
 import { LEGACY_NAME, migrateLegacyData } from './main/legacy';
 import { JobStore } from './main/store';
 import { TidyFlow } from './main/tidyflow';
+import { Noticer } from './main/noticer';
 import { runLiveTest } from './main/livetest';
 import { runScenarios } from './main/scenarios';
 import { runSuggestTest } from './main/suggesttest';
@@ -138,6 +139,20 @@ function start(): void {
     prepareWindow('panel');
     core.onChanged(() => broadcast('jobs:changed'));
     const tidy = new TidyFlow(core, () => tray.bounds());
+    // Opened something from a packed folder yourself? Offer to Unpack the rest.
+    let offered: string | null = null;
+    const noticer = new Noticer(
+      () => core.lookAtOpen(),
+      (work) => {
+        offered = work.jobId;
+        tidy.offerUnpack(work.name, work.more);
+      },
+      () => !!getWindow('save')?.isVisible(),
+    );
+    const beforeOpen = (items: Item[]) => {
+      getWindow('panel')?.hide();
+      tidy.unpackAnimation(items);
+    };
 
     registerIpc(core, secrets, {
       shortcutErrors: () => shortcutErrors,
@@ -153,16 +168,20 @@ function start(): void {
       finishNaming: (names) => tidy.finishNaming(names),
       undoTidy: () => tidy.undoLast(),
       dismissToast: () => tidy.dismissToast(),
+      toastAction: async () => {
+        tidy.dismissToast();
+        const jobId = offered;
+        offered = null;
+        if (jobId) await core.open(jobId, undefined, 'all', beforeOpen);
+      },
       overlayDone: () => tidy.finishOverlay(),
       testClaude: (key) => testClaudeKey(key, settings.get().aiModel),
       openSave,
-      beforeOpen: (items) => {
-        getWindow('panel')?.hide();
-        tidy.unpackAnimation(items);
-      },
+      beforeOpen,
     });
 
     tidy.prepare();
+    if (!process.env.WWI_FAKE_CAPTURE) noticer.start();
     const initial = settings.get();
     nativeTheme.themeSource = initial.appearance;
     applyShortcuts(initial);
