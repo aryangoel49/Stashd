@@ -2,7 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppInfo, BriefView, Job, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion } from './shared/types';
+import type { AppInfo, BriefView, Item, Job, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -56,6 +56,8 @@ const api = {
   dismissToast: () => invoke<boolean>('toast:dismiss'),
   toastAction: () => invoke<void>('toast:action'),
   tidyAll: () => invoke<boolean>('tidy:all'),
+  recentlyTidied: () => invoke<{ at: string; until: string; items: Item[] } | null>('tidy:recent'),
+  reopenTidied: (key?: string) => invoke<OpenResult>('tidy:reopen', key),
   overlayDone: () => invoke<boolean>('overlay:done'),
 
   onJobsChanged: (cb: () => void) => on('jobs:changed', cb),

@@ -189,6 +189,8 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     return true;
   });
   handle('toast:action', () => hooks.toastAction());
+  handle('tidy:recent', () => core.recentlyTidied());
+  handle('tidy:reopen', (_e, key) => core.reopenTidied(key == null ? undefined : v.itemKey(key)));
   handle('tidy:all', () => {
     getWindow('panel')?.hide();
     void hooks.tidyAll();

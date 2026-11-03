@@ -31,6 +31,8 @@ interface State {
   appUnticks: Record<string, string[]>;
   /** What was open just after a job was unpacked, so later additions can be suggested. */
   baseline: { jobId: string; keys: string[] } | null;
+  /** What the last Tidy all closed, and when (shown for 10 minutes, then forgotten). */
+  recentTidy?: { at: string; items: Item[] } | null;
   /** Suggestions the person said no to: id → until when (ISO date), or 'never' to never ask again. */
   dismissed: Record<string, string>;
   /** macOS has been asked once for Accessibility (to see which Claude or ChatGPT chat is open). */
@@ -61,8 +63,10 @@ export interface TidyAllPlan {
   /** Other things to close: open, and already in a folder. */
   close: Item[];
   loose: number;
-  looseFolder: string | null;
 }
+
+/** What Tidy all closed stays listed this long, so a tab closed by mistake can come back. */
+export const RECENT_TIDY_MS = 10 * 60_000;
 
 /** How long one look at what's open is reused. */
 const OPEN_CHECK_MS = 6_000;
@@ -109,6 +113,7 @@ export class Core {
           : null,
       dismissed: raw.dismissed && typeof raw.dismissed === 'object' ? raw.dismissed : {},
       askedChatAccess: raw.askedChatAccess === true,
+      recentTidy: raw.recentTidy && typeof raw.recentTidy.at === 'string' && Array.isArray(raw.recentTidy.items) ? raw.recentTidy : null,
     };
   }
 
@@ -314,8 +319,8 @@ export class Core {
 
   /**
    * Tidy all. Every folder you have open is saved (what clearly belongs to it, like Pack up), anything
-   * open that's already in another folder is just closed, and the tabs left over that belong nowhere
-   * are kept in a finished folder of their own, so nothing is lost. Everyday sites (mail, music) stay.
+   * open that's already in another folder is just closed, and so are the tabs left over that belong
+   * nowhere (listed under "Recently closed" for 10 minutes). Everyday sites (mail, music) stay.
    * Returns the things to close; closing is up to the caller.
    */
   async tidyAll(): Promise<TidyAllPlan> {
@@ -323,7 +328,7 @@ export class Core {
     const cap = this.fakeCapture ? await this.fakeCapture() : await capture(settings, this.helper, this.selfNames);
     const learned = learnedLifestyleApps(this.state.appUnticks);
     const openKeys = new Set(cap.items.map(looseKey));
-    const plan: TidyAllPlan = { saved: [], close: [], loose: 0, looseFolder: null };
+    const plan: TidyAllPlan = { saved: [], close: [], loose: 0 };
     const claimed = new Set<string>();
     const claim = (items: Item[]) => items.forEach((i) => matchKeys(i).forEach((k) => claimed.add(k)));
     const openItem = (i: Item) => cap.items.find((c) => matchKeys(i).includes(looseKey(c)));
@@ -352,21 +357,51 @@ export class Core {
       plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
     }
 
-    // Tabs that belong nowhere: kept in a finished folder, then closed.
+    // Tabs that belong nowhere just close. They stay in "Recently closed" for a while, in case one mattered.
     const loose = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
-    if (loose.length) {
-      this.pending = { capture: Promise.resolve(cap) };
-      await this.preview({ asNew: true });
-      const day = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-      const r = await this.commitSave({ jobId: null, name: `Loose tabs · ${day}`, note: '', keys: loose.map((i) => i.key), tidy: true });
-      await this.setDone(r.jobId, true);
-      plan.looseFolder = (await this.store.get(r.jobId)).name;
-      plan.loose = loose.length;
-      plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: plan.looseFolder });
-    }
+    plan.close.push(...loose);
+    plan.loose = loose.length;
     this.pending = null;
     this.notify();
     return plan;
+  }
+
+  /** What Tidy all just closed: kept for 10 minutes, then forgotten. */
+  async rememberTidied(items: Item[]): Promise<void> {
+    this.state.recentTidy = items.length ? { at: new Date().toISOString(), items } : null;
+    await this.saveState();
+    this.notify();
+  }
+
+  recentlyTidied(): { at: string; until: string; items: Item[] } | null {
+    const r = this.state.recentTidy;
+    if (!r) return null;
+    const until = Date.parse(r.at) + RECENT_TIDY_MS;
+    if (!r.items.length || Date.now() > until) {
+      this.state.recentTidy = null;
+      void this.saveState().catch(() => undefined);
+      return null;
+    }
+    return { at: r.at, until: new Date(until).toISOString(), items: r.items };
+  }
+
+  /** Undo brought these back: they're no longer "recently closed". */
+  async dropTidied(items: Item[]): Promise<void> {
+    const r = this.state.recentTidy;
+    if (!r) return;
+    const back = new Set(items.map((i) => i.key));
+    await this.rememberTidied(r.items.filter((i) => !back.has(i.key)));
+  }
+
+  /** Bring back things Tidy all closed (one, or all when no key is given). They leave the list. */
+  async reopenTidied(key?: string): Promise<OpenResult> {
+    const r = this.recentlyTidied();
+    if (!r) throw new Error('That list has gone (it only stays for 10 minutes).');
+    const items = key ? r.items.filter((i) => i.key === key) : r.items;
+    const result = await openItems(items, null, this.settings.get());
+    const back = new Set(items.map((i) => i.key));
+    await this.rememberTidied(r.items.filter((i) => !back.has(i.key)));
+    return result;
   }
 
   /** A better name for a new job from Claude or Apple Intelligence, if either is set up. */

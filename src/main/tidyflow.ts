@@ -79,9 +79,14 @@ export class TidyFlow {
         const { closed } = await closeItems(items, this.urlOptions());
         await animation;
         this.setUndo(closed, null);
-        const folders = plan.saved.filter((s) => s.name !== plan.looseFolder).length;
-        const parts = [folders ? `${folders} ${folders === 1 ? 'folder' : 'folders'} packed` : '', plan.loose ? `${plan.loose} loose ${plan.loose === 1 ? 'tab' : 'tabs'} kept in ${plan.looseFolder}` : ''].filter(Boolean);
-        this.toast({ title: `Tidied up · ${closed.length} closed`, detail: `${parts.join('. ') || 'Saved'}. Undo brings them back.`, canUndo: closed.length > 0, mood: 'sleep' });
+        await this.core.rememberTidied(closed);
+        const folders = plan.saved.length;
+        this.toast({
+          title: `Tidied up · ${closed.length} closed`,
+          detail: folders ? `${folders} ${folders === 1 ? 'folder' : 'folders'} packed. The rest is in Recently closed for 10 min.` : 'In Recently closed for 10 min, in case.',
+          canUndo: closed.length > 0,
+          mood: 'sleep',
+        });
       } catch {
         this.toast({ title: "Couldn't tidy up", detail: 'Nothing was closed.', canUndo: false, mood: 'curious' });
       } finally {
@@ -286,6 +291,7 @@ export class TidyFlow {
     this.hideToast();
     const animation = this.play(u.items, true);
     await openItems(u.items, u.frontKey, this.core.settings.get());
+    await this.core.dropTidied(u.items);
     this.core.notify();
     await animation;
     this.toast({ title: 'Back where you left off', detail: `${u.items.length} ${u.items.length === 1 ? 'item' : 'items'} reopened.`, canUndo: false, mood: 'wide' });

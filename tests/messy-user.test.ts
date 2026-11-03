@@ -299,7 +299,7 @@ describe('closing a tab by accident after Unpack', () => {
 });
 
 describe('Tidy all', () => {
-  it('saves the open folder, keeps loose tabs in a finished folder, and leaves everyday sites alone', async () => {
+  it('saves the open folder, closes loose tabs, and leaves everyday sites alone', async () => {
     const core = makeCore();
     const trip = [tab(1, 'Flights to Tokyo'), tab(2, 'Ryokans in Kyoto')];
     open = trip;
@@ -313,11 +313,26 @@ describe('Tidy all', () => {
     const plan = await core.tidyAll();
     expect(plan.saved.map((s) => s.name)).toContain('Japan trip');
     expect(plan.loose).toBe(1);
-    const jobs = await core.listJobs();
-    const loose = jobs.find((j) => j.name.startsWith('Loose tabs'))!;
-    expect(loose.done).toBe(true);
-    expect((await core.store.latest(loose.id))!.items.map((i) => i.key)).toEqual([stray.key]);
+    expect(plan.close.map((i) => i.key)).toEqual([stray.key]);
+    expect((await core.listJobs()).map((j) => j.name)).toEqual(['Japan trip']);
     expect((await core.store.latest(first.jobId))!.items.map((i) => i.key).sort()).toEqual(trip.map((i) => i.key).sort());
+  });
+
+  it('lists what it closed for 10 minutes, then forgets it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const core = makeCore();
+      const stray = tab(9, 'Warriors vs Lakers');
+      await core.rememberTidied([stray, tab(8)]);
+      expect(core.recentlyTidied()?.items.map((i) => i.key)).toEqual([stray.key, tab(8).key]);
+      // Reopening one takes it off the list.
+      await core.reopenTidied(stray.key);
+      expect(core.recentlyTidied()?.items.map((i) => i.key)).toEqual([tab(8).key]);
+      vi.setSystemTime(Date.now() + 10 * 60_000 + 1);
+      expect(core.recentlyTidied()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('only closes what a packed folder already holds, without saving it again', async () => {
