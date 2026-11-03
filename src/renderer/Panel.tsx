@@ -11,7 +11,7 @@ import { playMerge } from './mergeFx';
 import { BreakView, ModeSwitch } from './Break';
 import { useRecentlyTidied } from './Recent';
 import { useSuggestions } from './Suggestions';
-import { describe, folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
+import { folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
 
 export function Panel() {
   return (
@@ -354,22 +354,19 @@ function JobMenu({ view, onGone }: { view: BriefView; onGone: () => void }) {
 }
 
 /**
- * What Tidy all closed in the last 10 minutes, so a tab closed by mistake can come back. Then it's gone.
- * Set apart from the folders above: a tray of its own, marked with Tidy all's sparkle.
+ * What Tidy all closed in the last 10 minutes: one quiet line at the bottom. Opened, it shows the first few
+ * in small rows (reopen on hover); the full list is in the Stashd window. Then it's gone.
  */
 function RecentlyClosed() {
   const { recent, minutesLeft } = useRecentlyTidied();
   const [open, setOpen] = useState(false);
   if (!recent) return null;
+  const shown = recent.items.slice(0, 5);
   return (
     <div className="recent-closed">
-      <button type="button" className="recent-head" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <Icon name="spark" />
+      <button type="button" className="recent-line" onClick={() => setOpen(!open)} aria-expanded={open}>
         <span className="grow">
-          <span className="recent-head-title">Closed by Tidy all</span>
-          <span className="recent-head-sub">
-            {recent.items.length} {recent.items.length === 1 ? 'thing' : 'things'}, cleared in {minutesLeft} min
-          </span>
+          {recent.items.length} closed by Tidy all · back for {minutesLeft} min
         </span>
         <motion.span animate={{ rotate: open ? 90 : 0 }} style={{ display: 'inline-flex' }}>
           <Icon name="chevron" />
@@ -377,27 +374,22 @@ function RecentlyClosed() {
       </button>
       {open && (
         <div className="recent-body">
-          {recent.items.map((it) => (
-            <div key={it.key} className="recent-row">
-              <ItemBadge item={it} size={24} />
-              <span className="grow" style={{ minWidth: 0 }}>
-                <span className="recent-title">{titleOf(it)}</span>
-                <span className="recent-detail">{describe(it)}</span>
-              </span>
-              <Button size="small" className="tiny" onClick={() => void api.reopenTidied(it.key)}>
-                Reopen
-              </Button>
-            </div>
+          {shown.map((it) => (
+            <button key={it.key} type="button" className="recent-row" onClick={() => void api.reopenTidied(it.key)} title={`Reopen ${titleOf(it)}`}>
+              <ItemBadge item={it} size={18} />
+              <span className="recent-title">{titleOf(it)}</span>
+              <span className="recent-reopen">Reopen</span>
+            </button>
           ))}
           <div className="recent-foot">
-            {recent.items.length > 1 && (
-              <Button size="small" className="tiny" onClick={() => void api.reopenTidied()}>
-                Reopen all
-              </Button>
+            <button type="button" className="link tiny" onClick={() => void api.reopenTidied()}>
+              Reopen all
+            </button>
+            {recent.items.length > shown.length && (
+              <button type="button" className="link tiny" onClick={() => void api.openWindow('main', 'recent')}>
+                See all {recent.items.length}
+              </button>
             )}
-            <Button variant="ghost" size="small" className="tiny" onClick={() => void api.openWindow('main', 'recent')}>
-              See in Stashd
-            </Button>
           </div>
         </div>
       )}

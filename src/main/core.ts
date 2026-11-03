@@ -390,7 +390,8 @@ export class Core {
     // Tabs left over: one that clearly belongs to one of your other folders is added to it. The rest
     // belong nowhere and just close (they stay in "Recently closed" for a while, in case one mattered).
     const strays = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
-    const homes = await this.homesFor(strays, new Set(plan.saved.map((s) => s.jobId)));
+    // Break things (any video, a show, a game) never get filed into a work folder: they go on the Break shelf.
+    const homes = await this.homesFor(strays.filter((i) => !isBreakItem(i)), new Set(plan.saved.map((s) => s.jobId)));
     for (const [jobId, items] of homes) {
       const name = await this.addToFolder(jobId, items);
       plan.filed.push({ jobId, name, count: items.length });
@@ -399,7 +400,15 @@ export class Core {
     plan.close.push(...strays);
     // What you were watching or listening to goes on the Break shelf, to pick up later.
     const breakItems = strays.filter((i) => !homed.has(i.key) && isBreakItem(i));
-    if (breakItems.length) await this.breaks.add(breakItems);
+    // A site's home page (youtube.com) isn't something to pick up: it's already one of your places.
+    const toShelf = breakItems.filter((i) => {
+      try {
+        return new URL(i.url!).pathname.replace(/\/+$/, '') !== '';
+      } catch {
+        return false;
+      }
+    });
+    if (toShelf.length) await this.breaks.add(toShelf);
     plan.breaks = breakItems.length;
     plan.loose = strays.filter((i) => !homed.has(i.key)).length - breakItems.length;
     this.pending = null;
@@ -478,6 +487,7 @@ export class Core {
 
   /** What Tidy all just closed: kept for 10 minutes, then forgotten. */
   async rememberTidied(items: Item[]): Promise<void> {
+    items = withoutRepeats(items);
     this.state.recentTidy = items.length ? { at: new Date().toISOString(), items } : null;
     await this.saveState();
     this.notify();

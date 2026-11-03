@@ -31,29 +31,40 @@ export function ModeSwitch({ mode, onChange }: { mode: 'work' | 'break'; onChang
   );
 }
 
-/** A site's own little tile: its colour and mark, so YouTube looks like YouTube. */
-function siteLook(url: string): { bg: string; fg: string; mark: string } {
-  let h = '';
+/** Brand marks (from Simple Icons, CC0), drawn on a tile in the brand's own colours. */
+const BRANDS: { test: RegExp; bg: string; fg: string; path: string; inset?: number }[] = [
+  { test: /youtube\.com|youtu\.be/, bg: '#ffffff', fg: '#ff0000', path: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z', inset: 0.16 },
+  { test: /netflix\.com/, bg: '#000000', fg: '#e50914', path: 'M5.398 0v.006c3.028 8.556 5.37 15.175 8.348 23.596 2.344.058 4.85.398 4.854.398-2.8-7.924-5.923-16.747-8.487-24zm8.489 0v9.63L18.6 22.951c-.043-7.86-.004-15.913.002-22.95zM5.398 1.05V24c1.873-.225 2.81-.312 4.715-.398v-9.22z', inset: 0.24 },
+  { test: /spotify\.com/, bg: '#121212', fg: '#1ed760', path: 'M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z', inset: 0.2 },
+  { test: /twitch\.tv/, bg: '#9146ff', fg: '#ffffff', path: 'M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z', inset: 0.24 },
+  { test: /crunchyroll\.com/, bg: '#f47521', fg: '#ffffff', path: 'M2.933 13.467a10.55 10.55 0 1 1 21.067-.8V12c0-6.627-5.373-12-12-12S0 5.373 0 12s5.373 12 12 12h.8a10.617 10.617 0 0 1-9.867-10.533zM19.2 14a3.85 3.85 0 0 1-1.333-7.467A7.89 7.89 0 0 0 14 5.6a8.4 8.4 0 1 0 8.4 8.4 6.492 6.492 0 0 0-.133-1.6A3.415 3.415 0 0 1 19.2 14z', inset: 0.22 },
+];
+
+function hostOfUrl(url: string): string {
   try {
-    h = new URL(url).hostname.replace(/^(www|m)\./, '');
+    return new URL(url).hostname.replace(/^(www|m)\./, '');
   } catch {
-    // keep the plain tile
+    return '';
   }
-  if (/youtube\.com|youtu\.be/.test(h)) return { bg: '#ff0033', fg: '#fff', mark: '▶' };
-  if (/netflix\.com/.test(h)) return { bg: '#141414', fg: '#e50914', mark: 'N' };
-  if (/spotify\.com/.test(h)) return { bg: '#1db954', fg: '#0b2a14', mark: '♫' };
-  if (/twitch\.tv/.test(h)) return { bg: '#9146ff', fg: '#fff', mark: 'T' };
-  if (/primevideo\.com/.test(h)) return { bg: '#1a98ff', fg: '#fff', mark: 'P' };
-  if (/disneyplus\.com/.test(h)) return { bg: '#0b1e5b', fg: '#fff', mark: 'D' };
-  if (/espn\.com/.test(h)) return { bg: '#d50a0a', fg: '#fff', mark: 'E' };
-  return { bg: 'var(--well)', fg: 'var(--text)', mark: (h[0] ?? '•').toUpperCase() };
 }
 
+/** A site's own tile: its real mark for the well-known ones, else its first letter. */
 function SiteTile({ url, size = 30 }: { url: string; size?: number }) {
-  const l = siteLook(url);
+  const h = hostOfUrl(url);
+  const b = BRANDS.find((x) => x.test.test(h));
+  if (b) {
+    const pad = Math.round(size * (b.inset ?? 0.2));
+    return (
+      <span className="site-tile brand" style={{ width: size, height: size, background: b.bg, padding: pad }} aria-hidden="true">
+        <svg viewBox="0 0 24 24" width={size - pad * 2} height={size - pad * 2}>
+          <path d={b.path} fill={b.fg} />
+        </svg>
+      </span>
+    );
+  }
   return (
-    <span className="site-tile" style={{ width: size, height: size, background: l.bg, color: l.fg, fontSize: size * 0.45 }} aria-hidden="true">
-      {l.mark}
+    <span className="site-tile" style={{ width: size, height: size, background: 'var(--well)', color: 'var(--text)', fontSize: size * 0.42 }} aria-hidden="true">
+      {(h[0] ?? '•').toUpperCase()}
     </span>
   );
 }
@@ -72,7 +83,7 @@ function rows(items: BreakItem[]): Row[] {
   const shows = new Map<string, Row>();
   for (const it of items) {
     const show = showOf(it.label);
-    const site = it.detail || (it.url ? new URL(it.url).hostname.replace(/^www\./, '') : '');
+    const site = hostOfUrl(it.url ?? '');
     if (show) {
       const id = show.toLowerCase();
       const row = shows.get(id);

@@ -608,19 +608,18 @@ details summary { cursor: default; }
 .name-wrap .name-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: text; padding: 0 2px; margin: 0 -2px; border-radius: 3px; background: linear-gradient(transparent 58%, var(--tone-line) 58%) no-repeat 0 0 / 0% 100%; transition: background-size 220ms var(--ease, ease-out); }
 @media (hover: hover) { .name-wrap .name-text:hover { background-size: 100% 100%; } }
 
-/* Closed by Tidy all (kept 10 minutes): a tray set apart from the folders, under a hairline. */
-.recent-closed { margin-top: 10px; padding-top: 10px; border-top: 0.5px solid var(--hair); }
-.recent-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 12px; background: var(--well); color: inherit; text-align: left; cursor: pointer; }
-.recent-head:hover { background: var(--well-hover); }
-.recent-head > .i { width: 16px; height: 16px; color: var(--accent-ink); flex: none; }
-.recent-head-title { display: block; font-size: 13px; font-weight: 600; }
-.recent-head-sub { display: block; margin-top: 2px; font-size: 11.5px; color: var(--faint); }
-.recent-body { display: flex; flex-direction: column; gap: 2px; padding: 6px 0 2px; }
-.recent-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; }
-.recent-row:hover { background: var(--well); }
-.recent-title { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500; }
-.recent-detail { display: block; margin-top: 2px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--faint); }
-.recent-foot { display: flex; gap: 6px; padding: 4px 10px 0; }
+/* Closed by Tidy all (kept 10 minutes): one quiet line at the bottom, a few small rows when opened. */
+.recent-closed { margin-top: 8px; padding-top: 6px; border-top: 0.5px solid var(--hair); }
+.recent-line { display: flex; align-items: center; gap: 6px; width: 100%; padding: 6px 8px; border: none; border-radius: 8px; background: none; color: var(--faint); font-size: 12px; text-align: left; cursor: pointer; }
+.recent-line:hover { color: var(--muted); background: var(--well); }
+.recent-line .i { width: 12px; height: 12px; }
+.recent-body { display: flex; flex-direction: column; gap: 1px; padding: 2px 0 2px; }
+.recent-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 8px; border: none; border-radius: 8px; background: none; color: var(--muted); text-align: left; cursor: pointer; }
+.recent-row:hover { background: var(--well); color: var(--text); }
+.recent-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.recent-reopen { font-size: 11px; color: var(--accent-ink); opacity: 0; transition: opacity 120ms ease-out; }
+.recent-row:hover .recent-reopen { opacity: 1; }
+.recent-foot { display: flex; gap: 12px; padding: 4px 8px 0; }
 
 .recent-page-sub { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 14px; }
 .recent-page-list { display: flex; flex-direction: column; gap: 6px; max-width: 760px; }
@@ -681,6 +680,8 @@ details summary { cursor: default; }
 /* The Break side. */
 .break-view { display: flex; flex-direction: column; }
 .site-tile { display: grid; place-items: center; flex: none; border-radius: 9px; font-weight: 800; line-height: 1; }
+.site-tile.brand { box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.08); }
+.site-tile.brand svg { display: block; }
 .site-tile.add { background: var(--well); color: var(--faint); border-radius: 10px; }
 .site-tile.add svg { width: 16px; height: 16px; }
 .break-rows { display: flex; flex-direction: column; gap: 2px; }
