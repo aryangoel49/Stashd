@@ -8,14 +8,15 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Fredoka:wght@600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
 <style>
 /* Same look as the home page: butter-yellow folder, ink, warm paper under a slow drifting light.
    One step per row, each with a small picture of exactly what you'll see on your Mac. */
 :root {
   --paper: #fffcf3; --ink: #1c1d22; --ink-soft: #55554f; --butter: #f2cd5c; --butter-deep: #e4b93b; --cream: #fbefc6; --line: #ece3c7;
   --card: rgba(255, 253, 246, 0.85);
-  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --display: "Geist", "Helvetica Neue", system-ui, sans-serif;
+  --logo: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body: "Hanken Grotesk", -apple-system, system-ui, sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -37,7 +38,7 @@ p { margin: 0; }
 @keyframes d2 { to { transform: translate(-16vw, 18vh) scale(0.92); } }
 
 .nav { display: flex; align-items: center; gap: 20px; padding-block: 18px; }
-.brand { display: flex; align-items: center; gap: 10px; font: 600 24px/1 "Fredoka", "Avenir Next Rounded", system-ui, sans-serif; text-decoration: none; letter-spacing: 0.005em; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 22px/1 var(--logo); text-decoration: none; letter-spacing: -0.02em; }
 .brand svg { width: 34px; height: 34px; }
 .nav a.back { margin-left: auto; font-size: 16px; color: var(--ink-soft); text-decoration: none; }
 .nav a.back:hover { color: var(--ink); }

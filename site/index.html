@@ -10,7 +10,7 @@
 <meta property="og:description" content="Press Control-S. Your tabs, files and apps go into a folder in the menu bar. Open it later and everything comes back.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Fredoka:wght@600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
 <script>document.documentElement.classList.add('js');</script>
 <style>
 /* Stashd's look: butter-yellow folder, ink, warm paper, under a slow drifting light that runs the whole page.
@@ -24,7 +24,8 @@
   --cream: #fbefc6;
   --line: #ece3c7;
   --card: rgba(255, 253, 246, 0.82);
-  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --display: "Geist", "Helvetica Neue", system-ui, sans-serif;
+  --logo: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
   --body: "Hanken Grotesk", -apple-system, system-ui, sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -74,7 +75,7 @@ p { margin: 0; }
 
 /* ---------- nav ---------- */
 .nav { display: flex; align-items: center; gap: 24px; padding-block: 18px; }
-.brand { display: flex; align-items: center; gap: 10px; font: 600 24px/1 "Fredoka", "Avenir Next Rounded", system-ui, sans-serif; text-decoration: none; letter-spacing: 0.005em; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 22px/1 var(--logo); text-decoration: none; letter-spacing: -0.02em; }
 .brand .folder { width: 34px; height: 34px; }
 .nav-links { display: flex; gap: 26px; margin-left: auto; font-size: 16px; align-items: center; }
 .nav-links a { text-decoration: none; color: var(--ink-soft); }
@@ -328,7 +329,7 @@ section { padding-block: 112px; }
 
 /* "Just three steps": the big moment. A giant 3 that drops in with a bounce, then the words. */
 .three { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 36px; align-items: center; }
-.big3 { font: 800 clamp(190px, 26vw, 330px)/0.8 var(--display); color: var(--butter); -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; text-shadow: 10px 12px 0 var(--ink); letter-spacing: -0.06em; display: inline-block; transform-origin: 50% 90%; }
+.big3 { font: 800 clamp(190px, 26vw, 330px)/0.8 var(--display); color: var(--butter); text-shadow: 0 18px 40px rgba(214,170,40,0.35); letter-spacing: -0.07em; display: inline-block; transform-origin: 50% 90%; }
 .js .three.reveal .big3 { transform: scale(0.4) rotate(-14deg); opacity: 0; transition: transform 0.9s cubic-bezier(0.34, 1.7, 0.5, 1), opacity 0.4s; }
 .js .three.reveal.in .big3 { transform: none; opacity: 1; }
 .three-kicker { font: 700 17px var(--body); color: #9a7300; }
