@@ -325,7 +325,13 @@ export interface BreakPlace {
 }
 
 /** Something you were watching or listening to, put on the shelf by Tidy all. */
-export type BreakItem = Item & { savedAt?: string };
+export type BreakItem = Item & {
+  /** When it last came to the shelf (you closed it, or Tidy all put it here). */
+  savedAt?: string;
+  /** When you last opened it from the shelf, and how often you have. */
+  openedAt?: string;
+  opens?: number;
+};
 
 /** The Break shelf: what you were watching, your places, and where breaks open. */
 export interface BreakShelf {

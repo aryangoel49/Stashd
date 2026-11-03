@@ -178,36 +178,56 @@ export function BreakView() {
     <div className="break-view">
       {list.length > 0 ? (
         <>
-          <div className="eyebrow list-label">Pick up where you left off</div>
-          <div className="break-rows">
-            {list.slice(0, 6).map((r, i) => (
-              <motion.div key={r.key} className="break-row" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.03 }}>
-                <button type="button" className="break-main" onClick={() => open(r.url)} title={`Open ${r.title}`}>
-                  <SiteTile url={r.url} />
-                  <span className="grow">
-                    <span className="break-title">{r.title}</span>
-                    <span className="break-sub">{r.sub}</span>
-                  </span>
-                  <span className="break-play" aria-hidden="true">▶</span>
-                </button>
-                <Button
-                  variant="ghost"
-                  size="small"
-                  className="tool-btn delete"
-                  aria-label={`Remove ${r.title}`}
-                  title="Remove from the shelf"
-                  onClick={() => void Promise.all(r.items.map((it) => api.changeBreak({ removeItem: it.key }))).then((all) => all.length && setShelf(all[all.length - 1]))}
-                >
-                  <Icon name="trash" />
-                </Button>
-              </motion.div>
-            ))}
-          </div>
+          <div className="eyebrow list-label">Continue watching</div>
+          {/* The last thing you were watching or playing, up top; everything else underneath. */}
+          {(() => {
+            const [top, ...rest] = list;
+            const remove = (r: Row) => void Promise.all(r.items.map((it) => api.changeBreak({ removeItem: it.key }))).then((all) => all.length && setShelf(all[all.length - 1]));
+            return (
+              <>
+                <motion.div key={top.key} className="cw-hero" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                  <button type="button" className="cw-main" onClick={() => open(top.url)} title={`Resume ${top.title}`}>
+                    <SiteTile url={top.url} size={44} />
+                    <span className="grow" style={{ minWidth: 0 }}>
+                      <span className="cw-title">{top.title}</span>
+                      <span className="break-sub">{top.sub}</span>
+                    </span>
+                  </button>
+                  <div className="cw-acts">
+                    <Button variant="primary" size="small" onClick={() => open(top.url)}>
+                      ▶ Resume
+                    </Button>
+                    <button type="button" className="cw-x" aria-label={`Remove ${top.title}`} title="Done with it: remove" onClick={() => remove(top)}>
+                      ✕
+                    </button>
+                  </div>
+                </motion.div>
+                {rest.length > 0 && (
+                  <div className="break-rows">
+                    {rest.slice(0, 6).map((r, i) => (
+                      <motion.div key={r.key} className="break-row" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.03 }}>
+                        <button type="button" className="break-main" onClick={() => open(r.url)} title={`Open ${r.title}`}>
+                          <SiteTile url={r.url} />
+                          <span className="grow">
+                            <span className="break-title">{r.title}</span>
+                            <span className="break-sub">{r.sub}</span>
+                          </span>
+                        </button>
+                        <button type="button" className="cw-x" aria-label={`Remove ${r.title}`} title="Done with it: remove" onClick={() => remove(r)}>
+                          ✕
+                        </button>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </>
       ) : (
         <div className="break-empty">
           <FolderMark size={34} mood="sleep" />
-          <span>When you Tidy all, what you were watching lands here, ready to pick up.</span>
+          <span>Videos you close, or that Tidy all puts away, show up here so you can carry on.</span>
         </div>
       )}
 

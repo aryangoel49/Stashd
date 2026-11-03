@@ -5,7 +5,8 @@
 import { powerMonitor } from 'electron';
 import type { Item, Job, OpenState, SaveEntry } from '../shared/types';
 import { openedRecently } from './open';
-import { matchKeys } from './urls';
+import { isBreakItem } from './breaks';
+import { looseKey, matchKeys } from './urls';
 
 /** How often to look, and how long after Stashd opened something to wait before looking again. */
 const EVERY_MS = 20_000;
@@ -48,17 +49,35 @@ export function packedWorkFor(
   return best;
 }
 
+/** Videos and shows open right now (not a site's home page), by loose key. */
+export function openBreaks(items: Item[]): Map<string, Item> {
+  const out = new Map<string, Item>();
+  for (const i of items) {
+    if (!isBreakItem(i)) continue;
+    try {
+      if (new URL(i.url!).pathname.replace(/\/+$/, '') === '') continue;
+    } catch {
+      continue;
+    }
+    out.set(looseKey(i), i);
+  }
+  return out;
+}
+
 export class Noticer {
   private seen: Set<string> | null = null;
+  private watching: Map<string, Item> | null = null;
   private askedAt = new Map<string, number>();
   private timer: NodeJS.Timeout | null = null;
   private busy = false;
 
   constructor(
-    private readonly look: () => Promise<{ open: Set<string>; state: Record<string, OpenState>; jobs: Job[]; latest: (SaveEntry | null)[] }>,
+    private readonly look: () => Promise<{ open: Set<string>; state: Record<string, OpenState>; jobs: Job[]; latest: (SaveEntry | null)[]; items?: Item[] }>,
     private readonly offer: (work: PackedWork) => void,
     /** True while the save box is up: never interrupt a save. */
     private readonly saving: () => boolean,
+    /** Videos you closed since the last look: they go to Continue watching. */
+    private readonly closedBreaks: (items: Item[]) => void = () => undefined,
   ) {}
 
   start(): void {
@@ -76,6 +95,14 @@ export class Noticer {
     this.busy = true;
     try {
       const look = await this.look();
+      // A video that was open and now isn't: you closed it (or Tidy all did). Either way it goes to
+      // Continue watching, at the top; you remove it there when you're done with it.
+      if (look.items) {
+        const now = openBreaks(look.items);
+        const gone = this.watching ? [...this.watching].filter(([k]) => !now.has(k)).map(([, i]) => i) : [];
+        this.watching = now;
+        if (gone.length) this.closedBreaks(gone);
+      }
       const before = this.seen;
       this.seen = look.open;
       // The first look, and anything that appeared while Stashd was opening things, is only remembered.

@@ -7,6 +7,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ### Added
 - **Break**: a Work / Break switch in the menu bar panel. Tidy all puts what you were watching on your Break shelf (episodes of a show together), next to your places (YouTube, Netflix, Spotify, or your own). It asks once which browser to open them in.
+- **Continue watching** on the Break side: videos you close (or Tidy all puts away) land there, the latest one up top with Resume. Remove anything with one click; one-off clips you never came back to fade after a week, shows and things you reopen stay a month.
 - ⌃S keeps break tabs (a Shark Tank episode, a game score) out of your work, unless they're about the project, like a tutorial.
 - A gentle nudge to Tidy all when apps have sat open unused for a while.
 - **Tidy all**, in the menu bar panel: saves the folders you're working in, adds a stray tab to another folder only when it clearly belongs there, closes everything else and quits every app except Claude. Anything unsaved still asks first.

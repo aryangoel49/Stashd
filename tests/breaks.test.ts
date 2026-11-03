@@ -69,3 +69,30 @@ describe('which videos are work', () => {
     expect(r.breaks).toEqual([]);
   });
 });
+
+describe('Continue watching', () => {
+  const DAY = 24 * 60 * 60_000;
+  it('a one-off clip fades after a week; a show or something you came back to stays a month', async () => {
+    const { keepFor } = await import('../src/main/breaks');
+    const clip = t('https://www.youtube.com/watch?v=1', 'Stop Sending Clips');
+    const ep4 = t('https://www.youtube.com/watch?v=4', 'Shark Tank S10E4');
+    const ep5 = t('https://www.youtube.com/watch?v=5', 'Shark Tank S10E5');
+    expect(keepFor(clip, [clip])).toBe(7 * DAY);
+    expect(keepFor({ ...clip, opens: 2 }, [clip])).toBe(30 * DAY);
+    expect(keepFor(ep4, [ep4, ep5])).toBe(30 * DAY);
+  });
+
+  it('notices a video you closed, and only videos', async () => {
+    const { Noticer } = await import('../src/main/noticer');
+    const vid = t('https://www.youtube.com/watch?v=9', 'Some clip');
+    const home = t('https://www.youtube.com/', 'YouTube');
+    const doc = t('https://github.com/me/repo', 'repo');
+    let items = [vid, home, doc];
+    const closed = vi.fn();
+    const n = new Noticer(async () => ({ open: new Set<string>(), state: {}, jobs: [], latest: [], items }), vi.fn(), () => false, closed);
+    await n.tick();
+    items = [doc];
+    await n.tick();
+    expect(closed).toHaveBeenCalledWith([vid]);
+  });
+});

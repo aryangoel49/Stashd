@@ -57,6 +57,8 @@ export interface OpenLook {
   open: Set<string>;
   jobs: Job[];
   latest: (SaveEntry | null)[];
+  /** Everything open right now. */
+  items: Item[];
 }
 
 export interface TidyAllPlan {
@@ -475,6 +477,8 @@ export class Core {
   async openBreak(url: string): Promise<void> {
     const shelf = await this.breaks.get();
     await openForBreak(url, shelf.browser);
+    await this.breaks.opened(url);
+    this.notify();
   }
 
   async changeBreak(change: { browser?: BrowserName | 'window'; removeItem?: string; addPlace?: BreakPlace; removePlace?: string }): Promise<BreakShelf> {
@@ -584,7 +588,8 @@ export class Core {
       // Only ask the apps your folders actually use (no folder has a Word file? Word isn't asked).
       const jobs = await this.store.list();
       const latest = await Promise.all(jobs.map((j) => this.store.latest(j.id)));
-      const apps = new Set(latest.flatMap((e) => (e?.items ?? []).map((i) => i.app)));
+      // (Browsers always: videos you close yourself go to Continue watching.)
+      const apps = new Set([...latest.flatMap((e) => (e?.items ?? []).map((i) => i.app)), 'Google Chrome', 'Safari', 'Arc']);
       const win = this.fakeCapture ? null : await this.helper.windows().catch(() => null);
       const cap = this.fakeCapture
         ? await this.fakeCapture()
@@ -602,7 +607,7 @@ export class Core {
         const items = content.length ? content : all;
         out[j.id] = { open: items.filter(isOpen).length, total: items.length };
       }
-      return { state: out, open, jobs, latest };
+      return { state: out, open, jobs, latest, items: cap.items };
     })();
     this.openCache = { at: Date.now(), result };
     result.catch(() => (this.openCache = null));

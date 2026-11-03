@@ -162,6 +162,7 @@ function start(): void {
         tidy.offerUnpack(work.name, work.more);
       },
       () => !!getWindow('save')?.isVisible(),
+      (videos) => void core.breaks.add(videos).then(() => core.notify()),
     );
     // Things sitting open unused for a while? Offer Tidy all.
     const dormant = new DormantWatcher(

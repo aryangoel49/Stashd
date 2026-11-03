@@ -30,6 +30,19 @@ export function isBreakItem(item: Item): boolean {
   }
 }
 
+const DAY = 24 * 60 * 60_000;
+
+/**
+ * How long something stays on the shelf without you touching it. A clip you watched once and never came
+ * back to goes after a week. A show (several episodes here) or something you've reopened stays for a month,
+ * because people often pause a show for a week or two. You can always remove anything yourself.
+ */
+export function keepFor(item: BreakItem, all: BreakItem[]): number {
+  const show = showName(item.label);
+  const episodes = show ? all.filter((i) => showName(i.label)?.toLowerCase() === show.toLowerCase()).length : 0;
+  return (item.opens ?? 0) >= 1 || episodes >= 2 ? 30 * DAY : 7 * DAY;
+}
+
 /** Your places to start with: where most breaks begin. */
 const DEFAULT_PLACES: BreakPlace[] = [
   { name: 'YouTube', url: 'https://www.youtube.com/' },
@@ -48,19 +61,24 @@ export class BreakStore {
   }
 
   async get(): Promise<BreakShelf> {
-    if (this.cache) return this.cache;
+    if (this.cache) {
+      if (this.expire(this.cache)) await this.save(this.cache);
+      return this.cache;
+    }
     let raw: Partial<BreakShelf> = {};
     try {
       raw = JSON.parse(await fs.readFile(this.file, 'utf8')) as Partial<BreakShelf>;
     } catch {
       // first time
     }
-    this.cache = {
+    const shelf: BreakShelf = {
       items: Array.isArray(raw.items) ? raw.items.filter((i) => i && typeof i.key === 'string' && typeof i.url === 'string') : [],
       places: Array.isArray(raw.places) ? raw.places.filter((p) => p && typeof p.name === 'string' && typeof p.url === 'string') : DEFAULT_PLACES,
       browser: raw.browser ?? null,
     };
-    return this.cache;
+    this.cache = shelf;
+    if (this.expire(shelf)) await this.save(shelf);
+    return shelf;
   }
 
   private async save(shelf: BreakShelf): Promise<void> {
@@ -68,14 +86,43 @@ export class BreakStore {
     await writeFileAtomic(this.file, JSON.stringify(shelf, null, 2));
   }
 
-  /** Newest first; the same page again moves to the top instead of showing twice. */
+  /** Newest first; the same page again moves to the top (keeping how often you've opened it). */
   async add(items: Item[]): Promise<void> {
     const shelf = await this.get();
     const now = new Date().toISOString();
-    const fresh: BreakItem[] = items.filter((i) => i.url).map((i) => ({ ...i, active: false, notOpen: undefined, group: undefined, savedAt: now }));
+    const before = new Map(shelf.items.map((i) => [looseKey(i), i]));
+    const fresh: BreakItem[] = items
+      .filter((i) => i.url)
+      .map((i) => {
+        const had = before.get(looseKey(i));
+        return { ...i, active: false, notOpen: undefined, group: undefined, savedAt: now, openedAt: had?.openedAt, opens: had?.opens };
+      });
     const keys = new Set(fresh.map(looseKey));
     shelf.items = [...fresh, ...shelf.items.filter((i) => !keys.has(looseKey(i)))].slice(0, MAX_SHELF);
     await this.save(shelf);
+  }
+
+  /** You opened it from the shelf: it moves to the top, and counts as something you come back to. */
+  async opened(url: string): Promise<void> {
+    const shelf = await this.get();
+    const key = looseKey({ key: `tab:${url}`, kind: 'tab', label: '', detail: '', app: '', url });
+    const it = shelf.items.find((i) => looseKey(i) === key);
+    if (!it) return;
+    const now = new Date().toISOString();
+    Object.assign(it, { openedAt: now, savedAt: now, opens: (it.opens ?? 0) + 1 });
+    shelf.items = [it, ...shelf.items.filter((i) => i !== it)];
+    await this.save(shelf);
+  }
+
+  /** Clears out what you've moved on from (see keepFor). Returns whether anything went. */
+  private expire(shelf: BreakShelf, now = Date.now()): boolean {
+    const kept = shelf.items.filter((i) => {
+      const at = Date.parse(i.openedAt ?? i.savedAt ?? '');
+      return Number.isNaN(at) || now - at < keepFor(i, shelf.items);
+    });
+    const changed = kept.length !== shelf.items.length;
+    shelf.items = kept;
+    return changed;
   }
 
   async remove(key: string): Promise<void> {
