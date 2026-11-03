@@ -230,7 +230,6 @@ function JobRow({ job, state, onPick, openKey }: { job: JobSummary; state?: Open
         <NameEdit jobId={job.id} name={job.name} renamed={job.renamed} className="name" onClick={() => onPick(job.id)} />
         <span className="hint" style={{ display: 'block' }}>
           <span>{allOpen ? 'All open' : someOpen ? `${state!.open} of ${state!.total} open` : job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
-          {job.pinned && openKey && <span className="pin-key">{openKey} opens this</span>}
         </span>
       </span>
       {openNow && <span className="live" />}
