@@ -149,11 +149,14 @@ export interface Job {
   updatedAt: string;
   done: boolean;
   prefs: LearnedPrefs;
+  /** You've given it a name yourself (until then, a pencil invites you to). */
+  renamed?: boolean;
 }
 
 export interface JobSummary {
   id: string;
   name: string;
+  renamed: boolean;
   updatedAt: string;
   done: boolean;
   /** First words of the latest brief, for the menu. */

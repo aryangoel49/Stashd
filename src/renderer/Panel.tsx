@@ -157,7 +157,7 @@ function JobList(props: {
             <span className="eyebrow now-eyebrow">
               <span className="live" /> Open now
             </span>
-            <NameEdit jobId={current.id} name={current.name} className="now-name" onClick={() => onPick(current.id)} />
+            <NameEdit jobId={current.id} name={current.name} renamed={current.renamed} className="now-name" onClick={() => onPick(current.id)} />
           </div>
           <div className="now-actions">
             <Button variant="primary" size="small" onClick={() => void api.openWindow('pack', current.id)} title="Save this folder and close its windows">
@@ -223,7 +223,7 @@ function JobRow({ job, state, onPick }: { job: JobSummary; state?: OpenState; on
         <FolderMark size={30} awake={openNow} mood={reactionMood(reaction)} tone={folderTone(job.id)} />
       </motion.span>
       <span className="grow">
-        <NameEdit jobId={job.id} name={job.name} className="name" onClick={() => onPick(job.id)} />
+        <NameEdit jobId={job.id} name={job.name} renamed={job.renamed} className="name" onClick={() => onPick(job.id)} />
         <span className="hint" style={{ display: 'block' }}>
           <span>{allOpen ? 'All open' : someOpen ? `${state!.open} of ${state!.total} open` : job.current ? 'Open now' : timeAgo(job.updatedAt)}</span>
         </span>

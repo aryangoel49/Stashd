@@ -391,6 +391,7 @@ export class Core {
       out.push({
         id: j.id,
         name: j.name,
+        renamed: !!j.renamed,
         updatedAt: j.updatedAt,
         done: j.done,
         hint: latest ? hintFrom(latest) : '',
@@ -701,6 +702,7 @@ export class Core {
   async rename(jobId: string, name: string): Promise<void> {
     const job = await this.store.get(jobId);
     job.name = name;
+    job.renamed = true;
     await this.store.put(job);
     this.notify();
   }

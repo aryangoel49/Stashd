@@ -102,7 +102,7 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
 
   return (
     <div className="brief">
-      {!hideTitle && <NameEdit jobId={job.id} name={job.name} className="display" />}
+      {!hideTitle && <NameEdit jobId={job.id} name={job.name} renamed={!!job.renamed} className="display" />}
       <div className="muted small">
         {new Date(entry.savedAt).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })} · {timeAgo(entry.savedAt)}
       </div>
@@ -224,7 +224,7 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
  * A folder's name: double-click to rename it (Enter saves, Esc cancels). A single click still does
  * `onClick`, a moment later, so a double-click doesn't also open the folder.
  */
-export function NameEdit({ jobId, name, className, onClick, children }: { jobId: string; name: string; className?: string; onClick?: () => void; children?: ReactNode }) {
+export function NameEdit({ jobId, name, renamed, className, onClick, children }: { jobId: string; name: string; renamed: boolean; className?: string; onClick?: () => void; children?: ReactNode }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(name);
   const click = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -257,22 +257,37 @@ export function NameEdit({ jobId, name, className, onClick, children }: { jobId:
     );
   }
   return (
-    <span
-      className={className}
-      title="Double-click to rename"
-      onClick={(e) => {
-        if (!onClick) return;
-        e.stopPropagation();
-        clearTimeout(click.current);
-        if (e.detail === 1) click.current = setTimeout(onClick, 220);
-      }}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        clearTimeout(click.current);
-        setEditing(true);
-      }}
-    >
-      {children ?? name}
+    <span className={`${className ?? ''} name-wrap ${renamed ? '' : 'unnamed'}`}>
+      <span
+        className="name-text"
+        title="Double-click to rename"
+        onClick={(e) => {
+          if (!onClick) return;
+          e.stopPropagation();
+          clearTimeout(click.current);
+          if (e.detail === 1) click.current = setTimeout(onClick, 220);
+        }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          clearTimeout(click.current);
+          setEditing(true);
+        }}
+      >
+        {children ?? name}
+      </span>
+      {/* Until you've named it yourself, a pencil shows it can be renamed; after that, only on hover. */}
+      <button
+        type="button"
+        className="rename-pencil"
+        title="Rename"
+        aria-label={`Rename ${name}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          setEditing(true);
+        }}
+      >
+        <Icon name="pencil" />
+      </button>
     </span>
   );
 }
