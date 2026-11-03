@@ -120,6 +120,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   });
   handle('jobs:openItem', (_e, id, key) => core.openItem(v.jobId(id), v.itemKey(key)));
   handle('jobs:removeItem', (_e, id, key) => core.removeItem(v.jobId(id), v.itemKey(key)));
+  handle('jobs:restoreItem', (_e, id, key) => core.restoreItem(v.jobId(id), v.itemKey(key)));
   handle('jobs:moveItem', (_e, from, key, to) => core.moveItem(v.jobId(from), v.itemKey(key), v.jobId(to)));
   handle('jobs:rename', (_e, id, name) => core.rename(v.jobId(id), v.jobName(name)));
   handle('jobs:done', (_e, id, done) => core.setDone(v.jobId(id), v.bool(done, 'done')));

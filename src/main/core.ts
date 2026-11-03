@@ -99,6 +99,8 @@ export class Core {
   private suggestCache: { at: number; result: Promise<Suggestion[]> } | null = null;
   /** The last accepted suggestion, so it can be undone for a few seconds. */
   private lastUndo: { id: string; run: () => Promise<void> } | null = null;
+  /** Items just taken out of a folder ("jobId\nkey"), so Undo can put them back for a minute. */
+  private removed = new Map<string, Item>();
   /** Real file and app icons, fetched once and kept. */
   readonly icons: IconCache;
   /** The on-device meaning model (optional: sorting works without it). */
@@ -743,6 +745,12 @@ export class Core {
   async removeItem(jobId: string, key: string): Promise<void> {
     const latest = await this.store.latest(jobId);
     if (!latest) return;
+    const item = latest.items.find((i) => i.key === key);
+    // Kept for a while, so Undo can put it back.
+    if (item) {
+      this.removed.set(`${jobId}\n${key}`, item);
+      setTimeout(() => this.removed.delete(`${jobId}\n${key}`), 60_000).unref?.();
+    }
     latest.items = latest.items.filter((i) => i.key !== key);
     if (latest.frontKey === key) latest.frontKey = latest.items[0]?.key ?? null;
     if (latest.brief) latest.brief.needed = latest.brief.needed.filter((k) => k !== key);
@@ -750,6 +758,21 @@ export class Core {
     const job = await this.store.get(jobId);
     job.prefs.hide[key] = 2;
     delete job.prefs.add[key];
+    await this.store.put(job);
+    this.notify();
+  }
+
+  /** Undo taking an item out: put it back in the latest save, and let it be suggested again. */
+  async restoreItem(jobId: string, key: string): Promise<void> {
+    const item = this.removed.get(`${jobId}\n${key}`);
+    if (!item) throw new Error('That can no longer be undone.');
+    this.removed.delete(`${jobId}\n${key}`);
+    const latest = await this.store.latest(jobId);
+    if (!latest) return;
+    if (!latest.items.some((i) => i.key === item.key)) latest.items.push(item);
+    await this.store.saveEntry(latest);
+    const job = await this.store.get(jobId);
+    delete job.prefs.hide[item.key];
     await this.store.put(job);
     this.notify();
   }

@@ -12,6 +12,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - **"You were working on this"**: open a tab or file from a packed folder yourself, and Stashd offers to Unpack the rest.
 - **Chrome tab groups**: Unpack puts a folder's Chrome tabs in a group named after the folder (needs Stashd's Chrome extension, Settings > Privacy).
 - **Rename in the menu bar panel**: double-click a folder's name.
+- **Remove things from a folder**: hover over an item under What's inside and click the trash, with Undo.
 - Save the Claude or ChatGPT chat you're in, and reopen that exact Claude chat on Unpack.
 - Unpack by type (files, tabs, apps, chats) or item by item, with Open everything beside it.
 - Real Mac icons for files, apps and browser tabs.

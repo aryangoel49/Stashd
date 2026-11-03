@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { Brief, BriefView, OpenKind, OpenResult } from '../shared/types';
+import type { Brief, BriefView, Item, OpenKind, OpenResult } from '../shared/types';
 import { openKindOf } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
@@ -77,6 +77,17 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
   const [result, setResult] = useState<OpenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showItems, setShowItems] = useState(false);
+  // Taking something out of the folder: one click, with Undo for a few seconds.
+  const isLatest = !view.history.length || view.history[0].id === entry.id;
+  const [removed, setRemoved] = useState<Item | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(undoTimer.current), []);
+  const remove = (it: Item) => {
+    setRemoved(it);
+    clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setRemoved(null), 6000);
+    void api.removeItem(job.id, it.key).catch((e) => setError(errorText(e)));
+  };
   const [feedback, setFeedback] = useState<'none' | 'asking' | 'sent'>(entry.feedback ? 'sent' : 'none');
   const [comment, setComment] = useState('');
   const needed = new Set(brief.needed);
@@ -165,8 +176,9 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
         </button>
         <Reveal show={showItems}>
         <div className="items-list">
-          {entry.items.map((it) =>
-            current ? (
+          {entry.items.map((it) => (
+            <div key={it.key} className="item-line">
+            {current ? (
               <div key={it.key} className={`item-row ${needed.has(it.key) ? 'need' : ''}`} title={it.detail}>
                 <ItemBadge item={it} size={18} />
                 <span className="lbl">{titleOf(it)}</span>
@@ -186,9 +198,31 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
                 <span className="lbl">{titleOf(it)}</span>
                 <span className="det">{it.kind === 'app' ? (it.chat ? `${it.app} chat` : '') : describe(it)}</span>
               </button>
-            ),
-          )}
+            )}
+            {isLatest && (
+              <button type="button" className="item-remove" title="Remove from this folder" aria-label={`Remove ${titleOf(it)} from this folder`} onClick={() => remove(it)}>
+                <Icon name="trash" />
+              </button>
+            )}
+            </div>
+          ))}
         </div>
+        {removed && (
+          <div className="item-undo">
+            <span className="grow">Removed {titleOf(removed)}</span>
+            <button
+              type="button"
+              className="link tiny"
+              onClick={() => {
+                const it = removed;
+                setRemoved(null);
+                void api.restoreItem(job.id, it.key).catch((e) => setError(errorText(e)));
+              }}
+            >
+              Undo
+            </button>
+          </div>
+        )}
       </Reveal>
       </div>
 

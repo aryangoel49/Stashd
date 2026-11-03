@@ -37,6 +37,7 @@ const api = {
   openJob: (jobId: string, entryId: string | null, mode: 'needed' | 'all', keys?: string[]) => invoke<OpenResult>('jobs:open', jobId, entryId, mode, keys),
   openItem: (jobId: string, key: string) => invoke<OpenResult>('jobs:openItem', jobId, key),
   removeItem: (jobId: string, key: string) => invoke<void>('jobs:removeItem', jobId, key),
+  restoreItem: (jobId: string, key: string) => invoke<void>('jobs:restoreItem', jobId, key),
   moveItem: (fromJobId: string, key: string, toJobId: string) => invoke<void>('jobs:moveItem', fromJobId, key, toJobId),
   renameJob: (jobId: string, name: string) => invoke<void>('jobs:rename', jobId, name),
   setDone: (jobId: string, done: boolean) => invoke<void>('jobs:done', jobId, done),

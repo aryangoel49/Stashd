@@ -399,3 +399,20 @@ describe('Pinning and ⌃O', () => {
     expect(pins).toEqual([a]);
   });
 });
+
+describe('Removing from a folder', () => {
+  it('takes an item out, and Undo puts it back', async () => {
+    const core = makeCore();
+    open = [tab(1, 'Flights to Tokyo'), tab(2, 'Ryokans in Kyoto')];
+    core.beginSave();
+    await core.preview({ asNew: true });
+    const { jobId } = await core.commitSave({ jobId: null, name: 'Japan trip', note: '', keys: open.map((i) => i.key), tidy: true });
+    // Let the brief for the new save finish writing first.
+    await new Promise((r) => setTimeout(r, 200));
+    await core.removeItem(jobId, tab(2).key);
+    expect((await core.store.latest(jobId))!.items.map((i) => i.key)).toEqual([tab(1).key]);
+    await core.restoreItem(jobId, tab(2).key);
+    expect((await core.store.latest(jobId))!.items.map((i) => i.key)).toEqual([tab(1).key, tab(2).key]);
+    await expect(core.restoreItem(jobId, tab(2).key)).rejects.toThrow();
+  });
+});
