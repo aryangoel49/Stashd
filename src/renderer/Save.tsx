@@ -66,7 +66,7 @@ function SaveBox() {
     }
   };
 
-  const load = async (opts: { asNew?: boolean; jobId?: string } = {}) => {
+  const load = async (opts: { asNew?: boolean; asFolder?: boolean; jobId?: string } = {}) => {
     setError(null);
     const id = ++loadId.current;
     try {
@@ -273,7 +273,7 @@ function SaveBox() {
               <FolderMark size={34} alive mood="happy" />
               <div className="grow">
                 <div className="save-break-title">Taking a break?</div>
-                <div className="muted small">Put {preview.onlyBreaks.length === 1 ? 'this' : 'these'} on your Break shelf to pick up later.</div>
+                <div className="muted small">Put {preview.onlyBreaks.length === 1 ? 'this' : 'these'} on your Break shelf to pick up later. Closes the {preview.onlyBreaks.length === 1 ? 'tab' : 'tabs'}; Undo brings {preview.onlyBreaks.length === 1 ? 'it' : 'them'} back.</div>
               </div>
             </div>
             <div className="pills no-drag" style={{ padding: '4px 0 10px' }}>
@@ -290,7 +290,9 @@ function SaveBox() {
             </div>
             {error && <div className="banner no-drag">{error}</div>}
             <div className="save-foot no-drag">
-              <span className="muted small">Closes the {preview.onlyBreaks.length === 1 ? 'tab' : 'tabs'}. Undo brings {preview.onlyBreaks.length === 1 ? 'it' : 'them'} back.</span>
+              <button type="button" className="save-break-folder muted small" onClick={() => void load({ asFolder: true })} title="This is work: put it in a folder">
+                Save as a folder instead
+              </button>
               <span className="grow" />
               <Button variant="ghost" type="button" onClick={() => void cancel()} title="Close without doing anything (Esc)">
                 Cancel

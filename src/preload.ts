@@ -19,7 +19,7 @@ const api = {
   connectClaude: (key: string) => invoke<boolean>('claude:connect', key),
   openClaudeKeysPage: () => invoke<boolean>('claude:openKeysPage'),
 
-  previewSave: (opts: { asNew?: boolean; jobId?: string } = {}) => invoke<SavePreview>('save:preview', opts),
+  previewSave: (opts: { asNew?: boolean; asFolder?: boolean; jobId?: string } = {}) => invoke<SavePreview>('save:preview', opts),
   commitSave: (req: SaveRequest) => invoke<SaveResult>('save:commit', req),
   cancelSave: () => invoke<boolean>('save:cancel'),
   shelveBreaks: (keys: string[]) => invoke<boolean>('save:shelve', keys),

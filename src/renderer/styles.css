@@ -738,3 +738,5 @@ details summary { cursor: default; }
 .cw-x:hover { color: var(--text); background: var(--well-hover); }
 
 .save-break-title { font-size: 16px; font-weight: 700; }
+.save-break-folder { background: none; border: 0; padding: 4px 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
+.save-break-folder:hover { color: var(--text, inherit); }

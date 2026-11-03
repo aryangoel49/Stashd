@@ -183,7 +183,8 @@ export class Core {
     }
   }
 
-  async preview(opts: { asNew?: boolean; jobId?: string } = {}): Promise<SavePreview> {
+  /** `asFolder`: you said "Save as a folder instead" to the Break offer, so the videos go in a folder. */
+  async preview(opts: { asNew?: boolean; asFolder?: boolean; jobId?: string } = {}): Promise<SavePreview> {
     if (!this.pending) this.beginSave();
     // Hold on to this save: Escape or a new shortcut press may replace this.pending while we work.
     const pending = this.pending!;
@@ -238,7 +239,7 @@ export class Core {
     const previous = latest?.items ?? [];
     const baseline = job && this.state.baseline?.jobId === job.id ? new Set(this.state.baseline.keys) : undefined;
     if (job) await addVectors(profileTexts(jobProfile(job.name, latest?.note ?? '', previous, learnedAvoid(job.prefs), job.card)));
-    const offered = classify({
+    const classified = classify({
       items: cap.items,
       job,
       previous,
@@ -250,6 +251,7 @@ export class Core {
       frontKey,
       meaning: vectors.size ? lookup : undefined,
     });
+    const offered = opts.asFolder ? { ...classified, sure: [...classified.sure, ...classified.breaks], breaks: [] } : classified;
     // Things that belong to this job but aren't open right now (closed by accident, say) are kept.
     const openKeys = new Set(cap.items.map(looseKey));
     const kept = previous
@@ -259,7 +261,7 @@ export class Core {
     pending.kept = kept;
     // Nothing to work on is open, or you're on a video and nothing else would go in a new folder:
     // ⌃S offers the Break shelf instead of making a folder out of the video.
-    const breakTime = !opts.jobId && !pending.target && (!workThere || (!job && !offered.sure.some((i) => !isBreakItem(i))));
+    const breakTime = !opts.asFolder && !opts.jobId && !pending.target && (!workThere || (!job && !offered.sure.some((i) => !isBreakItem(i))));
     const visibleItems = [...offered.sure, ...offered.likely, ...offered.maybe];
     const front = frontItemKey(visibleItems, cap.appOrder);
     const before = new Set(previous.flatMap(matchKeys));

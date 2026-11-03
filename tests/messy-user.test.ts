@@ -451,6 +451,10 @@ describe('Ctrl+S while watching a video, with unrelated tabs open', () => {
     const p = await core.preview();
     expect(p.jobId).toBeNull();
     expect(p.onlyBreaks.map((i) => i.key)).toEqual([video.key]);
+    // "Save as a folder instead": the video is ticked for a new folder.
+    const f = await core.preview({ asFolder: true });
+    expect(f.onlyBreaks).toEqual([]);
+    expect(f.sure.map((i) => i.key)).toContain(video.key);
   });
 });
 
