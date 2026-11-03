@@ -202,18 +202,19 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 .flyer { position: fixed; z-index: 50; pointer-events: none; margin: 0; }
 
 /* ---------- the demo explains itself: a caption, a glow on what matters, a pointer that clicks along ---------- */
-.demo-col { min-width: 0; }
+.demo-col { min-width: 0; display: flex; flex-direction: column; }
 .cursor { position: absolute; left: 60%; top: 70%; width: 26px; height: 26px; z-index: 20; pointer-events: none; opacity: 0; transition: left 0.8s cubic-bezier(0.45, 0, 0.25, 1), top 0.8s cubic-bezier(0.45, 0, 0.25, 1), opacity 0.3s, transform 0.15s; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35)); }
 .cursor.on { opacity: 1; }
 .cursor.press { transform: scale(0.82); }
 .spot { box-shadow: 0 0 0 3px rgba(242,205,92,0.95), 0 0 0 9px rgba(242,205,92,0.28) !important; border-radius: 10px; transition: box-shadow 0.3s; }
-.demo-cap { margin-top: 18px; background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 18px; padding: 14px 18px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-.cap-step { font: 700 13px var(--body); color: #9a7300; }
-.cap-text { font-size: 18px; line-height: 1.45; margin-top: 2px; min-height: 52px; animation: capin 0.4s var(--ease-out); }
+/* The caption is the demo's voice: dark and large, so it's read before anything else. */
+.demo-cap { margin-top: 18px; background: #1c1d22; color: #fffdf6; border-radius: 20px; padding: 16px 20px 14px; box-shadow: 0 22px 44px -24px rgba(28,29,34,0.7); }
+.cap-step { display: inline-flex; font: 700 13px var(--body); color: #1c1d22; background: var(--butter); border-radius: 999px; padding: 3px 11px; }
+.cap-text { font-size: 20px; font-weight: 500; line-height: 1.4; margin-top: 10px; min-height: 56px; animation: capin 0.4s var(--ease-out); }
 @keyframes capin { from { opacity: 0; transform: translateY(4px); } }
-.cap-ctrl { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 14px; color: var(--ink-soft); flex-wrap: wrap; }
-.cap-btn { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 5px 14px; font: 600 14px var(--body); cursor: pointer; color: var(--ink); }
-.cap-btn:hover { border-color: var(--butter-deep); }
+.cap-ctrl { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 14px; color: rgba(255,253,246,0.6); flex-wrap: wrap; }
+.cap-btn { border: 1px solid rgba(255,253,246,0.22); background: rgba(255,253,246,0.08); border-radius: 999px; padding: 5px 14px; font: 600 14px var(--body); cursor: pointer; color: #fffdf6; }
+.cap-btn:hover { border-color: var(--butter); }
 @media (max-width: 560px) {
   .sb { padding: 12px 12px 10px; top: 40px; }
   .sb-top .sel { display: none; }
@@ -226,7 +227,8 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
   .guide .btn { min-width: 0; padding: 8px 12px; font-size: 14px; }
   .steps-mini .sep { width: 8px; }
   .nudge { display: none; }
-  .cap-text { font-size: 16.5px; }
+  .cap-text { font-size: 18px; min-height: 76px; }
+  .demo-cap { order: -1; margin: 0 0 12px; }
   .win b { max-width: 150px; }
 }
 
@@ -312,8 +314,10 @@ section { padding-block: 112px; }
 .steps { margin-top: 56px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .step { background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 24px; padding: 22px 24px 26px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .step .pic { height: 132px; border-radius: 16px; background: rgba(28,29,34,0.04); display: grid; place-items: center; position: relative; overflow: hidden; }
-.step .n { font: 800 15px var(--display); color: var(--butter-deep); margin-top: 20px; }
-.step h3 { font-size: 26px; margin-top: 2px; }
+/* Each step carries its own big number, so the "three" lives in the steps themselves. */
+.step-head { display: flex; align-items: baseline; gap: 12px; margin-top: 18px; }
+.step .n { font: 800 64px/0.8 var(--display); color: var(--butter); letter-spacing: -0.04em; text-shadow: 0 8px 22px rgba(214,170,40,0.3); flex: none; }
+.step h3 { font-size: 26px; }
 .step p { margin-top: 8px; color: var(--ink-soft); font-size: 17px; }
 .keys { display: flex; gap: 10px; align-items: flex-end; }
 .key { min-width: 56px; height: 56px; padding: 0 14px; border-radius: 12px; background: #fff; border: 1px solid var(--line); box-shadow: 0 4px 0 #e2d7b4; display: grid; place-items: center; font: 700 17px var(--display); transition: transform 0.12s, box-shadow 0.12s; }
@@ -328,14 +332,11 @@ section { padding-block: 112px; }
 .mini-brief .ln { height: 7px; border-radius: 4px; background: #eee8d5; margin-top: 6px; transform-origin: left; }
 
 /* "Just three steps": the big moment. A giant 3 that drops in with a bounce, then the words. */
-.three { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 36px; align-items: center; }
-.big3 { font: 800 clamp(190px, 26vw, 330px)/0.8 var(--display); color: var(--butter); text-shadow: 0 18px 40px rgba(214,170,40,0.35); letter-spacing: -0.07em; display: inline-block; transform-origin: 50% 90%; }
-.js .three.reveal .big3 { transform: scale(0.4) rotate(-14deg); opacity: 0; transition: transform 0.9s cubic-bezier(0.34, 1.7, 0.5, 1), opacity 0.4s; }
-.js .three.reveal.in .big3 { transform: none; opacity: 1; }
+.three { max-width: 760px; }
 .three-kicker { font: 700 17px var(--body); color: #9a7300; }
 .three h2 { font-size: clamp(40px, 5.4vw, 68px); line-height: 1; font-weight: 800; margin-top: 6px; }
 .three-copy > p:last-child { margin-top: 18px; font-size: 20px; color: var(--ink-soft); max-width: 46ch; }
-@media (max-width: 700px) { .three { grid-template-columns: 1fr; gap: 8px; } .big3 { font-size: 170px; } }
+
 
 /* ---------- feature chapters ---------- */
 .chapter { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 72px; align-items: center; padding-block: 72px; }
@@ -565,7 +566,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     <div class="demo-cap" id="demoCap">
       <div class="cap-step" id="capStep">Step 1 of 4 · Stash</div>
       <p class="cap-text" id="capText">You're planning a trip to Japan, with a basketball game open too. Press ⌃S to stash the trip.</p>
-      <div class="cap-ctrl"><button type="button" class="cap-btn" id="autoBtn">▶ Play it for me</button><span>or click along yourself</span></div>
+      <div class="cap-ctrl"><button type="button" class="cap-btn" id="autoBtn">▶ Play</button><span>or click along yourself</span></div>
     </div>
     </div>
   </div>
@@ -573,7 +574,6 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   <section id="how">
     <div class="wrap">
       <div class="three reveal" id="three">
-        <span class="big3" aria-hidden="true">3</span>
         <div class="three-copy">
           <p class="three-kicker">That's the whole app.</p>
           <h2>Just three steps.<br>Two of them are one key.</h2>
@@ -583,15 +583,15 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       <div class="steps">
         <div class="step reveal" style="--d:0ms">
           <div class="pic"><div class="keys" id="keys"><span class="key wide">control</span><span class="key">S</span></div></div>
-          <div class="n">Step 1</div><h3>Stash</h3><p>Press ⌃S. Stashd ticks only what belongs to the project you're on. Add a note for later if you like.</p>
+          <div class="step-head"><span class="n" aria-label="Step 1">1</span><h3>Stash</h3></div><p>Press ⌃S. Stashd ticks only what belongs to the project you're on. Add a note for later if you like.</p>
         </div>
         <div class="step reveal" style="--d:140ms">
           <div class="pic" id="packPic"><div class="mini-bar"><span data-folder="bare"></span></div><div class="chiplets"><span class="chiplet" style="background:#4285f4">G</span><span class="chiplet" style="background:#003b95">B</span><span class="chiplet" style="background:#2b5fb4">W</span></div></div>
-          <div class="n">Step 2</div><h3>Pack up</h3><p>The windows fly into the menu bar and the folder goes to sleep. Unsaved work still asks to be saved first.</p>
+          <div class="step-head"><span class="n" aria-label="Step 2">2</span><h3>Pack up</h3></div><p>The windows fly into the menu bar and the folder goes to sleep. Unsaved work still asks to be saved first.</p>
         </div>
         <div class="step reveal" style="--d:280ms">
           <div class="pic" id="unpackPic"><div class="mini-brief"><b>Japan trip</b><div class="ln" style="width:92%"></div><div class="ln" style="width:70%"></div><div class="ln" style="width:80%;background:#f2cd5c"></div></div></div>
-          <div class="n">Step 3</div><h3>Unpack</h3><p>Open the folder when you're back. A short brief says where you stopped, and everything comes back.</p>
+          <div class="step-head"><span class="n" aria-label="Step 3">3</span><h3>Unpack</h3></div><p>Open the folder when you're back. A short brief says where you stopped, and everything comes back.</p>
         </div>
       </div>
     </div>
@@ -734,6 +734,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
   const $ = (id) => document.getElementById(id);
   const wait = (ms) => new Promise((r) => setTimeout(r, reduce ? 0 : ms));
+  // The demo's own pace, kept even with Reduce Motion so there's time to read each step.
+  const hold = (ms) => new Promise((r) => setTimeout(r, ms));
   const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="#1c1d22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12l4 4 8-8"/></svg>';
 
   // ---------- the folder ----------
@@ -961,25 +963,26 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     cursor.style.left = `${r.left - m.left + r.width * 0.55}px`;
     cursor.style.top = `${r.top - m.top + r.height * 0.5}px`;
     cursor.classList.add('on');
-    await wait(900);
-    cursor.classList.add('press'); await wait(160); cursor.classList.remove('press');
+    await hold(700);
+    cursor.classList.add('press'); await hold(160); cursor.classList.remove('press');
   };
   async function autoplay() {
     const run = ++autoRun;
     const live = () => auto && run === autoRun;
+    let first = true;
     while (live()) {
-      if (state !== 'open') { await wait(400); continue; }
-      await wait(1800); if (!live()) break;
+      if (state !== 'open') { await hold(400); continue; }
+      await hold(first ? 250 : 1800); first = false; if (!live()) break;
       for (const [el, fn, ms] of [[() => demo, stash, 3900], [() => $('pack'), packUp, 3400], [() => tray, openPanel, 2600], [() => $('rowUnpack'), openBrief, 3600], [() => $('mpUnpack'), unpack, 4200]]) {
         await moveCursor(el()); if (!live()) break;
-        fn(); await wait(ms); if (!live()) break;
+        fn(); await hold(ms); if (!live()) break;
       }
     }
     if (run === autoRun) cursor.classList.remove('on');
   }
   const setAuto = (on) => {
-    auto = on && !reduce;
-    autoBtn.textContent = auto ? '❚❚ Pause' : '▶ Play it for me';
+    auto = on;
+    autoBtn.textContent = auto ? '❚❚ Pause' : '▶ Play';
     if (auto) { nudge.classList.add('off'); demo.classList.remove('pulse'); autoplay(); } else { autoRun++; cursor.classList.remove('on'); }
   };
   autoBtn.addEventListener('click', () => setAuto(!auto));
@@ -987,7 +990,8 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   mac.addEventListener('pointerdown', (e) => { if (e.isTrusted && auto) setAuto(false); }, true);
   addEventListener('keydown', (e) => { if (auto && e.ctrlKey && (e.key === 's' || e.key === 'S')) setAuto(false); }, true);
   // Starts playing by itself the first time the demo is on screen.
-  if (!reduce) new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { o.disconnect(); setTimeout(() => { if (state === 'open' && !auto) setAuto(true); }, 1200); } }), { threshold: 0.6 }).observe(mac);
+  // (Reduce Motion doesn't stop it: the demo is how the page explains the app; its moves are just gentler.)
+  new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { o.disconnect(); if (state === 'open' && !auto) setAuto(true); } }), { threshold: 0.3 }).observe(mac);
   demo.addEventListener('click', next);
   tray.addEventListener('click', () => (state === 'packed' ? openPanel() : state === 'list' || state === 'brief' ? (panel.classList.remove('on'), tray.classList.remove('on'), state = 'packed', tray.classList.add('call'), step(2, 'Open the folder', '')) : null));
   $('pack').addEventListener('click', packUp);
