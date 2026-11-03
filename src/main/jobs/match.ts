@@ -99,7 +99,7 @@ export function classify(input: ClassifyInput): Classified {
   const hidden: Item[] = [];
   const candidates: Item[] = [];
   for (const it of items) {
-    if (isLifestyle(it, input.settings, input.learnedLifestyleApps) || (prefs.hide[it.key] ?? 0) >= 2) hidden.push(it);
+    if (isLifestyle(it, input.settings, input.learnedLifestyleApps)) hidden.push(it);
     else candidates.push(it);
   }
   const profile = job ? jobProfile(input.name || job.name, input.note ?? '', input.previous, learnedAvoid(prefs)) : null;
@@ -111,6 +111,9 @@ export function classify(input: ClassifyInput): Classified {
     // A brand-new unsaved document is almost always what you're working on, and so is
     // anything you've added to this job by hand twice.
     alwaysSure: (it) => it.untitled === true || (prefs.add[it.key] ?? 0) >= 2,
+    // Left out of this job twice (or taken out): never ticked by itself, but never hidden either.
+    // It's offered under "looks related" when it clearly fits, else under "Not sure".
+    leftOut: (it) => (prefs.hide[it.key] ?? 0) >= 2,
     meaning: input.meaning,
   });
   return { sure: g.sure, likely: g.likely, maybe: g.maybe, hidden, why: g.why };

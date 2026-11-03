@@ -46,12 +46,23 @@ describe('classify', () => {
     expect(r.maybe.map((i) => i.key)).toEqual([reddit.key]);
   });
 
-  it('hides items unticked twice and makes items added twice sure', () => {
+  it('never ticks items left out twice, but still offers them; items added twice are sure', () => {
     const j = job({ prefs: { hide: { [reddit.key]: 2 }, add: { [tab('https://youtube.com/x', 'APA').key]: 2 } } });
     const yt = tab('https://youtube.com/x', 'APA');
     const r = classify({ items: [reddit, yt], job: j, previous: [essay], name: 'Climate essay', settings: DEFAULT_SETTINGS });
-    expect(r.hidden).toEqual([reddit]);
+    expect(r.hidden).toEqual([]);
     expect(r.sure).toEqual([yt]);
+    expect([...r.likely, ...r.maybe]).toEqual([reddit]);
+    expect(r.why[reddit.key]).toContain('you left this out before');
+  });
+
+  it('offers a page you left out before under "looks related" when it clearly fits the project', () => {
+    const site = tab('https://getstashd.vercel.app/', 'Stashd · Put your work to bed');
+    const features = tab('https://getstashd.vercel.app/features.html', 'Stashd features');
+    const j = job({ name: 'Stashd project', prefs: { hide: { [features.key]: 2 }, add: {} } });
+    const r = classify({ items: [features], job: j, previous: [site], name: 'Stashd project', settings: DEFAULT_SETTINGS });
+    expect(r.likely).toEqual([features]);
+    expect(r.sure).toEqual([]);
   });
 
   it('highlights things opened since the job was unpacked, and always includes new unsaved documents', () => {

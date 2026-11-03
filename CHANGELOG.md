@@ -25,6 +25,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Folder rows are calmer: pin and delete appear on hover, the pinned folder is highlighted, and finished folders live in the Stashd window.
 
 ### Fixed
+- Something you left out of a folder before is no longer hidden for good: it's offered unticked, under "looks related" when it clearly fits.
 - Tabs that redirect after Unpack (sign-in pages) still count as the folder's, so Pack up closes them.
 - Finished folders you open again can be packed up.
 

@@ -314,6 +314,7 @@ export function group(opts: {
   frontKey: string | null;
   baseline?: Set<string>;
   alwaysSure?: (it: Item) => boolean;
+  leftOut?: (it: Item) => boolean;
   meaning?: MeaningLookup;
 }): Grouped {
   const { candidates } = opts;
@@ -359,6 +360,10 @@ export function group(opts: {
     const s = scores.get(it.key) ?? 0;
     if (it.key === opts.frontKey && isNew) out.sure.push(it);
     else if (opts.alwaysSure?.(it)) out.sure.push(it);
+    else if (opts.leftOut?.(it)) {
+      why[it.key] = [why[it.key], 'you left this out before'].filter(Boolean).join(', ');
+      (s >= SURE ? out.likely : out.maybe).push(it);
+    }
     else if (it.kind === 'app' && !it.chat && s < 10) out.maybe.push(it); // a bare app is never ticked on its own
     else if (s >= SURE) out.sure.push(it);
     else if (s >= LIKELY || (opts.baseline && !opts.baseline.has(it.key))) out.likely.push(it);
