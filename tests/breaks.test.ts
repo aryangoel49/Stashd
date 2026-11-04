@@ -82,6 +82,23 @@ describe('Continue watching', () => {
     expect(keepFor(ep4, [ep4, ep5])).toBe(30 * DAY);
   });
 
+  it('never keeps Shorts, Reels or TikToks, only long videos', async () => {
+    const { BreakStore } = await import('../src/main/breaks');
+    const { mkdtemp } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const store = new BreakStore(await mkdtemp(join(tmpdir(), 'shelf-')));
+    const long = t('https://www.youtube.com/watch?v=1', 'A long video');
+    await store.add([
+      long,
+      t('https://www.youtube.com/shorts/abc', 'A short'),
+      t('https://www.instagram.com/reel/xyz/', 'A reel'),
+      t('https://www.tiktok.com/@someone/video/123', 'A TikTok'),
+      t('https://www.facebook.com/reel/456', 'A Facebook reel'),
+    ]);
+    expect((await store.get()).items.map((i) => i.url)).toEqual([long.url]);
+  });
+
   it('notices a video you closed, and only videos', async () => {
     const { Noticer } = await import('../src/main/noticer');
     const vid = t('https://www.youtube.com/watch?v=9', 'Some clip');

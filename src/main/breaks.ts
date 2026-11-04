@@ -43,6 +43,22 @@ export function isBreakItem(item: Item): boolean {
   }
 }
 
+/** Short videos you scroll through (YouTube Shorts, Reels, TikTok): never kept on the shelf, there's nothing to carry on with. */
+export function isShortForm(url: string): boolean {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
+    const p = u.pathname.toLowerCase();
+    if (host === 'tiktok.com' || host.endsWith('.tiktok.com')) return true;
+    if (host === 'youtube.com' || host.endsWith('.youtube.com')) return p.startsWith('/shorts');
+    if (host === 'instagram.com' || host === 'facebook.com') return /^\/(reels?|stories)(\/|$)/.test(p);
+    if (host === 'snapchat.com') return p.startsWith('/spotlight');
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 const DAY = 24 * 60 * 60_000;
 
 /**
@@ -85,7 +101,7 @@ export class BreakStore {
       // first time
     }
     const shelf: BreakShelf = {
-      items: Array.isArray(raw.items) ? raw.items.filter((i) => i && typeof i.key === 'string' && typeof i.url === 'string') : [],
+      items: Array.isArray(raw.items) ? raw.items.filter((i) => i && typeof i.key === 'string' && typeof i.url === 'string' && !isShortForm(i.url)) : [],
       places: Array.isArray(raw.places) ? raw.places.filter((p) => p && typeof p.name === 'string' && typeof p.url === 'string') : DEFAULT_PLACES,
       browser: raw.browser ?? null,
     };
@@ -105,7 +121,7 @@ export class BreakStore {
     const now = new Date().toISOString();
     const before = new Map(shelf.items.map((i) => [looseKey(i), i]));
     const fresh: BreakItem[] = items
-      .filter((i) => i.url)
+      .filter((i) => i.url && !isShortForm(i.url))
       .map((i) => {
         const had = before.get(looseKey(i));
         return { ...i, active: false, notOpen: undefined, group: undefined, savedAt: now, openedAt: had?.openedAt, opens: had?.opens };
