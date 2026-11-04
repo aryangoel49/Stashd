@@ -685,6 +685,9 @@ details summary { cursor: default; }
 .site-tile.add { background: var(--well); color: var(--faint); border-radius: 10px; }
 .site-tile.add svg { width: 16px; height: 16px; }
 .break-rows { display: flex; flex-direction: column; gap: 2px; }
+.break-more { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; margin: 2px 0 0 8px; }
+.break-more svg { width: 12px; height: 12px; transform: rotate(90deg); transition: transform 160ms ease-out; }
+.break-more[aria-expanded="true"] svg { transform: rotate(-90deg); }
 .break-row { display: flex; align-items: center; gap: 4px; border-radius: 14px; padding-right: 4px; transition: background 0.2s var(--ease); }
 .break-row:hover { background: var(--well); }
 .break-main { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 8px; border: none; background: none; text-align: left; color: inherit; cursor: pointer; }

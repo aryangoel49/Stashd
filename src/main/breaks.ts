@@ -63,7 +63,7 @@ const DEFAULT_PLACES: BreakPlace[] = [
   { name: 'Spotify', url: 'https://open.spotify.com/' },
 ];
 
-const MAX_SHELF = 30;
+const MAX_SHELF = 12;
 
 export class BreakStore {
   private file: string;

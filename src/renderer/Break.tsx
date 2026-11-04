@@ -1,5 +1,5 @@
-// The Break side of the menu bar panel: what you were watching or listening to (put here by Tidy all),
-// your places (YouTube, Netflix…), and where they open. The first time you open something it asks which
+// The Break side of the menu bar panel: your places (YouTube, Netflix…) up top, then what you were watching
+// (put here by Tidy all), and where they open. The first time you open something it asks which
 // browser; the "Opens in …" line changes it any time.
 
 import { useEffect, useMemo, useState } from 'react';
@@ -108,6 +108,7 @@ export function BreakView() {
   const [shelf, setShelf] = useState<BreakShelf | null>(null);
   const [asking, setAsking] = useState<string | null | 'change'>(null);
   const [adding, setAdding] = useState(false);
+  const [more, setMore] = useState(false);
   const [newUrl, setNewUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -176,61 +177,6 @@ export function BreakView() {
 
   return (
     <div className="break-view">
-      {list.length > 0 ? (
-        <>
-          <div className="eyebrow list-label">Continue watching</div>
-          {/* The last thing you were watching or playing, up top; everything else underneath. */}
-          {(() => {
-            const [top, ...rest] = list;
-            const remove = (r: Row) => void Promise.all(r.items.map((it) => api.changeBreak({ removeItem: it.key }))).then((all) => all.length && setShelf(all[all.length - 1]));
-            return (
-              <>
-                <motion.div key={top.key} className="cw-hero" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-                  <button type="button" className="cw-main" onClick={() => open(top.url)} title={`Resume ${top.title}`}>
-                    <SiteTile url={top.url} size={44} />
-                    <span className="grow" style={{ minWidth: 0 }}>
-                      <span className="cw-title">{top.title}</span>
-                      <span className="break-sub">{top.sub}</span>
-                    </span>
-                  </button>
-                  <div className="cw-acts">
-                    <Button variant="primary" size="small" onClick={() => open(top.url)}>
-                      ▶ Resume
-                    </Button>
-                    <button type="button" className="cw-x" aria-label={`Remove ${top.title}`} title="Done with it: remove" onClick={() => remove(top)}>
-                      ✕
-                    </button>
-                  </div>
-                </motion.div>
-                {rest.length > 0 && (
-                  <div className="break-rows">
-                    {rest.slice(0, 6).map((r, i) => (
-                      <motion.div key={r.key} className="break-row" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.03 }}>
-                        <button type="button" className="break-main" onClick={() => open(r.url)} title={`Open ${r.title}`}>
-                          <SiteTile url={r.url} />
-                          <span className="grow">
-                            <span className="break-title">{r.title}</span>
-                            <span className="break-sub">{r.sub}</span>
-                          </span>
-                        </button>
-                        <button type="button" className="cw-x" aria-label={`Remove ${r.title}`} title="Done with it: remove" onClick={() => remove(r)}>
-                          ✕
-                        </button>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </>
-            );
-          })()}
-        </>
-      ) : (
-        <div className="break-empty">
-          <FolderMark size={34} mood="sleep" />
-          <span>Videos you close, or that Tidy all puts away, show up here so you can carry on.</span>
-        </div>
-      )}
-
       <div className="eyebrow list-label">Your places</div>
       <div className="place-grid">
         {shelf.places.map((p) => (
@@ -258,6 +204,66 @@ export function BreakView() {
           </button>
         )}
       </div>
+
+      {list.length > 0 ? (
+        <>
+          <div className="eyebrow list-label">Continue watching</div>
+          {/* The last thing you were watching or playing, up top; the next two under it, the rest behind "N more". */}
+          {(() => {
+            const [top, ...rest] = list;
+            const remove = (r: Row) => void Promise.all(r.items.map((it) => api.changeBreak({ removeItem: it.key }))).then((all) => all.length && setShelf(all[all.length - 1]));
+            return (
+              <>
+                <motion.div key={top.key} className="cw-hero" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                  <button type="button" className="cw-main" onClick={() => open(top.url)} title={`Resume ${top.title}`}>
+                    <SiteTile url={top.url} size={44} />
+                    <span className="grow" style={{ minWidth: 0 }}>
+                      <span className="cw-title">{top.title}</span>
+                      <span className="break-sub">{top.sub}</span>
+                    </span>
+                  </button>
+                  <div className="cw-acts">
+                    <Button variant="primary" size="small" onClick={() => open(top.url)}>
+                      ▶ Resume
+                    </Button>
+                    <button type="button" className="cw-x" aria-label={`Remove ${top.title}`} title="Done with it: remove" onClick={() => remove(top)}>
+                      ✕
+                    </button>
+                  </div>
+                </motion.div>
+                {rest.length > 0 && (
+                  <div className="break-rows">
+                    {(more ? rest : rest.slice(0, 2)).map((r, i) => (
+                      <motion.div key={r.key} className="break-row" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.03 }}>
+                        <button type="button" className="break-main" onClick={() => open(r.url)} title={`Open ${r.title}`}>
+                          <SiteTile url={r.url} />
+                          <span className="grow">
+                            <span className="break-title">{r.title}</span>
+                            <span className="break-sub">{r.sub}</span>
+                          </span>
+                        </button>
+                        <button type="button" className="cw-x" aria-label={`Remove ${r.title}`} title="Done with it: remove" onClick={() => remove(r)}>
+                          ✕
+                        </button>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+                {rest.length > 2 && (
+                  <button type="button" className="break-more link small" aria-expanded={more} onClick={() => setMore(!more)}>
+                    {more ? 'Show less' : `${rest.length - 2} more`} <Icon name="chevron" />
+                  </button>
+                )}
+              </>
+            );
+          })()}
+        </>
+      ) : (
+        <div className="break-empty">
+          <FolderMark size={34} mood="sleep" />
+          <span>Videos you close, or that Tidy all puts away, show up here so you can carry on.</span>
+        </div>
+      )}
 
       <div className="break-foot">
         <span>{shelf.browser ? `Opens in ${whereLabel(shelf.browser)}` : 'Asks where to open the first time'}</span>
