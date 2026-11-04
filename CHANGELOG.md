@@ -3,7 +3,9 @@
 What changed in each version of Stashd, for people using it. Versions follow semantic versioning:
 a new feature moves the middle number (1.4.0), a release of only bug fixes moves the last (1.4.1).
 
-## Unreleased (1.4.0)
+## Unreleased
+
+## 1.4.0 (2026-11-04)
 
 ### Added
 - **Break**: a Work / Break switch in the menu bar panel. Tidy all puts what you were watching on your Break shelf (episodes of a show together), next to your places (YouTube, Netflix, Spotify, or your own). It asks once which browser to open them in.
