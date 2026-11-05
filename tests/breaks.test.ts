@@ -82,6 +82,21 @@ describe('Continue watching', () => {
     expect(keepFor(ep4, [ep4, ep5])).toBe(30 * DAY);
   });
 
+  it('renames a place in its spot, and removes one', async () => {
+    const { BreakStore } = await import('../src/main/breaks');
+    const { mkdtemp } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const store = new BreakStore(await mkdtemp(join(tmpdir(), 'shelf-')));
+    const before = (await store.get()).places.map((p) => p.url);
+    await store.renamePlace(before[0], 'Tube');
+    const after = (await store.get()).places;
+    expect(after.map((p) => p.url)).toEqual(before);
+    expect(after[0].name).toBe('Tube');
+    await store.removePlace(before[0]);
+    expect((await store.get()).places.map((p) => p.url)).toEqual(before.slice(1));
+  });
+
   it('never keeps Shorts, Reels or TikToks, only long videos', async () => {
     const { BreakStore } = await import('../src/main/breaks');
     const { mkdtemp } = await import('node:fs/promises');

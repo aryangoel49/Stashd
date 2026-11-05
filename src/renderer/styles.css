@@ -689,7 +689,20 @@ details summary { cursor: default; }
 .nf-places { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
 .nf-place { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; padding: 10px 2px 8px; border: none; border-radius: 14px; background: none; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; transition: background 150ms ease, color 150ms ease, transform 160ms var(--ease-out, ease-out); }
 .nf-place > span:last-child { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.nf-place:hover { background: var(--well); color: var(--text); }
+.nf-place:hover { background: rgba(28, 29, 34, 0.045); color: var(--text); }
+.nf-place .site-tile { transition: transform 200ms var(--ease-out, ease-out), box-shadow 200ms ease; }
+@media (hover: hover) and (pointer: fine) { .nf-place:hover .site-tile { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(28, 29, 34, 0.14); } }
+@media (prefers-color-scheme: dark) { .nf-place:hover { background: rgba(255, 255, 255, 0.06); } }
+.nf-place-wrap { position: relative; min-width: 0; }
+.nf-place-wrap > .nf-place { width: 100%; }
+.nf-place-tools { position: absolute; top: 3px; right: 3px; display: flex; gap: 2px; opacity: 0; transition: opacity 120ms ease-out; }
+.nf-place-wrap:hover .nf-place-tools, .nf-place-tools:focus-within { opacity: 1; }
+.nf-place-tools button { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: rgba(28, 29, 34, 0.55); color: #fff; font-size: 8.5px; cursor: pointer; transition: background 120ms ease; }
+.nf-place-tools button:hover { background: rgba(28, 29, 34, 0.8); }
+.nf-place-tools svg { width: 10px; height: 10px; }
+.nf-place-renaming { cursor: default; }
+.nf-place-renaming:hover { background: none; }
+.nf-place-renaming .name-edit { margin: 0; padding: 1px 4px; font-size: 12px; text-align: center; }
 .nf-place:active { transform: scale(0.96); }
 .nf-place .site-tile { border-radius: 12px; }
 .nf-add { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--well); box-shadow: inset 0 0 0 0.5px var(--hair); color: var(--faint); }

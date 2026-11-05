@@ -181,6 +181,13 @@ export class BreakStore {
     await this.save(shelf);
   }
 
+  /** A place keeps its spot in the row when you rename it. */
+  async renamePlace(url: string, name: string): Promise<void> {
+    const shelf = await this.get();
+    shelf.places = shelf.places.map((p) => (p.url === url ? { ...p, name } : p));
+    await this.save(shelf);
+  }
+
   async removePlace(url: string): Promise<void> {
     const shelf = await this.get();
     shelf.places = shelf.places.filter((p) => p.url !== url);

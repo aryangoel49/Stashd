@@ -139,10 +139,12 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     const browsers = ['chrome', 'arc', 'safari', 'window'];
     if (c.browser != null && !browsers.includes(String(c.browser))) throw new Error('bad browser');
     const place = c.addPlace as Record<string, unknown> | undefined;
+    const rename = c.renamePlace as Record<string, unknown> | undefined;
     return core.changeBreak({
       browser: c.browser == null ? undefined : (String(c.browser) as 'chrome'),
       removeItem: c.removeItem == null ? undefined : v.itemKey(c.removeItem),
       addPlace: place ? { name: v.str(place.name, 'name', 40).trim() || 'Place', url: new URL(v.str(place.url, 'address', 2000)).toString() } : undefined,
+      renamePlace: rename ? { name: v.str(rename.name, 'name', 40).trim() || 'Place', url: v.str(rename.url, 'address', 2000) } : undefined,
       removePlace: c.removePlace == null ? undefined : v.str(c.removePlace, 'address', 2000),
     });
   });
