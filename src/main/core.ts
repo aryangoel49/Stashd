@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { mostlyOpen, type BriefView, type Capture, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult } from '../shared/types';
+import { mostlyOpen, type BriefView, type Capture, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, CHAT_APPS, frontItemKey } from './capture';
@@ -494,11 +494,16 @@ export class Core {
     this.notify();
   }
 
-  private async splitFinished(items: Item[]): Promise<{ finishedOnes: Item[]; rest: Item[] }> {
+  /** The rest keep how far in you got, for the progress bar on Continue watching. */
+  private async splitFinished(items: Item[]): Promise<{ finishedOnes: Item[]; rest: (Item & Pick<BreakItem, 'progress'>)[] }> {
     const s = this.settings.get();
-    const progress = await videoProgress((u) => cleanTabUrl(u, { keepQueryStrings: s.keepQueryStrings, excludedDomains: s.excludedDomains })).catch(() => new Map());
+    const progress = await videoProgress((u) => cleanTabUrl(u, { keepQueryStrings: s.keepQueryStrings, excludedDomains: s.excludedDomains })).catch(() => new Map<string, { t: number; d: number }>());
     const finishedOnes = items.filter((i) => finished(progress.get(videoKey(i.url ?? ''))));
-    return { finishedOnes, rest: items.filter((i) => !finishedOnes.includes(i)) };
+    const rest = items.filter((i) => !finishedOnes.includes(i)).map((i) => {
+      const p = progress.get(videoKey(i.url ?? ''));
+      return p ? { ...i, progress: p } : i;
+    });
+    return { finishedOnes, rest };
   }
 
   breakShelf(): Promise<BreakShelf> {

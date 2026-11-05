@@ -1,12 +1,12 @@
 // The Break side of the menu bar panel: your places (YouTube, Netflix…) up top, then what you were watching
-// (put here by Tidy all), and where they open. The first time you open something it asks which
+// (put here by Tidy all) as a row of thumbnails, and where they open. The first time you open something it asks which
 // browser; the "Opens in …" line changes it any time.
 
 import { useEffect, useMemo, useState } from 'react';
 import type { BreakItem, BreakShelf } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
-import { AnimatePresence, Button, FolderMark, motion } from './ui';
+import { Button, FolderMark, motion } from './ui';
 
 type Where = 'chrome' | 'arc' | 'safari' | 'window';
 const WHERE: { id: Where; label: string }[] = [
@@ -76,7 +76,7 @@ function showOf(title: string): string | null {
   return m ? m[1].replace(/[-–|:·,\s]+$/, '').trim() : null;
 }
 
-type Row = { key: string; title: string; sub: string; url: string; items: BreakItem[] };
+type Row = { key: string; title: string; site: string; meta: string; url: string; items: BreakItem[] };
 
 function rows(items: BreakItem[]): Row[] {
   const out: Row[] = [];
@@ -91,24 +91,84 @@ function rows(items: BreakItem[]): Row[] {
       const row = shows.get(id);
       if (row) {
         row.items.push(it);
-        row.sub = `${row.items.length} episodes · ${site}`;
+        row.meta = `${row.items.length} episodes`;
         continue;
       }
-      const r: Row = { key: `show:${id}`, title: show, sub: site, url: it.url!, items: [it] };
+      const r: Row = { key: `show:${id}`, title: show, site, meta: it.savedAt ? timeAgo(it.savedAt) : '', url: it.url!, items: [it] };
       shows.set(id, r);
       out.push(r);
     } else {
-      out.push({ key: it.key, title: it.label.replace(/\s+[-–|·]\s+YouTube$/i, ''), sub: `${site}${it.savedAt ? ` · ${timeAgo(it.savedAt)}` : ''}`, url: it.url!, items: [it] });
+      out.push({ key: it.key, title: it.label.replace(/\s+[-–|·]\s+YouTube$/i, ''), site, meta: it.savedAt ? timeAgo(it.savedAt) : '', url: it.url!, items: [it] });
     }
   }
   return out;
 }
 
+/** A YouTube video's own picture: YouTube serves every video's thumbnail at a fixed address. */
+function thumbOf(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const h = u.hostname.replace(/^(www|m)\./, '');
+    const id = h === 'youtu.be' ? u.pathname.slice(1) : h === 'youtube.com' ? (u.searchParams.get('v') ?? /^\/(?:live|embed)\/([\w-]+)/.exec(u.pathname)?.[1]) : null;
+    return id && /^[\w-]{11}$/.test(id) ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A card's artwork: the video's thumbnail when there is one, else the site's mark with a soft glow of its colour. */
+function Artwork({ url }: { url: string }) {
+  const [failed, setFailed] = useState(false);
+  const thumb = failed ? null : thumbOf(url);
+  if (thumb) return <img className="nf-art" src={thumb} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />;
+  const b = BRANDS.find((x) => x.test.test(hostOfUrl(url)));
+  // Most marks sit on white or black; the colour that says "this site" is then the mark's own.
+  const glow = b ? (/^#(fff|ffffff|000|000000|121212)$/i.test(b.bg) ? b.fg : b.bg) : '#9a9488';
+  return (
+    <span className="nf-art nf-poster" style={{ background: `radial-gradient(circle at 70% 25%, ${glow}33, transparent 65%), var(--well)` }} aria-hidden="true">
+      {b ? (
+        <svg viewBox="0 0 24 24" className="nf-mark">
+          <path d={b.path} fill={b.fg} />
+        </svg>
+      ) : (
+        <span className="nf-letter">{(hostOfUrl(url)[0] ?? '•').toUpperCase()}</span>
+      )}
+    </span>
+  );
+}
+
+/** How far into the video you were (0 to 1), when the Chrome extension noted it. */
+function doneOf(r: Row): number | null {
+  const p = r.items[0].progress;
+  return p && p.d > 0 && Number.isFinite(p.t) ? Math.min(1, Math.max(0, p.t / p.d)) : null;
+}
+
+/** "12 min left", like a streaming app, or the usual meta line when there's no position. */
+function leftOf(r: Row): string | null {
+  const p = r.items[0].progress;
+  if (!p || !(p.d > 0) || r.items.length > 1) return null;
+  const min = Math.round((p.d - p.t) / 60);
+  if (min < 1) return 'Less than a minute left';
+  return min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min left` : `${min} min left`;
+}
+
+const Bar = ({ done }: { done: number | null }) =>
+  done === null ? null : (
+    <span className="nf-progress" aria-hidden="true">
+      <span style={{ width: `${Math.max(4, done * 100)}%` }} />
+    </span>
+  );
+
+const Play = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+    <path d="M7 4.5v15l12.5-7.5z" fill="currentColor" />
+  </svg>
+);
+
 export function BreakView() {
   const [shelf, setShelf] = useState<BreakShelf | null>(null);
   const [asking, setAsking] = useState<string | null | 'change'>(null);
   const [adding, setAdding] = useState(false);
-  const [more, setMore] = useState(false);
   const [newUrl, setNewUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -175,19 +235,23 @@ export function BreakView() {
     }, (e) => setError(errorText(e)));
   };
 
+  const remove = (r: Row) => void Promise.all(r.items.map((it) => api.changeBreak({ removeItem: it.key }))).then((all) => all.length && setShelf(all[all.length - 1]));
+
+  // Your places come first and largest: they're what you reach for. Under them, what you were watching sits
+  // in one row of small thumbnails you scroll sideways, latest first.
   return (
-    <div className="break-view">
-      <div className="eyebrow list-label">Your places</div>
-      <div className="place-grid">
+    <div className="break-view nf">
+      <div className="nf-label">Your places</div>
+      <div className="nf-places">
         {shelf.places.map((p) => (
-          <button key={p.url} type="button" className="place" onClick={() => open(p.url)} title={`Open ${p.name}`}>
-            <SiteTile url={p.url} size={36} />
+          <button key={p.url} type="button" className="nf-place" onClick={() => open(p.url)} title={`Open ${p.name}`}>
+            <SiteTile url={p.url} size={44} />
             <span>{p.name}</span>
           </button>
         ))}
         {adding ? (
           <form
-            className="place-add"
+            className="nf-place-form"
             onSubmit={(e) => {
               e.preventDefault();
               addPlace();
@@ -196,8 +260,8 @@ export function BreakView() {
             <input className="field small" autoFocus value={newUrl} placeholder="twitch.tv" aria-label="Web address to add" onChange={(e) => setNewUrl(e.target.value)} onBlur={addPlace} />
           </form>
         ) : (
-          <button type="button" className="place" onClick={() => setAdding(true)} title="Add a place">
-            <span className="site-tile add" style={{ width: 36, height: 36 }} aria-hidden="true">
+          <button type="button" className="nf-place" onClick={() => setAdding(true)} title="Add a place">
+            <span className="nf-add" aria-hidden="true">
               <Icon name="plus" />
             </span>
             <span>Add</span>
@@ -205,75 +269,37 @@ export function BreakView() {
         )}
       </div>
 
+      <div className="nf-label">Continue watching</div>
       {list.length > 0 ? (
-        <>
-          {/* The toggle sits in the heading, so it never moves out of reach however long the list gets. */}
-          <div className="cw-head">
-            <span className="eyebrow">Continue watching</span>
-            {list.length > 3 && (
-              <button type="button" className="cw-toggle" aria-expanded={more} onClick={() => setMore(!more)}>
-                {more ? 'Show less' : `See all ${list.length}`}
-                <Icon name="chevron" />
-              </button>
-            )}
-          </div>
-          {/* The last thing you were watching or playing, up top; the next two under it; the rest in a short scrolling list. */}
-          {(() => {
-            const [top, ...rest] = list;
-            const remove = (r: Row) => void Promise.all(r.items.map((it) => api.changeBreak({ removeItem: it.key }))).then((all) => all.length && setShelf(all[all.length - 1]));
-            const row = (r: Row) => (
-              <motion.div key={r.key} layout="position" className="break-row" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
-                <button type="button" className="break-main" onClick={() => open(r.url)} title={`Open ${r.title}`}>
-                  <SiteTile url={r.url} />
-                  <span className="grow">
-                    <span className="break-title">{r.title}</span>
-                    <span className="break-sub">{r.sub}</span>
+        <div className={`nf-row ${list.length > 2 ? 'more' : ''}`}>
+          {list.map((r, i) => (
+            <motion.div key={r.key} className="nf-card" initial={{ opacity: 0, transform: 'translateY(4px)' }} animate={{ opacity: 1, transform: 'translateY(0px)' }} transition={{ duration: 0.2, delay: Math.min(i, 4) * 0.03 }}>
+              <button type="button" className="nf-card-hit" onClick={() => open(r.url)} title={`${i === 0 ? 'Resume' : 'Open'} ${r.title}`}>
+                <span className="nf-card-art">
+                  <Artwork url={r.url} />
+                  {r.items.length > 1 && <span className="nf-badge">{r.items.length} episodes</span>}
+                  <span className="nf-play" aria-hidden="true">
+                    <Play />
                   </span>
-                </button>
-                <button type="button" className="cw-x" aria-label={`Remove ${r.title}`} title="Done with it: remove" onClick={() => remove(r)}>
-                  ✕
-                </button>
-              </motion.div>
-            );
-            return (
-              <>
-                <motion.div key={top.key} className="cw-hero" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-                  <button type="button" className="cw-main" onClick={() => open(top.url)} title={`Resume ${top.title}`}>
-                    <SiteTile url={top.url} size={44} />
-                    <span className="grow" style={{ minWidth: 0 }}>
-                      <span className="cw-title">{top.title}</span>
-                      <span className="break-sub">{top.sub}</span>
-                    </span>
-                  </button>
-                  <button type="button" className="cw-play" aria-label={`Resume ${top.title}`} title="Resume" onClick={() => open(top.url)}>
-                    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                      <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" />
-                    </svg>
-                  </button>
-                  <button type="button" className="cw-x cw-hero-x" aria-label={`Remove ${top.title}`} title="Done with it: remove" onClick={() => remove(top)}>
-                    ✕
-                  </button>
-                </motion.div>
-                {rest.length > 0 && <div className="break-rows">{rest.slice(0, 2).map(row)}</div>}
-                <AnimatePresence initial={false}>
-                  {more && rest.length > 2 && (
-                    <motion.div key="more" className="break-rows break-more-list" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
-                      {rest.slice(2).map(row)}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </>
-            );
-          })()}
-        </>
+                  <Bar done={doneOf(r)} />
+                </span>
+                <span className="nf-card-title">{r.title}</span>
+                <span className="nf-card-meta">{r.items.length > 1 ? r.site : (leftOf(r) ?? [r.site, r.meta].filter(Boolean).join(' · '))}</span>
+              </button>
+              <button type="button" className="nf-x" aria-label={`Remove ${r.title}`} title="Done with it: remove" onClick={() => remove(r)}>
+                ✕
+              </button>
+            </motion.div>
+          ))}
+        </div>
       ) : (
-        <div className="break-empty">
-          <FolderMark size={34} mood="sleep" />
+        <div className="nf-empty">
+          <FolderMark size={30} mood="sleep" />
           <span>Videos you close, or that Tidy all puts away, show up here so you can carry on.</span>
         </div>
       )}
 
-      <div className="break-foot">
+      <div className="nf-foot">
         <span>{shelf.browser ? `Opens in ${whereLabel(shelf.browser)}` : 'Asks where to open the first time'}</span>
         <button type="button" className="link small" onClick={() => setAsking('change')}>
           Change

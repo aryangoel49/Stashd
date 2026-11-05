@@ -333,6 +333,8 @@ export type BreakItem = Item & {
   /** When you last opened it from the shelf, and how often you have. */
   openedAt?: string;
   opens?: number;
+  /** How far into the video you were when it closed, and its length, in seconds (from the Chrome extension). */
+  progress?: { t: number; d: number };
 };
 
 /** The Break shelf: what you were watching, your places, and where breaks open. */
