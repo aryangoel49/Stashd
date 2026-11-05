@@ -76,6 +76,20 @@ function showOf(title: string): string | null {
   return m ? m[1].replace(/[-–|:·,\s]+$/, '').trim() : null;
 }
 
+/** A live stream (a Twitch or Kick channel, a YouTube live page): it has no length, so it gets a Live tag. */
+export function isStream(url: string): boolean {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^(www|m)\./, '');
+    const p = u.pathname.replace(/\/+$/, '');
+    if (host === 'twitch.tv' || host === 'kick.com') return /^\/[\w]+$/.test(p) && !/^\/(directory|search|settings|subscriptions|downloads|turbo|wallet|drops|inventory|p|videos|categories|browse|following)$/.test(p);
+    if (host === 'youtube.com') return /^\/live(\/|$)/.test(p) || /^\/@[^/]+\/live$/.test(p);
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 type Row = { key: string; title: string; site: string; meta: string; url: string; items: BreakItem[] };
 
 function rows(items: BreakItem[]): Row[] {
@@ -329,6 +343,7 @@ export function BreakView() {
                 <span className="nf-card-art">
                   <Artwork url={r.url} />
                   {r.items.length > 1 && <span className="nf-badge">{r.items.length} episodes</span>}
+                  {isStream(r.url) && <span className="nf-live">Live</span>}
                   <span className="nf-play" aria-hidden="true">
                     <Play />
                   </span>

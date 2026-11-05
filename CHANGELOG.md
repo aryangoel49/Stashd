@@ -6,6 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
+- Continue watching: streams (Twitch, Kick, YouTube live) get a red Live tag.
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed
