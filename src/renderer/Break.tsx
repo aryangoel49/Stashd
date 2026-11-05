@@ -76,7 +76,10 @@ function showOf(title: string): string | null {
   return m ? m[1].replace(/[-–|:·,\s]+$/, '').trim() : null;
 }
 
-/** A live stream (a Twitch or Kick channel, a YouTube live page): it has no length, so it gets a Live tag. */
+/**
+ * A live stream (a Twitch or Kick channel, a YouTube live page): it has no length, so it gets a Live tag.
+ * A YouTube stream on an ordinary video address is told by the extension instead (noted with length 0).
+ */
 export function isStream(url: string): boolean {
   try {
     const u = new URL(url);
@@ -343,7 +346,7 @@ export function BreakView() {
                 <span className="nf-card-art">
                   <Artwork url={r.url} />
                   {r.items.length > 1 && <span className="nf-badge">{r.items.length} episodes</span>}
-                  {isStream(r.url) && <span className="nf-live">Live</span>}
+                  {(isStream(r.url) || r.items[0].progress?.d === 0) && <span className="nf-live">Live</span>}
                   <span className="nf-play" aria-hidden="true">
                     <Play />
                   </span>

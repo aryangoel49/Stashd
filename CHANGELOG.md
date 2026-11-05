@@ -6,7 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
-- Continue watching: streams (Twitch, Kick, YouTube live) get a red Live tag.
+- Continue watching: streams (Twitch, Kick, and YouTube streams that are live) get a red Live tag.
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed
@@ -16,6 +16,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Break page: your places are bigger tiles at the top, and Continue watching is a row of video thumbnails you scroll sideways, showing how far you got and how much is left.
 
 ### Fixed
+- The Break page no longer shows a "no such file or directory" error when two changes are saved at the same moment.
 - Watching a video full screen in Chrome no longer drops you out of full screen when you close another video.
 
 ## 1.4.0 (2026-11-04)

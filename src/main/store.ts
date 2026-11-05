@@ -27,9 +27,12 @@ export function entryIdFor(date: Date): string {
   return date.toISOString().replace(/[:.]/g, '-');
 }
 
+let tmpCount = 0;
+
 export async function writeFileAtomic(file: string, data: string): Promise<void> {
   await fs.mkdir(path.dirname(file), { recursive: true });
-  const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
+  // Unique per write: two saves of one file in the same millisecond mustn't share a temp file.
+  const tmp = `${file}.${process.pid}.${Date.now()}.${++tmpCount}.tmp`;
   const fh = await fs.open(tmp, 'w', 0o600);
   try {
     await fh.writeFile(data, 'utf8');
