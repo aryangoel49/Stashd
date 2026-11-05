@@ -168,8 +168,16 @@ export async function changeChromeGroup(action: 'ungroup' | 'regroup', name: str
 // the grouped tabs into its own address, reads that and closes it.
 const REPORT_SCRIPT = `on run wwiArgs
   tell application id "com.google.Chrome"
-    if (count of windows) is 0 then return ""
-    set wwiWin to front window
+    -- Never a full-screen window (its top edge is at 0, above where the menu bar keeps other windows):
+    -- a new tab there, even for a moment, takes the video you're watching out of full screen.
+    set wwiWin to missing value
+    repeat with w in windows
+      if item 2 of (get bounds of w) is not 0 and mode of w is "normal" then
+        set wwiWin to w
+        exit repeat
+      end if
+    end repeat
+    if wwiWin is missing value then return ""
     set wwiPrev to active tab index of wwiWin
     set wwiTab to make new tab at end of tabs of wwiWin with properties {URL:(item 1 of wwiArgs)}
     set active tab index of wwiWin to wwiPrev

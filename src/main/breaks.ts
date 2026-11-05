@@ -158,6 +158,15 @@ export class BreakStore {
     await this.save(shelf);
   }
 
+  /** How far into each video you got, where it's known. */
+  async setProgress(items: Pick<BreakItem, 'url' | 'progress'>[]): Promise<void> {
+    const shelf = await this.get();
+    const by = new Map(items.filter((i) => i.progress).map((i) => [videoKey(i.url ?? ''), i.progress]));
+    if (!by.size) return;
+    for (const it of shelf.items) it.progress = by.get(videoKey(it.url ?? '')) ?? it.progress;
+    await this.save(shelf);
+  }
+
   /** You opened it from the shelf: it moves to the top, and counts as something you come back to. */
   async opened(url: string): Promise<void> {
     const shelf = await this.get();

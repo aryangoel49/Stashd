@@ -484,13 +484,26 @@ export class Core {
   // ---------- the Break shelf ----------
 
   /**
-   * Videos that just closed: the ones you watched to the end leave Continue watching, the rest go to the
-   * top of it.
+   * Videos that just closed go to the top of Continue watching. How far you got is read later, when you
+   * open the Break page: reading it means a moment's helper tab in Chrome, and doing that while you watch
+   * something full screen would knock it out of full screen.
    */
   async videosClosed(items: Item[]): Promise<void> {
-    const { finishedOnes, rest } = await this.splitFinished(items);
+    await this.breaks.add(items);
+    this.progressDue = true;
+    this.notify();
+  }
+
+  private progressDue = false;
+
+  /** Videos you finished leave Continue watching; the rest get their progress bar. */
+  private async refreshProgress(): Promise<void> {
+    this.progressDue = false;
+    const shelf = await this.breaks.get();
+    const { finishedOnes, rest } = await this.splitFinished(shelf.items);
+    if (!finishedOnes.length && !rest.some((i) => i.progress)) return;
     for (const f of finishedOnes) await this.breaks.removeLoose(videoKey(f.url ?? ''));
-    if (rest.length) await this.breaks.add(rest);
+    await this.breaks.setProgress(rest);
     this.notify();
   }
 
@@ -507,6 +520,7 @@ export class Core {
   }
 
   breakShelf(): Promise<BreakShelf> {
+    if (this.progressDue) void this.refreshProgress().catch(() => undefined);
     return this.breaks.get();
   }
 

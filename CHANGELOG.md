@@ -14,6 +14,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - A little more room between the Stashd logo and the Work / Break switch.
 - Break page: your places are bigger tiles at the top, and Continue watching is a row of video thumbnails you scroll sideways, showing how far you got and how much is left.
 
+### Fixed
+- Watching a video full screen in Chrome no longer drops you out of full screen when you close another video.
+
 ## 1.4.0 (2026-11-04)
 
 ### Added
