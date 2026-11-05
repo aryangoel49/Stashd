@@ -5,9 +5,12 @@
 
 const KEEP = 300;
 
-// A YouTube video that's live right now. YouTube marks it in the page; the mark is checked against this
-// video's own id, since it can be left over from the page you came from.
+// A YouTube video that's live right now. The player marks its time display "live" (it changes with each
+// video, even when you click from one to the next); while an ad plays, the page's own details say so
+// instead, checked against this video's id since they can be left over from the page you came from.
 function youtubeLive() {
+  const player = document.querySelector('#movie_player');
+  if (player && !player.classList.contains('ad-showing')) return !!player.querySelector('.ytp-time-display.ytp-live');
   const box = document.querySelector('#watch7-content');
   if (!box || box.querySelector('meta[itemprop=isLiveBroadcast]')?.content !== 'True' || box.querySelector('meta[itemprop=endDate]')) return false;
   const id = box.querySelector('meta[itemprop=identifier]')?.content;
@@ -15,13 +18,15 @@ function youtubeLive() {
 }
 
 function save() {
+  // A stream has no length to get through: it's noted with length 0, which Stashd shows as Live. A live
+  // YouTube page counts even while an ad plays (the ad is the only video on the page then).
+  const ytLive = location.hostname.endsWith('youtube.com') && youtubeLive();
   const v = [...document.querySelectorAll('video')].find((x) => x.duration > 30);
-  if (!v) return;
+  if (!v && !ytLive) return;
   const url = location.href;
-  // A stream has no length to get through: it's noted with length 0, which Stashd shows as Live.
-  const live = !Number.isFinite(v.duration) || (location.hostname.endsWith('youtube.com') && youtubeLive());
+  const live = ytLive || !Number.isFinite(v.duration);
   chrome.storage.local.get('progress').then(({ progress = {} }) => {
-    progress[url] = { t: Math.round(v.currentTime), d: live ? 0 : Math.round(v.duration), at: Date.now() };
+    progress[url] = { t: live ? 0 : Math.round(v.currentTime), d: live ? 0 : Math.round(v.duration), at: Date.now() };
     // Keep the most recent ones only.
     const keys = Object.keys(progress);
     if (keys.length > KEEP) keys.sort((a, b) => progress[a].at - progress[b].at).slice(0, keys.length - KEEP).forEach((k) => delete progress[k]);
