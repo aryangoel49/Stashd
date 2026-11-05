@@ -97,6 +97,14 @@ describe('Continue watching', () => {
     expect((await store.get()).places.map((p) => p.url)).toEqual(before.slice(1));
   });
 
+  it('keeps only things you can carry on with, not home or browse pages', async () => {
+    const { isResumable } = await import('../src/main/breaks');
+    for (const u of ['https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'https://youtu.be/dQw4w9WgXcQ', 'https://www.netflix.com/watch/81234567', 'https://open.spotify.com/episode/abc', 'https://www.twitch.tv/somestreamer', 'https://www.espn.com/video/clip/_/id/123'])
+      expect(isResumable(u), u).toBe(true);
+    for (const u of ['https://www.youtube.com/', 'https://www.youtube.com/feed/subscriptions', 'https://www.youtube.com/results?search_query=x', 'https://www.youtube.com/@mkbhd', 'https://www.netflix.com/browse', 'https://www.netflix.com/', 'https://open.spotify.com/', 'https://www.twitch.tv/', 'https://www.twitch.tv/directory', 'https://www.espn.com/'])
+      expect(isResumable(u), u).toBe(false);
+  });
+
   it('never keeps Shorts, Reels or TikToks, only long videos', async () => {
     const { BreakStore } = await import('../src/main/breaks');
     const { mkdtemp } = await import('node:fs/promises');

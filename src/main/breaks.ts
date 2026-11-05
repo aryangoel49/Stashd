@@ -59,6 +59,33 @@ export function isShortForm(url: string): boolean {
   }
 }
 
+/**
+ * Something you can actually carry on with: a video, an episode, a stream, a song or playlist. Home pages,
+ * browse rows, search results and channel pages aren't (your places cover those), and nor are short videos.
+ */
+export function isResumable(url: string): boolean {
+  if (isShortForm(url)) return false;
+  try {
+    const u = new URL(url);
+    const host = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
+    const p = u.pathname.toLowerCase().replace(/\/+$/, '');
+    if (host === 'youtu.be') return p.length > 1;
+    if (host === 'youtube.com' || host.endsWith('.youtube.com')) return (p === '/watch' && u.searchParams.has('v')) || /^\/(live|embed)\/[\w-]+/.test(p);
+    if (host.endsWith('netflix.com')) return p.startsWith('/watch/');
+    if (host.endsWith('spotify.com')) return /^\/(track|episode|album|playlist|show)\//.test(p);
+    if (host.endsWith('twitch.tv')) return /^\/videos\/\d+/.test(p) || /^\/[\w]+$/.test(p) && !/^\/(directory|search|settings|subscriptions|downloads|turbo|wallet|drops|inventory|p)$/.test(p);
+    if (host.endsWith('disneyplus.com')) return /^\/(video|play)\//.test(p);
+    if (host.endsWith('hulu.com')) return p.startsWith('/watch/');
+    if (host === 'max.com' || host === 'play.max.com' || host.endsWith('hbomax.com')) return /\/(video\/watch|watch)\//.test(p);
+    if (host.endsWith('primevideo.com') || host.endsWith('amazon.com')) return /\/(detail|watch)\b/.test(p);
+    if (host.endsWith('crunchyroll.com')) return /^\/(\w{2}(-\w{2})?\/)?watch\//.test(p);
+    // Anywhere else: not the front page, nor a page for finding things.
+    return p !== '' && !/^\/(home|browse|feed|results|search|explore|discover|trending|library|subscriptions|settings|account|login|signin)(\/|$)/.test(p);
+  } catch {
+    return false;
+  }
+}
+
 const DAY = 24 * 60 * 60_000;
 
 /**
@@ -101,7 +128,7 @@ export class BreakStore {
       // first time
     }
     const shelf: BreakShelf = {
-      items: Array.isArray(raw.items) ? raw.items.filter((i) => i && typeof i.key === 'string' && typeof i.url === 'string' && !isShortForm(i.url)) : [],
+      items: Array.isArray(raw.items) ? raw.items.filter((i) => i && typeof i.key === 'string' && typeof i.url === 'string' && isResumable(i.url)) : [],
       places: Array.isArray(raw.places) ? raw.places.filter((p) => p && typeof p.name === 'string' && typeof p.url === 'string') : DEFAULT_PLACES,
       browser: raw.browser ?? null,
     };
@@ -121,7 +148,7 @@ export class BreakStore {
     const now = new Date().toISOString();
     const before = new Map(shelf.items.map((i) => [looseKey(i), i]));
     const fresh: BreakItem[] = items
-      .filter((i) => i.url && !isShortForm(i.url))
+      .filter((i) => i.url && isResumable(i.url))
       .map((i) => {
         const had = before.get(looseKey(i));
         return { ...i, active: false, notOpen: undefined, group: undefined, savedAt: now, openedAt: had?.openedAt, opens: had?.opens };
