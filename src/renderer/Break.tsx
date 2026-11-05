@@ -170,7 +170,7 @@ export function BreakView() {
   const [asking, setAsking] = useState<string | null | 'change'>(null);
   const [adding, setAdding] = useState(false);
   const [newUrl, setNewUrl] = useState('');
-  const [renaming, setRenaming] = useState<{ url: string; name: string } | null>(null);
+  const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -236,13 +236,10 @@ export function BreakView() {
     }, (e) => setError(errorText(e)));
   };
 
-  const renamePlace = () => {
-    const r = renaming;
-    if (!r) return;
-    setRenaming(null);
-    const name = r.name.trim();
-    if (!name || shelf.places.find((p) => p.url === r.url)?.name === name) return;
-    void api.changeBreak({ renamePlace: { url: r.url, name } }).then(setShelf, (e) => setError(errorText(e)));
+  const renamePlace = (url: string, value: string) => {
+    const name = value.trim();
+    if (!name || shelf.places.find((p) => p.url === url)?.name === name) return;
+    void api.changeBreak({ renamePlace: { url, name } }).then(setShelf, (e) => setError(errorText(e)));
   };
   const remove = (r: Row) => void Promise.all(r.items.map((it) => api.changeBreak({ removeItem: it.key }))).then((all) => all.length && setShelf(all[all.length - 1]));
 
@@ -250,54 +247,60 @@ export function BreakView() {
   // in one row of small thumbnails you scroll sideways, latest first.
   return (
     <div className="break-view nf">
-      <div className="nf-label">Your places</div>
+      {/* Edit turns every name into a text box and gives each place a remove badge; right-click a place does the same. */}
+      <div className="nf-label nf-label-row">
+        <span>Your places</span>
+        <button type="button" className={`nf-edit ${editing ? 'on' : ''}`} onClick={() => setEditing(!editing)}>
+          {editing ? 'Done' : 'Edit'}
+        </button>
+      </div>
       <div className="nf-places">
         {shelf.places.map((p) =>
-          renaming?.url === p.url ? (
-            <form
-              key={p.url}
-              className="nf-place nf-place-renaming"
-              onSubmit={(e) => {
-                e.preventDefault();
-                renamePlace();
-              }}
-            >
-              <SiteTile url={p.url} size={44} />
+          editing ? (
+            <div key={p.url} className="nf-place nf-place-editing">
+              <span className="nf-tile-wrap">
+                <SiteTile url={p.url} size={44} />
+                <button type="button" className="nf-remove" aria-label={`Remove ${p.name}`} title="Remove" onClick={() => void api.changeBreak({ removePlace: p.url }).then(setShelf, (e) => setError(errorText(e)))}>
+                  <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
+                    <path d="M3 6h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </span>
               <input
-                className="name-edit"
-                autoFocus
-                value={renaming.name}
+                className="nf-name-edit"
+                defaultValue={p.name}
                 maxLength={40}
-                aria-label={`New name for ${p.name}`}
+                aria-label={`Name for ${p.name}`}
                 onFocus={(e) => e.currentTarget.select()}
-                onChange={(e) => setRenaming({ url: p.url, name: e.target.value })}
-                onBlur={renamePlace}
+                onBlur={(e) => renamePlace(p.url, e.currentTarget.value)}
                 onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.currentTarget.blur();
                   if (e.key === 'Escape') {
                     e.stopPropagation();
-                    setRenaming(null);
+                    e.currentTarget.value = p.name;
+                    setEditing(false);
                   }
                 }}
               />
-            </form>
-          ) : (
-            <div key={p.url} className="nf-place-wrap">
-              <button type="button" className="nf-place" onClick={() => open(p.url)} onDoubleClick={() => setRenaming({ url: p.url, name: p.name })} title={`Open ${p.name}. Double-click to rename.`}>
-                <SiteTile url={p.url} size={44} />
-                <span>{p.name}</span>
-              </button>
-              <span className="nf-place-tools">
-                <button type="button" aria-label={`Rename ${p.name}`} title="Rename" onClick={() => setRenaming({ url: p.url, name: p.name })}>
-                  <Icon name="pencil" />
-                </button>
-                <button type="button" aria-label={`Remove ${p.name}`} title="Remove" onClick={() => void api.changeBreak({ removePlace: p.url }).then(setShelf, (e) => setError(errorText(e)))}>
-                  ✕
-                </button>
-              </span>
             </div>
+          ) : (
+            <button
+              key={p.url}
+              type="button"
+              className="nf-place"
+              onClick={() => open(p.url)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setEditing(true);
+              }}
+              title={`Open ${p.name}`}
+            >
+              <SiteTile url={p.url} size={44} />
+              <span>{p.name}</span>
+            </button>
           ),
         )}
-        {adding ? (
+        {editing ? null : adding ? (
           <form
             className="nf-place-form"
             onSubmit={(e) => {

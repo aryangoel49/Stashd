@@ -6,10 +6,11 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
-- Break page: rename a place (hover and click the pencil, or double-click it) or remove it (✕).
+- Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed
 - Break page: hovering a place lifts its icon gently instead of showing a bright white box.
+- A little more room between the Stashd logo and the Work / Break switch.
 - Break page: your places are bigger tiles at the top, and Continue watching is a row of video thumbnails you scroll sideways, showing how far you got and how much is left.
 
 ## 1.4.0 (2026-11-04)
