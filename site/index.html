@@ -458,6 +458,26 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 .js .reveal { opacity: 0; transform: translateY(26px); transition: opacity 0.8s var(--ease-out), transform 0.9s var(--ease-out); transition-delay: var(--d, 0ms); }
 .js .reveal.in { opacity: 1; transform: none; }
 
+/* scroll-linked motion (set up by the scroll script at the end; off with Reduce Motion) */
+.scrollbar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; background: var(--butter-deep); transform: scaleX(0); transform-origin: 0 50%; pointer-events: none; }
+.hero .stage { position: relative; z-index: 1; }
+.hero-copy, .hero .stage, .stat-cell, .stat-vs, #demoCol, .bento .card, .fact, .end-mascot { will-change: transform; }
+.ink-w { transition: opacity 0.25s linear; }
+.steps-line { display: none; }
+@media (min-width: 921px) {
+  .steps.pin { height: 290vh; padding-block: 0; }
+  .steps.pin .steps-stick { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+  .steps.pin .step-grid { margin-top: 36px; }
+  .steps.pin .step { opacity: 0.4; transform: scale(0.95); filter: saturate(0.6); transition: opacity 0.5s var(--ease-out), transform 0.6s var(--ease-out), filter 0.5s, box-shadow 0.6s var(--ease-out), border-color 0.5s; }
+  .steps.pin .step.done { opacity: 0.62; transform: scale(0.97); }
+  .steps.pin .step.on { opacity: 1; transform: translateY(-14px) scale(1.035); filter: none; border-color: var(--butter-deep); box-shadow: 0 40px 80px -36px rgba(214,170,40,0.55); }
+  .steps.pin .step.on .step-pic .folder { animation: hop 0.6s var(--ease-out); }
+  .steps.pin .step.on .step-key { animation: keypress 0.5s 0.15s var(--ease-out); }
+  .steps.pin .steps-line { display: block; margin: 34px auto 0; width: min(560px, 60%); height: 4px; border-radius: 99px; background: rgba(28,29,34,0.08); overflow: hidden; }
+  .steps.pin .steps-line i { display: block; height: 100%; background: var(--butter-deep); transform: scaleX(0); transform-origin: 0 50%; }
+}
+@keyframes keypress { 40% { transform: rotate(8deg) translateY(4px) scale(0.92); } }
+
 @media (max-width: 920px) {
   .chapter, .hero-copy { grid-template-columns: minmax(0, 1fr); gap: 36px; }
   .hero-copy { gap: 16px; }
@@ -502,6 +522,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   </nav>
 </header>
 
+<div class="scrollbar" aria-hidden="true"></div>
 <main id="top">
   <div class="wrap hero">
     <div class="hero-copy">
@@ -541,11 +562,14 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   </section>
 
   <section class="wrap steps" id="how">
+    <div class="steps-stick">
     <div class="section-head center reveal"><p class="eyebrow">How it works</p><h2>Three steps. <em>No setup.</em></h2></div>
     <div class="step-grid">
       <article class="step reveal"><div class="step-pic"><span data-folder="tile"></span><kbd class="step-key">⌃S</kbd></div><span class="step-n">1</span><h3>Press ⌃S</h3><p>Stashd ticks the tabs, files and chats that belong to what you're on.</p></article>
       <article class="step reveal" style="--d:120ms"><div class="step-pic"><span data-folder="tile" data-mode="asleep"></span></div><span class="step-n">2</span><h3>Close the laptop</h3><p>Pack up closes it all and clears your screen. Nothing is lost.</p></article>
       <article class="step reveal" style="--d:240ms"><div class="step-pic"><span data-folder="tile" class="step-happy"></span></div><span class="step-n">3</span><h3>Open it later</h3><p>One click and it's all back, with a short note on where you stopped.</p></article>
+    </div>
+    <div class="steps-line" aria-hidden="true"><i></i></div>
     </div>
   </section>
 
@@ -1306,6 +1330,152 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     const step = (now) => { const p = Math.min(1, (now - t0) / 1100); el.textContent = String(Math.round(25 * (1 - Math.pow(1 - p, 3)))); if (p < 1) requestAnimationFrame(step); };
     requestAnimationFrame(step);
   }, { threshold: 0.6 }).observe(el);
+})();
+</script>
+<script>
+// Scroll-linked motion, borrowed in spirit from Dia's and Apple's sites: the hero copy sinks back as the
+// pixel scene rises over it, headings ink in word by word, the numbers slide together, How it works pins
+// and lights each step in turn, the little Mac tips up into place, the feature cards tilt up, the privacy
+// facts fan out, and the mascot climbs in at the end. One rAF per scroll; nothing runs with Reduce Motion.
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)];
+  const clamp = (v) => Math.min(1, Math.max(0, v));
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  const wide = matchMedia('(min-width: 921px)');
+  // 0 when the element's top is at `from` of the screen height, 1 when it reaches `to`.
+  const prog = (el, from, to) => { const vh = innerHeight; return clamp((vh * from - el.getBoundingClientRect().top) / (vh * (from - to))); };
+  const set = (el, t, o) => { el.style.transform = t; if (o !== undefined) el.style.opacity = o; };
+  const jobs = [];
+
+  // Reading progress along the top.
+  const bar = $('.scrollbar');
+  jobs.push(() => { const max = document.documentElement.scrollHeight - innerHeight; bar.style.transform = `scaleX(${max > 0 ? scrollY / max : 0})`; });
+
+  // Hero: the copy sinks back and fades while the pixel scene rises over it.
+  const hero = $('.hero'), copy = $('.hero-copy'), stage = $('.hero .stage');
+  jobs.push(() => {
+    const p = clamp(scrollY / (hero.offsetHeight * 0.85));
+    if (p >= 1 && copy.dataset.gone) return;
+    copy.dataset.gone = p >= 1 ? '1' : '';
+    set(copy, p ? `translateY(${p * 110}px) scale(${1 - 0.1 * p})` : '', p ? String(1 - p * 0.95) : '');
+    copy.style.filter = p > 0.02 ? `blur(${(p * 5).toFixed(1)}px)` : '';
+    set(stage, p ? `translateY(${-p * 50}px) scale(${1 + 0.07 * p})` : '');
+  });
+
+  // Headings ink in word by word, from faint to full, as you scroll to them (Dia's trick).
+  for (const h of $$('main h2')) {
+    const words = [];
+    const walk = (node) => {
+      for (const n of [...node.childNodes]) {
+        if (n.nodeType === 1) { walk(n); continue; }
+        if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+        const frag = document.createDocumentFragment();
+        for (const part of n.textContent.split(/(\s+)/)) {
+          if (!part) continue;
+          if (/^\s+$/.test(part)) { frag.append(part); continue; }
+          const w = document.createElement('span');
+          w.className = 'ink-w'; w.textContent = part; frag.append(w); words.push(w);
+        }
+        n.replaceWith(frag);
+      }
+    };
+    walk(h);
+    let last = -1;
+    jobs.push(() => {
+      const lit = prog(h, 0.95, 0.5) * (words.length + 1);
+      if (Math.abs(lit - last) < 0.01) return;
+      last = lit;
+      words.forEach((w, i) => { w.style.opacity = String(0.14 + 0.86 * clamp(lit - i)); });
+    });
+  }
+
+  // The number: 25 min and 1 click slide in from the sides; the arrow spins into place.
+  const statRow = $('#stat'), cells = $$('.stat-cell'), vs = $('.stat-vs');
+  jobs.push(() => {
+    if (!wide.matches) { cells.forEach((c) => set(c, '')); set(vs, ''); return; }
+    const e = ease(prog(statRow, 1, 0.6)), k = 1 - e;
+    set(cells[0], k ? `translateX(${-k * 120}px)` : '', String(0.2 + 0.8 * e));
+    set(cells[1], k ? `translateX(${k * 120}px)` : '', String(0.2 + 0.8 * e));
+    set(vs, k ? `scale(${0.3 + 0.7 * e}) rotate(${-k * 180}deg)` : '', String(e));
+  });
+
+  // How it works: on wide screens the section pins and lights each step in turn as you scroll.
+  const steps = $('.steps'), stepEls = $$('.steps .step'), line = $('.steps-line i');
+  const pinMode = () => {
+    steps.classList.toggle('pin', wide.matches);
+    stepEls.forEach((s) => { s.classList.toggle('reveal', !wide.matches); if (!wide.matches) s.classList.add('in'); s.classList.remove('on', 'done'); });
+  };
+  pinMode();
+  wide.addEventListener('change', () => { pinMode(); run(); });
+  jobs.push(() => {
+    if (!wide.matches) return;
+    const r = steps.getBoundingClientRect();
+    const p = clamp(-r.top / (r.height - innerHeight));
+    const idx = Math.min(2, Math.floor(p * 3.2 - 0.1));
+    stepEls.forEach((s, i) => { s.classList.toggle('on', i === idx); s.classList.toggle('done', i < idx); });
+    line.style.transform = `scaleX(${p})`;
+  });
+
+  // Try it yourself: the little Mac tips up and grows into place.
+  const demo = $('#demoCol');
+  demo.style.transformOrigin = '50% 0';
+  jobs.push(() => {
+    const e = ease(prog(demo, 1.05, 0.55)), k = 1 - e;
+    set(demo, k > 0.001 ? `perspective(1600px) rotateX(${k * 18}deg) scale(${0.86 + 0.14 * e})` : '');
+  });
+
+  // Feature cards tilt up out of the page, the side ones swinging in from their side.
+  const cards = $$('.bento .card');
+  cards.forEach((c) => { c.classList.remove('reveal'); });
+  jobs.push(() => cards.forEach((c, i) => {
+    const e = ease(prog(c, 1.08, 0.72)), k = 1 - e;
+    const side = c.classList.contains('wide') ? 0 : (i % 2 ? 1 : -1);
+    set(c, k > 0.001 ? `perspective(1200px) translate(${side * k * 40}px, ${k * 90}px) rotateX(${k * 16}deg) rotateY(${-side * k * 6}deg) scale(${0.92 + 0.08 * e})` : '', k > 0.001 ? String(0.15 + 0.85 * e) : '');
+  }));
+
+  // Privacy: the three facts start stacked like cards in a hand and fan out to their places.
+  const factsBox = $('.facts'), facts = $$('.fact');
+  jobs.push(() => {
+    if (!wide.matches) { facts.forEach((f) => set(f, '', '')); return; }
+    facts.forEach((f) => f.classList.remove('reveal'));
+    const e = ease(prog(factsBox, 1, 0.6)), k = 1 - e;
+    facts.forEach((f, i) => {
+      const d = i - 1;
+      set(f, k > 0.001 ? `translate(${-d * k * 104}%, ${k * 40 + Math.abs(d) * k * 14}px) rotate(${d * k * 9}deg)` : '', String(0.3 + 0.7 * e));
+      f.style.zIndex = i === 1 ? '2' : '1';
+      f.style.position = 'relative';
+    });
+  });
+
+  // The end: the mascot climbs up and grows as you arrive.
+  const endM = $('#endMascot');
+  endM.classList.remove('reveal');
+  jobs.push(() => {
+    const e = ease(prog(endM, 1.05, 0.6)), k = 1 - e;
+    set(endM, k > 0.001 ? `translateY(${k * 140}px) scale(${0.45 + 0.55 * e}) rotate(${-k * 14}deg)` : '', String(0.1 + 0.9 * e));
+  });
+
+  // The app strip speeds up while you scroll, then eases back.
+  const track = $('.track');
+  const anim = track && track.getAnimations()[0];
+  let boost = 0, lastY = scrollY, decaying = false;
+  const decay = () => {
+    boost *= 0.93;
+    anim.updatePlaybackRate(1 + boost);
+    if (boost > 0.02) requestAnimationFrame(decay); else { decaying = false; anim.updatePlaybackRate(1); }
+  };
+  if (anim) jobs.push(() => {
+    const dy = Math.abs(scrollY - lastY); lastY = scrollY;
+    boost = Math.max(boost, Math.min(7, dy / 9));
+    if (boost > 0.05 && !decaying) { decaying = true; requestAnimationFrame(decay); }
+  });
+
+  let ticking = false;
+  function run() { ticking = false; for (const j of jobs) j(); }
+  addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(run); } }, { passive: true });
+  addEventListener('resize', run);
+  run();
 })();
 </script>
 </body>
