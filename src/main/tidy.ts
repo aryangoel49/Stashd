@@ -26,9 +26,9 @@ end wwiMatches`;
 /**
  * Closes tabs whose address is one of the targets (ignoring ?query and #fragment). Skips private windows.
  * Each window's addresses are read in one go, and windows are found by id, so closing a whole window
- * never makes the script lose its place. In Chrome and its kin a window whose tabs all go is closed at once, which
- * is quicker and calmer than watching its tabs disappear one by one. (Arc keeps a closed window's tabs
- * in its sidebar and Safari may ask first, so there each tab is closed on its own.)
+ * never makes the script lose its place. In Chrome, Edge and Vivaldi a window whose tabs all go is closed at once,
+ * which is quicker and calmer than watching its tabs disappear one by one. (Arc keeps a closed window's tabs
+ * in its sidebar, and Safari and Brave may ask first, so there each tab is closed on its own.)
  */
 export function closeTabsScript(browser: BrowserName): string {
   const id = BROWSER_APPS[browser].bundleId;
@@ -42,7 +42,7 @@ export function closeTabsScript(browser: BrowserName): string {
           if incognito of wwiWin then set wwiSkip to true
         end try`
         : '';
-  const closeAll = isChromium(browser) ? 'wwiAll' : 'false';
+  const closeAll = isChromium(browser) && browser !== 'brave' ? 'wwiAll' : 'false';
   return `${MATCH_HANDLER}
 on run wwiTargets
   set wwiClosed to 0

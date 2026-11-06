@@ -2,9 +2,11 @@
 // browser, on test tabs only (example.com, example.org, example.net), and writes what happened
 // at each step to the log file. Nothing but those test tabs is ever closed, plus the apps named in
 // WWI_LIVE_TEST_APPS (comma-separated, e.g. "Calculator,Chess"), which Pack up quits and Unpack reopens.
+// WWI_LIVE_TEST_BROWSER picks the browser (chrome unless set: brave, edge, vivaldi, arc or safari).
 
 import { appendFileSync, writeFileSync } from 'node:fs';
 import { app } from 'electron';
+import type { BrowserName } from '../shared/types';
 import type { Core } from './core';
 import { collectTabs } from './collectors/browsers';
 import type { TidyFlow } from './tidyflow';
@@ -16,9 +18,10 @@ export async function runLiveTest(core: Core, tidy: TidyFlow, logFile: string): 
   writeFileSync(logFile, '');
   const log = (step: string, data: unknown) => appendFileSync(logFile, `${JSON.stringify({ at: new Date().toISOString(), step, data })}\n`);
   const testApps = (process.env.WWI_LIVE_TEST_APPS ?? '').split(',').map((a) => a.trim()).filter(Boolean);
+  const browser = (process.env.WWI_LIVE_TEST_BROWSER ?? 'chrome') as BrowserName;
   const testTabs = async () => {
     const s = core.settings.get();
-    const { tabs, errors } = await collectTabs(['chrome'], { keepQueryStrings: s.keepQueryStrings, excludedDomains: s.excludedDomains });
+    const { tabs, errors } = await collectTabs([browser], { keepQueryStrings: s.keepQueryStrings, excludedDomains: s.excludedDomains });
     const running = new Set((await core.helper.windows().catch(() => null))?.apps.map((a) => a.name) ?? []);
     return {
       open: tabs.filter((t) => TEST.test(t.url)).map((t) => t.url),

@@ -56,8 +56,8 @@ describe.each(names)('%s', (b) => {
     expect(again).toMatchObject({ opened: 0, alreadyOpen: 3 });
   }, 90_000);
 
-  it('opens a single tab by the app\'s name', async () => {
-    await openItems([item(url('single'))], null, settings);
+  it('opens a single tab', async () => {
+    expect(await openItems([item(url('single'))], null, settings)).toMatchObject({ opened: 1, failed: [] });
     const tabs = await until(mine, (t) => t.some((x) => x.url === url('single')));
     expect(tabs.map((t) => t.url)).toContain(url('single'));
   }, 60_000);
