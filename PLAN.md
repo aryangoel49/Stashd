@@ -224,12 +224,12 @@ Each brief request carries the anonymous install ID, so the server can count how
 **Check:**
 - [ ] This Mac
 - [x] The Intel build through Rosetta
-- [ ] A macOS 13 virtual machine (UTM)
+- [ ] A macOS 14 virtual machine (UTM), the oldest version with every feature on Apple silicon
 - [ ] A real Intel Mac
 - [ ] A brand-new Mac user account: the whole install and first run
 
 ### Stage 2: private beta (2–3 weeks, 20–50 people)
-- [ ] Mix of testers: developers, students, freelancers; at least 2 Intel Macs and 2 on macOS 13–14
+- [ ] Mix of testers: developers, students, freelancers; at least 2 Intel Macs and 2 on macOS 14–15
 - [ ] **Brief research on real use.** With testers' OK, collect sample saves and their briefs.
   - Test models blind: Haiku 5.5 vs Sonnet 5.5.
   - Test the brief's shape: length; headings; next step first; underlines; font, size and weight; bullets or sentences.
