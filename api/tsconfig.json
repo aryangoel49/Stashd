@@ -1,0 +1,7 @@
+{
+  // Vercel compiles the server with the nearest tsconfig. The app's own (module "preserve") leaves `import`
+  // in place, which Node can't run here, so the server is compiled to CommonJS.
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "module": "commonjs", "moduleResolution": "node", "jsx": "preserve" },
+  "include": ["./**/*.ts"]
+}
