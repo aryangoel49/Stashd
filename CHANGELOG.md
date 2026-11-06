@@ -10,6 +10,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed
+- Stashd no longer opens a quick hidden tab in Chrome to see how far into a video you got or which tab group a tab is in: the Chrome extension tells it directly (restart Chrome once after updating).
 - Continue watching only shows things you can carry on with (a video, an episode, a stream, a song); home pages like YouTube's or Netflix's front page stay in your places instead.
 - Break page: hovering a place lifts its icon gently instead of showing a bright white box.
 - A little more room between the Stashd logo and the Work / Break switch.

@@ -1,7 +1,8 @@
 // Reopens a job's items. It only opens things; it never closes or changes anything.
 
 import { promises as fs } from 'node:fs';
-import { shell } from 'electron';
+import path from 'node:path';
+import { app, shell } from 'electron';
 import type { BrowserName, Item, OpenResult, Settings } from '../shared/types';
 import { BROWSERS } from '../shared/validate';
 import { BROWSER_APPS, collectTabs, isRunning } from './collectors/browsers';
@@ -164,40 +165,19 @@ export async function changeChromeGroup(action: 'ungroup' | 'regroup', name: str
   await run('osascript', ['-e', script, '--', groupPageUrl(name, web, action)], { timeoutMs: 20_000 }).catch(() => undefined);
 }
 
-// Opens the report page in a background tab (the tab you're on stays in front), waits for it to write
-// the grouped tabs into its own address, reads that and closes it.
-const REPORT_SCRIPT = `on run wwiArgs
-  tell application id "com.google.Chrome"
-    -- Never a full-screen window (its top edge is at 0, above where the menu bar keeps other windows):
-    -- a new tab there, even for a moment, takes the video you're watching out of full screen.
-    set wwiWin to missing value
-    repeat with w in windows
-      if item 2 of (get bounds of w) is not 0 and mode of w is "normal" then
-        set wwiWin to w
-        exit repeat
-      end if
-    end repeat
-    if wwiWin is missing value then return ""
-    set wwiPrev to active tab index of wwiWin
-    set wwiTab to make new tab at end of tabs of wwiWin with properties {URL:(item 1 of wwiArgs)}
-    set active tab index of wwiWin to wwiPrev
-    set wwiOut to ""
-    repeat 25 times
-      delay 0.08
-      try
-        set wwiU to URL of wwiTab
-        if wwiU contains "#R" then
-          set wwiOut to wwiU
-          exit repeat
-        end if
-      end try
-    end repeat
-    try
-      close wwiTab
-    end try
-    return wwiOut
-  end tell
-end run`;
+/**
+ * What Stashd's Chrome extension last handed over (assets/chrome-extension/background.js): how far into each
+ * video you got, and which named tab group each tab is in. The extension sends it through Chrome's native
+ * messaging to Stashd's helper, which keeps it in chrome.json; nothing is opened in Chrome to get it.
+ */
+async function fromChrome(): Promise<{ videos: unknown[]; groups: unknown[] }> {
+  try {
+    const raw = JSON.parse(await fs.readFile(path.join(app.getPath('userData'), 'chrome.json'), 'utf8')) as { videos?: unknown; groups?: unknown };
+    return { videos: Array.isArray(raw.videos) ? raw.videos : [], groups: Array.isArray(raw.groups) ? raw.groups : [] };
+  } catch {
+    return { videos: [], groups: [] };
+  }
+}
 
 /**
  * Which Chrome tab group each grouped tab is in, by the tab's loose key ("tab:host/path"). Empty without
@@ -205,51 +185,32 @@ end run`;
  */
 export async function chromeTabGroups(clean: (url: string) => string | null): Promise<Map<string, string>> {
   const out = new Map<string, string>();
-  if (Date.now() - helperMissingAt < RETRY_HELPER_MS || !(await isRunning('chrome'))) return out;
-  try {
-    const r = await run('osascript', ['-e', REPORT_SCRIPT, '--', `chrome-extension://${CHROME_HELPER_ID}/open.html#${encodeURIComponent(JSON.stringify({ action: 'report' }))}`], { timeoutMs: 6_000 });
-    const at = r.stdout.indexOf('#R');
-    if (at < 0) return out;
-    const pairs = JSON.parse(decodeURIComponent(r.stdout.trim().slice(at + 2))) as unknown;
-    if (!Array.isArray(pairs)) return out;
-    for (const p of pairs) {
-      if (!Array.isArray(p) || typeof p[0] !== 'string' || typeof p[1] !== 'string') continue;
-      const url = clean(p[0]);
-      if (url) out.set(looseKey({ key: `tab:${url}`, kind: 'tab', label: '', detail: '', app: '', url }), p[1].slice(0, 60));
-    }
-  } catch {
-    // no report this time: the other signals still work
+  for (const p of (await fromChrome()).groups) {
+    if (!Array.isArray(p) || typeof p[0] !== 'string' || typeof p[1] !== 'string') continue;
+    const url = clean(p[0]);
+    if (url) out.set(looseKey({ key: `tab:${url}`, kind: 'tab', label: '', detail: '', app: '', url }), p[1].slice(0, 60));
   }
   return out;
 }
 
 /**
  * How far into each video you got, from Stashd's extension (it notes the position and length every few
- * seconds on video sites): video key (see videoKey) -> { t: seconds watched, d: length }. Empty without it.
+ * seconds on video sites): video key (see videoKey) -> { t: seconds watched, d: length, 0 for a live
+ * stream }. Empty without it.
  */
 export async function videoProgress(clean: (url: string) => string | null): Promise<Map<string, { t: number; d: number }>> {
   const out = new Map<string, { t: number; d: number }>();
-  if (Date.now() - helperMissingAt < RETRY_HELPER_MS || !(await isRunning('chrome'))) return out;
-  try {
-    const r = await run('osascript', ['-e', REPORT_SCRIPT, '--', `chrome-extension://${CHROME_HELPER_ID}/open.html#${encodeURIComponent(JSON.stringify({ action: 'progress' }))}`], { timeoutMs: 6_000 });
-    const at = r.stdout.indexOf('#R');
-    if (at < 0) return out;
-    const rows = JSON.parse(decodeURIComponent(r.stdout.trim().slice(at + 2))) as unknown;
-    if (!Array.isArray(rows)) return out;
-    // The most recent position of each video, whatever time the address started at.
-    const when = new Map<string, number>();
-    for (const row of rows) {
-      if (!Array.isArray(row) || typeof row[0] !== 'string' || typeof row[1] !== 'number' || typeof row[2] !== 'number') continue;
-      const url = clean(row[0]);
-      if (!url) continue;
-      const k = videoKey(url);
-      const at = typeof row[3] === 'number' ? row[3] : 0;
-      if ((when.get(k) ?? -1) > at) continue;
-      when.set(k, at);
-      out.set(k, { t: row[1], d: row[2] });
-    }
-  } catch {
-    // can't tell: everything counts as unfinished
+  // The most recent position of each video, whatever time the address started at.
+  const when = new Map<string, number>();
+  for (const row of (await fromChrome()).videos) {
+    if (!Array.isArray(row) || typeof row[0] !== 'string' || typeof row[1] !== 'number' || typeof row[2] !== 'number') continue;
+    const url = clean(row[0]);
+    if (!url) continue;
+    const k = videoKey(url);
+    const at = typeof row[3] === 'number' ? row[3] : 0;
+    if ((when.get(k) ?? -1) > at) continue;
+    when.set(k, at);
+    out.set(k, { t: row[1], d: row[2] });
   }
   return out;
 }

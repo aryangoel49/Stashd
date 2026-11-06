@@ -6,6 +6,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { app, shell } from 'electron';
 import { run } from './exec';
+import { CHROME_HELPER_ID } from './open';
 
 function source(): string {
   return app.isPackaged ? path.join(process.resourcesPath, 'chrome-extension') : path.join(app.getAppPath(), 'assets', 'chrome-extension');
@@ -19,7 +20,31 @@ export function helperDir(): string {
 /** Keep the copy Chrome loads up to date (called at startup, so updates reach it). */
 export async function copyChromeHelper(): Promise<void> {
   await fs.cp(source(), helperDir(), { recursive: true, force: true });
+  await registerChromeHost().catch(() => undefined);
 }
+
+/**
+ * Tells Chrome which program its Stashd extension may hand video progress and tab groups to: Stashd's own
+ * helper (see "Chrome" in native/wwi-helper.swift), and only for that extension. Chrome's native
+ * messaging, so nothing is ever opened in Chrome to read them. The installed app only: a test copy
+ * would point Chrome at a helper that's about to be deleted.
+ */
+async function registerChromeHost(): Promise<void> {
+  if (!app.isPackaged) return;
+  const dir = path.join(app.getPath('home'), 'Library', 'Application Support', 'Google', 'Chrome', 'NativeMessagingHosts');
+  const manifest = {
+    name: CHROME_HOST,
+    description: 'Stashd',
+    path: path.join(process.resourcesPath, 'wwi-helper'),
+    type: 'stdio',
+    allowed_origins: [`chrome-extension://${CHROME_HELPER_ID}/`],
+  };
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(path.join(dir, `${CHROME_HOST}.json`), `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+/** Chrome's name for Stashd's helper (matches HOST in assets/chrome-extension/background.js). */
+const CHROME_HOST = 'com.aryangoel.stashd';
 
 export async function setupChromeHelper(): Promise<void> {
   await copyChromeHelper();

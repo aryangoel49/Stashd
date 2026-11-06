@@ -15,8 +15,12 @@
 //                        open in each one's front window: its title and, for web-based apps, its address
 //                        and the last ~2000 characters of the conversation on screen (for the brief).
 //                        Uses the Accessibility permission; with "chats ask" macOS asks for it if needed.
+//   (Chrome)             Started by Chrome for Stashd's extension (native messaging: Chrome passes the
+//                        extension's address as the first argument). Reads one message, how far into each
+//                        video you got and which tab group each tab is in, and keeps it in Stashd's folder
+//                        (chrome.json) for Stashd to read. Nothing else is read or written.
 //
-// Output is always one line of JSON on stdout.
+// Output is always one line of JSON on stdout (Chrome's messages are length-prefixed, as Chrome requires).
 
 import AppKit
 import CoreGraphics
@@ -289,7 +293,38 @@ func chatsCommand(ask: Bool) {
     printJSON(["trusted": true, "chats": chats])
 }
 
+/** Chrome's native messaging: a 4-byte length (this Mac's byte order), then that much JSON, each way. */
+func chromeHostCommand() {
+    let input = FileHandle.standardInput
+    let head = input.readData(ofLength: 4)
+    guard head.count == 4 else { exit(0) }
+    let length = head.withUnsafeBytes { Int($0.loadUnaligned(as: UInt32.self)) }
+    guard length > 0, length <= 4_000_000 else { exit(1) }
+    let body = input.readData(ofLength: length)
+    var ok = false
+    if body.count == length, (try? JSONSerialization.jsonObject(with: body)) is [String: Any],
+       let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+        let dir = base.appendingPathComponent("Stashd", isDirectory: true)
+        let file = dir.appendingPathComponent("chrome.json")
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try body.write(to: file, options: .atomic)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+            ok = true
+        } catch {}
+    }
+    let reply = (try? JSONSerialization.data(withJSONObject: ["ok": ok])) ?? Data("{}".utf8)
+    var size = UInt32(reply.count)
+    let out = FileHandle.standardOutput
+    out.write(Data(bytes: &size, count: 4))
+    out.write(reply)
+}
+
 let args = CommandLine.arguments
+if args.count > 1, args[1].hasPrefix("chrome-extension://") {
+    chromeHostCommand()
+    exit(0)
+}
 switch args.count > 1 ? args[1] : "" {
 case "windows": windowsCommand()
 case "brief": briefCommand()
