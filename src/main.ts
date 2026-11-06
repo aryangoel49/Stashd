@@ -29,8 +29,11 @@ import { AppTray } from './main/tray';
 import { broadcast, getWindow, hardenWebContents, justHidden, prepareWindow, showWindow } from './main/windows';
 
 // Development-only: a separate data folder (set before the single-instance check, so a test copy
-// can run next to the installed app).
-if (!app.isPackaged && process.env.WWI_USER_DATA) app.setPath('userData', process.env.WWI_USER_DATA);
+// can run next to the installed app), and a temporary keychain, so a test copy never asks for the Mac's own.
+if (!app.isPackaged && process.env.WWI_USER_DATA) {
+  app.setPath('userData', process.env.WWI_USER_DATA);
+  app.commandLine.appendSwitch('use-mock-keychain');
+}
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

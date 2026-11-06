@@ -148,7 +148,7 @@ The installed app ignores these.
 
 | Variable | Effect |
 |---|---|
-| `WWI_USER_DATA=<folder>` | Separate data folder, so a dev copy can run next to the installed app |
+| `WWI_USER_DATA=<folder>` | Separate data folder and a temporary keychain, so a dev copy can run next to the installed app without asking for the Mac's keychain |
 | `WWI_FAKE_CAPTURE=<file.json>` | Fake "what's open", so tests never touch your real apps |
 | `WWI_CAPTURE_DIR=<folder>` | Saves a picture of each window |
 | `WWI_DEMO_TIDY=1` | Shows the tidy-up screens with demo data |
