@@ -390,7 +390,8 @@ section { padding-block: 112px; }
 .wide-copy p { margin-top: 8px; font-size: 16px; color: var(--ink-soft); }
 .brk { background: rgba(255,255,255,0.7); border-radius: 20px; padding: 18px; display: grid; gap: 16px; }
 .brk-places { display: flex; gap: 12px; }
-.brk-places i { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; font: 800 18px var(--display); font-style: normal; box-shadow: 0 6px 14px rgba(28,29,34,0.15); }
+.brk-places i { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: stretch; box-shadow: 0 6px 14px rgba(28,29,34,0.15), inset 0 0 0 0.5px rgba(28,29,34,0.08); }
+.brk-places svg { width: 100%; height: 100%; }
 .brk-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .brk-card { min-width: 0; display: grid; gap: 4px; font-size: 13px; }
 .brk-card b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -429,7 +430,7 @@ section { padding-block: 112px; }
 @media (max-width: 560px) {
   .card { padding: 20px; border-radius: 22px; }
   .card .chatwin { grid-template-columns: 1fr; }
-  .brk-places i { width: 38px; height: 38px; }
+  .brk-places i { width: 38px; height: 38px; padding: 7px !important; }
 }
 @media (prefers-reduced-motion: reduce) { .track { animation: none; flex-wrap: wrap; justify-content: center; width: auto; } .track span[aria-hidden] { display: none; } }
 /* ---------- privacy ---------- */
@@ -684,7 +685,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
           <p>Videos and shows go to Continue watching, not your work folders. Pick up the episode where you stopped.</p>
         </div>
         <div class="brk" aria-hidden="true">
-          <div class="brk-places"><i style="background:#ff2b3a">▶</i><i style="background:#141414;color:#e50914">N</i><i style="background:#1db954">♪</i><i style="background:#9146ff">t</i></div>
+          <div class="brk-places"><i style="background:#ffffff;padding:7px" title=""><svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#ff0000"/></svg></i><i style="background:#000000;padding:11px" title=""><svg viewBox="0 0 24 24"><path d="M5.398 0v.006c3.028 8.556 5.37 15.175 8.348 23.596 2.344.058 4.85.398 4.854.398-2.8-7.924-5.923-16.747-8.487-24zm8.489 0v9.63L18.6 22.951c-.043-7.86-.004-15.913.002-22.95zM5.398 1.05V24c1.873-.225 2.81-.312 4.715-.398v-9.22z" fill="#e50914"/></svg></i><i style="background:#121212;padding:9px" title=""><svg viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" fill="#1ed760"/></svg></i><i style="background:#9146ff;padding:11px" title=""><svg viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" fill="#ffffff"/></svg></i></div>
           <div class="brk-row">
             <div class="brk-card"><div class="brk-art a1"><span class="brk-bar" style="--w:62%"></span></div><b>Japan in 4K</b><small>12 min left</small></div>
             <div class="brk-card"><div class="brk-art a2"><span class="brk-live">Live</span></div><b>Game night</b><small>twitch.tv</small></div>
@@ -1066,16 +1067,26 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   whenSeen(bigBrief, () => { bigBrief.classList.add('played'); wide($('briefFolder')); });
   // Chapter 3: Tidy all sorts what's open, then the sorted things slide away.
   const tidyP = $('tidyPanel');
+  let tidyRun = 0;
   const playTidy = async () => {
+    const run = ++tidyRun;
+    const still = () => run === tidyRun;
     tidyP.classList.remove('sorting', 'gone'); $('tidyCount').textContent = '6 things open';
-    await wait(300);
+    await wait(900);
+    if (!still()) return;
     tidyP.classList.add('sorting');
-    await wait(6 * 160 + 900);
+    await wait(6 * 160 + 1800);
+    if (!still()) return;
     tidyP.classList.add('gone');
     $('tidyCount').textContent = '2 folders saved, 1 closed. Gmail stays.';
     smile($('tidyFolder'), 1600);
+    // Let it sit, then put everything back so it can be watched again (or tried with the button).
+    await hold(4000);
+    if (!still()) return;
+    tidyP.classList.remove('sorting', 'gone'); $('tidyCount').textContent = '6 things open';
   };
-  whenSeen(tidyP, playTidy);
+  // Starts only once the whole card is in view, and again each time you come back to it.
+  whenSeen(tidyP, playTidy, true, 0.9);
   $('tidyBtn').addEventListener('click', () => { replay($('tidyBtn'), 'hop'); playTidy(); });
   // Chapter 4: Stashd jumps to the exact chat.
   const hl = $('chatHl'), citems = [...document.querySelectorAll('.citem')], chatF = $('chatFolder');
