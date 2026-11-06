@@ -703,19 +703,28 @@ details summary { cursor: default; }
 .nf-edit { padding: 2px 8px; margin: -2px -4px -2px 0; border: 0; border-radius: 8px; background: none; font: inherit; color: var(--muted); cursor: pointer; transition: background 120ms ease, color 120ms ease; }
 .nf-edit:hover { background: rgba(28, 29, 34, 0.05); color: var(--text); }
 .nf-edit.on { color: var(--accent-ink); }
-.nf-place-editing { cursor: default; }
+.nf-place-editing { position: relative; cursor: default; transition: none; }
+@media (hover: hover) and (pointer: fine) { .nf-place-editing:hover .site-tile { transform: none; box-shadow: none; } }
 .nf-place-editing:hover { background: none; }
+.nf-place-editing:active { transform: none; }
 .nf-tile-wrap { position: relative; display: block; }
-.nf-drag { cursor: grab; border-radius: 12px; outline: none; }
+.nf-drag { cursor: grab; border-radius: 12px; outline: none; touch-action: none; }
 .nf-drag:focus-visible { box-shadow: 0 0 0 2px var(--accent-line); }
-.nf-place.dragging { opacity: 0.35; }
+.nf-place.held .nf-drag { cursor: grabbing; }
+.nf-place-editing .site-tile { transition: box-shadow 220ms ease; }
+.nf-place.held .site-tile { box-shadow: 0 10px 22px rgba(28, 29, 34, 0.22), 0 2px 6px rgba(28, 29, 34, 0.12); }
+.nf-place.held .nf-name-edit { opacity: 0; }
 .nf-hint { margin-top: -4px; padding: 0 4px; font-size: 11px; color: var(--faint); }
-.nf-remove { position: absolute; top: -6px; left: -6px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 2px solid var(--panel-bg, #f6f1e3); border-radius: 50%; background: #8a867c; color: #fff; cursor: pointer; transition: background 120ms ease, transform 160ms var(--ease-out, ease-out); }
-.nf-remove:hover { background: #d4493f; }
-.nf-remove:active { transform: scale(0.92); }
-.nf-name-edit { width: 100%; min-width: 0; padding: 2px 4px; border: 0; border-radius: 6px; outline: none; background: rgba(28, 29, 34, 0.06); font: inherit; font-size: 12px; color: var(--text); text-align: center; }
+/* The remove badge: a small frosted disc with a minus, like the Home Screen's. */
+.nf-remove { position: absolute; top: -7px; left: -7px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: rgba(236, 234, 229, 0.86); -webkit-backdrop-filter: blur(12px) saturate(180%); backdrop-filter: blur(12px) saturate(180%); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.16); color: #1c1d22; cursor: pointer; }
+.nf-remove::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; }
+.nf-remove:hover { background: rgba(225, 222, 216, 0.95); }
+.nf-remove:active { filter: brightness(0.92); }
+.nf-name-edit { width: 100%; min-width: 0; padding: 2px 4px; border: 0; border-radius: 6px; outline: none; background: transparent; font: inherit; font-size: 12px; color: var(--text); text-align: center; transition: background 150ms ease, box-shadow 150ms ease, opacity 150ms ease; cursor: text; }
+.nf-name-edit:hover { background: rgba(28, 29, 34, 0.05); }
 .nf-name-edit:focus { background: var(--well-hover); box-shadow: 0 0 0 1.5px var(--accent-line); }
-@media (prefers-color-scheme: dark) { .nf-remove { border-color: #2b2924; } .nf-name-edit { background: rgba(255, 255, 255, 0.08); } .nf-edit:hover { background: rgba(255, 255, 255, 0.06); } }
+@media (prefers-color-scheme: dark) { .nf-remove { background: rgba(72, 70, 66, 0.86); box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 1px 3px rgba(0, 0, 0, 0.4); color: #f2f0ea; } .nf-remove:hover { background: rgba(88, 86, 80, 0.95); } .nf-name-edit:hover { background: rgba(255, 255, 255, 0.06); } .nf-edit:hover { background: rgba(255, 255, 255, 0.06); } }
+@media (prefers-reduced-transparency: reduce) { .nf-remove { -webkit-backdrop-filter: none; backdrop-filter: none; background: #e4e1da; } }
 .nf-place:active { transform: scale(0.96); }
 .nf-place .site-tile { border-radius: 12px; }
 .nf-add { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--well); box-shadow: inset 0 0 0 0.5px var(--hair); color: var(--faint); }

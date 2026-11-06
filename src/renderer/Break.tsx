@@ -2,11 +2,12 @@
 // (put here by Tidy all) as a row of thumbnails, and where they open. The first time you open something it asks which
 // browser; the "Opens in …" line changes it any time.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type Ref } from 'react';
+import { useDragControls } from 'motion/react';
 import type { BreakItem, BreakShelf } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
-import { Button, FolderMark, motion } from './ui';
+import { AnimatePresence, Button, FolderMark, motion } from './ui';
 
 type Where = 'chrome' | 'arc' | 'safari' | 'window';
 const WHERE: { id: Where; label: string }[] = [
@@ -106,6 +107,103 @@ function SiteTile({ url, size = 30 }: { url: string; size?: number }) {
     <span className="site-tile" style={{ width: size, height: size, background: 'var(--well)', color: 'var(--text)', fontSize: size * 0.42 }} aria-hidden="true">
       {(h[0] ?? '•').toUpperCase()}
     </span>
+  );
+}
+
+/**
+ * A place while you edit, like the Home Screen: pick its logo up and it lifts and follows the pointer,
+ * the others slide aside, and it settles into its new spot when you let go. Arrow keys move it too.
+ */
+function EditPlace({ place, onLift, onMove, onDrop, onStep, onRename, onRemove, onDone, ref }: {
+  place: { name: string; url: string };
+  onLift: () => void;
+  onMove: (x: number, y: number) => void;
+  onDrop: () => void;
+  onStep: (step: -1 | 1) => void;
+  onRename: (name: string) => void;
+  onRemove: () => void;
+  onDone: () => void;
+  ref?: Ref<HTMLDivElement>;
+}) {
+  const controls = useDragControls();
+  const [held, setHeld] = useState(false);
+  return (
+    <motion.div
+      ref={ref}
+      layout
+      drag
+      dragControls={controls}
+      dragListener={false}
+      dragSnapToOrigin
+      dragMomentum={false}
+      dragElastic={1}
+      // Settling home: critically damped, carrying the speed you let go at.
+      dragTransition={{ bounceStiffness: 420, bounceDamping: 41 }}
+      transition={{ type: 'spring', duration: 0.35, bounce: 0 }}
+      exit={{ opacity: 0, scale: 0.6, transition: { duration: 0.18, ease: [0.23, 1, 0.32, 1] } }}
+      whileDrag={{ scale: 1.1 }}
+      onDragStart={() => {
+        setHeld(true);
+        onLift();
+      }}
+      onDrag={(e, info) => onMove('clientX' in e ? e.clientX : info.point.x, 'clientY' in e ? e.clientY : info.point.y)}
+      onDragEnd={() => {
+        setHeld(false);
+        onDrop();
+      }}
+      style={{ zIndex: held ? 5 : 1 }}
+      className={`nf-place nf-place-editing ${held ? 'held' : ''}`}
+    >
+      <span
+        className="nf-tile-wrap nf-drag"
+        tabIndex={0}
+        role="button"
+        aria-label={`Move ${place.name}. Use the arrow keys.`}
+        title="Drag to move"
+        onPointerDown={(e) => controls.start(e)}
+        onKeyDown={(e) => {
+          const step = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : 0;
+          if (!step) return;
+          e.preventDefault();
+          const target = e.currentTarget;
+          onStep(step);
+          requestAnimationFrame(() => target.focus());
+        }}
+      >
+        <SiteTile url={place.url} size={44} />
+        <motion.button
+          type="button"
+          className="nf-remove"
+          aria-label={`Remove ${place.name}`}
+          title="Remove"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: held ? 0 : 1, scale: held ? 0.5 : 1 }}
+          transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={onRemove}
+        >
+          <svg viewBox="0 0 10 10" width="8" height="8" aria-hidden="true">
+            <path d="M1.5 5h7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </motion.button>
+      </span>
+      <input
+        className="nf-name-edit"
+        defaultValue={place.name}
+        maxLength={40}
+        aria-label={`Name for ${place.name}`}
+        onFocus={(e) => e.currentTarget.select()}
+        onBlur={(e) => onRename(e.currentTarget.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') {
+            e.stopPropagation();
+            e.currentTarget.value = place.name;
+            onDone();
+          }
+        }}
+      />
+    </motion.div>
   );
 }
 
@@ -230,7 +328,7 @@ export function BreakView() {
   const [editing, setEditing] = useState(false);
   // While you drag a place: the order so far, and which one you're holding.
   const [order, setOrder] = useState<string[] | null>(null);
-  const [dragging, setDragging] = useState<string | null>(null);
+  const grid = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -317,6 +415,16 @@ export function BreakView() {
       setError(errorText(e));
     });
   };
+  // Which spot in the grid (4 across) the pointer is over, counted the way the places are laid out.
+  const slotAt = (x: number, y: number, count: number) => {
+    const g = grid.current;
+    const first = g?.firstElementChild as HTMLElement | null;
+    if (!g || !first) return 0;
+    const r = g.getBoundingClientRect();
+    const col = Math.min(3, Math.max(0, Math.floor(((x - r.left) / r.width) * 4)));
+    const row = Math.max(0, Math.floor((y - r.top) / (first.offsetHeight + 4)));
+    return Math.min(count - 1, row * 4 + col);
+  };
   const byUrl = new Map(shelf.places.map((p) => [p.url, p]));
   const places = order ? order.map((u) => byUrl.get(u)).filter((p): p is (typeof shelf.places)[number] => !!p) : shelf.places;
   const remove = (r: Row) => void Promise.all(r.items.map((it) => api.changeBreak({ removeItem: it.key }))).then((all) => all.length && setShelf(all[all.length - 1]));
@@ -333,71 +441,31 @@ export function BreakView() {
         </button>
       </div>
       {editing && places.length > 1 && <div className="nf-hint">Drag a logo to move it.</div>}
-      <div className="nf-places">
-        {places.map((p, i) =>
-          editing ? (
-            <motion.div
-              key={p.url}
-              layout
-              transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
-              className={`nf-place nf-place-editing ${dragging === p.url ? 'dragging' : ''}`}
-              onDragOver={(e) => {
-                if (!dragging) return;
-                e.preventDefault();
-                if (dragging !== p.url) setOrder(moveTo(dragging, i));
-              }}
-              onDrop={(e) => e.preventDefault()}
-            >
-              <span
-                className="nf-tile-wrap nf-drag"
-                draggable
-                tabIndex={0}
-                role="button"
-                aria-label={`Move ${p.name}. Use the arrow keys.`}
-                title="Drag to move"
-                onDragStart={(e) => {
-                  e.dataTransfer.effectAllowed = 'move';
-                  setDragging(p.url);
-                  setOrder(places.map((x) => x.url));
+      <div className="nf-places" ref={grid}>
+        {editing ? (
+          <AnimatePresence mode="popLayout" initial={false}>
+            {places.map((p, i) => (
+              <EditPlace
+                key={p.url}
+                place={p}
+                onLift={() => setOrder(places.map((x) => x.url))}
+                onMove={(x, y) => {
+                  const to = slotAt(x, y, places.length);
+                  if (to !== i) setOrder(moveTo(p.url, to));
                 }}
-                onDragEnd={() => {
-                  setDragging(null);
-                  if (order) saveOrder(order);
+                onDrop={() => {
+                  if (order && order.join() !== shelf.places.map((x) => x.url).join()) saveOrder(order);
+                  else setOrder(null);
                 }}
-                onKeyDown={(e) => {
-                  const step = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : 0;
-                  if (!step) return;
-                  e.preventDefault();
-                  const target = e.currentTarget;
-                  saveOrder(moveTo(p.url, i + step, places.map((x) => x.url)));
-                  requestAnimationFrame(() => target.focus());
-                }}
-              >
-                <SiteTile url={p.url} size={44} />
-                <button type="button" className="nf-remove" aria-label={`Remove ${p.name}`} title="Remove" onClick={() => void api.changeBreak({ removePlace: p.url }).then(setShelf, (e) => setError(errorText(e)))}>
-                  <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
-                    <path d="M3 6h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
-                </button>
-              </span>
-              <input
-                className="nf-name-edit"
-                defaultValue={p.name}
-                maxLength={40}
-                aria-label={`Name for ${p.name}`}
-                onFocus={(e) => e.currentTarget.select()}
-                onBlur={(e) => renamePlace(p.url, e.currentTarget.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') e.currentTarget.blur();
-                  if (e.key === 'Escape') {
-                    e.stopPropagation();
-                    e.currentTarget.value = p.name;
-                    setEditing(false);
-                  }
-                }}
+                onStep={(step) => saveOrder(moveTo(p.url, i + step, places.map((x) => x.url)))}
+                onRename={(name) => renamePlace(p.url, name)}
+                onRemove={() => void api.changeBreak({ removePlace: p.url }).then(setShelf, (e) => setError(errorText(e)))}
+                onDone={() => setEditing(false)}
               />
-            </motion.div>
-          ) : (
+            ))}
+          </AnimatePresence>
+        ) : (
+          places.map((p) => (
             <button
               key={p.url}
               type="button"
@@ -412,7 +480,7 @@ export function BreakView() {
               <SiteTile url={p.url} size={44} />
               <span>{p.name}</span>
             </button>
-          ),
+          ))
         )}
         {editing ? null : adding ? (
           <form
