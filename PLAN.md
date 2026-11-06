@@ -132,6 +132,7 @@ The first version in this folder was built around coding "project folders". It a
 - **No Apple Developer Program for now.** People will see Apple's warning once, at install (see "Installing without the $99 account").
 - Chrome Web Store account and a domain: yes.
 - A full marketing research phase before the public launch.
+- **No launch date.** We launch when the checklist is done, not to meet Arc's closing day. The Arc Spaces idea stays a nice-to-have.
 
 ### Installing without the $99 account (what it really means)
 - **Stashd is a Mac app, not a web app.** It has to be: a website can't see your tabs, files or apps.
@@ -147,6 +148,23 @@ The first version in this folder was built around coding "project folders". It a
   - Then build Stashd's own updater: it checks GitHub Releases, downloads, swaps the app and restarts.
   - First test whether the standard updater accepts the self-made certificate. If it does, use that instead.
 - **When to revisit the $99:** when we aim at students and non-technical people, when paid plans start (it pays for itself), or if beta testers drop off at install.
+
+### Installing, updating and permissions (Aryan, 6 Nov)
+- **Three ways to install, all on the website:**
+  1. the DMG;
+  2. a one-line Terminal command (`curl … | bash`);
+  3. **`npx stashd`** for people who have Node. The npm name `stashd` is free today; publishing needs a free npm account (Aryan).
+  - All three put Stashd in Applications and open it. The two Terminal ways skip Apple's warning.
+- **Every update reaches everyone:**
+  - Stashd checks GitHub Releases when it starts and every few hours.
+  - When there's a new version, it shows **"Stashd 1.6 is ready: what's new · Install and restart"**. One click: it downloads, swaps itself and reopens. "Later" asks again the next day.
+  - No Terminal and no DMG for updates.
+- **Permissions once, at the start:**
+  - The first-run setup lists the apps Stashd can work with that are on this Mac (Chrome, Safari, Word…) and asks for access to all of them in one go. People click OK a few times, once.
+  - Each one comes with a plain line saying why ("so Stashd can save and reopen your tabs").
+  - Because every release is signed with the same kept Stashd certificate, macOS remembers these and **never asks again after updates**.
+  - Anything someone said no to can be fixed later from one button in Settings.
+- **Transparency:** what Stashd reads, what it sends (only for AI briefs) and what it never touches go on one plain page on the website. Terms only if we need them.
 
 ### Your Claude key, explained simply
 - The key in your Stashd today lives in **your Mac's keychain**. It pays for **your** briefs only. Other people's Macs can't see it, so it can't power their briefs.
@@ -185,8 +203,9 @@ Each brief request carries the anonymous install ID, so the server can count how
 - [ ] Consent screen at first launch
 - [ ] Update the privacy test, README and website
 - [ ] Intel build: Swift helper for macOS 13 on both chips, onnxruntime 1.23 for Intel, the same matching results on both
-- [ ] Release signing with the kept Stashd certificate, plus Stashd's own updater
-- [ ] One-line installer script, and the DMG with the "Open Anyway" picture guide
+- [ ] Release signing with the kept Stashd certificate, plus Stashd's own updater with the "Install and restart" prompt
+- [ ] Installers: DMG (with the "Open Anyway" picture guide), the one-line command, and `npx stashd`
+- [ ] First-run permissions step: ask for every installed app at once, with a reason for each
 - [ ] **Brave, Edge and Vivaldi support.** They work like Chrome, so it's cheap, and many developers use Brave.
   - Firefox and Zen can't share their tabs with other apps on a Mac; the website says so plainly.
 - [ ] Never lose a save: back up before any change to how saves are stored, recover from a damaged file, and show what didn't reopen
