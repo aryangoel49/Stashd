@@ -48,9 +48,27 @@ function hostOfUrl(url: string): string {
   }
 }
 
-/** A site's own tile: its real mark for the well-known ones, else its first letter. */
+/**
+ * A place's own logo, loaded from the site itself (like opening it would). The big home-screen icon
+ * first, since it stays sharp at tile size, then the classic favicon. Misses are remembered for the session.
+ */
+const ICON_PATHS = ['/apple-touch-icon.png', '/favicon.ico'];
+const iconMisses = new Map<string, number>();
+
+function originOf(url: string): string | null {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' ? u.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A site's own tile: its real mark for the well-known ones, else the site's logo, else its first letter. */
 function SiteTile({ url, size = 30 }: { url: string; size?: number }) {
   const h = hostOfUrl(url);
+  const origin = originOf(url);
+  const [step, setStep] = useState(() => (origin ? (iconMisses.get(origin) ?? 0) : ICON_PATHS.length));
   const b = BRANDS.find((x) => x.test.test(h));
   if (b) {
     const pad = Math.round(size * (b.inset ?? 0.2));
@@ -60,6 +78,28 @@ function SiteTile({ url, size = 30 }: { url: string; size?: number }) {
           <path d={b.path} fill={b.fg} />
         </svg>
       </span>
+    );
+  }
+  if (origin && step < ICON_PATHS.length) {
+    // The home-screen icon is a full square with its own background; a favicon sits on the tile.
+    const full = step === 0;
+    return (
+      <img
+        key={step}
+        className={`site-tile site-logo ${full ? 'full' : ''}`}
+        src={origin + ICON_PATHS[step]}
+        width={size}
+        height={size}
+        style={full ? undefined : { padding: Math.round(size * 0.2) }}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        referrerPolicy="no-referrer"
+        onError={() => {
+          iconMisses.set(origin, step + 1);
+          setStep(step + 1);
+        }}
+      />
     );
   }
   return (

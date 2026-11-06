@@ -8,6 +8,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ### Added
 - Tidy all has a shortcut: ⌃⇧S (change it in Settings).
 - Continue watching: streams (Twitch, Kick, and YouTube streams that are live) get a red Live tag.
+- Websites you add to Your places on the Break page show their own logo instead of a letter.
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed

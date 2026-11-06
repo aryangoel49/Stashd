@@ -11,7 +11,7 @@
 
 **Stashd** is a menu bar app for your Mac. Press **⌃S** and it stashes the work you're in the middle of: your open tabs, documents and apps, plus a quick note. When you come back, pick the folder from the menu bar. A short brief tells you where you left off, and one click reopens what you need.
 
-Everything stays on your Mac. It only goes online to write Claude briefs (after you connect your own Claude key) and to show YouTube video thumbnails on the Break page.
+Everything stays on your Mac. It only goes online to write Claude briefs (after you connect your own Claude key) and to show YouTube video thumbnails and the logos of sites you add on the Break page (loaded from those sites).
 
 ---
 
