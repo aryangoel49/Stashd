@@ -1,6 +1,6 @@
 // Types shared by the main process, the preload bridge and the React UI.
 
-export type BrowserName = 'chrome' | 'arc' | 'safari';
+export type BrowserName = 'chrome' | 'brave' | 'edge' | 'vivaldi' | 'arc' | 'safari';
 export type Accent = 'indigo' | 'teal' | 'coral';
 export type Route = 'panel' | 'save' | 'main' | 'overlay' | 'naming' | 'toast';
 

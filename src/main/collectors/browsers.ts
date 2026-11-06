@@ -1,6 +1,7 @@
-// Reads open tab titles and addresses from Chrome, Arc and Safari with AppleScript.
-// Only asks a browser that is already running (never launches one), skips Chrome and Arc
-// incognito windows, and never reads cookies, history, passwords or page contents.
+// Reads open tab titles and addresses from Chrome, Brave, Edge, Vivaldi, Arc and Safari with AppleScript.
+// Only asks a browser that is already running (never launches one), skips private windows
+// (except in Safari, whose private windows it can't tell apart), and never reads cookies, history,
+// passwords or page contents.
 
 import type { BrowserName, CollectorError } from '../../shared/types';
 import { run, RunError } from '../exec';
@@ -16,9 +17,15 @@ export interface Tab {
 
 export const BROWSER_APPS: Record<BrowserName, { bundleId: string; appName: string; label: string }> = {
   chrome: { bundleId: 'com.google.Chrome', appName: 'Google Chrome', label: 'Chrome' },
+  brave: { bundleId: 'com.brave.Browser', appName: 'Brave Browser', label: 'Brave' },
+  edge: { bundleId: 'com.microsoft.edgemac', appName: 'Microsoft Edge', label: 'Edge' },
+  vivaldi: { bundleId: 'com.vivaldi.Vivaldi', appName: 'Vivaldi', label: 'Vivaldi' },
   arc: { bundleId: 'company.thebrowser.Browser', appName: 'Arc', label: 'Arc' },
   safari: { bundleId: 'com.apple.Safari', appName: 'Safari', label: 'Safari' },
 };
+
+/** The browsers that work like Chrome over AppleScript. */
+export const isChromium = (browser: BrowserName): boolean => ['chrome', 'brave', 'edge', 'vivaldi'].includes(browser);
 
 /** Most tabs saved at once; past this the save box says so. */
 export const MAX_TABS = 500;
@@ -26,17 +33,17 @@ export const MAX_TABS = 500;
 const US = 'character id 31';
 const RS = 'character id 30';
 
-// Each script prints records "window<US>isActive<US>url<US>title<RS>".
-const SCRIPTS: Record<BrowserName, string> = {
-  chrome: `
+// Chrome, Brave, Edge and Vivaldi share one AppleScript dictionary. A window that isn't "normal" is private
+// (Chrome and Brave call it incognito, Edge InPrivate).
+const chromiumScript = (id: string) => `
 set out to ""
-tell application id "com.google.Chrome"
+tell application id "${id}"
   set wi to 0
   repeat with w in windows
     set wi to wi + 1
     set skip to false
     try
-      if mode of w is "incognito" then set skip to true
+      if mode of w is not "normal" then set skip to true
     end try
     if not skip then
       set ai to active tab index of w
@@ -48,7 +55,14 @@ tell application id "com.google.Chrome"
     end if
   end repeat
 end tell
-return out`,
+return out`;
+
+// Each script prints records "window<US>isActive<US>url<US>title<RS>".
+const SCRIPTS: Record<BrowserName, string> = {
+  chrome: chromiumScript('com.google.Chrome'),
+  brave: chromiumScript('com.brave.Browser'),
+  edge: chromiumScript('com.microsoft.edgemac'),
+  vivaldi: chromiumScript('com.vivaldi.Vivaldi'),
   arc: `
 set out to ""
 tell application id "company.thebrowser.Browser"

@@ -4,16 +4,19 @@
 
 import { useEffect, useMemo, useRef, useState, type Ref } from 'react';
 import { useDragControls } from 'motion/react';
-import type { BreakItem, BreakShelf } from '../shared/types';
+import type { BreakItem, BreakShelf, BrowserName } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
 import { AnimatePresence, Button, FolderMark, motion } from './ui';
 
-type Where = 'chrome' | 'arc' | 'safari' | 'window';
+type Where = BrowserName | 'window';
 const WHERE: { id: Where; label: string }[] = [
   { id: 'chrome', label: 'Google Chrome' },
   { id: 'safari', label: 'Safari' },
   { id: 'arc', label: 'Arc' },
+  { id: 'brave', label: 'Brave' },
+  { id: 'edge', label: 'Microsoft Edge' },
+  { id: 'vivaldi', label: 'Vivaldi' },
   { id: 'window', label: 'Its own window, no tabs around it' },
 ];
 const whereLabel = (w: BreakShelf['browser']) => (w === 'window' ? 'its own window' : (WHERE.find((x) => x.id === w)?.label ?? ''));

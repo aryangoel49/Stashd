@@ -21,6 +21,7 @@ import { documentFrequency, FIT_SUGGEST, hasProof, jobFit, jobProfile, meaningTe
 import { suggest, type FolderData } from './jobs/suggest';
 import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
+import { BROWSER_APPS } from './collectors/browsers';
 import { changeChromeGroup, finished, openForBreak, openItems, videoProgress } from './open';
 import { BreakStore, isBreakItem, videoKey } from './breaks';
 import type { SettingsStore } from './settings';
@@ -662,7 +663,7 @@ export class Core {
       const jobs = await this.store.list();
       const latest = await Promise.all(jobs.map((j) => this.store.latest(j.id)));
       // (Browsers always: videos you close yourself go to Continue watching.)
-      const apps = new Set([...latest.flatMap((e) => (e?.items ?? []).map((i) => i.app)), 'Google Chrome', 'Safari', 'Arc']);
+      const apps = new Set([...latest.flatMap((e) => (e?.items ?? []).map((i) => i.app)), ...Object.values(BROWSER_APPS).map((b) => b.appName)]);
       const win = this.fakeCapture ? null : await this.helper.windows().catch(() => null);
       const cap = this.fakeCapture
         ? await this.fakeCapture()

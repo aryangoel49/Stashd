@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { assemble, frontItemKey } from '../src/main/capture';
 import { parseDocOutput, shortDir } from '../src/main/capture/docs';
-import { isPermissionError, parseTabOutput } from '../src/main/collectors/browsers';
+import { BROWSER_APPS, isChromium, isPermissionError, parseTabOutput } from '../src/main/collectors/browsers';
 import { RunError } from '../src/main/exec';
 import { parseWindows } from '../src/main/helper';
+import { BROWSERS, DEFAULT_SETTINGS, normalizeStoredSettings } from '../src/shared/validate';
 
 const US = '\x1f';
 const RS = '\x1e';
@@ -109,5 +110,25 @@ describe('finding a document by name (Spotlight)', () => {
     expect(pickBest('AI research', 'Microsoft Word', c)).toBe('/Users/a/Documents/AI research.docx');
     expect(pickBest('AI research.docx', 'Microsoft Word', c)).toBe('/Users/a/Documents/AI research.docx');
     expect(pickBest('Budget', 'Microsoft Word', c)).toBeNull();
+  });
+});
+
+describe('browsers that work like Chrome', () => {
+  it('have their own Mac app and read tabs the same way', () => {
+    expect(BROWSER_APPS.brave).toMatchObject({ bundleId: 'com.brave.Browser', appName: 'Brave Browser' });
+    expect(BROWSER_APPS.edge).toMatchObject({ bundleId: 'com.microsoft.edgemac', appName: 'Microsoft Edge' });
+    expect(BROWSER_APPS.vivaldi).toMatchObject({ bundleId: 'com.vivaldi.Vivaldi', appName: 'Vivaldi' });
+    for (const b of ['brave', 'edge', 'vivaldi'] as const) {
+      expect(parseTabOutput(b, `1${US}true${US}https://a.io/${US}A${RS}`)[0]).toMatchObject({ browser: b, url: 'https://a.io/', active: true });
+      expect(isChromium(b)).toBe(true);
+      expect(DEFAULT_SETTINGS.browsers[b]).toBe(true);
+      expect(BROWSERS).toContain(b);
+    }
+    expect(isChromium('arc')).toBe(false);
+    expect(isChromium('safari')).toBe(false);
+  });
+
+  it('are switched on for people whose settings were saved before they existed', () => {
+    expect(normalizeStoredSettings({ browsers: { chrome: false, arc: true, safari: true } }).browsers).toEqual({ chrome: false, brave: true, edge: true, vivaldi: true, arc: true, safari: true });
   });
 });

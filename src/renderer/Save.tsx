@@ -488,7 +488,7 @@ function Pills({ items, picked, preview, onToggle }: { items: Item[]; picked: Se
   );
 }
 
-const BROWSER_NAMES: Record<string, string> = { chrome: 'Chrome', arc: 'Arc', safari: 'Safari' };
+const BROWSER_NAMES: Record<string, string> = { chrome: 'Chrome', brave: 'Brave', edge: 'Edge', vivaldi: 'Vivaldi', arc: 'Arc', safari: 'Safari' };
 
 function appName(collector: string): string {
   const [kind, name] = collector.split(':');

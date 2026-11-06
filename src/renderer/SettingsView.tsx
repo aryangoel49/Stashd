@@ -136,8 +136,8 @@ export function SettingsView() {
             <>
       <Card title="Privacy" hint="Stashd looks at what's open when you press the shortcut, and now and then to spot work you've packed. It never reads page contents, document text, passwords, cookies or private windows.">
         <ListRow label="Never save tabs from" value={s.excludedDomains} onSave={(v) => void update({ excludedDomains: v })} />
-        {(['chrome', 'arc', 'safari'] as const).map((b) => (
-          <Toggle key={b} label={`Read tabs from ${{ chrome: 'Google Chrome', arc: 'Arc', safari: 'Safari' }[b]}`} on={s.browsers[b]} onChange={(v) => void update({ browsers: { ...s.browsers, [b]: v } })} />
+        {(['chrome', 'brave', 'edge', 'vivaldi', 'arc', 'safari'] as const).map((b) => (
+          <Toggle key={b} label={`Read tabs from ${{ chrome: 'Google Chrome', brave: 'Brave', edge: 'Microsoft Edge', vivaldi: 'Vivaldi', arc: 'Arc', safari: 'Safari' }[b]}`} on={s.browsers[b]} onChange={(v) => void update({ browsers: { ...s.browsers, [b]: v } })} />
         ))}
         <Toggle label="Keep the part of addresses after ?" hint="Off by default: only the parts that say which page it is (like a YouTube video) are kept. Secrets are removed either way." on={s.keepQueryStrings} onChange={(v) => void update({ keepQueryStrings: v })} />
         <div className="srow">

@@ -2,7 +2,7 @@
 // and validates its input before doing anything.
 
 import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
-import type { AppInfo } from '../shared/types';
+import type { AppInfo, BrowserName } from '../shared/types';
 import * as v from '../shared/validate';
 import { setupChromeHelper } from './chromehelper';
 import type { Core } from './core';
@@ -133,12 +133,12 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('break:open', (_e, url) => core.openBreak(v.str(url, 'address', 4000)));
   handle('break:change', (_e, change) => {
     const c = (change ?? {}) as Record<string, unknown>;
-    const browsers = ['chrome', 'arc', 'safari', 'window'];
+    const browsers = [...v.BROWSERS, 'window'];
     if (c.browser != null && !browsers.includes(String(c.browser))) throw new Error('bad browser');
     const place = c.addPlace as Record<string, unknown> | undefined;
     const rename = c.renamePlace as Record<string, unknown> | undefined;
     return core.changeBreak({
-      browser: c.browser == null ? undefined : (String(c.browser) as 'chrome'),
+      browser: c.browser == null ? undefined : (String(c.browser) as BrowserName | 'window'),
       removeItem: c.removeItem == null ? undefined : v.itemKey(c.removeItem),
       addPlace: place ? { name: v.str(place.name, 'name', 40).trim() || 'Place', url: new URL(v.str(place.url, 'address', 2000)).toString() } : undefined,
       renamePlace: rename ? { name: v.str(rename.name, 'name', 40).trim() || 'Place', url: v.str(rename.url, 'address', 2000) } : undefined,

@@ -6,7 +6,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { BrowserName, Item } from '../shared/types';
-import { BROWSER_APPS, rawTabUrls } from './collectors/browsers';
+import { BROWSER_APPS, isChromium, rawTabUrls } from './collectors/browsers';
 import { DOC_ADAPTERS } from './capture/docs';
 import { run } from './exec';
 import { looseKey, cleanTabUrl, type UrlOptions } from './urls';
@@ -26,23 +26,23 @@ end wwiMatches`;
 /**
  * Closes tabs whose address is one of the targets (ignoring ?query and #fragment). Skips private windows.
  * Each window's addresses are read in one go, and windows are found by id, so closing a whole window
- * never makes the script lose its place. In Chrome a window whose tabs all go is closed at once, which
+ * never makes the script lose its place. In Chrome and its kin a window whose tabs all go is closed at once, which
  * is quicker and calmer than watching its tabs disappear one by one. (Arc keeps a closed window's tabs
  * in its sidebar and Safari may ask first, so there each tab is closed on its own.)
  */
 export function closeTabsScript(browser: BrowserName): string {
   const id = BROWSER_APPS[browser].bundleId;
   const skipPrivate =
-    browser === 'chrome'
+    isChromium(browser)
       ? `try
-          if mode of wwiWin is "incognito" then set wwiSkip to true
+          if mode of wwiWin is not "normal" then set wwiSkip to true
         end try`
       : browser === 'arc'
         ? `try
           if incognito of wwiWin then set wwiSkip to true
         end try`
         : '';
-  const closeAll = browser === 'chrome' ? 'wwiAll' : 'false';
+  const closeAll = isChromium(browser) ? 'wwiAll' : 'false';
   return `${MATCH_HANDLER}
 on run wwiTargets
   set wwiClosed to 0

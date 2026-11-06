@@ -5,7 +5,7 @@ import path from 'node:path';
 import { app, shell } from 'electron';
 import type { BrowserName, Item, OpenResult, Settings } from '../shared/types';
 import { BROWSERS } from '../shared/validate';
-import { BROWSER_APPS, collectTabs, isRunning } from './collectors/browsers';
+import { BROWSER_APPS, collectTabs, isChromium, isRunning } from './collectors/browsers';
 import { run } from './exec';
 import { videoKey } from './breaks';
 import { looseKey, matchKeys } from './urls';
@@ -92,7 +92,7 @@ export function newWindowScript(browser: BrowserName): string | null {
       tell wwiWin to make new tab at end of tabs with properties {URL:(item wwiI of wwiUrls)}
     end repeat
     activate`;
-  if (browser === 'chrome')
+  if (isChromium(browser))
     return `on run wwiUrls
   tell application id "${id}"
     set wwiWin to make new window

@@ -88,7 +88,7 @@ The bottom of each brief says which one wrote it. Click **No** under "Helpful?" 
 - Folders live on disk in `~/Library/Application Support/Stashd/jobs/`.
 - Your Claude key is stored encrypted in the macOS keychain.
 - With the Accessibility permission, Stashd notes which Claude or ChatGPT chat is open when you stash, and saves its name, its link and the end of the conversation with the folder, so it can reopen the chat and write a better brief.
-- Incognito windows in Chrome and Arc are never saved or closed. **Safari Private windows can't be told apart** (Safari doesn't let other apps see that), so close them before you stash, or leave Safari unticked in Settings.
+- Private windows in Chrome, Brave, Edge, Vivaldi and Arc are never saved or closed. **Safari Private windows can't be told apart** (Safari doesn't let other apps see that), so close them before you stash, or leave Safari unticked in Settings.
 - Stashd AI counts requests per install (a random ID) to share out the free daily briefs, and how many installs used it each week. Only hashes are kept, and they expire.
 - `tests/privacy.test.ts` fails the build if anything except the two brief writers (`src/main/brief/claude.ts` and `src/main/brief/stashd.ts`) tries to use the internet, and checks that Stashd AI only talks to Stashd's own server.
 

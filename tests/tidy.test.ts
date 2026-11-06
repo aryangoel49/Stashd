@@ -37,17 +37,17 @@ describe('close scripts', () => {
     const s = closeTabsScript('chrome');
     expect(s).toContain('if wwiUrl is wwiT then return true');
     expect(s).not.toContain('starts with (wwiT');
-    expect(s).toContain('incognito');
-    expect(closeTabsScript('safari')).not.toContain('incognito');
+    expect(s).toContain('if mode of wwiWin is not "normal" then set wwiSkip to true');
+    expect(closeTabsScript('safari')).not.toContain('wwiSkip to true');
   });
 
-  it('find windows by id, read each window in one go, and close a whole window only in Chrome', () => {
+  it('find windows by id, read each window in one go, and close a whole window only in Chrome and its kin', () => {
     // Closing a window used to shift the window list, so the next window was skipped and the script failed.
-    for (const b of ['chrome', 'arc', 'safari'] as const) {
+    for (const b of ['chrome', 'brave', 'edge', 'vivaldi', 'arc', 'safari'] as const) {
       expect(closeTabsScript(b)).toContain('set wwiWin to window id wwiId');
       expect(closeTabsScript(b)).toContain('URL of every tab of wwiWin');
     }
-    expect(closeTabsScript('chrome')).toContain('if wwiAll then');
+    for (const b of ['chrome', 'brave', 'edge', 'vivaldi'] as const) expect(closeTabsScript(b)).toContain('if wwiAll then');
     // Arc keeps a closed window's tabs in its sidebar; Safari may ask before closing a window.
     expect(closeTabsScript('arc')).toContain('if false then');
     expect(closeTabsScript('safari')).toContain('if false then');
