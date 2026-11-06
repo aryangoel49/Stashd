@@ -109,6 +109,11 @@ describe('learn', () => {
 });
 
 describe('suggestName', () => {
+  it('leaves no stray punctuation on the end of a name', () => {
+    const repo: Item = { key: 'tab:https://github.com/a/b', kind: 'tab', label: 'aryangoel49/Stashd: Where Was I?', detail: '', app: 'Brave Browser', url: 'https://github.com/a/b', browser: 'brave' };
+    expect(suggestName([repo], repo.key)).toBe('Aryangoel49/Stashd');
+  });
+
   it('uses the front document without its extension', () => {
     expect(suggestName([jstor, essay], essay.key)).toBe('Climate essay');
   });

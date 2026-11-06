@@ -215,7 +215,7 @@ export function suggestName(items: Item[], frontKey: string | null): string {
   let name = pick.label;
   if (pick.kind === 'doc' || pick.kind === 'folder') name = name.replace(/\.[A-Za-z0-9]{1,5}$/, '');
   if (pick.kind === 'tab') name = conciseTitle(shortTitle(name));
-  name = name.replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  name = name.replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/[\s:;,|·•–—-]+$/, '');
   if (!name || /^(document|untitled|new tab)\s*\d*$/i.test(name)) return 'New folder';
   return name.slice(0, 60);
 }
