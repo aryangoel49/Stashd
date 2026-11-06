@@ -271,7 +271,6 @@ kbd { font: 600 0.9em var(--body); background: #fff; border: 1px solid var(--lin
 section { padding-block: 112px; }
 .rule { border: 0; height: 1px; margin: 0; background: linear-gradient(90deg, transparent, var(--line) 18%, var(--line) 82%, transparent); }
 #features { padding-block: 16px 8px; }
-#privacy { padding-block: 72px; }
 .end { padding-top: 88px; }
 .section-head { max-width: 640px; }
 .section-head h2 { font-size: clamp(36px, 4.6vw, 58px); line-height: 1.02; font-weight: 700; }
@@ -305,7 +304,7 @@ section { padding-block: 112px; }
 .big-brief .head { display: flex; gap: 14px; align-items: center; }
 .big-brief .head .folder { width: 48px; height: 48px; }
 .big-brief .name { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
-.big-brief h3 { font-size: 24px; line-height: 1.2; }
+.big-brief h4 { margin: 0; font: 700 22px/1.2 var(--display); letter-spacing: -0.02em; }
 .big-brief .rows { font-size: 16px; margin-top: 18px; gap: 12px; }
 .big-brief .rows div { grid-template-columns: 74px 1fr; gap: 12px; }
 .big-brief .rows dt { font-size: 13.5px; }
@@ -343,11 +342,99 @@ section { padding-block: 112px; }
 .chatcap { margin-top: 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-soft); }
 .chatcap .folder { width: 24px; height: 24px; }
 
+
+/* ---------- the sections under the hero (the pattern good product sites share:
+   proof, one number, three steps, try it, a feature grid, privacy, questions, last call) ---------- */
+.center { text-align: center; margin-inline: auto; }
+.section-head.center { max-width: 720px; }
+.section-head .eyebrow { margin-bottom: 14px; }
+.section-head h2 em, .privacy h2 em { font: italic 400 1.08em/1 "Instrument Serif", Georgia, serif; letter-spacing: -0.01em; }
+.works { padding-block: 8px 24px; text-align: center; }
+.marquee { margin-top: 18px; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.track { display: flex; gap: 12px; width: max-content; animation: marquee 38s linear infinite; }
+.track span { padding: 8px 16px; border-radius: 999px; background: rgba(255,253,246,0.8); border: 1px solid var(--line); font: 600 15px var(--body); color: var(--ink-soft); white-space: nowrap; }
+@keyframes marquee { to { transform: translateX(calc(-50% - 6px)); } }
+.stat { padding-block: 64px 24px; }
+.stat-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; max-width: 900px; margin: 0 auto; }
+.stat-cell { display: grid; gap: 8px; text-align: center; }
+.stat-num { font: 800 clamp(56px, 8vw, 96px)/0.9 var(--display); letter-spacing: -0.04em; color: #b9b29c; }
+.stat-num b { font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat-cell.us .stat-num { color: var(--ink); }
+.stat-cell.us .stat-num b { color: var(--butter-deep); }
+.stat-lbl { font-size: 16px; color: var(--ink-soft); max-width: 26ch; margin: 0 auto; }
+.stat-vs { font: 700 36px var(--display); color: var(--butter-deep); }
+.src { margin: 22px auto 0; max-width: 64ch; text-align: center; font-size: 13px; color: #9a968a; }
+.steps { padding-block: 72px; }
+.step-grid { margin-top: 44px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.step { position: relative; background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 26px; padding: 26px; box-shadow: 0 24px 60px -36px rgba(28,29,34,0.35); }
+.step-pic { height: 120px; display: grid; place-items: center; position: relative; border-radius: 18px; background: radial-gradient(closest-side, rgba(242,205,92,0.35), rgba(242,205,92,0) 80%); }
+.step-pic .folder { width: 76px; height: 76px; filter: drop-shadow(0 10px 18px rgba(214,170,40,0.3)); }
+.step-key { position: absolute; right: 22%; top: 18%; font-size: 15px; transform: rotate(8deg); }
+.step-happy .open { opacity: 0; } .step-happy .happy { opacity: 1; }
+.step-n { position: absolute; top: 18px; left: 20px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: #fff; font: 700 14px var(--display); }
+.step h3 { margin-top: 18px; font-size: 24px; }
+.step p { margin-top: 8px; font-size: 16px; color: var(--ink-soft); }
+.tryit { padding-block: 40px 72px; }
+.tryit .section-head p { margin-top: 10px; font-size: 18px; }
+#features { padding-block: 72px; }
+.bento { margin-top: 44px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.card { background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 28px; padding: 28px; box-shadow: 0 24px 60px -36px rgba(28,29,34,0.35); display: flex; flex-direction: column; min-width: 0; }
+.card > h3 { font-size: 26px; line-height: 1.1; }
+.card > p { margin-top: 8px; font-size: 16px; color: var(--ink-soft); }
+.card > .panel, .card > .chatwin { margin-top: 22px; }
+.card .panel { background: rgba(255,255,255,0.7); box-shadow: none; padding: 18px; border-radius: 20px; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.card .chatwin { min-height: 260px; grid-template-columns: 150px 1fr; box-shadow: none; }
+.card .trow { padding: 9px 12px; font-size: 14px; }
+.card.wide { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 32px; align-items: center; }
+.wide-copy h3 { font-size: 26px; line-height: 1.1; }
+.wide-copy p { margin-top: 8px; font-size: 16px; color: var(--ink-soft); }
+.brk { background: rgba(255,255,255,0.7); border-radius: 20px; padding: 18px; display: grid; gap: 16px; }
+.brk-places { display: flex; gap: 12px; }
+.brk-places i { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; font: 800 18px var(--display); font-style: normal; box-shadow: 0 6px 14px rgba(28,29,34,0.15); }
+.brk-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.brk-card { min-width: 0; display: grid; gap: 4px; font-size: 13px; }
+.brk-card b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brk-card small { color: var(--ink-soft); font-size: 12px; }
+.brk-art { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; margin-bottom: 4px; }
+.brk-art.a1 { background: linear-gradient(135deg, #f7b2a0, #8e6bb8); }
+.brk-art.a2 { background: linear-gradient(135deg, #6c5ce7, #1c1d22); }
+.brk-art.a3 { background: linear-gradient(135deg, #f2cd5c, #7aa5d6); }
+.brk-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(255,255,255,0.4); }
+.brk-bar::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 0; background: var(--butter); transition: width 1.2s var(--ease-out) 0.4s; }
+.reveal.in .brk-bar::after { width: var(--w); }
+.brk-live { position: absolute; left: 6px; top: 6px; padding: 1px 6px; border-radius: 4px; background: #e5484d; color: #fff; font: 700 9.5px var(--body); letter-spacing: 0.04em; text-transform: uppercase; animation: livepulse 2s ease-in-out infinite; }
+@keyframes livepulse { 50% { opacity: 0.6; } }
+.all-feats.center { text-align: center; padding-block: 36px 0; }
+.privacy { padding-block: 88px; }
+.privacy h2 { font-size: clamp(36px, 4.6vw, 58px); line-height: 1.02; font-weight: 700; }
+.facts { margin-top: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; text-align: left; }
+.fact { padding: 24px; border-radius: 22px; background: var(--card); border: 1px solid rgba(236,227,199,0.9); display: grid; gap: 6px; }
+.fact b { font: 700 19px var(--display); }
+.fact span { font-size: 16px; color: var(--ink-soft); }
+.faq { padding-block: 72px 24px; }
+.qs { max-width: 760px; margin: 36px auto 0; }
+.qs details { border-bottom: 1px solid var(--line); }
+.qs summary { list-style: none; cursor: pointer; padding: 20px 4px; font: 600 19px var(--display); letter-spacing: -0.01em; display: flex; justify-content: space-between; gap: 16px; }
+.qs summary::-webkit-details-marker { display: none; }
+.qs summary::after { content: "+"; font-weight: 500; color: var(--ink-soft); transition: transform 0.2s var(--ease-out); }
+.qs details[open] summary::after { transform: rotate(45deg); }
+.qs details p { padding: 0 4px 20px; color: var(--ink-soft); font-size: 17px; max-width: 62ch; }
+@media (max-width: 720px) { .step-grid, .facts { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 920px) {
+  .bento { grid-template-columns: minmax(0, 1fr); }
+  .card.wide { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .stat-row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .stat-vs { transform: rotate(90deg); }
+}
+@media (max-width: 560px) {
+  .card { padding: 20px; border-radius: 22px; }
+  .card .chatwin { grid-template-columns: 1fr; }
+  .brk-places i { width: 38px; height: 38px; }
+}
+@media (prefers-reduced-motion: reduce) { .track { animation: none; flex-wrap: wrap; justify-content: center; width: auto; } .track span[aria-hidden] { display: none; } }
 /* ---------- privacy ---------- */
 
 /* Privacy, in one line. */
-.privacy { text-align: center; }
-.privacy h2 { font-size: clamp(28px, 3.4vw, 42px); line-height: 1.1; font-weight: 700; }
 .soon { display: inline-block; vertical-align: middle; font: 600 13px var(--body); letter-spacing: 0; color: var(--ink-soft); background: rgba(28,29,34,0.06); border-radius: 999px; padding: 3px 10px; }
 
 /* ---------- end ---------- */
@@ -406,9 +493,9 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 <header class="wrap nav">
   <a class="brand" href="#top" aria-label="Stashd home"><span data-folder="tile"></span>Stashd</a>
   <nav class="nav-links" aria-label="Main">
-    <a href="features.html">Features</a>
+    <a href="#features">Features</a>
     <a href="#privacy">Privacy</a>
-    <a href="download.html">Install guide</a>
+    <a href="#faq">FAQ</a>
     <a href="https://github.com/aryangoel49/Stashd">GitHub</a>
     <a class="btn btn-main btn-small" data-smile href="download.html?start">Download</a>
   </nav>
@@ -435,11 +522,34 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       <p class="px-cap" id="pxCap" aria-hidden="true">A messy screen.</p>
     </div>
 
-    <div class="try reveal">
-      <h2>Try it yourself.</h2>
-      <p>Click around, then press ⌃S.</p>
-    </div>
 
+  </div>
+
+  <section class="works" aria-label="Works with">
+    <p class="eyebrow">Works with the apps you already use</p>
+    <div class="marquee"><div class="track"><span>Chrome</span><span>Safari</span><span>Arc</span><span>Word</span><span>Excel</span><span>PowerPoint</span><span>Pages</span><span>Numbers</span><span>Keynote</span><span>Preview</span><span>TextEdit</span><span>Claude</span><span>ChatGPT</span><span aria-hidden="true">Chrome</span><span aria-hidden="true">Safari</span><span aria-hidden="true">Arc</span><span aria-hidden="true">Word</span><span aria-hidden="true">Excel</span><span aria-hidden="true">PowerPoint</span><span aria-hidden="true">Pages</span><span aria-hidden="true">Numbers</span><span aria-hidden="true">Keynote</span><span aria-hidden="true">Preview</span><span aria-hidden="true">TextEdit</span><span aria-hidden="true">Claude</span><span aria-hidden="true">ChatGPT</span></div></div>
+  </section>
+
+  <section class="wrap stat">
+    <div class="stat-row reveal" id="stat">
+      <div class="stat-cell"><span class="stat-num"><b id="statMin">25</b> min</span><span class="stat-lbl">to get back into interrupted work<sup>*</sup></span></div>
+      <div class="stat-vs" aria-hidden="true">→</div>
+      <div class="stat-cell us"><span class="stat-num"><b>1</b> click</span><span class="stat-lbl">with Stashd: it all reopens, with a note on where you stopped</span></div>
+    </div>
+    <p class="src reveal">* In one study of office workers, people took about 25 minutes to get back to work they were pulled away from (Mark, Gonzalez and Harris, 2005).</p>
+  </section>
+
+  <section class="wrap steps" id="how">
+    <div class="section-head center reveal"><p class="eyebrow">How it works</p><h2>Three steps. <em>No setup.</em></h2></div>
+    <div class="step-grid">
+      <article class="step reveal"><div class="step-pic"><span data-folder="tile"></span><kbd class="step-key">⌃S</kbd></div><span class="step-n">1</span><h3>Press ⌃S</h3><p>Stashd ticks the tabs, files and chats that belong to what you're on.</p></article>
+      <article class="step reveal" style="--d:120ms"><div class="step-pic"><span data-folder="tile" data-mode="asleep"></span></div><span class="step-n">2</span><h3>Close the laptop</h3><p>Pack up closes it all and clears your screen. Nothing is lost.</p></article>
+      <article class="step reveal" style="--d:240ms"><div class="step-pic"><span data-folder="tile" class="step-happy"></span></div><span class="step-n">3</span><h3>Open it later</h3><p>One click and it's all back, with a short note on where you stopped.</p></article>
+    </div>
+  </section>
+
+  <section class="wrap tryit">
+    <div class="section-head center reveal"><h2>Try it yourself.</h2><p>Click around this little Mac, then press ⌃S.</p></div>
     <div class="demo-col" id="demoCol">
     <div class="mac" id="mac" aria-label="A small Mac screen showing Stashd in action">
       <svg class="cursor" id="cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l14 8-6 1.5L10 19z" fill="#fff" stroke="#1c1d22" stroke-width="1.6" stroke-linejoin="round"/></svg>
@@ -495,70 +605,61 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     </div>
     <div class="cap-ctrl"><button type="button" class="cap-btn" id="autoBtn">▶ Play</button><span>or try it yourself</span></div>
     </div>
-  </div>
+  </section>
 
-  <div class="wrap"><hr class="rule"></div>
-
-  <div id="features">
-    <div class="wrap chapter">
-      <div class="copy reveal">
-        <h2>It knows what goes together.</h2>
+  <section class="wrap" id="features">
+    <div class="section-head center reveal"><p class="eyebrow">What it does</p><h2>Small app. <em>Big relief.</em></h2></div>
+    <div class="bento">
+      <article class="card reveal">
+        <h3>It knows what goes together.</h3>
         <p>Only the project you're on gets ticked. It learns as you go.</p>
-      </div>
-      <div class="panel reveal" style="--d:120ms">
-        <div class="panel-title"><span data-folder="tile" id="sortFolder"></span><span id="sortTitle">Open on your Mac</span></div>
-        <div class="tablist" id="tablist">
-          <div class="trow in" style="--i:0"><span class="ic ic-pdf">PDF</span><span class="t">Sea level study.pdf</span><span class="tag">Goes in</span></div>
-          <div class="trow no" style="--i:1"><span class="ic ic-chrome"></span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
-          <div class="trow in" style="--i:2"><span class="ic ic-chrome"></span><span class="t">Sea level rise · NASA</span><span class="tag">Goes in</span></div>
-          <div class="trow no" style="--i:3"><span class="ic ic-chrome"></span><span class="t">lofi beats to study to · YouTube</span><span class="tag">Stays open</span></div>
-          <div class="trow in" style="--i:4"><span class="ic ic-word">W</span><span class="t">Climate essay.docx</span><span class="tag">Goes in</span></div>
-          <div class="trow in" style="--i:5"><span class="ic ic-claude">✳</span><span class="t">Outline my climate essay</span><span class="tag">Goes in</span></div>
+        <div class="panel">
+          <div class="panel-title"><span data-folder="tile" id="sortFolder"></span><span id="sortTitle">Open on your Mac</span></div>
+          <div class="tablist" id="tablist">
+            <div class="trow in" style="--i:0"><span class="ic ic-pdf">PDF</span><span class="t">Sea level study.pdf</span><span class="tag">Goes in</span></div>
+            <div class="trow no" style="--i:1"><span class="ic ic-chrome"></span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
+            <div class="trow in" style="--i:2"><span class="ic ic-chrome"></span><span class="t">Sea level rise · NASA</span><span class="tag">Goes in</span></div>
+            <div class="trow no" style="--i:3"><span class="ic ic-chrome"></span><span class="t">lofi beats to study to · YouTube</span><span class="tag">Stays open</span></div>
+            <div class="trow in" style="--i:4"><span class="ic ic-word">W</span><span class="t">Climate essay.docx</span><span class="tag">Goes in</span></div>
+            <div class="trow in" style="--i:5"><span class="ic ic-claude">✳</span><span class="t">Outline my climate essay</span><span class="tag">Goes in</span></div>
+          </div>
+          <div class="tally" id="tally">Press ⌃S…</div>
         </div>
-        <div class="tally" id="tally">Press ⌃S…</div>
-      </div>
-    </div>
+      </article>
 
-    <div class="wrap chapter flip">
-      <div class="copy reveal">
-        <h2>A brief that says where you stopped.</h2>
+      <article class="card reveal" style="--d:100ms">
+        <h3>A note on where you stopped.</h3>
         <p>What you were on, what's done, what's next.</p>
-      </div>
-      <div class="panel big-brief reveal" style="--d:120ms" id="bigBrief">
-        <div class="head"><span data-folder="tile" id="briefFolder"></span><div><div class="name">Climate essay · 6 days ago</div><h3>Writing an essay on sea levels.</h3></div></div>
-        <dl class="rows">
-          <div><dt>Last on</dt><dd>The NASA sea level data.</dd></div>
-          <div><dt>So far</dt><dd>Intro and two sections done.</dd></div>
-          <div class="next"><dt>Next</dt><dd>Find two more sources.</dd></div>
-        </dl>
-      </div>
-    </div>
-
-    <div class="wrap chapter">
-      <div class="copy reveal">
-        <h2>Tidy up at the end of the day. <span class="soon">Next update</span></h2>
-        <p>One click puts everything where it belongs.</p>
-      </div>
-      <div class="panel tidy-panel reveal" style="--d:120ms" id="tidyPanel">
-        <div class="panel-title"><span data-folder="tile" id="tidyFolder"></span>Open on your Mac</div>
-        <div class="tablist">
-          <div class="trow" data-go="essay" style="--i:0"><span class="ic ic-word">W</span><span class="t">Climate essay.docx</span><span class="tag">→ Essay</span></div>
-          <div class="trow" data-go="trip" style="--i:1"><span class="ic ic-word">W</span><span class="t">Cover letter.docx</span><span class="tag">→ Job hunt</span></div>
-          <div class="trow" data-go="essay" style="--i:2"><span class="ic ic-pdf">PDF</span><span class="t">Sea level study.pdf</span><span class="tag">→ Essay</span></div>
-          <div class="trow" data-go="close" style="--i:3"><span class="ic ic-chrome"></span><span class="t">lofi beats to study to · YouTube</span><span class="tag">Closes</span></div>
-          <div class="trow" data-go="trip" style="--i:4"><span class="ic ic-chrome"></span><span class="t">Jobs · LinkedIn</span><span class="tag">→ Job hunt</span></div>
-          <div class="trow" data-go="stay" style="--i:5"><span class="ic ic-chrome"></span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
+        <div class="panel big-brief" id="bigBrief">
+          <div class="head"><span data-folder="tile" id="briefFolder"></span><div><div class="name">Climate essay · 6 days ago</div><h4>Writing an essay on sea levels.</h4></div></div>
+          <dl class="rows">
+            <div><dt>Last on</dt><dd>The NASA sea level data.</dd></div>
+            <div><dt>So far</dt><dd>Intro and two sections done.</dd></div>
+            <div class="next"><dt>Next</dt><dd>Find two more sources.</dd></div>
+          </dl>
         </div>
-        <div class="ofoot"><span class="count" id="tidyCount">6 things open</span><button class="btn btn-main btn-small" type="button" id="tidyBtn">Tidy all</button></div>
-      </div>
-    </div>
+      </article>
 
-    <div class="wrap chapter flip">
-      <div class="copy reveal">
-        <h2>Back to the exact chat.</h2>
+      <article class="card reveal">
+        <h3>Tidy up in one click.</h3>
+        <p>At the end of the day, everything goes where it belongs.</p>
+        <div class="panel tidy-panel" id="tidyPanel">
+          <div class="panel-title"><span data-folder="tile" id="tidyFolder"></span>Open on your Mac</div>
+          <div class="tablist">
+            <div class="trow" data-go="essay" style="--i:0"><span class="ic ic-word">W</span><span class="t">Climate essay.docx</span><span class="tag">→ Essay</span></div>
+            <div class="trow" data-go="trip" style="--i:1"><span class="ic ic-word">W</span><span class="t">Cover letter.docx</span><span class="tag">→ Job hunt</span></div>
+            <div class="trow" data-go="essay" style="--i:2"><span class="ic ic-pdf">PDF</span><span class="t">Sea level study.pdf</span><span class="tag">→ Essay</span></div>
+            <div class="trow" data-go="close" style="--i:3"><span class="ic ic-chrome"></span><span class="t">lofi beats to study to · YouTube</span><span class="tag">Closes</span></div>
+            <div class="trow" data-go="trip" style="--i:4"><span class="ic ic-chrome"></span><span class="t">Jobs · LinkedIn</span><span class="tag">→ Job hunt</span></div>
+            <div class="trow" data-go="stay" style="--i:5"><span class="ic ic-chrome"></span><span class="t">Inbox · Gmail</span><span class="tag">Stays open</span></div>
+          </div>
+          <div class="ofoot"><span class="count" id="tidyCount">6 things open</span><button class="btn btn-main btn-small" type="button" id="tidyBtn">Tidy all</button></div>
+        </div>
+      </article>
+
+      <article class="card reveal" style="--d:100ms">
+        <h3>Back to the exact chat.</h3>
         <p>It reopens the Claude chat you were in, not just Claude.</p>
-      </div>
-      <div class="reveal" style="--d:120ms">
         <div class="chatwin" id="chatwin">
           <div class="chatside"><div class="brandrow"><span class="spark">✳</span>Claude</div><div class="h">Recents</div><span class="hl" id="chatHl"></span>
             <div class="citem">Weeknight pasta ideas</div>
@@ -575,20 +676,46 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
           </div>
         </div>
         <div class="chatcap"><span data-folder="tile" id="chatFolder"></span><span id="chatCapText">Unpacking "Job hunt"…</span></div>
-      </div>
+      </article>
+
+      <article class="card wide reveal">
+        <div class="wide-copy">
+          <h3>Breaks, kept apart.</h3>
+          <p>Videos and shows go to Continue watching, not your work folders. Pick up the episode where you stopped.</p>
+        </div>
+        <div class="brk" aria-hidden="true">
+          <div class="brk-places"><i style="background:#ff2b3a">▶</i><i style="background:#141414;color:#e50914">N</i><i style="background:#1db954">♪</i><i style="background:#9146ff">t</i></div>
+          <div class="brk-row">
+            <div class="brk-card"><div class="brk-art a1"><span class="brk-bar" style="--w:62%"></span></div><b>Japan in 4K</b><small>12 min left</small></div>
+            <div class="brk-card"><div class="brk-art a2"><span class="brk-live">Live</span></div><b>Game night</b><small>twitch.tv</small></div>
+            <div class="brk-card"><div class="brk-art a3"><span class="brk-bar" style="--w:30%"></span></div><b>The Office</b><small>3 episodes</small></div>
+          </div>
+        </div>
+      </article>
     </div>
-    <div class="wrap all-feats reveal"><a href="features.html">See everything Stashd does</a></div>
-  </div>
+    <div class="all-feats center reveal"><a href="features.html">See everything Stashd does</a></div>
+  </section>
 
-  <div class="wrap"><hr class="rule"></div>
-
-  <section id="privacy">
-    <div class="wrap privacy reveal">
-      <h2>Everything stays on your Mac. No account.</h2>
+  <section class="wrap privacy" id="privacy">
+    <div class="section-head center reveal"><p class="eyebrow">Privacy</p><h2>Your work stays <em>on your Mac.</em></h2></div>
+    <div class="facts">
+      <div class="fact reveal"><b>No account</b><span>Nothing to sign up for. Open it and go.</span></div>
+      <div class="fact reveal" style="--d:100ms"><b>Nothing uploaded</b><span>Your folders live on your Mac. Briefs only use Claude if you add your own key.</span></div>
+      <div class="fact reveal" style="--d:200ms"><b>Open source</b><span>Every line is on GitHub for anyone to read.</span></div>
     </div>
   </section>
 
-  <div class="wrap"><hr class="rule"></div>
+  <section class="wrap faq" id="faq">
+    <div class="section-head center reveal"><h2>Good questions.</h2></div>
+    <div class="qs reveal">
+      <details><summary>Is it free?</summary><p>Yes. Stashd is free and open source.</p></details>
+      <details><summary>Which apps does it work with?</summary><p>Tabs in Chrome, Safari and Arc. Files in Word, Excel, PowerPoint, Pages, Numbers, Keynote, Preview and TextEdit. It reopens the exact Claude chat you were in, and remembers your other apps too.</p></details>
+      <details><summary>Does it close my work without asking?</summary><p>No. Save keeps everything open. Pack up closes it, with Undo for 2 seconds, and anything unsaved still asks you first.</p></details>
+      <details><summary>What writes the note on where I stopped?</summary><p>Claude, if you add your own key (about $0.0003 a note), or Apple Intelligence on your Mac if it's turned on. Otherwise a simple built-in note. It only sees names, titles and addresses, with secrets removed.</p></details>
+      <details><summary>Which Macs does it run on?</summary><p>macOS 12 or newer on Apple silicon (M1 or later). On an Intel Mac you can build it yourself from GitHub.</p></details>
+      <details><summary>Why does macOS warn me the first time I open it?</summary><p>Stashd isn't signed with a paid Apple certificate yet. The <a href="download.html">install guide</a> shows the one-time step.</p></details>
+    </div>
+  </section>
 
   <section class="end" id="end">
     <div class="wrap">
@@ -987,7 +1114,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   endM.addEventListener('click', () => { replay(endM, 'jump'); smile(endF, 1200); });
 
   // Line + background parallax + the companion folder.
-  const buddy = $('buddy'), hero = document.querySelector('.hero'), end = $('end');
+  const buddy = $('buddy'), hero = $('demoCol'), end = $('end');
   const heads = [...document.querySelectorAll('h2')];
   const sky = document.querySelector('.sky');
   let ticking = false, lastY = scrollY, fastTimer;
@@ -1152,6 +1279,22 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     else if (!visible && raf) { cancelAnimationFrame(raf); raf = 0; pausedAt = performance.now(); }
   }).observe(cv);
   frame(0);
+})();
+</script>
+
+<script>
+// The number section: 25 counts up when you reach it.
+(() => {
+  const el = document.getElementById('statMin');
+  if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  el.textContent = '0';
+  new IntersectionObserver(([e], o) => {
+    if (!e.isIntersecting) return;
+    o.disconnect();
+    const t0 = performance.now();
+    const step = (now) => { const p = Math.min(1, (now - t0) / 1100); el.textContent = String(Math.round(25 * (1 - Math.pow(1 - p, 3)))); if (p < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }, { threshold: 0.6 }).observe(el);
 })();
 </script>
 </body>
