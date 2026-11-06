@@ -136,7 +136,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('break:open', (_e, url) => core.openBreak(v.str(url, 'address', 4000)));
   handle('break:change', (_e, change) => {
     const c = (change ?? {}) as Record<string, unknown>;
-    const browsers = ['chrome', 'arc', 'safari', 'window'];
+    const browsers = ['chrome', 'arc', 'dia', 'safari', 'window'];
     if (c.browser != null && !browsers.includes(String(c.browser))) throw new Error('bad browser');
     const place = c.addPlace as Record<string, unknown> | undefined;
     const rename = c.renamePlace as Record<string, unknown> | undefined;

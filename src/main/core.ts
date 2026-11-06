@@ -661,7 +661,7 @@ export class Core {
       const jobs = await this.store.list();
       const latest = await Promise.all(jobs.map((j) => this.store.latest(j.id)));
       // (Browsers always: videos you close yourself go to Continue watching.)
-      const apps = new Set([...latest.flatMap((e) => (e?.items ?? []).map((i) => i.app)), 'Google Chrome', 'Safari', 'Arc']);
+      const apps = new Set([...latest.flatMap((e) => (e?.items ?? []).map((i) => i.app)), 'Google Chrome', 'Safari', 'Arc', 'Dia']);
       const win = this.fakeCapture ? null : await this.helper.windows().catch(() => null);
       const cap = this.fakeCapture
         ? await this.fakeCapture()
@@ -885,7 +885,7 @@ export class Core {
     delete job.prefs.add[key];
     await this.store.put(job);
     // Open in the folder's Chrome tab group? It leaves the group too (and stays open).
-    if (item?.kind === 'tab' && item.browser === 'chrome' && item.url) void changeChromeGroup('ungroup', job.name, [item.url]);
+    if (item?.kind === 'tab' && (item.browser === 'chrome' || item.browser === 'dia') && item.url) void changeChromeGroup('ungroup', job.name, [item.url]);
     this.notify();
   }
 
@@ -901,7 +901,7 @@ export class Core {
     const job = await this.store.get(jobId);
     delete job.prefs.hide[item.key];
     await this.store.put(job);
-    if (item.kind === 'tab' && item.browser === 'chrome' && item.url) void changeChromeGroup('regroup', job.name, [item.url]);
+    if (item.kind === 'tab' && (item.browser === 'chrome' || item.browser === 'dia') && item.url) void changeChromeGroup('regroup', job.name, [item.url]);
     this.notify();
   }
 

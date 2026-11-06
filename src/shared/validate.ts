@@ -15,7 +15,7 @@ export const DEFAULT_LIFESTYLE_SITES = [
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
-  browsers: { chrome: true, arc: true, safari: true },
+  browsers: { chrome: true, arc: true, dia: true, safari: true },
   excludedDomains: ['accounts.google.com', 'bank', 'login', 'signin', 'auth'],
   lifestyleSites: DEFAULT_LIFESTYLE_SITES,
   lifestyleApps: DEFAULT_LIFESTYLE_APPS,
@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS: Settings = {
 const OLD_SHORTCUT_SAVE = 'CommandOrControl+Shift+S';
 const OLD_SHORTCUT_RECAP = 'CommandOrControl+Shift+W';
 
-export const BROWSERS: BrowserName[] = ['chrome', 'arc', 'safari'];
+export const BROWSERS: BrowserName[] = ['chrome', 'arc', 'dia', 'safari'];
 const ACCENTS: Accent[] = ['indigo', 'teal', 'coral'];
 
 const ID_RE = /^[a-z0-9][a-z0-9-]{0,80}$/;

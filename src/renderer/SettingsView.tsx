@@ -138,8 +138,8 @@ export function SettingsView() {
             <>
       <Card title="Privacy" hint="Stashd looks at what's open when you press the shortcut, and now and then to spot work you've packed. It never reads page contents, document text, passwords, cookies or private windows.">
         <ListRow label="Never save tabs from" value={s.excludedDomains} onSave={(v) => void update({ excludedDomains: v })} />
-        {(['chrome', 'arc', 'safari'] as const).map((b) => (
-          <Toggle key={b} label={`Read tabs from ${{ chrome: 'Google Chrome', arc: 'Arc', safari: 'Safari' }[b]}`} on={s.browsers[b]} onChange={(v) => void update({ browsers: { ...s.browsers, [b]: v } })} />
+        {(['chrome', 'arc', 'dia', 'safari'] as const).map((b) => (
+          <Toggle key={b} label={`Read tabs from ${{ chrome: 'Google Chrome', arc: 'Arc', dia: 'Dia', safari: 'Safari' }[b]}`} on={s.browsers[b]} onChange={(v) => void update({ browsers: { ...s.browsers, [b]: v } })} />
         ))}
         <Toggle label="Keep the part of addresses after ?" hint="Off by default: only the parts that say which page it is (like a YouTube video) are kept. Secrets are removed either way." on={s.keepQueryStrings} onChange={(v) => void update({ keepQueryStrings: v })} />
         <div className="srow">
@@ -150,9 +150,9 @@ export function SettingsView() {
         </div>
         <div className="srow">
           <span>
-            Chrome tab groups
+            Tab groups in Chrome and Dia
             <span className="muted small" style={{ display: 'block' }}>
-              Unpack puts a folder's tabs in a group named after it. In Chrome: turn on Developer mode, click Load unpacked, pick the folder Stashd shows you.
+              Unpack puts a folder's tabs in a group named after it, and Continue watching knows how far into a video you got. In Chrome or Dia: open the extensions page, turn on Developer mode, click Load unpacked, pick the folder Stashd shows you.
             </span>
           </span>
           <Button size="small" onClick={() => void api.setupChromeGroups()}>

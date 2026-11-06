@@ -8,11 +8,12 @@ import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
 import { Button, FolderMark, motion } from './ui';
 
-type Where = 'chrome' | 'arc' | 'safari' | 'window';
+type Where = 'chrome' | 'arc' | 'dia' | 'safari' | 'window';
 const WHERE: { id: Where; label: string }[] = [
   { id: 'chrome', label: 'Google Chrome' },
   { id: 'safari', label: 'Safari' },
   { id: 'arc', label: 'Arc' },
+  { id: 'dia', label: 'Dia' },
   { id: 'window', label: 'Its own window, no tabs around it' },
 ];
 const whereLabel = (w: BreakShelf['browser']) => (w === 'window' ? 'its own window' : (WHERE.find((x) => x.id === w)?.label ?? ''));
