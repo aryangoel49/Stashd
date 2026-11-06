@@ -113,3 +113,84 @@ The first version in this folder was built around coding "project folders". It a
 4. Tidy up, the animation, Undo, and naming untitled files
 5. Learning: everyday apps, tab-to-job matching, Notion-style apps
 6. 👍 / 👎 feedback and briefs that adapt to how you work
+
+---
+
+## 🚀 Launch plan (6 Nov 2026)
+
+**Goal:** anyone with a Mac from about 2017 onwards can download Stashd, open it with no warnings, and get AI briefs without a Claude key of their own.
+
+### Where things stand
+- **macOS:** the app needs **macOS 13 (Ventura) or later**. Electron, which Stashd is built on, requires it. The README's "macOS 12" is wrong; the fix is to say 13. Going lower would mean an old, unpatched Electron, which isn't worth it.
+- **Chip:** the download is Apple silicon only. Two things block Intel:
+  - the Swift helper is built for one chip;
+  - the matching model's runtime (onnxruntime) stopped shipping Intel Mac files after version 1.23.
+- **AI briefs:** they come from Claude only if you paste your own key, and from Apple Intelligence only on macOS 26+ with Apple silicon. Everyone else gets the plain template brief.
+- **Opening it:** the app isn't signed with an Apple Developer ID. Since macOS 15, people have to dig into System Settings and click "Open Anyway". Most people give up there.
+- **Updates:** there's no auto-update, so launch-week fixes would never reach users.
+
+### The plan, in order
+
+**1. Signed, notarized download (blocks launch)**
+- Join the Apple Developer Program ($99 a year).
+- Build with a Developer ID certificate, the hardened runtime and Apple's notarization, so it opens like any normal app.
+- This also keeps macOS's "Stashd can control Chrome" permissions across updates.
+
+**2. Intel Macs and macOS 13–25**
+- Make two downloads, "Apple silicon" and "Intel". The website suggests the right one.
+- The Intel build pins onnxruntime 1.23, the last version with Intel files.
+- The Swift helper is built for macOS 13 on both chips. Apple Intelligence stays switched off below macOS 26, as it is today.
+- Testing:
+  - Intel: run the Intel build on this Mac through Rosetta, then on a real Intel Mac (a friend's).
+  - macOS 13: a free macOS 13 virtual machine (UTM).
+
+**3. AI briefs with no key: "Stashd AI"**
+- A small server on Stashd's existing Vercel account holds the Claude key. The app sends the same scrubbed data a brief uses today: names, titles, cleaned addresses and your note, never file contents. The server asks Claude Haiku 5.5 and sends the brief back. Nothing is stored.
+- **Cost:** about $0.0005 a brief (Haiku 5.5 costs $0.10 per million tokens in and $0.50 out). 1,000 people writing 10 briefs a day comes to about $150 a month.
+- **Abuse limits:** each install gets an anonymous ID with a daily cap (for example 30 briefs). The server keeps a per-ID counter and nothing else.
+- **Who writes the brief:** your own Claude key, if you added one, then Stashd AI, then Apple Intelligence, then the plain template. Stashd AI only runs once you've agreed to it (one clear screen at first launch), and Settings can turn it off.
+- **What changes in the code:** the privacy test allows the new brief module to use the network, and the website and README privacy text are updated.
+
+**4. Auto-update**
+- Use Electron's free update service (update.electronjs.org). It works with a public GitHub repo and signed builds.
+- Stashd checks quietly and installs on the next restart.
+
+**5. First run that works for strangers**
+- Check the onboarding on a fresh account:
+  - permissions (one Automation prompt per app);
+  - the Chrome extension;
+  - the Stashd AI consent screen;
+  - what happens if someone clicks "Don't Allow".
+- Add a "Send feedback" button that writes an email. No hidden tracking.
+
+**6. Launch week (Marketing chat)**
+- Publish the Chrome extension on the Chrome Web Store ($5 one-time; review can take days, so submit early).
+- Website changes:
+  - two download buttons;
+  - a privacy page that explains Stashd AI;
+  - "Requires macOS 13 or later".
+- Product Hunt and socials.
+
+### Roadmap
+| When | What |
+|---|---|
+| Week 1 | Apple Developer account approved; signing + notarization; Intel + macOS 13 builds; README fix |
+| Week 2 | Stashd AI server + consent screen; auto-update; test on Intel (Rosetta, then real) and macOS 13 |
+| Week 3 | Fresh-account onboarding pass; Chrome Web Store submission; website download + privacy pages |
+| Week 4 | Private beta with 10–20 people; fix what they hit; then public launch |
+
+### What Aryan does
+1. **Join the Apple Developer Program** as an individual at developer.apple.com/programs ($99 a year; approval usually takes 1–2 days). Then create a "Developer ID Application" certificate (I'll walk you through it), and an app-specific password for notarization.
+2. **Anthropic account for Stashd AI:**
+   - create an API key at platform.claude.com, under an organization that is Stashd's, not your personal key;
+   - add billing;
+   - set a monthly spend limit (for example $50).
+   - Then add the key to Vercel's environment settings. Never paste it into chat.
+3. **Chrome Web Store developer account** ($5 one-time).
+4. **Find 1–2 people with an Intel Mac**, and 10–20 beta testers.
+
+### Decisions needed from Aryan
+1. **Briefs through Stashd's server.** Is it OK for brief data to go through Stashd's server to Claude (scrubbed, never stored), as long as people agree first? This changes "stays on your Mac" into "stays on your Mac, except briefs if you turn on Stashd AI".
+2. **Price.** Free for everyone with a daily cap, or a free cap plus a paid tier later? Never take away what was free.
+3. **Downloads.** Two downloads (Apple silicon / Intel) or one bigger download for both chips? Two is simpler and smaller.
+4. **Launch date.** It decides how much of steps 5–6 fits.
