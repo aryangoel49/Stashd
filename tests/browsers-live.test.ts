@@ -16,7 +16,10 @@ const names = (process.env.STASHD_LIVE_BROWSERS ?? '').split(',').filter(Boolean
 const stamp = Date.now().toString(36);
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-describe.skipIf(!names.length).each(names)('%s', (b) => {
+// With none named, this file has one skipped test (a test file with none at all counts as failed).
+it.skip('needs STASHD_LIVE_BROWSERS', () => undefined);
+
+describe.each(names)('%s', (b) => {
   const id = BROWSER_APPS[b].bundleId;
   const url = (name: string) => `https://example.com/stashd-live-${b}-${stamp}-${name}`;
   const opts = { keepQueryStrings: false, excludedDomains: [] };
