@@ -172,7 +172,7 @@ export class AutoSaver {
       const shown = this.now();
       this.asking = true;
       try {
-        answer = await this.d.ask({ title: `You’ve moved on from ${name}`, detail: 'Save it, so you can pick up where you left off?', action: 'Save it', seconds: this.d.rules.askSeconds });
+        answer = await this.d.ask({ title: `You’ve moved on from ${name}`, detail: 'Save it for later?', action: 'Save it', seconds: this.d.rules.askSeconds });
       } finally {
         this.asking = false;
       }
@@ -235,7 +235,7 @@ export class AutoSaver {
     const shown = this.now();
     const answer = await this.d.ask({
       title: `Saved ${namesOf(left.saved.map((s) => s.name))} ${LEAVE_WORDS[left.kind]}`,
-      detail: 'It’s all still open. Remove the save if you don’t need it.',
+      detail: 'It’s all still open.',
       action: 'Remove',
       seconds: this.d.rules.returnSeconds,
     });
