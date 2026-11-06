@@ -12,7 +12,7 @@ import path from 'node:path';
 export const STORAGE_VERSION = 1;
 export const KEEP_BACKUPS = 5;
 
-const SAVED = ['jobs', 'settings.json', 'state.json', 'break.json'];
+const SAVED = ['jobs', 'settings.json', 'state.json', 'break.json', 'memory.db', 'memory.db-wal', 'memory.db-shm'];
 const STAMP = 'storage.json';
 
 export const backupsDir = (dataDir: string): string => path.join(dataDir, 'backups');

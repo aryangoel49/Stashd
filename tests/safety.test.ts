@@ -49,11 +49,11 @@ describe('never losing a save', () => {
 
     it('copies saves before a new version runs, once, and leaves the Claude key and caches out', async () => {
       const id = await aFolder();
-      for (const f of ['settings.json', 'state.json', 'break.json', 'api-key.bin', 'install-id']) writeFileSync(path.join(dir, f), '{}');
+      for (const f of ['settings.json', 'state.json', 'break.json', 'memory.db', 'api-key.bin', 'install-id']) writeFileSync(path.join(dir, f), '{}');
       mkdirSync(path.join(dir, 'Cache'));
       const made = backupBeforeChange(dir, '1.5.0')!;
       expect(made).toBeTruthy();
-      expect(readdirSync(made).sort()).toEqual(['break.json', 'jobs', 'settings.json', 'state.json']);
+      expect(readdirSync(made).sort()).toEqual(['break.json', 'jobs', 'memory.db', 'settings.json', 'state.json']);
       expect(JSON.parse(readFileSync(path.join(made, 'jobs', id, 'history', `${NEW}.json`), 'utf8')).id).toBe(NEW);
       expect(backupBeforeChange(dir, '1.5.0')).toBeNull();
       expect(backupBeforeChange(dir, '1.5.1')).toContain('1.5.0');
