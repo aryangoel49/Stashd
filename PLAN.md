@@ -116,150 +116,159 @@ The first version in this folder was built around coding "project folders". It a
 
 ---
 
-## 🚀 Launch plan (6 Nov 2026)
+## 🚀 Launch plan (6 Nov 2026, reworked)
 
-**Goal:** anyone with a Mac running macOS 13 or later, Intel or Apple silicon, downloads Stashd, opens it with no warnings, and gets **the same app and the same AI brief as everyone else**, with no Claude key needed. No fixed date: we launch when this checklist is done.
+**Goal:** anyone on macOS 13 or later, Intel or Apple silicon, can install Stashd and get **the same app and the same AI brief as everyone else**, with no Claude key needed.
 
-### Decided (Aryan, 6 Nov)
-- **Stashd AI for everyone.** Briefs go through Stashd's server to Claude, so every user gets the same quality brief no matter which Mac they have. People agree once at first launch.
+**The big change from the first draft:** get real people using it in about 2 weeks, learn from them, then launch widely. The first draft had about 60 boxes to tick before anyone outside could try it. The biggest unknown isn't Intel support or pricing. It's **whether people come back to Stashd after the first week.** Only real users can answer that.
+
+### Decided (Aryan)
+- **Stashd AI for everyone.** Every brief goes through Stashd's server to Claude, so everyone gets the same brief, on any Mac. People agree once at first launch.
   - The server only receives names, titles, cleaned addresses and the user's note. It never receives file contents, and it stores nothing.
-  - Apple Intelligence stops being a separate brief writer. It's only used as a backup when there's no internet; otherwise the plain template brief is the backup.
-- **Free with a daily cap** to start. Paid plans may come later, but nothing free is ever taken away.
-- **Two downloads (Apple silicon / Intel).** The website shows only the one that fits the visitor's Mac. Chromium browsers report the chip; in Safari the graphics chip's name gives it away. There's a small "Other Mac?" link for anyone it guesses wrong.
-- **The same everywhere.** Same features, look and brief on Intel, Apple silicon, macOS 13 and macOS 27. Anything that can't work somewhere (for example Apple Intelligence below macOS 26) must never change what people see.
+  - If there's no internet, the plain template brief is used.
+- **Free with a daily cap** to start. Nothing free is ever taken away later.
+- **Two downloads**, and the website shows only the one that fits the visitor's Mac.
+- **The same everywhere:** same features, look and brief on every supported Mac.
+- **No Apple Developer Program for now.** People will see Apple's warning once, at install (see "Installing without the $99 account").
+- Chrome Web Store account and a domain: yes.
+- A full marketing research phase before the public launch.
 
-### Facts that shape the plan
-- **macOS:** Electron 44 needs **macOS 13 (Ventura) or later**, so 13 is the floor. The README says 12, which is wrong.
-- **Intel:** macOS 26 is the last macOS for Intel Macs, so Intel users top out there.
-- **Intel blockers:** the Swift helper is built for one chip, and the matching model's runtime (onnxruntime) last shipped Intel files in version 1.23.
-- **Signing:** since macOS 15, apps that aren't Developer ID signed and notarized need "Open Anyway" in System Settings. Most people quit there. We need the Apple Developer Program ($99 a year).
-- **Cost of Stashd AI:** Claude Haiku 5.5 costs $0.10 per million tokens in and $0.50 out, so a brief costs about $0.0005. 1,000 people writing 10 briefs a day comes to about $150 a month. Sonnet 5.5 costs about 20 times more.
-- **Auto-update:** Electron's free update service works with a public GitHub repo and signed builds.
+### Installing without the $99 account (what it really means)
+- **Stashd is a Mac app, not a web app.** It has to be: a website can't see your tabs, files or apps.
+- **First install:** Apple shows *"Apple could not verify Stashd is free of malware"*.
+  - On macOS 13–14: right-click the app, then Open.
+  - On macOS 15 and later: System Settings → Privacy & Security → Open Anyway, then your password.
+  - Developers are used to this. Students and non-technical people often stop there.
+- **The fix we use: a one-line install command** for the website (`curl -fsSL https://<domain>/install | bash`). Files downloaded this way don't get Apple's "downloaded from the internet" flag, so there's no warning. Tools like Homebrew and Bun install this way.
+  - The DMG stays available for people who prefer it, with a short picture guide to "Open Anyway".
+- **Homebrew is out:** it no longer accepts apps without Apple's check.
+- **Updates (important):** Electron's standard auto-updater needs an Apple-signed app.
+  - Plan: sign every release with one self-made "Stashd" certificate that we back up and keep for good. That keeps macOS's "Stashd may control Chrome" permissions across updates; with a different signature every time, people would have to approve every app again after each update.
+  - Then build Stashd's own updater: it checks GitHub Releases, downloads, swaps the app and restarts.
+  - First test whether the standard updater accepts the self-made certificate. If it does, use that instead.
+- **When to revisit the $99:** when we aim at students and non-technical people, when paid plans start (it pays for itself), or if beta testers drop off at install.
+
+### Your Claude key, explained simply
+- The key in your Stashd today lives in **your Mac's keychain**. It pays for **your** briefs only. Other people's Macs can't see it, so it can't power their briefs.
+- **Why not put your key inside the app?** Anyone could pull it out (the code is public on GitHub) and run up your bill.
+- **So:** the key lives on a small server (Vercel, where the website already is).
+  - The app sends the brief data to the server.
+  - The server adds the key and asks Claude.
+  - The brief comes back.
+  - The key never leaves the server.
+- **What you do:** in the Anthropic Console, make a **new key just for the server**, in a workspace with its own monthly spend limit. Same account, separate key, so you can see its cost and switch it off on its own. Put it in Vercel's settings yourself.
+- **Is a server the best way?** Yes. The alternatives:
+
+| Option | Why not |
+|---|---|
+| Your key inside the app | Can be stolen; costs unlimited |
+| Each person brings a key | Most people don't have one; that's the problem today |
+| Apple Intelligence only | Not on Intel or macOS below 26, so briefs would differ |
+| A small AI model inside the app | About 2 GB more, slow on Intel (10–30 s), weaker briefs |
+| Apple's cloud AI for apps | Needs Apple's approval and the $99 account; new Macs only |
+| **Stashd's server + Claude Haiku 5.5** | **Same brief for all, about $0.0005 each, fast** |
+
+- **Honest risk:** because the app is open source, anyone can see how it talks to the server and could call it directly.
+  - Protection: a daily cap per install, a limit per internet address, a daily budget on the whole server, and the spend limit in the Anthropic Console.
+  - Worst case, someone burns that day's budget. No one can run up your bill beyond the limit you set.
+- **Small print:** Vercel's free plan is for non-commercial use. Fine while Stashd is free; paid plans mean Vercel Pro ($20 a month).
+
+### Bonus: counting users without tracking
+Each brief request carries the anonymous install ID, so the server can count how many installs make a brief each week. That's enough to see whether people come back, the most important number, without any extra tracking. The privacy page will say so in plain words.
 
 ---
 
-### Phase 1: a download anyone can open
-- [ ] Apple Developer Program, plus a Developer ID certificate (Aryan)
-- [ ] Sign the app with the hardened runtime and the right permissions (Apple Events, Electron's JIT), then notarize and staple it, for both the DMG and the ZIP
-- [ ] Intel build:
-  - [ ] build the Swift helper for macOS 13 on both chips
-  - [ ] pin onnxruntime 1.23 for Intel
-  - [ ] give the two downloads clear names (`Stashd-AppleSilicon.dmg`, `Stashd-Intel.dmg`)
-- [ ] Make sure the Intel and Apple silicon apps give the same matching results (a test that runs the same saves through both)
-- [ ] Fix the README and the website ("macOS 13 or later, Intel or Apple silicon")
-- [ ] Test on:
-  - [ ] this Mac
-  - [ ] the Intel build through Rosetta
-  - [ ] a macOS 13 virtual machine (UTM)
-  - [ ] a real Intel Mac
-  - [ ] a brand-new Mac user account
-- [ ] Auto-update: check quietly, install on the next restart, show "Updated to 1.6: what's new"
-- [ ] Release script: one command that builds both chips, signs, notarizes and publishes the GitHub release
+### Stage 1: ready for a private beta (about 2 weeks)
+**Build:**
+- [ ] Stashd AI server (Vercel function + a small counter store), with the caps and budget above
+- [ ] Brief writers in order: Stashd AI, then the template when offline. Your own key becomes an "Advanced" option.
+- [ ] Consent screen at first launch
+- [ ] Update the privacy test, README and website
+- [ ] Intel build: Swift helper for macOS 13 on both chips, onnxruntime 1.23 for Intel, the same matching results on both
+- [ ] Release signing with the kept Stashd certificate, plus Stashd's own updater
+- [ ] One-line installer script, and the DMG with the "Open Anyway" picture guide
+- [ ] **Brave, Edge and Vivaldi support.** They work like Chrome, so it's cheap, and many developers use Brave.
+  - Firefox and Zen can't share their tabs with other apps on a Mac; the website says so plainly.
+- [ ] Never lose a save: back up before any change to how saves are stored, recover from a damaged file, and show what didn't reopen
+- [ ] "Send feedback" button (email with the app and macOS version filled in)
 
-### Phase 2: Stashd AI (the heart of the product)
-**Research first (with the Design chat). We decide by testing, not guessing:**
-- [ ] Build a test set of 30–50 real-looking saves: students, developers, trip planning, job hunting, and messy saves with 40 tabs
-- [ ] Compare models side by side on the test set, blind: Haiku 5.5, Sonnet 5.5, and Apple's on-device model for reference. Compare quality, speed and cost.
-- [ ] The brief's shape and look:
-  - how long it should be;
-  - headings or none;
-  - is "next step" first;
-  - do links need underlines;
-  - font, size and weight;
-  - plain sentences or bullets.
-  Test 3–4 versions with real people and keep the one they act on fastest.
-- [ ] Efficiency:
-  - prompt caching for the fixed instructions;
-  - a short summary per item that's reused between saves;
-  - only the most relevant items, picked by the matching model;
-  - a target of under 2 seconds.
-- [ ] Write down the result in research/ and in the brief code, so the brief is the same for everyone
+**Check:**
+- [ ] This Mac
+- [ ] The Intel build through Rosetta
+- [ ] A macOS 13 virtual machine (UTM)
+- [ ] A real Intel Mac
+- [ ] A brand-new Mac user account: the whole install and first run
 
-**Server:**
-- [ ] A Vercel function holds the Anthropic key; the app sends only what a brief needs
-- [ ] Anonymous install ID with a daily cap (for example 30 briefs and 30 names). When someone hits the cap, they're told kindly, and the template brief takes over.
-- [ ] Spend protection:
-  - a monthly limit on the Anthropic account;
-  - a stop on the server if usage spikes.
-- [ ] Security: never trust what the app sends (strict size limits); treat tab titles as text, not instructions (they could try to steer the AI); log nothing personal
-- [ ] Offline or server down → template brief, with a note "AI brief when you're back online"
-- [ ] Privacy test updated: only the brief module may use the network, and it may only reach Stashd's server
+### Stage 2: private beta (2–3 weeks, 20–50 people)
+- [ ] Mix of testers: developers, students, freelancers; at least 2 Intel Macs and 2 on macOS 13–14
+- [ ] **Brief research on real use.** With testers' OK, collect sample saves and their briefs.
+  - Test models blind: Haiku 5.5 vs Sonnet 5.5.
+  - Test the brief's shape: length; headings; next step first; underlines; font, size and weight; bullets or sentences.
+  - Pick the version people act on fastest.
+  - Efficiency: prompt caching, reusing summaries, sending only the relevant items; under 2 seconds.
+- [ ] Watch weekly returns (server count). After 2 weeks, run the "how disappointed would you be?" survey; the target is 40% "very disappointed".
+- [ ] Fix the top 5 complaints every week; ship through the updater
 
-### Phase 3: accounts, payments and the legal basics
-- [ ] **Login:** not needed at launch, since the free cap works on the anonymous install ID. Add sign-in (email code or Sign in with Apple) when paid plans arrive, so a plan follows you to a new Mac.
-- [ ] **Pricing model** (decide before paid plans):
-  - Free: everything plus N AI briefs a day.
-  - Pro (for example $4–6 a month or about $40 a year): more briefs, a smarter model, Ask Stashd and sync later.
-  - A one-time "lifetime" deal for launch supporters.
-  Research how Raycast, Cove, CleanShot and Granola price.
-- [ ] **Payments:** Lemon Squeezy or Paddle (they handle sales tax worldwide) rather than Stripe on its own
-- [ ] **Privacy policy:** what stays on the Mac, what Stashd AI sends and to whom (Anthropic), what's stored (nothing but a counter), how to turn it off, and a contact email
-- [ ] **Terms of use:** simple, plain-words terms; follow Anthropic's usage policy for an app built on Claude
-- [ ] **Data:** "Delete my data" doesn't apply at launch because the server keeps nothing; say so in plain words. Settings gets "Export my folders" and "Delete everything".
+### Stage 3: public launch
+- [ ] First run for strangers:
+  - 3 steps: what it does, permissions when needed, try ⌃S;
+  - a "Don't Allow" fix-it button;
+  - the Chrome extension.
+- [ ] Polish and worst cases:
+  - dark mode, Reduce Motion, VoiceOver, keyboard-only use;
+  - 100+ tabs, long names, more than one display;
+  - the menu bar icon hidden by the notch;
+  - shortcut clashes.
+- [ ] Domain, email (hello@…), website on the domain:
+  - the right download per Mac, plus the install command;
+  - privacy and terms pages in plain words;
+  - an FAQ.
+- [ ] Chrome Web Store listing (submit 2 weeks ahead; review takes days)
+- [ ] The marketing phase below, then launch week
 
-### Phase 4: make the app better before strangers use it
-**Trust (losing data is the top reason people quit tab tools):**
-- [ ] Back up the data folder before any change to how saves are stored, and keep the last 5 backups
-- [ ] Show what didn't reopen ("2 tabs couldn't open"), and never fail silently
-- [ ] Keep Recently closed for days, not 10 minutes
-- [ ] Recover from a damaged save file instead of starting empty
+### Marketing phase (Marketing chat; research before posting anything)
+**Positioning:**
+- Who exactly: developers and technical freelancers juggling AI chats, and students.
+- The one-line promise, and the "open source, your stuff stays on your Mac" angle.
 
-**First run:**
-- [ ] Onboarding in 3 steps:
-  1. what Stashd does;
-  2. permissions, explained at the moment they're needed;
-  3. try ⌃S once.
-- [ ] A "Don't Allow" fix-it button for every app
-- [ ] Chrome extension install inside onboarding
-- [ ] The Stashd AI consent screen, short and honest
+**The timely hook: Arc closes on 22 Dec 2026.**
+- Arc users lose their Spaces and are hunting for alternatives right now.
+- Idea (check it works first): **"Move your Arc Spaces out before it closes"**. Stash every Arc Space into a Stashd folder and reopen it in Chrome, Brave or Safari.
+- Launching before 22 Dec would catch that wave. If we want it, it's the one reason to set a date.
 
-**Features:**
-- [ ] **Ask Stashd** (AI): "what was I doing on the Toronto trip?", "add the Vercel dashboard to Stashd project". It's already in the plan's Later list; decide whether it's part of launch or Pro.
-- [ ] Automatic save at moments that already happen: shutdown, a macOS update, closing the lid at night. This was the research's biggest lever for making Stashd a must-have.
-- [ ] Dia support only if Dia grows (parked)
+**Channels to research.** For each one, check the self-promotion rules, what format works, the best day and time, and past Mac app launches that did well:
+- **Reddit:**
+  - r/macapps (the main one for Mac apps), r/MacOS, r/apple (strict);
+  - r/productivity, r/SideProject, r/opensource, r/ArcBrowser (Arc refugees, but read the rules);
+  - student subs such as r/GetStudying;
+  - r/ADHD usually bans promotion: be useful there, don't advertise.
+- **Hacker News "Show HN":** open source and local-first go down well. Expect "Electron is heavy" comments; the app is about 355 MB, mostly Electron itself, so have an honest answer ready.
+- **Product Hunt:** prepare the assets, launch at 12:01 am Pacific, rally the beta testers.
+- **X:** build in public from now, with short clips. The Tidy all fly-in and the pixel mascot are made for video.
+- **TikTok, Reels, Shorts:** "40 tabs gone in one keypress" videos.
+- **Listings and press:** AlternativeTo ("Arc alternative", "OneTab alternative"), Indie Hackers, Mac newsletters and blogs.
 
-**Polish and the worst cases:**
-- [ ] Dark mode
-- [ ] Reduce Motion
-- [ ] VoiceOver labels
-- [ ] Keyboard-only use
-- [ ] Very long names, 100+ tabs, empty states
-- [ ] More than one display
-- [ ] The menu bar icon hidden behind the notch (tell people how to find Stashd)
-- [ ] Shortcut clashes (⌃S is used in some apps): show the clash and offer to change it
-- [ ] Battery and memory: measure that Stashd stays idle when idle
+**Content:**
+- a 60–90 second demo;
+- GIFs;
+- launch-post copy for each channel;
+- an "Arc alternative / save your Arc Spaces" guide page for search.
 
-**Support:**
-- [ ] "Send feedback" in the app (writes an email, with the app version and macOS version filled in)
-- [ ] A crash and error log on the Mac that people can choose to attach. No hidden tracking.
-- [ ] Optional, opt-in usage numbers to check the must-have measure (how often saves are reopened), clearly explained, off by default
+**Measure:** downloads, installs making briefs (server count), week-2 returns, and the 40% survey.
 
-### Phase 5: launch
-- [ ] Chrome Web Store listing for the extension ($5 one-time; review can take days, so submit 2 weeks before)
-- [ ] Own domain (for example stashd.app), email (hello@…), website on it
-- [ ] Website:
-  - the right download per Mac;
-  - privacy and terms pages;
-  - pricing page (once there's Pro);
-  - an FAQ with "Does it work on Intel?" and "What does Stashd AI send?";
-  - share previews (OG images).
-- [ ] Demo video (60–90 seconds) and a press kit (icon, screenshots, one paragraph)
-- [ ] Private beta: 10–20 people, including 2+ Intel and 2+ macOS 13–14. Run the "how disappointed would you be?" survey after 2 weeks.
-- [ ] Launch-day plan (Marketing chat): Product Hunt, Hacker News "Show HN", X and Reddit, plus a fix-and-ship-same-day routine
+### Later (only once free use is growing)
+- [ ] Paid plan (Pro) and pricing research (Raycast, Cove, CleanShot, Granola); payments through Lemon Squeezy or Paddle
+- [ ] Login (email code or Sign in with Apple), only when paid plans need it
+- [ ] Ask Stashd (AI); automatic save at shutdown, updates and lid close (the research's biggest must-have lever, first after launch)
+- [ ] Apple Developer Program (see the triggers above)
 
-### What Aryan does
-1. **Join the Apple Developer Program** as an individual at developer.apple.com/programs ($99 a year; approval usually takes 1–2 days). Then I'll walk you through the certificate and the notarization password.
-2. **Anthropic account for Stashd AI:**
-   - create an API key at platform.claude.com under a Stashd organization (not your personal key);
-   - add billing;
-   - set a monthly spend limit (for example $50).
-   - Put the key in Vercel's environment settings yourself; never paste it in chat.
-3. **Chrome Web Store developer account** ($5 one-time).
-4. **Pick and buy a domain** (about $10–30 a year).
-5. **Find testers:** 1–2 people with an Intel Mac, and 10–20 beta testers.
-6. **Later:** choose Lemon Squeezy or Paddle when we do paid plans.
-
-### Still to decide (not urgent)
-- Pro price and what's in it; whether Ask Stashd is free or Pro
-- Login method when paid plans arrive (email code vs Sign in with Apple)
-- The brief's final look (decided by the Phase 2 tests)
+### Who does what
+- **Build chat:** Stages 1–2 code, server, updater, Intel, the brief research setup.
+- **Design chat:** brief look tests, onboarding, polish.
+- **Marketing chat:** the marketing phase, website copy, launch week.
+- **Aryan:**
+  - the Anthropic server key with a spend limit, added to Vercel;
+  - the Chrome Web Store account;
+  - the domain;
+  - beta testers (including Intel Macs);
+  - the decision on the Arc date.
