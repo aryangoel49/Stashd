@@ -204,7 +204,15 @@ Each brief request carries the anonymous install ID, so the server can count how
 - [x] Privacy test (Stashd AI may only talk to Stashd's server) and README
 - [ ] Website wording about Stashd AI, once it's switched on
 - [ ] Intel build: Swift helper for macOS 13 on both chips, onnxruntime 1.23 for Intel, the same matching results on both
-- [ ] Release signing with the kept Stashd certificate, plus Stashd's own updater with the "Install and restart" prompt
+- [ ] Release signing with the kept Stashd certificate, plus Stashd's own updater, automatic like Chrome or Slack: it downloads new versions quietly and installs them the next time Stashd or the Mac restarts. A small "Restart to update" in the panel lets people do it now.
+- [ ] **Automatic stashing (moved up from Later, 6 Nov).** The research's biggest lever: people shouldn't have to remember ⌃S. Stashd saves quietly, into the folder the work matches, at moments that already happen:
+  - the lid closes or the Mac goes to sleep or locks;
+  - a shutdown, a restart or a macOS update;
+  - you've been away a while (for example 20 minutes);
+  - a call starts (Zoom, Meet, Teams opening);
+  - you switch to another folder's work (the matching model already notices this).
+  - Rules: it never closes or quits anything on its own, it says "Saved automatically" in the menu bar, and each moment can be switched off in Settings. Coming back shows the brief.
+  - Later, it learns each person's habits (when their day ends, which moments they use) and tunes itself.
 - [ ] Installers: DMG (with the "Open Anyway" picture guide), the one-line command, and `npx stashd`
 - [ ] First-run permissions step: ask for every installed app at once, with a reason for each
 - [ ] **Brave, Edge and Vivaldi support.** They work like Chrome, so it's cheap, and many developers use Brave.
