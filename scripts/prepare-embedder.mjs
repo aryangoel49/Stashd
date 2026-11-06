@@ -17,7 +17,13 @@ const MODEL_SHA256 = 'afdb6f1a0e45b715d0bb9b11772f032c399babd23bfc31fed1c170afc8
 const targetArch = process.argv[2] ?? process.arch;
 if (!['arm64', 'x64'].includes(targetArch)) throw new Error(`No meaning model runtime for ${targetArch}.`);
 
-const sha = (file) =>createHash('sha256').update(readFileSync(file)).digest('hex');
+const INTEL_RUNTIME = '1.23.2';
+const INTEL_SHA256 = {
+  'libonnxruntime.1.23.2.dylib': '0576e3f8dd16833c291fddd037444672ae20cdc6797db00928cc7527541c5a4a',
+  'onnxruntime_binding.node': 'b9f2fad0f4c81fc79a1e990e47efbffe6275db72e6d8cabdb620e70e2bdff720',
+};
+
+const sha = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 
 if (!existsSync(MODEL)) {
   console.log('Downloading the meaning model (23 MB)…');
@@ -36,14 +42,14 @@ const installedVersion = () => {
     return null;
   }
 };
-// Pinned in embedder/package.json, the same on both chips: 1.23 is the last version with Intel files,
-// and from 1.30 the Apple silicon files need macOS 14.
-const pinned = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8')).dependencies['onnxruntime-node'];
-// What's there may have been stripped for the other chip, or be an older version: start again.
-if (installedVersion() !== pinned || !existsSync(path.join(bins, process.platform, targetArch))) {
+// Apple silicon uses the version in embedder/package.json. Intel stays on the last version with Intel files.
+const version = targetArch === 'x64' ? INTEL_RUNTIME : JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8')).dependencies['onnxruntime-node'];
+// What's there may have been stripped for the other chip, or be another version: start again.
+if (installedVersion() !== version || !existsSync(path.join(bins, process.platform, targetArch))) {
   rmSync(modules, { recursive: true, force: true });
+  const intel = targetArch === 'x64' ? ['--no-save', '--no-package-lock', `onnxruntime-node@${INTEL_RUNTIME}`] : [];
   // --ignore-scripts: the runtime's install script only downloads GPU extras for Linux.
-  execFileSync('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--omit=dev'], { cwd: dir, stdio: 'inherit' });
+  execFileSync('npm', ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--omit=dev', ...intel], { cwd: dir, stdio: 'inherit' });
 }
 
 // Only onnxruntime-node and onnxruntime-common are used at run time; the rest is for its installer.
@@ -59,10 +65,17 @@ for (const platform of readdirSync(bins)) {
 }
 // Some versions ship libonnxruntime.1.dylib, which the binding loads, plus a versioned duplicate. Others
 // ship only the versioned one, which the binding then needs.
-const files = readdirSync(path.join(bins, process.platform, targetArch));
+const shipped = path.join(bins, process.platform, targetArch);
+const files = readdirSync(shipped);
 if (files.includes('libonnxruntime.1.dylib')) {
   for (const f of files) {
-    if (/^libonnxruntime\.\d+\.\d+\.\d+\.dylib$/.test(f)) rmSync(path.join(bins, process.platform, targetArch, f));
+    if (/^libonnxruntime\.\d+\.\d+\.\d+\.dylib$/.test(f)) rmSync(path.join(shipped, f));
+  }
+}
+// The Intel version has no lockfile to check it, so its files are checked here.
+if (targetArch === 'x64') {
+  for (const [f, want] of Object.entries(INTEL_SHA256)) {
+    if (sha(path.join(shipped, f)) !== want) throw new Error(`The Intel runtime's ${f} does not match the expected checksum.`);
   }
 }
 console.log(`Meaning model ready (${targetArch}).`);

@@ -27,7 +27,7 @@ Every folder gets its own colour. In the app window, **All folders** shows them 
 
 ## Install
 
-Stashd needs macOS 13 or newer.
+Stashd runs on macOS 13 or newer. Sorting tabs by meaning needs macOS 14 on Apple silicon and 13.4 on Intel; older Macs sort by words.
 
 1. Download from the latest release: **[Stashd.dmg](https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg)** for Apple silicon (M1 or later), or **[Stashd-Intel.dmg](https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd-Intel.dmg)** for an Intel Mac.
 2. Open it and drag **Stashd** into **Applications**. If it asks, click **Replace** to update an older version.

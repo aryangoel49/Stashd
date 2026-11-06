@@ -7,7 +7,8 @@ they share no words. Runs entirely on the Mac: free, offline, private.
   `Xenova/all-MiniLM-L6-v2`. Downloaded and checksum-checked by `npm run embedder` (not in git).
 - `model/vocab.txt`: its word-piece vocabulary (tokenizer is `src/main/meaning/tokenizer.ts`).
 - `onnxruntime-node` (MIT) runs it. `npm run embedder` installs it for one chip only and strips the rest.
-  Pinned at 1.23.2 on both chips: later versions have no Intel files, and from 1.30 the Apple silicon files
-  need macOS 14. It needs macOS 13.4; below that, Stashd falls back to word matching.
+  Apple silicon uses the version in `package.json`, which needs macOS 14. Intel stays on 1.23.2 (set in
+  `scripts/prepare-embedder.mjs`), the last version with Intel files, which needs macOS 13.4. On anything older
+  Stashd still runs and falls back to word matching.
 - `worker.cjs` runs in an Electron utility process, so a crash can't take the app down; the app falls
   back to word matching if the model is unavailable.

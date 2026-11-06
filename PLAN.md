@@ -203,7 +203,7 @@ Each brief request carries the anonymous install ID, so the server can count how
 - [ ] Consent screen at first launch
 - [x] Privacy test (Stashd AI may only talk to Stashd's server) and README
 - [ ] Website wording about Stashd AI, once it's switched on
-- [x] Intel build: Swift helper for macOS 13 on both chips, onnxruntime 1.23.2 on both chips (1.30 on Apple silicon needs macOS 14 and sorts differently from 1.23), the same matching results on both (`npm run check:chips`). `npm run make:intel` builds Stashd-Intel.dmg. The meaning model needs macOS 13.4; on 13.0–13.3 Stashd falls back to word matching.
+- [x] Intel build: Swift helper for macOS 13 on both chips, onnxruntime 1.23.2 for Intel and the default (1.30) on Apple silicon, the same matching results on both because both run the model with `basic` optimization (`npm run check:chips`). `npm run make:intel` builds Stashd-Intel.dmg. Minimum for the meaning model: macOS 14 on Apple silicon, 13.4 on Intel; older Macs (down to 13.0, Electron's limit) still run with word matching.
 - [ ] Release signing with the kept Stashd certificate, plus Stashd's own updater, automatic like Chrome or Slack: it downloads new versions quietly and installs them the next time Stashd or the Mac restarts. A small "Restart to update" in the panel lets people do it now.
 - [ ] **Automatic stashing (moved up from Later, 6 Nov).** The research's biggest lever: people shouldn't have to remember ⌃S. Stashd saves quietly, into the folder the work matches, at moments that already happen:
   - the lid closes or the Mac goes to sleep or locks;

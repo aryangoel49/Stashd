@@ -5,8 +5,10 @@
 const path = require('node:path');
 const ort = require('onnxruntime-node');
 
+// 'basic': the heavier optimizations rewrite this model's 8-bit maths differently in each runtime version,
+// so Apple silicon (1.30) and Intel (1.23) would sort work differently. See tests/chips.test.ts.
 async function load(modelDir) {
-  return ort.InferenceSession.create(path.join(modelDir, 'model.onnx'), { intraOpNumThreads: 1, graphOptimizationLevel: 'all' });
+  return ort.InferenceSession.create(path.join(modelDir, 'model.onnx'), { intraOpNumThreads: 1, graphOptimizationLevel: 'basic' });
 }
 
 /** batch: token id lists (with [CLS] and [SEP]). Returns normalised mean-pooled vectors. */
