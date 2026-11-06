@@ -109,9 +109,9 @@ end run`;
   return null;
 }
 
-// ---------- tab groups (Chrome and Dia) ----------
+// ---------- Chrome tab groups ----------
 // Chrome doesn't let other apps make tab groups, so Stashd ships a tiny extension (assets/chrome-extension)
-// that does. Its id is fixed by the key in its manifest. Dia runs Chrome extensions, so the same one works there.
+// that does. Its id is fixed by the key in its manifest.
 export const CHROME_HELPER_ID = 'ledhbdmigicjkhlpchllagcmkpmldjfb';
 
 /** The extension's page that opens these tabs in a group of this name, then closes itself. */
@@ -122,10 +122,8 @@ export function groupPageUrl(name: string, urls: string[], action?: 'ungroup' | 
 // Opens the extension's page and waits a moment: it either closes itself (it opened the group) or shows
 // "Stashd" while it works. Without the extension it's an error page, which is closed again.
 // (macOS doesn't let other apps read Chrome's settings, so trying is the only way to know it's there.)
-/** Browsers that can run Stashd's extension. */
-export const GROUP_BROWSERS: BrowserName[] = ['chrome', 'dia'];
-const groupScript = (browser: BrowserName) => `on run wwiArgs
-  tell application id "${BROWSER_APPS[browser].bundleId}"
+const GROUP_SCRIPT = `on run wwiArgs
+  tell application id "com.google.Chrome"
     if (count of windows) is 0 then make new window
     set wwiId to id of (make new tab at end of tabs of front window with properties {URL:(item 1 of wwiArgs)})
     activate
@@ -151,10 +149,9 @@ const groupScript = (browser: BrowserName) => `on run wwiArgs
   end tell
 end run`;
 
-/** After finding the extension missing in a browser, don't try there again for a while (each try flashes an error tab). */
+/** After finding the extension missing, don't try again for a while (each try flashes an error tab). */
 const RETRY_HELPER_MS = 10 * 60_000;
-const helperMissingAt = new Map<BrowserName, number>();
-const helperMissing = (b: BrowserName) => Date.now() - (helperMissingAt.get(b) ?? 0) < RETRY_HELPER_MS;
+let helperMissingAt = 0;
 
 /** Opens the tabs in a Chrome tab group through Stashd's extension. False if it isn't installed. */
 /**
@@ -163,12 +160,9 @@ const helperMissing = (b: BrowserName) => Date.now() - (helperMissingAt.get(b) ?
  */
 export async function changeChromeGroup(action: 'ungroup' | 'regroup', name: string, urls: string[]): Promise<void> {
   const web = urls.filter((u) => /^https?:/i.test(u));
-  if (!web.length) return;
-  for (const b of GROUP_BROWSERS) {
-    if (helperMissing(b) || !(await isRunning(b))) continue;
-    const script = groupScript(b).replace('    activate\n', '');
-    await run('osascript', ['-e', script, '--', groupPageUrl(name, web, action)], { timeoutMs: 20_000 }).catch(() => undefined);
-  }
+  if (!web.length || Date.now() - helperMissingAt < RETRY_HELPER_MS || !(await isRunning('chrome'))) return;
+  const script = GROUP_SCRIPT.replace('    activate\n', '');
+  await run('osascript', ['-e', script, '--', groupPageUrl(name, web, action)], { timeoutMs: 20_000 }).catch(() => undefined);
 }
 
 /**
@@ -177,18 +171,12 @@ export async function changeChromeGroup(action: 'ungroup' | 'regroup', name: str
  * messaging to Stashd's helper, which keeps it in chrome.json; nothing is opened in Chrome to get it.
  */
 async function fromChrome(): Promise<{ videos: unknown[]; groups: unknown[] }> {
-  // One file per browser (chrome.json, dia.json), so neither overwrites the other.
-  const out = { videos: [] as unknown[], groups: [] as unknown[] };
-  for (const name of ['chrome.json', 'dia.json']) {
-    try {
-      const raw = JSON.parse(await fs.readFile(path.join(app.getPath('userData'), name), 'utf8')) as { videos?: unknown; groups?: unknown };
-      if (Array.isArray(raw.videos)) out.videos.push(...raw.videos);
-      if (Array.isArray(raw.groups)) out.groups.push(...raw.groups);
-    } catch {
-      // that browser hasn't sent anything
-    }
+  try {
+    const raw = JSON.parse(await fs.readFile(path.join(app.getPath('userData'), 'chrome.json'), 'utf8')) as { videos?: unknown; groups?: unknown };
+    return { videos: Array.isArray(raw.videos) ? raw.videos : [], groups: Array.isArray(raw.groups) ? raw.groups : [] };
+  } catch {
+    return { videos: [], groups: [] };
   }
-  return out;
 }
 
 /**
@@ -232,11 +220,11 @@ export function finished(p: { t: number; d: number } | undefined): boolean {
   return !!p && p.d > 0 && (p.t / p.d >= 0.95 || p.d - p.t <= 20);
 }
 
-async function openGroup(browser: BrowserName, name: string, urls: string[]): Promise<boolean> {
-  if (helperMissing(browser)) return false;
-  const r = await run('osascript', ['-e', groupScript(browser), '--', groupPageUrl(name, urls)], { timeoutMs: 20_000 });
+async function openChromeGroup(name: string, urls: string[]): Promise<boolean> {
+  if (Date.now() - helperMissingAt < RETRY_HELPER_MS) return false;
+  const r = await run('osascript', ['-e', GROUP_SCRIPT, '--', groupPageUrl(name, urls)], { timeoutMs: 20_000 });
   if (r.stdout.trim() === 'ok') return true;
-  helperMissingAt.set(browser, Date.now());
+  helperMissingAt = Date.now();
   return false;
 }
 
@@ -357,8 +345,7 @@ async function openAll(
         if (!app || !urls.length) throw new Error('one by one');
         const together = urls.length >= 2 ? newWindowScript(browser as BrowserName) : null;
         const web = urls.filter((u) => /^https?:/i.test(u));
-        const b = browser as BrowserName;
-        if (GROUP_BROWSERS.includes(b) && groupName && web.length === urls.length && (await isRunning(b)) && (await openGroup(b, groupName, urls))) {
+        if (browser === 'chrome' && groupName && web.length === urls.length && (await isRunning('chrome')) && (await openChromeGroup(groupName, urls))) {
           // opened in a tab group
         } else if (together && (await isRunning(browser as BrowserName))) {
           // '--' so an address is never read as an option.

@@ -6,7 +6,7 @@ describe('settingsPatch', () => {
     const next = settingsPatch({ accent: 'teal', browsers: { arc: false }, tidyUp: true }, DEFAULT_SETTINGS);
     expect(next.accent).toBe('teal');
     expect(next.tidyUp).toBe(true);
-    expect(next.browsers).toEqual({ chrome: true, arc: false, dia: true, safari: true });
+    expect(next.browsers).toEqual({ chrome: true, arc: false, safari: true });
   });
 
   it.each([

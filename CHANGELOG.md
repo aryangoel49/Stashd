@@ -6,7 +6,6 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
-- **Dia** works like Chrome: ⌃S saves its tabs (never your pinned ones), Pack up and Tidy all close them, Unpack reopens them in a tab group named after the folder, and Continue watching knows how far into a video you got (with Stashd's extension loaded in Dia, from Settings).
 - Continue watching: streams (Twitch, Kick, and YouTube streams that are live) get a red Live tag.
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 

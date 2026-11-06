@@ -41,12 +41,6 @@ describe('close scripts', () => {
     expect(closeTabsScript('safari')).not.toContain('incognito');
   });
 
-  it("never closes Dia's pinned tabs (closing one would unpin it)", () => {
-    expect(closeTabsScript('dia')).toContain('if (not (isPinned of wwiTab)) and my wwiMatches');
-    expect(closeTabsScript('dia')).toContain('application id "company.thebrowser.dia"');
-    expect(closeTabsScript('chrome')).not.toContain('isPinned');
-  });
-
   it('ask apps to close documents normally, so unsaved changes get a prompt', () => {
     expect(closeDocsScript('Microsoft Word')).toContain('close wwiDoc saving ask');
     expect(closeDocsScript('Microsoft Word')).toContain('close (active window of wwiDoc)');

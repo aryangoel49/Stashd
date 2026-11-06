@@ -1,6 +1,6 @@
-// Reads open tab titles and addresses from Chrome, Arc, Dia and Safari with AppleScript.
+// Reads open tab titles and addresses from Chrome, Arc and Safari with AppleScript.
 // Only asks a browser that is already running (never launches one), skips Chrome and Arc
-// incognito windows and Dia's pinned tabs, and never reads cookies, history, passwords or page contents.
+// incognito windows, and never reads cookies, history, passwords or page contents.
 
 import type { BrowserName, CollectorError } from '../../shared/types';
 import { run, RunError } from '../exec';
@@ -17,7 +17,6 @@ export interface Tab {
 export const BROWSER_APPS: Record<BrowserName, { bundleId: string; appName: string; label: string }> = {
   chrome: { bundleId: 'com.google.Chrome', appName: 'Google Chrome', label: 'Chrome' },
   arc: { bundleId: 'company.thebrowser.Browser', appName: 'Arc', label: 'Arc' },
-  dia: { bundleId: 'company.thebrowser.dia', appName: 'Dia', label: 'Dia' },
   safari: { bundleId: 'com.apple.Safari', appName: 'Safari', label: 'Safari' },
 };
 
@@ -69,27 +68,6 @@ tell application id "company.thebrowser.Browser"
         set out to out & wi & ${US} & ((id of t) = activeId) & ${US} & (URL of t) & ${US} & (title of t) & ${RS}
       end repeat
     end if
-  end repeat
-end tell
-return out`,
-  // Dia: pinned tabs (Calendar, Mail…) are always there, like apps, so they're never part of a folder.
-  dia: `
-set out to ""
-tell application id "company.thebrowser.dia"
-  set wi to 0
-  repeat with w in windows
-    set wi to wi + 1
-    set activeId to ""
-    try
-      set activeId to id of active tab of w
-    end try
-    repeat with t in tabs of w
-      set pinned to false
-      try
-        set pinned to isPinned of t
-      end try
-      if not pinned then set out to out & wi & ${US} & ((id of t) = activeId) & ${US} & (URL of t) & ${US} & (title of t) & ${RS}
-    end repeat
   end repeat
 end tell
 return out`,

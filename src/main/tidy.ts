@@ -32,8 +32,6 @@ export function closeTabsScript(browser: BrowserName): string {
       : browser === 'arc'
         ? `try\n        if incognito of wwiWin then set wwiSkip to true\n      end try`
         : '';
-  // A Dia pinned tab is never closed: closing it would unpin it for good.
-  const keepTab = browser === 'dia' ? 'isPinned of wwiTab' : 'false';
   return `${MATCH_HANDLER}
 on run wwiTargets
   set wwiClosed to 0
@@ -46,7 +44,7 @@ on run wwiTargets
           set wwiCount to count of tabs of wwiWin
           repeat with wwiI from wwiCount to 1 by -1
             set wwiTab to tab wwiI of wwiWin
-            if (not (${keepTab})) and my wwiMatches((URL of wwiTab) as text, wwiTargets) then
+            if my wwiMatches((URL of wwiTab) as text, wwiTargets) then
               close wwiTab
               set wwiClosed to wwiClosed + 1
             end if

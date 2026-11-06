@@ -18,12 +18,11 @@
 //   (Chrome)             Started by Chrome for Stashd's extension (native messaging: Chrome passes the
 //                        extension's address as the first argument). Reads one message, how far into each
 //                        video you got and which tab group each tab is in, and keeps it in Stashd's folder
-//                        (chrome.json, or dia.json from Dia) for Stashd to read. Nothing else is read or written.
+//                        (chrome.json) for Stashd to read. Nothing else is read or written.
 //
 // Output is always one line of JSON on stdout (Chrome's messages are length-prefixed, as Chrome requires).
 
 import AppKit
-import Darwin
 import CoreGraphics
 import Foundation
 
@@ -306,11 +305,7 @@ func chromeHostCommand() {
     if body.count == length, (try? JSONSerialization.jsonObject(with: body)) is [String: Any],
        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
         let dir = base.appendingPathComponent("Stashd", isDirectory: true)
-        // One file per browser, so Chrome and Dia never overwrite each other: told apart by which app
-        // started this helper.
-        var parentPath = [CChar](repeating: 0, count: 4096)
-        let browser = proc_pidpath(getppid(), &parentPath, UInt32(parentPath.count)) > 0 && String(cString: parentPath).contains("/Dia.app/") ? "dia" : "chrome"
-        let file = dir.appendingPathComponent("\(browser).json")
+        let file = dir.appendingPathComponent("chrome.json")
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             try body.write(to: file, options: .atomic)

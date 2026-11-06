@@ -6,9 +6,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { app, shell } from 'electron';
 import { run } from './exec';
-import type { BrowserName } from '../shared/types';
-import { BROWSER_APPS, isRunning } from './collectors/browsers';
-import { CHROME_HELPER_ID, GROUP_BROWSERS } from './open';
+import { CHROME_HELPER_ID } from './open';
 
 function source(): string {
   return app.isPackaged ? path.join(process.resourcesPath, 'chrome-extension') : path.join(app.getAppPath(), 'assets', 'chrome-extension');
@@ -26,25 +24,14 @@ export async function copyChromeHelper(): Promise<void> {
 }
 
 /**
- * Tells Chrome and Dia which program their Stashd extension may hand video progress and tab groups to: Stashd's own
+ * Tells Chrome which program its Stashd extension may hand video progress and tab groups to: Stashd's own
  * helper (see "Chrome" in native/wwi-helper.swift), and only for that extension. Chrome's native
  * messaging, so nothing is ever opened in Chrome to read them. The installed app only: a test copy
  * would point Chrome at a helper that's about to be deleted.
  */
 async function registerChromeHost(): Promise<void> {
   if (!app.isPackaged) return;
-  const support = path.join(app.getPath('home'), 'Library', 'Application Support');
-  // Chrome and Dia each look in their own data folder.
-  for (const dir of [path.join(support, 'Google', 'Chrome', 'NativeMessagingHosts'), path.join(support, 'Dia', 'User Data', 'NativeMessagingHosts')]) await registerHostIn(dir);
-}
-
-async function registerHostIn(dir: string): Promise<void> {
-  // Only for a browser that's installed (its data folder exists).
-  try {
-    await fs.access(path.dirname(dir));
-  } catch {
-    return;
-  }
+  const dir = path.join(app.getPath('home'), 'Library', 'Application Support', 'Google', 'Chrome', 'NativeMessagingHosts');
   const manifest = {
     name: CHROME_HOST,
     description: 'Stashd',
@@ -62,10 +49,6 @@ const CHROME_HOST = 'com.aryangoel.stashd';
 export async function setupChromeHelper(): Promise<void> {
   await copyChromeHelper();
   shell.showItemInFolder(path.join(helperDir(), 'manifest.json'));
-  // The extensions page, in Chrome and in Dia (whichever are open; Chrome if neither is).
-  // chrome:// pages can't be opened with `open`; the browser opens them when asked directly.
-  const open = (await Promise.all(GROUP_BROWSERS.map(async (b) => ((await isRunning(b)) ? b : null)))).filter((b): b is BrowserName => !!b);
-  for (const b of open.length ? open : (['chrome'] as BrowserName[])) {
-    await run('osascript', ['-e', `tell application id "${BROWSER_APPS[b].bundleId}"\n  activate\n  if (count of windows) is 0 then make new window\n  tell front window to make new tab at end of tabs with properties {URL:"chrome://extensions"}\nend tell`], { timeoutMs: 15_000 }).catch(() => undefined);
-  }
+  // chrome:// pages can't be opened with `open`; Chrome opens them when asked directly.
+  await run('osascript', ['-e', 'tell application id "com.google.Chrome"\n  activate\n  if (count of windows) is 0 then make new window\n  tell front window to make new tab at end of tabs with properties {URL:"chrome://extensions"}\nend tell'], { timeoutMs: 15_000 }).catch(() => undefined);
 }

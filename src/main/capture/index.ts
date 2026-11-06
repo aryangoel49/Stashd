@@ -143,7 +143,7 @@ export async function capture(settings: Settings, helper: Helper, selfNames: str
   // Quick open checks (onlyApps) don't need to know which chat is showing.
   const chatApps = onlyApps ? [] : win.apps.map((a) => a.name).filter((n) => CHAT_APPS.includes(n));
   // Which Chrome tab groups tabs are in (Ctrl+S only, not quick open checks).
-  const wantGroups = !onlyApps && enabledBrowsers.some((b) => (b === 'chrome' || b === 'dia') && running.has(BROWSER_APPS[b].bundleId));
+  const wantGroups = !onlyApps && enabledBrowsers.includes('chrome') && running.has(BROWSER_APPS.chrome.bundleId);
   const groupsP = wantGroups ? chromeTabGroups((u) => cleanTabUrl(u, { keepQueryStrings: settings.keepQueryStrings, excludedDomains: settings.excludedDomains })) : Promise.resolve(new Map<string, string>());
   const [tabResult, docResult, chatResult] = await Promise.all([
     collectTabs(enabledBrowsers, { keepQueryStrings: settings.keepQueryStrings, excludedDomains: settings.excludedDomains }, running).catch((e) => {
@@ -157,7 +157,7 @@ export async function capture(settings: Settings, helper: Helper, selfNames: str
   const assembled = assemble(win, tabResult.tabs, docResult.items, selfNames, docResult.answered);
   if (chatResult) attachChats(assembled.items, chatResult.chats);
   const groups = await groupsP;
-  if (groups.size) for (const it of assembled.items) if (it.kind === 'tab' && (it.browser === 'chrome' || it.browser === 'dia')) it.group = groups.get(looseKey(it));
+  if (groups.size) for (const it of assembled.items) if (it.kind === 'tab' && it.browser === 'chrome') it.group = groups.get(looseKey(it));
   // If an app's files couldn't be read (permission not given yet), say so on its item.
   const blocked = new Set(docResult.errors.map((e) => e.collector.replace(/^docs:/, '')));
   for (const it of assembled.items) {
