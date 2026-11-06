@@ -461,6 +461,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 /* scroll-linked motion (set up by the scroll script at the end; off with Reduce Motion) */
 .scrollbar { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; background: var(--butter-deep); transform: scaleX(0); transform-origin: 0 50%; pointer-events: none; }
 .hero .stage { position: relative; z-index: 1; }
+main { overflow-x: clip; } /* moving cards never widen the page (phones ignore the body's overflow) */
 .hero-copy, .hero .stage, .stat-cell, .stat-vs, #demoCol, .bento .card, .fact, .end-mascot { will-change: transform; }
 .ink-w { transition: opacity 0.25s linear; }
 .steps-line { display: none; }
@@ -1430,7 +1431,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   cards.forEach((c) => { c.classList.remove('reveal'); });
   jobs.push(() => cards.forEach((c, i) => {
     const e = ease(prog(c, 1.08, 0.72)), k = 1 - e;
-    const side = c.classList.contains('wide') ? 0 : (i % 2 ? 1 : -1);
+    const side = c.classList.contains('wide') || !wide.matches ? 0 : (i % 2 ? 1 : -1);
     set(c, k > 0.001 ? `perspective(1200px) translate(${side * k * 40}px, ${k * 90}px) rotateX(${k * 16}deg) rotateY(${-side * k * 6}deg) scale(${0.92 + 0.08 * e})` : '', k > 0.001 ? String(0.15 + 0.85 * e) : '');
   }));
 
