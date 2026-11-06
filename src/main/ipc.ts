@@ -63,6 +63,11 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     shortcutErrors: hooks.shortcutErrors(),
   }));
 
+  handle('memory:info', () => core.memory?.counts() ?? null);
+  handle('memory:forget', () => {
+    core.memory?.forget();
+    return core.memory?.counts() ?? null;
+  });
   handle('settings:get', () => core.settings.get());
   handle('settings:update', (_e, patch) => core.settings.update(patch));
 

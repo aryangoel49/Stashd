@@ -205,6 +205,7 @@ Each brief request carries the anonymous install ID, so the server can count how
 - [ ] Website wording about Stashd AI, once it's switched on
 - [x] Intel build: Swift helper for macOS 13 on both chips, onnxruntime 1.23.2 for Intel and the default (1.30) on Apple silicon, the same matching results on both because both run the model with `basic` optimization (`npm run check:chips`). `npm run make:intel` builds Stashd-Intel.dmg. Minimum for the meaning model: macOS 14 on Apple silicon, 13.4 on Intel; older Macs (down to 13.0, Electron's limit) still run with word matching.
 - [ ] Release signing with the kept Stashd certificate, plus Stashd's own updater, automatic like Chrome or Slack: it downloads new versions quietly and installs them the next time Stashd or the Mac restarts. A small "Restart to update" in the panel lets people do it now.
+- [x] **Memory database** (`src/main/memory.ts`, one SQLite file on the Mac): moments, snapshots, prompts, saves, patterns, meanings, rule books; numbered upgrade steps with a copy first; damaged file set aside; detail kept 90 days, moments a year; Forget my history. Records your ⌃S saves today.
 - [ ] **Automatic stashing (moved up from Later, 6 Nov).** The research's biggest lever: people shouldn't have to remember ⌃S. Stashd saves quietly, into the folder the work matches, at moments that already happen:
   - the lid closes or the Mac goes to sleep or locks;
   - a shutdown, a restart or a macOS update;
@@ -297,7 +298,6 @@ Each brief request carries the anonymous install ID, so the server can count how
 - **Vansh (his own Claude):**
   1. Intel and macOS 13: the Swift helper for both chips at macOS 13 (Apple Intelligence code removed), onnxruntime 1.23 for Intel, a separate Intel build, the same matching results on both, a test through Rosetta.
   2. Brave, Edge and Vivaldi: read, close and reopen their tabs like Chrome, with Settings switches.
-  3. Never lose a save: back up before any change to how saves are stored, and recover from a damaged file.
   - Vansh owns `native/`, `scripts/prepare-embedder.mjs`, the build config's chip settings and the browser code. The Build chat stays out of those until his work lands.
 - **Design chat:** the look of the first-run setup and the brief tests.
 - **Marketing chat:** the marketing phase, website copy, launch week.

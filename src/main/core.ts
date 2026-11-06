@@ -27,6 +27,7 @@ import type { SettingsStore } from './settings';
 import { readJsonSafely } from './safety';
 import { JobStore, writeFileKeepingLast } from './store';
 import { IconCache } from './icons';
+import { Memory } from './memory';
 import { cleanTabUrl, looseKey, matchKeys, siteOf } from './urls';
 
 interface State {
@@ -114,6 +115,8 @@ export class Core {
   readonly breaks: BreakStore;
   /** The on-device meaning model (optional: sorting works without it). */
   meaning?: Meaning;
+  /** Stashd's memory (memory.db): what happened and what it learned. Optional: Stashd works without it. */
+  memory?: Memory;
 
   constructor(
     readonly settings: SettingsStore,
@@ -340,6 +343,11 @@ export class Core {
     };
     await this.store.saveEntry(entry);
     await this.store.prune(job.id);
+    try {
+      this.memory?.recordSave({ folder: job.id, file: entry.id, how: 'manual', kind: 'manual', items, at: now });
+    } catch {
+      // The memory is a helper; a save never fails because of it.
+    }
     await this.settings.update({ tidyUp: req.tidy });
     await this.setCurrent(req.tidy ? null : job.id);
     // After a save, "new since you unpacked" starts again from what's open now.

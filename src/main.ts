@@ -10,6 +10,7 @@ import { installId } from './main/install';
 import { backupBeforeChange, backupsDir, onDamage } from './main/safety';
 import { Core } from './main/core';
 import { createMeaning } from './main/meaning';
+import { Memory } from './main/memory';
 import { Helper } from './main/helper';
 import { registerIpc } from './main/ipc';
 import { SecretStore } from './main/secrets';
@@ -149,6 +150,12 @@ function start(): void {
     const fake = !app.isPackaged ? process.env.WWI_FAKE_CAPTURE : undefined;
     core = new Core(settings, new JobStore(path.join(dir, 'jobs'), backupsDir(dir)), helper, dir, [app.getName(), 'Stashd', LEGACY_NAME, 'Electron'], fake ? async () => ({ ...JSON.parse(await readFile(fake, 'utf8')), at: new Date().toISOString() }) : undefined);
     core.meaning = createMeaning();
+    try {
+      core.memory = Memory.open(dir);
+      core.memory.prune();
+    } catch {
+      // Stashd runs fine without its memory.
+    }
     setTimeout(() => core.meaning?.warm(), 3000);
     let myId: Promise<string> | null = null;
     core.writers = [

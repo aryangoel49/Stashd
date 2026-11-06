@@ -140,6 +140,7 @@ export function SettingsView() {
           <Toggle key={b} label={`Read tabs from ${{ chrome: 'Google Chrome', brave: 'Brave', edge: 'Microsoft Edge', vivaldi: 'Vivaldi', arc: 'Arc', safari: 'Safari' }[b]}`} on={s.browsers[b]} onChange={(v) => void update({ browsers: { ...s.browsers, [b]: v } })} />
         ))}
         <Toggle label="Keep the part of addresses after ?" hint="Off by default: only the parts that say which page it is (like a YouTube video) are kept. Secrets are removed either way." on={s.keepQueryStrings} onChange={(v) => void update({ keepQueryStrings: v })} />
+        <MemoryRow />
         <div className="srow">
           <span>Permission to see your tabs and files</span>
           <Button size="small" onClick={() => void api.openAutomationSettings()}>
@@ -326,6 +327,40 @@ function ListRow({ label, value, onSave }: { label: string; value: string[]; onS
           if (list.join('\n') !== value.join('\n')) onSave(list);
         }}
       />
+    </div>
+  );
+}
+
+/** Stashd's memory: how much it remembers, and a way to make it forget (asks once more before it does). */
+function MemoryRow() {
+  const [info, setInfo] = useState<{ moments: number; since: string | null } | null>(null);
+  const [sure, setSure] = useState(false);
+  useEffect(() => {
+    void api.memoryInfo().then(setInfo, () => undefined);
+  }, []);
+  const since = info?.since ? new Date(info.since).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : null;
+  return (
+    <div className="srow">
+      <span>
+        Stashd’s memory
+        <span className="faint small" style={{ display: 'block' }}>
+          When you saved and what was open (titles and sites, never page contents), so Stashd can learn your habits. It stays on this Mac.
+          {info && info.moments > 0 && ` ${info.moments} ${info.moments === 1 ? 'moment' : 'moments'} since ${since}.`}
+        </span>
+      </span>
+      <Button
+        size="small"
+        variant={sure ? 'danger' : 'secondary'}
+        disabled={!info || info.moments === 0}
+        onClick={() => {
+          if (!sure) return setSure(true);
+          setSure(false);
+          void api.forgetMemory().then(setInfo, () => undefined);
+        }}
+        onBlur={() => setSure(false)}
+      >
+        {sure ? 'Forget all of it' : 'Forget my history'}
+      </Button>
     </div>
   );
 }

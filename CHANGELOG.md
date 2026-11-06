@@ -6,6 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
+- **Stashd's memory**: Stashd now remembers when you saved and what was open (titles and sites, never page contents), on this Mac only, so it can learn your habits. Settings → Privacy shows how much it remembers and has **Forget my history**.
 - Stashd now runs on Intel Macs, with their own download, Stashd-Intel.dmg. It opens on macOS 13 and later; sorting tabs by meaning needs macOS 14 on Apple silicon and 13.4 on Intel, and older Macs sort by words.
 - Brave, Microsoft Edge and Vivaldi work like Chrome: Stashd saves, closes and reopens their tabs. Each has a switch in Settings → Privacy.
 - Your saves are safer: Stashd copies them before an update changes anything (it keeps the last 5), and repairs a damaged save from its last good copy instead of losing it. The menu bar tells you when it has.
