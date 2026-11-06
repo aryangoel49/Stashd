@@ -217,7 +217,8 @@ Each brief request carries the anonymous install ID, so the server can count how
 - [ ] First-run permissions step: ask for every installed app at once, with a reason for each
 - [x] **Brave, Edge and Vivaldi support.** They work like Chrome, so it's cheap, and many developers use Brave. Still to try on the real browsers, including their private windows.
   - Firefox and Zen can't share their tabs with other apps on a Mac; the website says so plainly.
-- [ ] Never lose a save: back up before any change to how saves are stored, recover from a damaged file, and show what didn't reopen
+- [x] Never lose a save: back up before any change to how saves are stored (`src/main/safety.ts`, last 5 kept), recover from a damaged file
+- [ ] Show what didn't reopen
 - [ ] "Send feedback" button (email with the app and macOS version filled in)
 
 **Check:**

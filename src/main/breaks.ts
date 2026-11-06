@@ -6,7 +6,8 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { BreakItem, BreakPlace, BreakShelf, BrowserName, Item } from '../shared/types';
-import { writeFileAtomic } from './store';
+import { readJsonSafely } from './safety';
+import { writeFileKeepingLast } from './store';
 import { looseKey } from './urls';
 
 /** Sites for watching, listening, sport and games. A page on one of these is a break, unless it's about your work. */
@@ -112,7 +113,7 @@ export class BreakStore {
   private file: string;
   private cache: BreakShelf | null = null;
 
-  constructor(dataDir: string) {
+  constructor(private readonly dataDir: string) {
     this.file = path.join(dataDir, 'break.json');
   }
 
@@ -121,12 +122,7 @@ export class BreakStore {
       if (this.expire(this.cache)) await this.save(this.cache);
       return this.cache;
     }
-    let raw: Partial<BreakShelf> = {};
-    try {
-      raw = JSON.parse(await fs.readFile(this.file, 'utf8')) as Partial<BreakShelf>;
-    } catch {
-      // first time
-    }
+    const raw = (readJsonSafely(this.dataDir, 'break.json') ?? {}) as Partial<BreakShelf>;
     const shelf: BreakShelf = {
       items: Array.isArray(raw.items) ? raw.items.filter((i) => i && typeof i.key === 'string' && typeof i.url === 'string' && isResumable(i.url)) : [],
       places: Array.isArray(raw.places) ? raw.places.filter((p) => p && typeof p.name === 'string' && typeof p.url === 'string') : DEFAULT_PLACES,
@@ -139,7 +135,7 @@ export class BreakStore {
 
   private async save(shelf: BreakShelf): Promise<void> {
     this.cache = shelf;
-    await writeFileAtomic(this.file, JSON.stringify(shelf, null, 2));
+    await writeFileKeepingLast(this.file, JSON.stringify(shelf, null, 2));
   }
 
   /** Newest first; the same page again moves to the top (keeping how often you've opened it). */

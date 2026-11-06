@@ -1,6 +1,5 @@
 // The app's actions, shared by the menu bar, keyboard shortcuts and the windows.
 
-import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { mostlyOpen, type BriefView, type Capture, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
@@ -25,7 +24,8 @@ import { BROWSER_APPS } from './collectors/browsers';
 import { changeChromeGroup, finished, openForBreak, openItems, videoProgress } from './open';
 import { BreakStore, isBreakItem, videoKey } from './breaks';
 import type { SettingsStore } from './settings';
-import { JobStore, writeFileAtomic } from './store';
+import { readJsonSafely } from './safety';
+import { JobStore, writeFileKeepingLast } from './store';
 import { IconCache } from './icons';
 import { cleanTabUrl, looseKey, matchKeys, siteOf } from './urls';
 
@@ -127,12 +127,7 @@ export class Core {
     this.icons = new IconCache(helper);
     this.breaks = new BreakStore(dataDir);
     this.stateFile = path.join(dataDir, 'state.json');
-    let raw: Partial<State> = {};
-    try {
-      raw = JSON.parse(readFileSync(this.stateFile, 'utf8')) as Partial<State>;
-    } catch {
-      // first run
-    }
+    const raw = (readJsonSafely(dataDir, 'state.json') ?? {}) as Partial<State>;
     this.state = {
       currentJobId: typeof raw.currentJobId === 'string' ? raw.currentJobId : null,
       appUnticks: raw.appUnticks && typeof raw.appUnticks === 'object' ? raw.appUnticks : {},
@@ -157,7 +152,7 @@ export class Core {
   }
 
   private async saveState(): Promise<void> {
-    await writeFileAtomic(this.stateFile, JSON.stringify(this.state, null, 2));
+    await writeFileKeepingLast(this.stateFile, JSON.stringify(this.state, null, 2));
   }
 
   get currentJobId(): string | null {

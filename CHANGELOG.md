@@ -8,6 +8,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ### Added
 - Stashd now runs on Intel Macs and on macOS 13 and later. Intel Macs have their own download, Stashd-Intel.dmg.
 - Brave, Microsoft Edge and Vivaldi work like Chrome: Stashd saves, closes and reopens their tabs. Each has a switch in Settings → Privacy.
+- Your saves are safer: Stashd copies them before an update changes anything (it keeps the last 5), and repairs a damaged save from its last good copy instead of losing it. The menu bar tells you when it has.
 - **Stashd AI** (Settings → Briefs): AI briefs and folder names for everyone, free with a daily limit, no Claude key needed. It's off until you turn it on, and Settings says exactly what it sends.
 - Tidy all has a shortcut: ⌃⇧S (change it in Settings).
 - Continue watching: streams (Twitch, Kick, and YouTube streams that are live) get a red Live tag.

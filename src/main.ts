@@ -7,6 +7,7 @@ import type { Item, OpenState, Route, Settings } from './shared/types';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
 import { stashdWriter } from './main/brief/stashd';
 import { installId } from './main/install';
+import { backupBeforeChange, backupsDir, onDamage } from './main/safety';
 import { Core } from './main/core';
 import { createMeaning } from './main/meaning';
 import { Helper } from './main/helper';
@@ -136,11 +137,17 @@ function start(): void {
         // Starting fresh is better than not starting.
       }
     }
+    try {
+      backupBeforeChange(dir, app.getVersion());
+    } catch (e) {
+      // Nothing is lost by carrying on, and the next launch tries again.
+      console.warn('Could not back up your saves:', e);
+    }
     const settings = new SettingsStore(dir);
     const secrets = new SecretStore(dir);
     const helper = new Helper(helperPath());
     const fake = !app.isPackaged ? process.env.WWI_FAKE_CAPTURE : undefined;
-    core = new Core(settings, new JobStore(path.join(dir, 'jobs')), helper, dir, [app.getName(), 'Stashd', LEGACY_NAME, 'Electron'], fake ? async () => ({ ...JSON.parse(await readFile(fake, 'utf8')), at: new Date().toISOString() }) : undefined);
+    core = new Core(settings, new JobStore(path.join(dir, 'jobs'), backupsDir(dir)), helper, dir, [app.getName(), 'Stashd', LEGACY_NAME, 'Electron'], fake ? async () => ({ ...JSON.parse(await readFile(fake, 'utf8')), at: new Date().toISOString() }) : undefined);
     core.meaning = createMeaning();
     setTimeout(() => core.meaning?.warm(), 3000);
     let myId: Promise<string> | null = null;
@@ -150,6 +157,7 @@ function start(): void {
     ];
 
     tray = new AppTray({ togglePanel: (b) => togglePanel(b), save: openSave, openMain: () => showWindow('main') });
+    onDamage(({ repaired }) => tray.flash(repaired ? 'Repaired a damaged save' : "A damaged save couldn't be repaired"));
     // Build the panel now, hidden, so the first click on the icon shows it at once.
     prepareWindow('panel');
     core.onChanged(() => broadcast('jobs:changed'));

@@ -2,12 +2,14 @@
 //   <base>/<jobId>/job.json             name, dates, learned preferences
 //   <base>/<jobId>/history/<id>.json    one file per save
 // Writes are atomic (write a temp file, then rename), so a crash never leaves half a file.
+// A file damaged some other way is repaired from its last good copy (see safety.ts).
 
 import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import type { Job, SaveEntry } from '../shared/types';
 import { entryId as checkEntryId, jobId as checkJobId } from '../shared/validate';
+import { isObject, recoverJson, reportDamage } from './safety';
 
 export const MAX_HISTORY = 30;
 
@@ -43,8 +45,28 @@ export async function writeFileAtomic(file: string, data: string): Promise<void>
   await fs.rename(tmp, file);
 }
 
+/** Like writeFileAtomic, keeping what was there as <file>.bak. A damaged file never replaces a good copy. */
+export async function writeFileKeepingLast(file: string, data: string): Promise<void> {
+  try {
+    const current = await fs.readFile(file, 'utf8');
+    JSON.parse(current);
+    await writeFileAtomic(`${file}.bak`, current);
+  } catch {
+    // nothing there yet, or it's damaged
+  }
+  await writeFileAtomic(file, data);
+}
+
+const isJob = (v: unknown): boolean => isObject(v) && typeof (v as Job).name === 'string' && typeof (v as Job).updatedAt === 'string';
+
 export class JobStore {
-  constructor(private readonly base: string) {}
+  private readonly repairs = new Map<string, Promise<Job>>();
+
+  constructor(
+    private readonly base: string,
+    /** Where backups live (see safety.ts): damaged files are restored from them. */
+    private readonly backups?: string,
+  ) {}
 
   private dir(id: string): string {
     return path.join(this.base, checkJobId(id));
@@ -72,11 +94,43 @@ export class JobStore {
   }
 
   async get(id: string): Promise<Job> {
-    return JSON.parse(await fs.readFile(path.join(this.dir(id), 'job.json'), 'utf8')) as Job;
+    const file = path.join(this.dir(id), 'job.json');
+    try {
+      const job: unknown = JSON.parse(await fs.readFile(file, 'utf8'));
+      if (isJob(job)) return job as Job;
+    } catch (e) {
+      // No folder at all: there's no such job (a deleted one must stay deleted).
+      await fs.access(this.dir(id)).catch(() => {
+        throw e;
+      });
+    }
+    // Several readers can find the same damage at once; it's repaired (and reported) once.
+    const repairing = this.repairs.get(id) ?? this.repairJob(id, file).finally(() => this.repairs.delete(id));
+    this.repairs.set(id, repairing);
+    return repairing;
+  }
+
+  /** A folder's saves outlive a damaged job.json: its last good copy, or a new one made from the saves. */
+  private async repairJob(id: string, file: string): Promise<Job> {
+    const restored = recoverJson(file, `jobs/${id}/job.json`, this.backups, isJob);
+    if (restored) return restored as Job;
+    const dates: string[] = [];
+    for (const entry of await this.entryIds(id)) {
+      const saved = await this.entry(id, entry).catch(() => null);
+      if (typeof saved?.savedAt === 'string') dates.push(saved.savedAt);
+    }
+    if (!dates.length) throw new Error(`No saves to rebuild ${id} from`);
+    dates.sort();
+    // The folder's own id holds its name: "climate-essay-3f9a1c".
+    const words = id.replace(/-[0-9a-f]{6}$/, '').replace(/-/g, ' ');
+    const job: Job = { id, name: words.charAt(0).toUpperCase() + words.slice(1), createdAt: dates[0], updatedAt: dates[dates.length - 1], done: false, prefs: { hide: {}, add: {} } };
+    await this.put(job);
+    reportDamage(file, true);
+    return job;
   }
 
   async put(job: Job): Promise<void> {
-    await writeFileAtomic(path.join(this.dir(job.id), 'job.json'), JSON.stringify(job, null, 2));
+    await writeFileKeepingLast(path.join(this.dir(job.id), 'job.json'), JSON.stringify(job, null, 2));
   }
 
   /** All jobs, most recently updated first. Unreadable folders are skipped. */
@@ -117,7 +171,19 @@ export class JobStore {
   }
 
   async entry(jobId: string, id: string): Promise<SaveEntry> {
-    return JSON.parse(await fs.readFile(this.entryFile(jobId, id), 'utf8')) as SaveEntry;
+    const file = this.entryFile(jobId, id);
+    // A missing file isn't damage: it was pruned or deleted, and stays that way.
+    const text = await fs.readFile(file, 'utf8');
+    try {
+      const entry: unknown = JSON.parse(text);
+      if (isObject(entry)) return entry as SaveEntry;
+    } catch {
+      // damaged: below
+    }
+    const restored = recoverJson(file, `jobs/${jobId}/history/${id}.json`, this.backups);
+    if (restored) return restored as SaveEntry;
+    reportDamage(file, false);
+    throw new Error(`Save ${id} is damaged`);
   }
 
   /** Entry ids, newest first. */
@@ -159,11 +225,16 @@ export class JobStore {
     for (const id of ids.slice(keep)) await fs.rm(this.entryFile(jobId, id), { force: true });
   }
 
+  /** Deleted means deleted: it goes from the backups too. */
   async delete(jobId: string): Promise<void> {
     await fs.rm(this.dir(jobId), { recursive: true, force: true });
+    if (!this.backups) return;
+    const dir = path.basename(this.dir(jobId));
+    for (const b of await fs.readdir(this.backups).catch(() => [])) await fs.rm(path.join(this.backups, b, 'jobs', dir), { recursive: true, force: true });
   }
 
   async deleteAll(): Promise<void> {
     await fs.rm(this.base, { recursive: true, force: true });
+    if (this.backups) await fs.rm(this.backups, { recursive: true, force: true });
   }
 }
