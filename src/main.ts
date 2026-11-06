@@ -2,7 +2,7 @@
 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { app, globalShortcut, Menu, nativeTheme, type Rectangle } from 'electron';
+import { app, globalShortcut, Menu, nativeTheme, powerMonitor, type Rectangle } from 'electron';
 import type { Item, OpenState, Route, Settings } from './shared/types';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
 import { stashdWriter } from './main/brief/stashd';
@@ -11,6 +11,8 @@ import { backupBeforeChange, backupsDir, onDamage } from './main/safety';
 import { Core } from './main/core';
 import { createMeaning } from './main/meaning';
 import { Memory } from './main/memory';
+import { AutoSaver } from './main/autosave';
+import { RULES } from './main/rules';
 import { Helper } from './main/helper';
 import { registerIpc } from './main/ipc';
 import { SecretStore } from './main/secrets';
@@ -180,11 +182,46 @@ function start(): void {
         tray.wink();
       });
     };
+    // Automatic saving: moving on from a folder, the Mac sleeping, locking or shutting down, walking away.
+    const auto = new AutoSaver({
+      settings: () => settings.get(),
+      memory: () => core.memory,
+      rules: RULES,
+      lookNow: () => core.lookAtOpen(),
+      frontFolder: (l) => core.frontFolder(l),
+      foldersInUse: (l) => core.foldersInUse(l),
+      save: async (cap, ids) => {
+        const saved = await core.autoSave(cap, ids);
+        if (saved.length) tray.flash('Saved automatically');
+        return saved;
+      },
+      remove: (jobId, entryId) => core.removeAutoSave(jobId, entryId),
+      unpack: (jobId) => core.open(jobId, undefined, 'all', beforeOpen).then(() => undefined),
+      ask: (card) => tidy.ask(card),
+      busy: () => !!getWindow('save')?.isVisible() || !!getWindow('panel')?.isVisible(),
+    });
+    powerMonitor.on('suspend', () => void auto.leaving('sleep'));
+    powerMonitor.on('lock-screen', () => void auto.leaving('lock'));
+    powerMonitor.on('resume', () => void auto.back());
+    powerMonitor.on('unlock-screen', () => void auto.back());
+    // Shutting down: macOS waits a moment for Stashd to save, then Stashd quits.
+    // (Electron passes the event, though its types don't say so.)
+    powerMonitor.on('shutdown', ((e?: { preventDefault?: () => void }) => {
+      if (!settings.get().autoSave) return;
+      e?.preventDefault?.();
+      void Promise.race([auto.leaving('shutdown'), new Promise((r) => setTimeout(r, 4000))]).finally(() => app.quit());
+    }) as () => void);
+    setInterval(() => auto.idle(powerMonitor.getSystemIdleTime()), 30_000);
+    setTimeout(() => void auto.afterRestart(), 20_000);
     // What the toast's button does: Unpack a folder you're back on, or Tidy all things sitting unused.
     let toastAct: (() => Promise<void>) | null = null;
     // Opened something from a packed folder yourself? Offer to Unpack the rest.
     const noticer = new Noticer(
-      () => core.lookAtOpen(),
+      () =>
+        core.lookAtOpen().then((look) => {
+          void auto.look(look).catch(() => undefined);
+          return look;
+        }),
       (work) => {
         toastAct = () => core.open(work.jobId, undefined, 'all', beforeOpen).then(() => undefined);
         tidy.offerUnpack(work.name, work.more);
@@ -223,6 +260,7 @@ function start(): void {
       tidyAll: tidyAllNow,
       afterShelve: (items) => void tidy.shelve(items).then(() => tray.wink()),
       toastAction: async () => {
+        if (tidy.toastActed()) return;
         tidy.dismissToast();
         const act = toastAct;
         toastAct = null;

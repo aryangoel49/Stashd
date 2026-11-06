@@ -219,6 +219,12 @@ export class JobStore {
     return null;
   }
 
+  /** Removes one save (an automatic save replaced by a newer one, or one you removed). */
+  async deleteEntry(jobId: string, id: string): Promise<void> {
+    checkEntryId(id);
+    await fs.rm(this.entryFile(jobId, id), { force: true });
+  }
+
   /** Keep only the newest MAX_HISTORY saves of a job. */
   async prune(jobId: string, keep = MAX_HISTORY): Promise<void> {
     const ids = await this.entryIds(jobId);

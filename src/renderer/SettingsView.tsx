@@ -96,6 +96,15 @@ export function SettingsView() {
           </div>
         ))}
       </Card>
+      <Card title="Automatic saving" hint="Stashd saves your work by itself when you move on to something else, close the lid, lock or shut down your Mac, or walk away. It never closes anything.">
+        <Toggle label="Save automatically" on={s.autoSave} onChange={(v) => void update({ autoSave: v })} />
+        <Toggle
+          label="Show short cards"
+          hint="“You’ve moved on from Climate essay. Save it?”, or “Saved before your Mac slept” when you’re back. Off: Stashd saves quietly and never asks."
+          on={s.autoSaveTalk === 'helpful'}
+          onChange={(v) => void update({ autoSaveTalk: v ? 'helpful' : 'quiet' })}
+        />
+      </Card>
       <Card title="Startup">
         <Toggle label="Open Stashd when I log in" hint="Works in the installed app." on={s.launchAtLogin} onChange={(v) => void update({ launchAtLogin: v })} />
         <div className="srow">

@@ -61,6 +61,10 @@ export interface OpenLook {
   latest: (SaveEntry | null)[];
   /** Everything open right now. */
   items: Item[];
+  /** The whole look, as a save would see it. */
+  cap: Capture;
+  /** The item in front (the tab or document you're on), if any. */
+  front: string | null;
 }
 
 export interface TidyAllPlan {
@@ -321,14 +325,15 @@ export class Core {
       for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${req.name.trim()} ${n}`;
       job = await this.store.create(name, now);
     }
-    job.prefs = learn(job.prefs, offered, req.keys);
+    // What you tick and untick teaches a folder; an automatic save made no choices, so it teaches nothing.
+    if (!req.auto) job.prefs = learn(job.prefs, offered, req.keys);
     job.updatedAt = now.toISOString();
     job.done = false;
     await this.store.put(job);
 
     // Only apps that were ticked for you and that you unticked count. Bare apps start unticked, so
     // leaving them alone says nothing (otherwise Xcode or Figma would soon be treated as everyday).
-    this.state.appUnticks = recordAppUnticks(this.state.appUnticks, job.id, offered.sure, req.keys);
+    if (!req.auto) this.state.appUnticks = recordAppUnticks(this.state.appUnticks, job.id, offered.sure, req.keys);
     const entry: SaveEntry = {
       version: 2,
       id: await this.store.freeEntryId(job.id, now),
@@ -340,19 +345,25 @@ export class Core {
       appOrder: cap.appOrder,
       tidied: req.tidy,
       errors: cap.errors,
+      ...(req.auto ? { auto: true } : {}),
     };
+    const previousAuto = req.auto ? await this.store.latest(job.id).catch(() => null) : null;
     await this.store.saveEntry(entry);
+    // Each folder keeps only its latest automatic save, so they never pile up. Your own saves always stay.
+    if (previousAuto?.auto) await this.store.deleteEntry(job.id, previousAuto.id).catch(() => undefined);
     await this.store.prune(job.id);
-    try {
-      this.memory?.recordSave({ folder: job.id, file: entry.id, how: 'manual', kind: 'manual', items, at: now });
-    } catch {
-      // The memory is a helper; a save never fails because of it.
+    if (!req.auto) {
+      try {
+        this.memory?.recordSave({ folder: job.id, file: entry.id, how: 'manual', kind: 'manual', items, at: now });
+      } catch {
+        // The memory is a helper; a save never fails because of it.
+      }
+      await this.settings.update({ tidyUp: req.tidy });
+      await this.setCurrent(req.tidy ? null : job.id);
+      // After a save, "new since you unpacked" starts again from what's open now.
+      this.state.baseline = req.tidy ? null : { jobId: job.id, keys: cap.items.map((i) => i.key) };
+      await this.saveState();
     }
-    await this.settings.update({ tidyUp: req.tidy });
-    await this.setCurrent(req.tidy ? null : job.id);
-    // After a save, "new since you unpacked" starts again from what's open now.
-    this.state.baseline = req.tidy ? null : { jobId: job.id, keys: cap.items.map((i) => i.key) };
-    await this.saveState();
     // Only clear it if no newer save box has started in the meantime.
     if (this.pending === pending) this.pending = null;
     this.notify();
@@ -684,11 +695,70 @@ export class Core {
         const items = content.length ? content : all;
         out[j.id] = { open: items.filter(isOpen).length, total: items.length };
       }
-      return { state: out, open, jobs, latest, items: cap.items };
+      return { state: out, open, jobs, latest, items: cap.items, cap, front: frontItemKey(cap.items, cap.appOrder) };
     })();
     this.openCache = { at: Date.now(), result };
     result.catch(() => (this.openCache = null));
     return result;
+  }
+
+  // ---------- automatic saving (see autosave.ts for when) ----------
+
+  /** The folders you're working in right now: the one you're in, and any that are mostly open. */
+  foldersInUse(look: OpenLook): string[] {
+    return look.jobs.filter((j) => !j.done && (j.id === this.state.currentJobId || mostlyOpen(look.state[j.id]))).map((j) => j.id);
+  }
+
+  /**
+   * What the thing in front belongs to: a folder (its id), "neutral" (nothing in front, or an everyday app like
+   * Mail or Messages, which doesn't mean you left your work), or "other" (anything else: new work, a video).
+   */
+  frontFolder(look: OpenLook): string | 'neutral' | 'other' {
+    const item = look.items.find((i) => i.key === look.front);
+    if (!item) return 'neutral';
+    if (isLifestyle(item, this.settings.get(), learnedLifestyleApps(this.state.appUnticks))) return 'neutral';
+    const keys = matchKeys(item);
+    for (const [n, job] of look.jobs.entries()) {
+      if (job.done) continue;
+      if ((look.latest[n]?.items ?? []).some((i) => matchKeys(i).some((k) => keys.includes(k)))) return job.id;
+    }
+    return 'other';
+  }
+
+  /**
+   * Saves these folders by themselves, quietly: only what clearly belongs (what ⌃S would tick), nothing
+   * closed, and only if something changed. Never while you have the save box open.
+   */
+  async autoSave(cap: Capture, jobIds: string[]): Promise<{ jobId: string; entryId: string; name: string }[]> {
+    const out: { jobId: string; entryId: string; name: string }[] = [];
+    for (const id of jobIds) {
+      if (this.pending || !(await this.store.exists(id))) continue;
+      const job = await this.store.get(id);
+      if (job.done) continue;
+      const latest = await this.store.latest(id);
+      this.pending = { capture: Promise.resolve(cap), target: id };
+      try {
+        const p = await this.preview({ jobId: id });
+        if (!p.sure.length) continue;
+        const keep = [...p.sure, ...p.kept];
+        const now = new Set(keep.map(looseKey));
+        const before = new Set((latest?.items ?? []).map(looseKey));
+        if (now.size === before.size && [...now].every((k) => before.has(k))) continue;
+        const r = await this.commitSave({ jobId: id, name: job.name, note: latest?.note ?? '', keys: keep.map((i) => i.key), tidy: false, auto: true });
+        out.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
+      } finally {
+        this.pending = null;
+      }
+    }
+    return out;
+  }
+
+  /** "Remove" on an automatic save: it goes, and the folder is back to how it was. Your own saves can't go this way. */
+  async removeAutoSave(jobId: string, entryId: string): Promise<void> {
+    const entry = await this.store.entry(jobId, entryId).catch(() => null);
+    if (!entry?.auto) return;
+    await this.store.deleteEntry(jobId, entryId);
+    this.notify();
   }
 
   // ---------- suggestions (merge folders, move strays) ----------

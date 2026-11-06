@@ -6,6 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
+- **Automatic saving**: Stashd saves your work by itself when you move on to something else (it asks first: "You've moved on from Climate essay. Save it?"), and when your Mac sleeps, locks or shuts down, or you walk away (it saves first and tells you when you're back, with Remove). After a restart it offers to bring your work back. It never closes anything, keeps only the latest automatic save per folder, and learns which cards you don't want. Settings → General → Automatic saving.
 - **Stashd's memory**: Stashd now remembers when you saved and what was open (titles and sites, never page contents), on this Mac only, so it can learn your habits. Settings → Privacy shows how much it remembers and has **Forget my history**.
 - Stashd now runs on Intel Macs, with their own download, Stashd-Intel.dmg. It opens on macOS 13 and later; sorting tabs by meaning needs macOS 14 on Apple silicon and 13.4 on Intel, and older Macs sort by words.
 - Brave, Microsoft Edge and Vivaldi work like Chrome: Stashd saves, closes and reopens their tabs. Each has a switch in Settings → Privacy.

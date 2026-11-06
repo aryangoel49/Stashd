@@ -31,6 +31,10 @@ export interface Settings {
   appearance: Appearance;
   /** The soft whoosh when windows fly into the menu bar. */
   sounds: boolean;
+  /** Stashd saves your work by itself when you move on, close the lid, shut down or walk away. */
+  autoSave: boolean;
+  /** Helpful: short cards ("Save it?", "Saved before your Mac slept"). Quiet: save, never speak. */
+  autoSaveTalk: 'helpful' | 'quiet';
 }
 
 export type Appearance = 'light' | 'dark' | 'system';
@@ -134,6 +138,8 @@ export interface SaveEntry {
   /** App names front to back at save time. */
   appOrder: string[];
   tidied: boolean;
+  /** Saved by Stashd itself (the lid closed, you moved on…). Each folder keeps only its latest automatic save. */
+  auto?: boolean;
   errors: CollectorError[];
   brief?: Brief;
   feedback?: Feedback;
@@ -260,6 +266,8 @@ export interface SaveRequest {
   note: string;
   keys: string[];
   tidy: boolean;
+  /** Stashd saving by itself: it leaves your current folder, Tidy up choice and learning alone. */
+  auto?: boolean;
 }
 
 export interface SaveResult {

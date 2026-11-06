@@ -25,6 +25,8 @@ export class TidyFlow {
   private naming: { jobId: string; entryId: string; items: Item[]; resolve: (names: (string | null)[]) => void } | null = null;
   private undo: { items: Item[]; frontKey: string | null; timer: NodeJS.Timeout } | null = null;
   private toastTimer: NodeJS.Timeout | null = null;
+  /** A card waiting for your answer (automatic saving), resolved by its button, its close, or time running out. */
+  private asked: ((a: 'act' | 'dismiss' | 'timeout' | 'replaced') => void) | null = null;
   private overlayDone: (() => void) | null = null;
   /** Tidies run one after another, so a second Pack up never takes over the first one's naming box. */
   private queue: Promise<void> = Promise.resolve();
@@ -332,14 +334,40 @@ export class TidyFlow {
     });
   }
 
-  private toast(info: ToastInfo): void {
+  /** Shows a card with one button and waits: 'act' (the button), 'dismiss' (closed), 'timeout', or 'replaced'. */
+  ask(card: { title: string; detail: string; action: string; seconds: number }): Promise<'act' | 'dismiss' | 'timeout' | 'replaced'> {
+    return new Promise((resolve) => {
+      this.toast({ title: card.title, detail: card.detail, canUndo: false, action: card.action, mood: 'curious' }, card.seconds * 1000);
+      this.asked = resolve;
+    });
+  }
+
+  /** The toast's button was pressed: true if it answered a waiting card (the caller then does nothing else). */
+  toastActed(): boolean {
+    if (!this.asked) return false;
+    this.settle('act');
+    this.hideToast();
+    return true;
+  }
+
+  private settle(a: 'act' | 'dismiss' | 'timeout' | 'replaced'): void {
+    const done = this.asked;
+    this.asked = null;
+    done?.(a);
+  }
+
+  private toast(info: ToastInfo, ms?: number): void {
+    this.settle('replaced');
     this.payloads.set('toast', info);
     const win = prepareWindow('toast');
     win.webContents.send('toast:show', info);
     // Let it draw the new text first, then slide it in under the menu bar icon.
     setTimeout(() => showWindow('toast', { near: this.trayBounds() }), 60);
     if (this.toastTimer) clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => this.hideToast(), info.action ? OFFER_MS : info.canUndo ? UNDO_MS : 4000);
+    this.toastTimer = setTimeout(() => {
+      this.settle('timeout');
+      this.hideToast();
+    }, ms ?? (info.action ? OFFER_MS : info.canUndo ? UNDO_MS : 4000));
   }
 
   /** Let the toast fade up and away, then hide its window. A new toast cancels the hide. */
@@ -413,6 +441,7 @@ export class TidyFlow {
   }
 
   dismissToast(): void {
+    this.settle('dismiss');
     this.hideToast();
   }
 }

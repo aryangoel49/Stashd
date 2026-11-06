@@ -32,6 +32,8 @@ export const DEFAULT_SETTINGS: Settings = {
   stashdAi: false,
   appearance: 'light',
   sounds: true,
+  autoSave: true,
+  autoSaveTalk: 'helpful',
 };
 
 const OLD_SHORTCUT_SAVE = 'CommandOrControl+Shift+S';
@@ -132,6 +134,11 @@ export function settingsPatch(v: unknown, current: Settings): Settings {
       }
       case 'tidyUp': next.tidyUp = bool(val, k); break;
       case 'sounds': next.sounds = bool(val, k); break;
+      case 'autoSave': next.autoSave = bool(val, k); break;
+      case 'autoSaveTalk':
+        if (val !== 'helpful' && val !== 'quiet') fail('autoSaveTalk must be helpful or quiet');
+        next.autoSaveTalk = val;
+        break;
       case 'appearance': {
         if (val !== 'light' && val !== 'dark' && val !== 'system') fail('unknown appearance');
         next.appearance = val;

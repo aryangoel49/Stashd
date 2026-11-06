@@ -165,15 +165,73 @@ export class Memory {
     this.db.exec('BEGIN');
     try {
       const moment = Number(this.db.prepare('INSERT INTO moments (at, kind, to_folder) VALUES (?, ?, ?)').run(at, opts.kind, opts.folder).lastInsertRowid);
-      const snap = Number(this.db.prepare('INSERT INTO snapshots (moment_id, fingerprint) VALUES (?, ?)').run(moment, fingerprint(opts.items)).lastInsertRowid);
-      const row = this.db.prepare('INSERT INTO snapshot_items (snapshot_id, kind, title, site, app, folder_guess, confidence) VALUES (?, ?, ?, ?, ?, ?, ?)');
-      for (const i of opts.items) row.run(snap, i.kind, i.label.slice(0, 300), siteOnly(i.url), i.app, opts.folder, 1);
+      this.snapshot(moment, opts.items, opts.folder);
       this.db.prepare('INSERT INTO saves (moment_id, folder, how, file) VALUES (?, ?, ?, ?)').run(moment, opts.folder, opts.how, opts.file);
       this.db.exec('COMMIT');
     } catch (e) {
       this.db.exec('ROLLBACK');
       throw e;
     }
+  }
+
+  /** Something happened (you moved on, the Mac slept…). Returns its id, for what follows from it. */
+  moment(kind: MomentKind, opts: { from?: string | null; to?: string | null; minutesWorking?: number; items?: Item[]; at?: Date } = {}): number {
+    const at = (opts.at ?? new Date()).toISOString();
+    const id = Number(
+      this.db.prepare('INSERT INTO moments (at, kind, from_folder, to_folder, minutes_working) VALUES (?, ?, ?, ?, ?)').run(at, kind, opts.from ?? null, opts.to ?? null, opts.minutesWorking ?? null).lastInsertRowid,
+    );
+    if (opts.items?.length) this.snapshot(id, opts.items, opts.from ?? null);
+    return id;
+  }
+
+  /** How long you were away after a moment, once you're back. */
+  away(momentId: number, minutes: number): void {
+    this.db.prepare('UPDATE moments SET minutes_away = ? WHERE id = ?').run(Math.round(minutes), momentId);
+  }
+
+  /** An automatic save that came out of a moment. */
+  autoSaved(momentId: number, folder: string, file: string): void {
+    this.db.prepare("INSERT INTO saves (moment_id, folder, how, file) VALUES (?, ?, 'auto', ?)").run(momentId, folder, file);
+  }
+
+  /** The rule book in use (kept once per version). */
+  useRules(version: number, rules: unknown): void {
+    this.db.prepare('INSERT OR IGNORE INTO rulebooks (version, rules, fetched) VALUES (?, ?, ?)').run(version, JSON.stringify(rules), new Date().toISOString());
+  }
+
+  /** A card was shown. Returns its id, to note the answer. */
+  prompt(momentId: number, type: string, rulesVersion: number, at = new Date()): number {
+    return Number(this.db.prepare('INSERT INTO prompts (moment_id, type, shown_at, rulebook_version) VALUES (?, ?, ?, ?)').run(momentId, type, at.toISOString(), rulesVersion).lastInsertRowid);
+  }
+
+  /** What you did with a card: save, not_now, keep, remove, ignored. */
+  answer(promptId: number, answer: string, seconds: number): void {
+    this.db.prepare('UPDATE prompts SET answer = ?, seconds_to_answer = ? WHERE id = ?').run(answer, Math.round(seconds), promptId);
+  }
+
+  /** Your latest answers to one kind of card, newest first. */
+  answers(type: string, limit = 10): string[] {
+    return (this.db.prepare('SELECT answer FROM prompts WHERE type = ? AND answer IS NOT NULL ORDER BY shown_at DESC, id DESC LIMIT ?').all(type, limit) as { answer: string }[]).map((r) => r.answer);
+  }
+
+  private snapshot(momentId: number, items: Item[], folder: string | null): void {
+    const snap = Number(this.db.prepare('INSERT INTO snapshots (moment_id, fingerprint) VALUES (?, ?)').run(momentId, fingerprint(items)).lastInsertRowid);
+    const row = this.db.prepare('INSERT INTO snapshot_items (snapshot_id, kind, title, site, app, folder_guess, confidence) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    for (const i of items) row.run(snap, i.kind, i.label.slice(0, 300), siteOnly(i.url), i.app, folder, folder ? 1 : null);
+  }
+
+  /** When this kind of card was last shown, if ever. */
+  lastShown(type: string): string | null {
+    const r = this.db.prepare('SELECT max(shown_at) AS at FROM prompts WHERE type = ?').get(type) as { at: string | null };
+    return r.at;
+  }
+
+  /** The latest moment of this kind you haven't come back from yet (a shutdown before this start), with its saves. */
+  unanswered(kind: MomentKind, since: Date): { id: number; at: string; saves: { folder: string; file: string }[] } | null {
+    const m = this.db.prepare('SELECT id, at FROM moments WHERE kind = ? AND minutes_away IS NULL AND at >= ? ORDER BY at DESC LIMIT 1').get(kind, since.toISOString()) as { id: number; at: string } | undefined;
+    if (!m) return null;
+    const saves = this.db.prepare("SELECT folder, file FROM saves WHERE moment_id = ? AND how = 'auto'").all(m.id) as { folder: string; file: string }[];
+    return { id: Number(m.id), at: m.at, saves };
   }
 
   /** How much is remembered, for Settings. */
