@@ -18,6 +18,8 @@ export interface Settings {
   shortcutRecap: string;
   /** Opens the pinned folder, or the one opened last. */
   shortcutOpen: string;
+  /** Tidy all: save open folders and close everything. */
+  shortcutTidy: string;
   accent: Accent;
   /** The last choice of the "Tidy up" toggle. Off until the user turns it on. */
   tidyUp: boolean;

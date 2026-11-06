@@ -144,7 +144,7 @@ function PanelHead({ settings }: { settings: Settings }) {
           <span className="display" style={{ fontSize: 15 }}>Stashd</span>
         </button>
         <span className="head-tools">
-          <Button variant="ghost" size="small" className="tidy-all-btn" onClick={() => void api.tidyAll()} title="Save your open folders, keep loose tabs in a folder of their own, and close it all">
+          <Button variant="ghost" size="small" className="tidy-all-btn" onClick={() => void api.tidyAll()} title={`Save your open folders, keep loose tabs in a folder of their own, and close it all (${prettyShortcut(settings.shortcutTidy)})`}>
             <Icon name="spark" /> Tidy all
           </Button>
           <Button

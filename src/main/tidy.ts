@@ -23,34 +23,60 @@ on wwiMatches(wwiUrl, wwiTargets)
   return false
 end wwiMatches`;
 
-/** Closes tabs whose address is one of the targets (ignoring ?query and #fragment). Skips private windows. */
+/**
+ * Closes tabs whose address is one of the targets (ignoring ?query and #fragment). Skips private windows.
+ * Each window's addresses are read in one go, and windows are found by id, so closing a whole window
+ * never makes the script lose its place. In Chrome a window whose tabs all go is closed at once, which
+ * is quicker and calmer than watching its tabs disappear one by one. (Arc keeps a closed window's tabs
+ * in its sidebar and Safari may ask first, so there each tab is closed on its own.)
+ */
 export function closeTabsScript(browser: BrowserName): string {
   const id = BROWSER_APPS[browser].bundleId;
   const skipPrivate =
     browser === 'chrome'
-      ? `try\n        if mode of wwiWin is "incognito" then set wwiSkip to true\n      end try`
+      ? `try
+          if mode of wwiWin is "incognito" then set wwiSkip to true
+        end try`
       : browser === 'arc'
-        ? `try\n        if incognito of wwiWin then set wwiSkip to true\n      end try`
+        ? `try
+          if incognito of wwiWin then set wwiSkip to true
+        end try`
         : '';
+  const closeAll = browser === 'chrome' ? 'wwiAll' : 'false';
   return `${MATCH_HANDLER}
 on run wwiTargets
   set wwiClosed to 0
   tell application id "${id}"
-    repeat with wwiWin in windows
-      set wwiSkip to false
-      ${skipPrivate}
-      if not wwiSkip then
-        try
-          set wwiCount to count of tabs of wwiWin
-          repeat with wwiI from wwiCount to 1 by -1
-            set wwiTab to tab wwiI of wwiWin
-            if my wwiMatches((URL of wwiTab) as text, wwiTargets) then
-              close wwiTab
-              set wwiClosed to wwiClosed + 1
+    set wwiIds to id of every window
+    repeat with wwiId in wwiIds
+      try
+        set wwiWin to window id wwiId
+        set wwiSkip to false
+        ${skipPrivate}
+        if not wwiSkip then
+          set wwiUrls to URL of every tab of wwiWin
+          set wwiHits to {}
+          set wwiAll to true
+          repeat with wwiI from 1 to count of wwiUrls
+            set wwiU to item wwiI of wwiUrls
+            if wwiU is not missing value and my wwiMatches(wwiU as text, wwiTargets) then
+              set end of wwiHits to wwiI
+            else
+              set wwiAll to false
             end if
           end repeat
-        end try
-      end if
+          if wwiHits is not {} then
+            if ${closeAll} then
+              close wwiWin
+            else
+              repeat with wwiJ from (count of wwiHits) to 1 by -1
+                close tab (item wwiJ of wwiHits) of wwiWin
+              end repeat
+            end if
+            set wwiClosed to wwiClosed + (count of wwiHits)
+          end if
+        end if
+      end try
     end repeat
   end tell
   return wwiClosed

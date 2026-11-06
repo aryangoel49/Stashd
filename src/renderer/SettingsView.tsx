@@ -89,6 +89,7 @@ export function SettingsView() {
         <TextRow label={`Save what I'm working on (${prettyShortcut(s.shortcutSave)})`} value={s.shortcutSave} onSave={(v) => void update({ shortcutSave: v })} />
         <TextRow label={`Show my brief (${prettyShortcut(s.shortcutRecap)})`} value={s.shortcutRecap} onSave={(v) => void update({ shortcutRecap: v })} />
         <TextRow label={`Open my pinned folder, or the last one (${prettyShortcut(s.shortcutOpen)})`} value={s.shortcutOpen} onSave={(v) => void update({ shortcutOpen: v })} />
+        <TextRow label={`Tidy all (${prettyShortcut(s.shortcutTidy)})`} value={s.shortcutTidy} onSave={(v) => void update({ shortcutTidy: v })} />
         {info.shortcutErrors.map((e) => (
           <div key={e} className="banner" style={{ marginTop: 6 }}>
             {e} Try a different one.

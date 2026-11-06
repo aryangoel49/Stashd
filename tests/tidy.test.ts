@@ -41,6 +41,18 @@ describe('close scripts', () => {
     expect(closeTabsScript('safari')).not.toContain('incognito');
   });
 
+  it('find windows by id, read each window in one go, and close a whole window only in Chrome', () => {
+    // Closing a window used to shift the window list, so the next window was skipped and the script failed.
+    for (const b of ['chrome', 'arc', 'safari'] as const) {
+      expect(closeTabsScript(b)).toContain('set wwiWin to window id wwiId');
+      expect(closeTabsScript(b)).toContain('URL of every tab of wwiWin');
+    }
+    expect(closeTabsScript('chrome')).toContain('if wwiAll then');
+    // Arc keeps a closed window's tabs in its sidebar; Safari may ask before closing a window.
+    expect(closeTabsScript('arc')).toContain('if false then');
+    expect(closeTabsScript('safari')).toContain('if false then');
+  });
+
   it('ask apps to close documents normally, so unsaved changes get a prompt', () => {
     expect(closeDocsScript('Microsoft Word')).toContain('close wwiDoc saving ask');
     expect(closeDocsScript('Microsoft Word')).toContain('close (active window of wwiDoc)');

@@ -46,6 +46,7 @@ function start(): void {
   /** Hides the panel and plays the Unpack animation (set once the app is ready). */
   let beforeOpen: (items: Item[]) => void = () => undefined;
   let shortcutErrors: string[] = [];
+  let tidyAllNow: () => Promise<void> = async () => undefined;
   let appleStatus: AppInfo['appleAi'] = 'unknown';
 
   app.on('web-contents-created', (_e, contents) => hardenWebContents(contents));
@@ -101,6 +102,7 @@ function start(): void {
       [s.shortcutSave, () => openSave()],
       [s.shortcutRecap, () => void openBrief()],
       [s.shortcutOpen, () => void quickOpen()],
+      [s.shortcutTidy, () => void tidyAllNow()],
     ];
     for (const [accel, fn] of pairs) {
       try {
@@ -152,6 +154,17 @@ function start(): void {
     prepareWindow('panel');
     core.onChanged(() => broadcast('jobs:changed'));
     const tidy = new TidyFlow(core, () => tray.bounds());
+    // Tidy all (the panel's button, ⌃⇧S or the toast): the panel steps aside at once so you can watch it
+    // go, and the menu bar says it's working until it's done. A second press while it runs does nothing.
+    tidyAllNow = () => {
+      getWindow('panel')?.hide();
+      if (tidy.tidyingAll) return tidy.tidyingAll;
+      tray.status('Tidying…');
+      return tidy.tidyAll().finally(() => {
+        tray.status(null);
+        tray.wink();
+      });
+    };
     // What the toast's button does: Unpack a folder you're back on, or Tidy all things sitting unused.
     let toastAct: (() => Promise<void>) | null = null;
     // Opened something from a packed folder yourself? Offer to Unpack the rest.
@@ -169,7 +182,7 @@ function start(): void {
       () => helper.windows(),
       () => [...settings.get().lifestyleApps],
       (apps) => {
-        toastAct = () => tidy.tidyAll().then(() => tray.wink());
+        toastAct = tidyAllNow;
         tidy.offerTidy(apps);
       },
       () => !!getWindow('save')?.isVisible() || !!getWindow('panel')?.isVisible(),
@@ -193,7 +206,7 @@ function start(): void {
       finishNaming: (names) => tidy.finishNaming(names),
       undoTidy: () => tidy.undoLast(),
       dismissToast: () => tidy.dismissToast(),
-      tidyAll: () => tidy.tidyAll().then(() => tray.wink()),
+      tidyAll: tidyAllNow,
       afterShelve: (items) => void tidy.shelve(items).then(() => tray.wink()),
       toastAction: async () => {
         tidy.dismissToast();
@@ -219,7 +232,7 @@ function start(): void {
     applyLoginItem(initial);
 
     settings.onChange((next, prev) => {
-      if (next.shortcutSave !== prev.shortcutSave || next.shortcutRecap !== prev.shortcutRecap || next.shortcutOpen !== prev.shortcutOpen) applyShortcuts(next);
+      if (next.shortcutSave !== prev.shortcutSave || next.shortcutRecap !== prev.shortcutRecap || next.shortcutOpen !== prev.shortcutOpen || next.shortcutTidy !== prev.shortcutTidy) applyShortcuts(next);
       if (next.launchAtLogin !== prev.launchAtLogin) applyLoginItem(next);
       if (next.appearance !== prev.appearance) nativeTheme.themeSource = next.appearance;
       broadcast('settings:changed');

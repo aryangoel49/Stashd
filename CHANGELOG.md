@@ -6,10 +6,12 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
+- Tidy all has a shortcut: ⌃⇧S (change it in Settings).
 - Continue watching: streams (Twitch, Kick, and YouTube streams that are live) get a red Live tag.
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed
+- Tidy all is quicker and calmer: the panel gets out of the way at once, the menu bar says "Tidying…" until it's done, and a Chrome window whose tabs all go closes in one step instead of tab by tab.
 - Stashd no longer opens a quick hidden tab in Chrome to see how far into a video you got or which tab group a tab is in: the Chrome extension tells it directly (restart Chrome once after updating).
 - Continue watching only shows things you can carry on with (a video, an episode, a stream, a song); home pages like YouTube's or Netflix's front page stay in your places instead.
 - Break page: hovering a place lifts its icon gently instead of showing a bright white box.
@@ -18,6 +20,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Break page: your places are bigger tiles at the top, and Continue watching is a row of video thumbnails you scroll sideways, showing how far you got and how much is left.
 
 ### Fixed
+- Tidy all no longer skips the next Chrome window (and leaves its tabs open) after closing a whole window.
 - How far into a video you got now reaches Stashd even if you leave the tab open, and YouTube's hover previews on its home page are no longer counted as watching.
 - The Break page no longer shows a "no such file or directory" error when two changes are saved at the same moment.
 - Watching a video full screen in Chrome no longer drops you out of full screen when you close another video.

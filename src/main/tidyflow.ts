@@ -62,8 +62,12 @@ export class TidyFlow {
     return this.queue;
   }
 
+  /** The Tidy all that's running, if one is. */
+  tidyingAll: Promise<void> | null = null;
+
   /** Tidy all: save open folders, keep loose tabs in a folder of their own, then close it all at once. */
   tidyAll(): Promise<void> {
+    if (this.tidyingAll) return this.tidyingAll;
     if (this.naming) this.finishNaming([]);
     this.queue = this.queue.then(async () => {
       try {
@@ -117,8 +121,10 @@ export class TidyFlow {
         this.toast({ title: "Couldn't tidy up", detail: 'Nothing was closed.', canUndo: false, mood: 'curious' });
       } finally {
         this.core.notify();
+        this.tidyingAll = null;
       }
     });
+    this.tidyingAll = this.queue;
     return this.queue;
   }
 

@@ -66,6 +66,13 @@ export class AppTray {
   }
 
   /** Briefly show a word next to the icon, like "Saved". */
+  /** Text beside the icon while something takes a moment (null clears it). */
+  status(text: string | null): void {
+    if (this.flashTimer) clearTimeout(this.flashTimer);
+    this.flashTimer = null;
+    this.tray.setTitle(text ? ` ${text}` : '');
+  }
+
   flash(text: string): void {
     if (this.flashTimer) clearTimeout(this.flashTimer);
     this.tray.setTitle(` ${text}`);
