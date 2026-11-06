@@ -14,6 +14,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Continue watching only shows things you can carry on with (a video, an episode, a stream, a song); home pages like YouTube's or Netflix's front page stay in your places instead.
 - Break page: hovering a place lifts its icon gently instead of showing a bright white box.
 - A little more room between the Stashd logo and the Work / Break switch.
+- Hovering a folder: the pin and trash buttons slide in smoothly instead of snapping in.
 - Break page: your places are bigger tiles at the top, and Continue watching is a row of video thumbnails you scroll sideways, showing how far you got and how much is left.
 
 ### Fixed

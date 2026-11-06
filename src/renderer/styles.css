@@ -630,8 +630,12 @@ details summary { cursor: default; }
 .job-row .hint { margin-top: 3px; font-size: 11.5px; line-height: 1.2; font-weight: 450; color: var(--faint); font-variant-numeric: tabular-nums; }
 
 /* Pin and delete take no room until you hover (Unpack slides over a little); a pinned folder keeps its pin. */
-.job-row .pin-btn, .job-row .tool-btn.delete { flex: none; width: 0; margin-left: -10px; opacity: 0; overflow: hidden; transition: width 160ms var(--ease-out, ease-out), margin 160ms var(--ease-out, ease-out), opacity 120ms ease-out, background 0.15s, color 0.15s; }
-.job-row:hover .pin-btn, .job-row:hover .tool-btn.delete, .job-row .tool-btn:focus-visible, .job-row .pin-btn.on { width: 24px; margin-left: 0; opacity: 1; }
+.job-row .pin-btn, .job-row .tool-btn.delete { flex: none; width: 0; margin-left: -10px; opacity: 0; overflow: hidden; transition: width 240ms cubic-bezier(0.32, 0.72, 0, 1), margin 240ms cubic-bezier(0.32, 0.72, 0, 1), opacity 120ms ease-out, background 0.15s, color 0.15s; }
+.job-row:hover .pin-btn, .job-row:hover .tool-btn.delete, .job-row .tool-btn:focus-visible, .job-row .pin-btn.on { width: 24px; margin-left: 0; opacity: 1; transition: width 340ms cubic-bezier(0.32, 0.72, 0, 1), margin 340ms cubic-bezier(0.32, 0.72, 0, 1), opacity 260ms ease-out 80ms, background 0.15s, color 0.15s; }
+/* The icon itself settles in after the room opens, so nothing snaps. */
+.job-row .pin-btn svg, .job-row .tool-btn.delete svg { transform: scale(0.8); transition: transform 200ms ease-out; }
+.job-row:hover .pin-btn svg, .job-row:hover .tool-btn.delete svg, .job-row .tool-btn:focus-visible svg, .job-row .pin-btn.on svg { transform: scale(1); transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1) 60ms; }
+@media (prefers-reduced-motion: reduce) { .job-row .pin-btn, .job-row .tool-btn.delete, .job-row .pin-btn svg, .job-row .tool-btn.delete svg { transition-duration: 0ms !important; transition-delay: 0ms !important; } }
 .job-row .tool-btn:focus:not(:focus-visible) { outline: none; box-shadow: none; }
 /* One pin colour for every folder, and the pinned folder sits on a soft highlight. */
 .job-row .pin-btn.on { color: var(--accent-ink); }
