@@ -534,12 +534,13 @@ export class Core {
     this.notify();
   }
 
-  async changeBreak(change: { browser?: BrowserName | 'window'; removeItem?: string; addPlace?: BreakPlace; renamePlace?: BreakPlace; removePlace?: string }): Promise<BreakShelf> {
+  async changeBreak(change: { browser?: BrowserName | 'window'; removeItem?: string; addPlace?: BreakPlace; renamePlace?: BreakPlace; removePlace?: string; orderPlaces?: string[] }): Promise<BreakShelf> {
     if (change.browser) await this.breaks.setBrowser(change.browser);
     if (change.removeItem) await this.breaks.remove(change.removeItem);
     if (change.addPlace) await this.breaks.addPlace(change.addPlace);
     if (change.renamePlace) await this.breaks.renamePlace(change.renamePlace.url, change.renamePlace.name);
     if (change.removePlace) await this.breaks.removePlace(change.removePlace);
+    if (change.orderPlaces) await this.breaks.orderPlaces(change.orderPlaces);
     this.notify();
     return this.breaks.get();
   }

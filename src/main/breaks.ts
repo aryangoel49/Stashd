@@ -224,6 +224,14 @@ export class BreakStore {
     await this.save(shelf);
   }
 
+  /** Your places in the order you dragged them into (any not listed keep their spot at the end). */
+  async orderPlaces(urls: string[]): Promise<void> {
+    const shelf = await this.get();
+    const rank = new Map(urls.map((u, i) => [u, i]));
+    shelf.places = [...shelf.places].sort((a, b) => (rank.get(a.url) ?? urls.length) - (rank.get(b.url) ?? urls.length));
+    await this.save(shelf);
+  }
+
   async removePlace(url: string): Promise<void> {
     const shelf = await this.get();
     shelf.places = shelf.places.filter((p) => p.url !== url);

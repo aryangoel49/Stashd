@@ -97,6 +97,20 @@ describe('Continue watching', () => {
     expect((await store.get()).places.map((p) => p.url)).toEqual(before.slice(1));
   });
 
+  it('keeps places in the order you drag them into', async () => {
+    const { BreakStore } = await import('../src/main/breaks');
+    const { mkdtemp } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const store = new BreakStore(await mkdtemp(join(tmpdir(), 'shelf-')));
+    const [a, b, c] = (await store.get()).places.map((p) => p.url);
+    await store.orderPlaces([c, a, b]);
+    expect((await store.get()).places.map((p) => p.url)).toEqual([c, a, b]);
+    // One left out (removed meanwhile, say) keeps its place at the end.
+    await store.orderPlaces([b, c]);
+    expect((await store.get()).places.map((p) => p.url)).toEqual([b, c, a]);
+  });
+
   it('keeps only things you can carry on with, not home or browse pages', async () => {
     const { isResumable } = await import('../src/main/breaks');
     for (const u of ['https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'https://youtu.be/dQw4w9WgXcQ', 'https://www.netflix.com/watch/81234567', 'https://open.spotify.com/episode/abc', 'https://www.twitch.tv/somestreamer', 'https://www.espn.com/video/clip/_/id/123'])

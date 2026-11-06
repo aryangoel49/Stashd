@@ -228,6 +228,9 @@ export function BreakView() {
   const [adding, setAdding] = useState(false);
   const [newUrl, setNewUrl] = useState('');
   const [editing, setEditing] = useState(false);
+  // While you drag a place: the order so far, and which one you're holding.
+  const [order, setOrder] = useState<string[] | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -298,6 +301,24 @@ export function BreakView() {
     if (!name || shelf.places.find((p) => p.url === url)?.name === name) return;
     void api.changeBreak({ renamePlace: { url, name } }).then(setShelf, (e) => setError(errorText(e)));
   };
+  // Move a place: live while you drag (the others slide aside), saved when you let go.
+  const moveTo = (url: string, to: number, from = order ?? shelf.places.map((p) => p.url)) => {
+    const next = from.filter((u) => u !== url);
+    next.splice(Math.max(0, Math.min(to, next.length)), 0, url);
+    return next;
+  };
+  const saveOrder = (urls: string[]) => {
+    setOrder(urls);
+    void api.changeBreak({ orderPlaces: urls }).then((s) => {
+      setShelf(s);
+      setOrder(null);
+    }, (e) => {
+      setOrder(null);
+      setError(errorText(e));
+    });
+  };
+  const byUrl = new Map(shelf.places.map((p) => [p.url, p]));
+  const places = order ? order.map((u) => byUrl.get(u)).filter((p): p is (typeof shelf.places)[number] => !!p) : shelf.places;
   const remove = (r: Row) => void Promise.all(r.items.map((it) => api.changeBreak({ removeItem: it.key }))).then((all) => all.length && setShelf(all[all.length - 1]));
 
   // Your places come first and largest: they're what you reach for. Under them, what you were watching sits
@@ -311,11 +332,47 @@ export function BreakView() {
           {editing ? 'Done' : 'Edit'}
         </button>
       </div>
+      {editing && places.length > 1 && <div className="nf-hint">Drag a logo to move it.</div>}
       <div className="nf-places">
-        {shelf.places.map((p) =>
+        {places.map((p, i) =>
           editing ? (
-            <div key={p.url} className="nf-place nf-place-editing">
-              <span className="nf-tile-wrap">
+            <motion.div
+              key={p.url}
+              layout
+              transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+              className={`nf-place nf-place-editing ${dragging === p.url ? 'dragging' : ''}`}
+              onDragOver={(e) => {
+                if (!dragging) return;
+                e.preventDefault();
+                if (dragging !== p.url) setOrder(moveTo(dragging, i));
+              }}
+              onDrop={(e) => e.preventDefault()}
+            >
+              <span
+                className="nf-tile-wrap nf-drag"
+                draggable
+                tabIndex={0}
+                role="button"
+                aria-label={`Move ${p.name}. Use the arrow keys.`}
+                title="Drag to move"
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = 'move';
+                  setDragging(p.url);
+                  setOrder(places.map((x) => x.url));
+                }}
+                onDragEnd={() => {
+                  setDragging(null);
+                  if (order) saveOrder(order);
+                }}
+                onKeyDown={(e) => {
+                  const step = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : 0;
+                  if (!step) return;
+                  e.preventDefault();
+                  const target = e.currentTarget;
+                  saveOrder(moveTo(p.url, i + step, places.map((x) => x.url)));
+                  requestAnimationFrame(() => target.focus());
+                }}
+              >
                 <SiteTile url={p.url} size={44} />
                 <button type="button" className="nf-remove" aria-label={`Remove ${p.name}`} title="Remove" onClick={() => void api.changeBreak({ removePlace: p.url }).then(setShelf, (e) => setError(errorText(e)))}>
                   <svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
@@ -339,7 +396,7 @@ export function BreakView() {
                   }
                 }}
               />
-            </div>
+            </motion.div>
           ) : (
             <button
               key={p.url}

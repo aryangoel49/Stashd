@@ -146,6 +146,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
       addPlace: place ? { name: v.str(place.name, 'name', 40).trim() || 'Place', url: new URL(v.str(place.url, 'address', 2000)).toString() } : undefined,
       renamePlace: rename ? { name: v.str(rename.name, 'name', 40).trim() || 'Place', url: v.str(rename.url, 'address', 2000) } : undefined,
       removePlace: c.removePlace == null ? undefined : v.str(c.removePlace, 'address', 2000),
+      orderPlaces: Array.isArray(c.orderPlaces) ? c.orderPlaces.slice(0, 12).map((u) => v.str(u, 'address', 2000)) : undefined,
     });
   });
   handle('jobs:card', async (_e, id) => {

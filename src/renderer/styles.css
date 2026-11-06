@@ -706,6 +706,10 @@ details summary { cursor: default; }
 .nf-place-editing { cursor: default; }
 .nf-place-editing:hover { background: none; }
 .nf-tile-wrap { position: relative; display: block; }
+.nf-drag { cursor: grab; border-radius: 12px; outline: none; }
+.nf-drag:focus-visible { box-shadow: 0 0 0 2px var(--accent-line); }
+.nf-place.dragging { opacity: 0.35; }
+.nf-hint { margin-top: -4px; padding: 0 4px; font-size: 11px; color: var(--faint); }
 .nf-remove { position: absolute; top: -6px; left: -6px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 2px solid var(--panel-bg, #f6f1e3); border-radius: 50%; background: #8a867c; color: #fff; cursor: pointer; transition: background 120ms ease, transform 160ms var(--ease-out, ease-out); }
 .nf-remove:hover { background: #d4493f; }
 .nf-remove:active { transform: scale(0.92); }
