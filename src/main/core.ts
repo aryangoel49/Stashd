@@ -519,8 +519,9 @@ export class Core {
     return { finishedOnes, rest };
   }
 
-  breakShelf(): Promise<BreakShelf> {
-    if (this.progressDue) void this.refreshProgress().catch(() => undefined);
+  /** `looking`: the panel is on screen, so you're not watching anything right now (see videosClosed). */
+  breakShelf(looking = false): Promise<BreakShelf> {
+    if (this.progressDue && looking) void this.refreshProgress().catch(() => undefined);
     return this.breaks.get();
   }
 

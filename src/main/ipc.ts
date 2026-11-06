@@ -132,7 +132,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('jobs:rename', (_e, id, name) => core.rename(v.jobId(id), v.jobName(name)));
   handle('jobs:done', (_e, id, done) => core.setDone(v.jobId(id), v.bool(done, 'done')));
   handle('jobs:pin', (_e, id, pinned) => core.setPinned(v.jobId(id), v.bool(pinned, 'pinned')));
-  handle('break:shelf', () => core.breakShelf());
+  handle('break:shelf', () => core.breakShelf(!!getWindow('panel')?.isVisible()));
   handle('break:open', (_e, url) => core.openBreak(v.str(url, 'address', 4000)));
   handle('break:change', (_e, change) => {
     const c = (change ?? {}) as Record<string, unknown>;
