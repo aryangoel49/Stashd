@@ -281,14 +281,20 @@ Each brief request carries the anonymous install ID, so the server can count how
 - [ ] Login (email code or Sign in with Apple), only when paid plans need it
 - [ ] Ask Stashd (AI); automatic save at shutdown, updates and lid close (the research's biggest must-have lever, first after launch)
 - [ ] Apple Developer Program (see the triggers above)
+- [ ] **Screen switch** (demo: claude.ai/artifact/PpCArvPdPxS1GF1ZKXY565): ⌃⇧→ / ⌃⇧← glide the window you're in to the next screen with a small "Moved to …" pill and a bump at the edge; ⌃⇧↑ opens a picker (this window, just this tab, swap screens). Parked by Aryan on 6 Nov until after launch.
 
 ### Who does what
-- **Build chat:** Stages 1–2 code, server, updater, Intel, the brief research setup.
-- **Design chat:** brief look tests, onboarding, polish.
+- **Build chat (Aryan's):** the updater with "Install and restart", the installers (DMG guide, one-line command, `npx stashd`), the first-run setup (permissions in one go, Stashd AI consent), the "Send feedback" button, then the beta checks.
+- **Vansh (his own Claude):**
+  1. Intel and macOS 13: the Swift helper for both chips at macOS 13 (Apple Intelligence code removed), onnxruntime 1.23 for Intel, a separate Intel build, the same matching results on both, a test through Rosetta.
+  2. Brave, Edge and Vivaldi: read, close and reopen their tabs like Chrome, with Settings switches.
+  3. Never lose a save: back up before any change to how saves are stored, and recover from a damaged file.
+  - Vansh owns `native/`, `scripts/prepare-embedder.mjs`, the build config's chip settings and the browser code. The Build chat stays out of those until his work lands.
+- **Design chat:** the look of the first-run setup and the brief tests.
 - **Marketing chat:** the marketing phase, website copy, launch week.
 - **Aryan:**
-  - the Anthropic server key with a spend limit, added to Vercel;
-  - the Chrome Web Store account;
-  - the domain;
-  - beta testers (including Intel Macs);
-  - the decision on the Arc date.
+  - the Anthropic server key with a spend limit, added to Vercel (and Upstash Redis from the Vercel Marketplace);
+  - a free npm account for `npx stashd`;
+  - a backup of the "Stashd Local Signing" certificate (every release is signed with it; if it's lost, everyone approves permissions again once);
+  - the Chrome Web Store account and the domain;
+  - beta testers, including Intel Macs.
