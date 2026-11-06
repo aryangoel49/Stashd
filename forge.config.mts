@@ -35,6 +35,10 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   hooks: {
+    // The meaning model's runtime is different for each chip, so get the one for the chip being built.
+    prePackage: async (_config, _platform, arch) => {
+      execFileSync(process.execPath, ['scripts/prepare-embedder.mjs', arch], { stdio: 'inherit' });
+    },
     // Packaging edits Info.plist after Electron was signed, which breaks the signature. macOS then
     // silently refuses Automation (talking to Chrome, Word…) without asking. Re-sign the whole app
     // ad hoc (no paid certificate needed) with our own identifier, then check it.
@@ -50,7 +54,7 @@ const config: ForgeConfig = {
       }
     },
   },
-  makers: [new MakerDMG({ name: 'Stashd', icon: 'assets/icon.icns', format: 'ULFO' }), new MakerZIP({}, ['darwin'])],
+  makers: [new MakerDMG((arch: string) => ({ name: arch === 'x64' ? 'Stashd-Intel' : 'Stashd', icon: 'assets/icon.icns', format: 'ULFO' })), new MakerZIP({}, ['darwin'])],
   plugins: [
     new VitePlugin({
       build: [

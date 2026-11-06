@@ -27,9 +27,9 @@ Every folder gets its own colour. In the app window, **All folders** shows them 
 
 ## Install
 
-The download needs a Mac with Apple silicon (M1 or later) and macOS 12 or newer. On an Intel Mac, build it yourself (below).
+Stashd needs macOS 13 or newer.
 
-1. **[Download Stashd.dmg](https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg)** from the latest release.
+1. Download from the latest release: **[Stashd.dmg](https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg)** for Apple silicon (M1 or later), or **[Stashd-Intel.dmg](https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd-Intel.dmg)** for an Intel Mac.
 2. Open it and drag **Stashd** into **Applications**. If it asks, click **Replace** to update an older version.
 3. **First launch only:** open Stashd. macOS says it can't check it for malware, because the app isn't signed with a paid Apple developer certificate yet. Click **Done**, go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**, then confirm.
 4. The Stashd folder appears in your menu bar. There's no Dock icon, on purpose.
@@ -43,9 +43,9 @@ xattr -dr com.apple.quarantine /Applications/Stashd.app
 </details>
 
 <details>
-<summary>Intel Mac, or rather have Claude set it up?</summary>
+<summary>Rather have Claude set it up?</summary>
 
-Paste this into Claude Code. It builds Stashd on your own Mac, so there's no "can't check for malware" step and it works on Intel too:
+Paste this into Claude Code. It builds Stashd on your own Mac, so there's no "can't check for malware" step:
 
 > Download and install the Stashd app from https://github.com/aryangoel49/Stashd. Clone it, install Node and the Xcode Command Line Tools if missing, run `npm install`, then `npm run install-local` to build it into /Applications and open it.
 </details>
@@ -111,7 +111,9 @@ npm start
 | `npm test` | Runs the test suite |
 | `npm run typecheck` | Type-checks the code |
 | `npm run lint` | Lints and checks formatting |
-| `npm run make` | Builds `Stashd.dmg` and a zip into `out/make` |
+| `npm run make` | Builds `Stashd.dmg` and a zip for Apple silicon into `out/make` |
+| `npm run make:intel` | Builds `Stashd-Intel.dmg` and a zip for Intel Macs into `out/make` |
+| `npm run check:chips` | Checks both builds sort work the same way (Intel through Rosetta; run `npm run package` and `npm run package:intel` first) |
 | `npm run icons` | Rebuilds the app and menu bar icons from the brand SVGs |
 
 ### Releasing

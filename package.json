@@ -17,6 +17,9 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
+    "make:intel": "electron-forge make --arch=x64",
+    "package:intel": "electron-forge package --arch=x64",
+    "check:chips": "node scripts/compare-chips.mjs",
     "install-local": "bash scripts/install-local.sh",
     "release": "electron-forge release",
     "lint": "oxlint && oxfmt --check",
@@ -25,11 +28,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "icons": "node scripts/make-icons.mjs",
-    "native": "mkdir -p native/build && xcrun swiftc -O -swift-version 5 native/wwi-helper.swift -o native/build/wwi-helper",
+    "native": "mkdir -p native/build && xcrun swiftc -O -swift-version 5 -target arm64-apple-macos13 native/wwi-helper.swift -o native/build/wwi-helper-arm64 && xcrun swiftc -O -swift-version 5 -target x86_64-apple-macos13 native/wwi-helper.swift -o native/build/wwi-helper-x64 && lipo -create native/build/wwi-helper-arm64 native/build/wwi-helper-x64 -output native/build/wwi-helper",
     "embedder": "node scripts/prepare-embedder.mjs",
     "prestart": "npm run native && npm run embedder",
-    "prepackage": "npm run native && npm run embedder",
-    "premake": "npm run native && npm run embedder"
+    "prepackage": "npm run native",
+    "premake": "npm run native",
+    "prepackage:intel": "npm run native",
+    "premake:intel": "npm run native"
   },
   "devDependencies": {
     "@electron-forge/cli": "^8.0.1",

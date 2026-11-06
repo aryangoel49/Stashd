@@ -8,46 +8,10 @@ import { learn, learnedAvoid, classify } from '../src/main/jobs/match';
 import { group, jobFit, jobProfile, meaningText, profileTexts, FIT_SUGGEST, type MeaningLookup, type Profile } from '../src/main/jobs/relevance';
 import { WordPiece } from '../src/main/meaning/tokenizer';
 import type { Item, Job } from '../src/shared/types';
+import { tab, doc, labels, streamKing, ovo, madrid, streamEast, nba, premier, aiDoc, aiTab1, nvidia, ml, automation, essay, jstor1, jakarta, glaciers, flights, cnTower, hotels, dogs, earbuds, linkedin, recipe, preview, textEdit, clutter } from './meaning-fixtures';
 
-const ready = existsSync('embedder/node_modules/onnxruntime-node') && existsSync('embedder/model/model.onnx');
-
-const tab = (url: string, title: string, window = 1): Item => ({ key: `tab:${url}`, kind: 'tab', label: title, detail: '', app: 'Google Chrome', url, browser: 'chrome', window });
-const doc = (p: string, app = 'Microsoft Word'): Item => ({ key: `doc:${p}`, kind: 'doc', label: p.split('/').pop()!, detail: '', app, path: p });
-const app = (name: string): Item => ({ key: `app:${name}`, kind: 'app', label: name, detail: 'App', app: name });
-const labels = (xs: Item[]) => xs.map((i) => i.label).sort();
-
-// Soccer
-const streamKing = tab('https://streamking.cc/', 'StreamKing - Free NBA, NFL, NHL, MLB, Soccer Streams');
-const ovo = tab('https://www.google.com/search?q=ovo+goal', 'ovo goal - Google Search');
-const madrid = tab('https://totalsportek.pro/real-madrid', 'Watch Real Madrid at Barcelona Live Stream | TotalSportek');
-const streamEast = tab('https://streameast.zip/', 'StreamEast.zip');
-const nba = tab('https://www.espn.com/nba', 'NBA Scores and Standings - ESPN', 8);
-const premier = tab('https://www.bbc.com/sport/football/tables', 'Premier League Table - BBC Sport', 8);
-// AI research
-const aiDoc = doc('/Users/a/Documents/ai research.docx');
-const aiTab1 = tab('https://www.microsoft.com/en-us/ai/augmentation', 'AI Augmentation: The Key to Uplifting Employees | Microsoft', 2);
-const nvidia = tab('https://www.nvidia.com/en-us/lp/ai/blueprint', 'Blueprint for AI Success eBook | Download & Build | NVIDIA', 2);
-const ml = tab('https://hbr.org/ml-workplace', 'How machine learning is changing the workplace | HBR', 3);
-const automation = tab('https://www.mckinsey.com/automation', 'Automation and the future of jobs | McKinsey', 3);
-// Climate
-const essay = doc('/Users/a/Documents/School/Climate essay.docx');
-const jstor1 = tab('https://www.jstor.org/stable/1', 'Sea level rise in coastal cities | JSTOR', 3);
-const jakarta = tab('https://www.bbc.com/news/1', 'Jakarta is sinking', 3);
-const glaciers = tab('https://www.nationalgeographic.com/glaciers', 'Why the glaciers are melting faster | National Geographic', 4);
-// Toronto
-const flights = tab('https://www.expedia.ca/flights', 'Cheap Flights to Toronto | Expedia', 5);
-const cnTower = tab('https://www.cntower.ca/tickets', 'CN Tower Tickets', 6);
-const hotels = tab('https://www.booking.com/union-station', 'Hotels near Union Station', 6);
-// Clutter
-const dogs = tab('https://www.reddit.com/r/aww', 'Cute dogs : aww', 9);
-const earbuds = tab('https://www.amazon.ca/x', 'Amazon.ca: Wireless Earbuds', 9);
-const linkedin = tab('https://www.linkedin.com/jobs', 'Jobs | LinkedIn', 9);
-const canva = tab('https://www.canva.com/design', 'Untitled design - Canva', 9);
-const quest = tab('https://www.uwaterloo.ca/quest', 'Quest - University of Waterloo', 9);
-const recipe = tab('https://www.allrecipes.com/pasta', 'Easy Weeknight Pasta Recipe | Allrecipes', 9);
-const preview = app('Preview');
-const textEdit = app('TextEdit');
-const clutter = [dogs, earbuds, linkedin, canva, quest, recipe];
+// The runtime is kept for one chip at a time (npm run make:intel leaves the Intel one behind).
+const ready = existsSync(`embedder/node_modules/onnxruntime-node/bin/napi-v6/darwin/${process.arch}`) && existsSync('embedder/model/model.onnx');
 
 let vectors = new Map<string, number[]>();
 const lookup: MeaningLookup = (t) => vectors.get(t);
