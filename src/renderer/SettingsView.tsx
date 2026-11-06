@@ -114,25 +114,22 @@ export function SettingsView() {
             <>
       <div className="srow card glass-card" style={{ padding: '10px 14px' }}>
         <span>
-          Briefs are written by <b>{writerNow(info, s.aiModel)}</b>
+          Briefs are written by <b>{writerNow(info, s)}</b>
           <span className="faint small" style={{ display: 'block' }}>
-            {!info.hasApiKey && info.appleAi !== 'available' && 'Connect Claude below, or turn on Apple Intelligence, for smarter briefs. '}
+            {!info.hasApiKey && !s.stashdAi && 'Turn on Stashd AI below for smarter briefs. '}
             Sorting what belongs in which folder always happens on your Mac, using a small built-in model. Free, offline and private.
           </span>
         </span>
       </div>
-      <ClaudeCard connected={info.hasApiKey} model={s.aiModel} onChange={refreshInfo} onModel={(m) => void update({ aiModel: m })} />
-      <Card title="Apple Intelligence" hint="Used for briefs when Claude isn't connected. It runs on your Mac, for free, and works offline.">
-        <div className="srow">
-          <span>{info.appleAi === 'available' ? 'Ready on this Mac' : info.appleAi === 'unknown' ? 'Checking…' : 'Not available right now'}</span>
-          {info.appleAi !== 'available' && (
-            <Button size="small" onClick={() => void api.openAppleAiSettings()}>
-              Open Apple Intelligence settings
-            </Button>
-          )}
-        </div>
-        {info.appleAi !== 'available' && <p className="faint small" style={{ margin: '4px 0 0' }}>Turn on Apple Intelligence in System Settings. It may need a few minutes to download.</p>}
+      <Card title="Stashd AI" hint="Writes your briefs and folder names with Claude, for free, the same way on every Mac.">
+        <Toggle
+          label="Use Stashd AI"
+          hint="Each brief sends Stashd’s server the names and titles of what you saved, cleaned web addresses, your note and the end of an open AI chat (secrets removed). Never file contents. The server passes it to Claude, made by Anthropic, and keeps nothing. Free for everyday use, with a daily limit."
+          on={s.stashdAi}
+          onChange={(v) => void update({ stashdAi: v })}
+        />
       </Card>
+      <ClaudeCard connected={info.hasApiKey} model={s.aiModel} onChange={refreshInfo} onModel={(m) => void update({ aiModel: m })} />
             </>
           )}
           {tab === 'privacy' && (
@@ -196,7 +193,7 @@ function ClaudeCard({ connected, model, onChange, onModel }: { connected: boolea
   };
 
   return (
-    <Card title="Claude" hint="Connect your own Claude account for the best briefs and folder names. You pay Anthropic directly, a tiny amount per brief.">
+    <Card title="Your own Claude key (optional)" hint="Only if you’d rather use your own Anthropic account, with no daily limit. You pay Anthropic directly, a tiny amount per brief.">
       {connected ? (
         <div className="srow">
           <span>
@@ -245,9 +242,9 @@ function ClaudeCard({ connected, model, onChange, onModel }: { connected: boolea
   );
 }
 
-function writerNow(info: AppInfo, model: string): string {
-  if (info.hasApiKey) return `Claude ${modelInfo(model)?.name ?? model}`.trim();
-  if (info.appleAi === 'available') return 'Apple Intelligence';
+function writerNow(info: AppInfo, s: Settings): string {
+  if (info.hasApiKey) return `Claude ${modelInfo(s.aiModel)?.name ?? s.aiModel} (your key)`.trim();
+  if (s.stashdAi) return 'Stashd AI';
   return 'a simple template';
 }
 

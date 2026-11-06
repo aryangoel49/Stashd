@@ -73,7 +73,7 @@ export function basicBrief(entry: SaveEntry, now = new Date()): Brief {
 export function acceptAiBrief(
   raw: unknown,
   idToKey: Map<string, string>,
-  source: 'claude' | 'apple',
+  source: 'claude',
   fallbackNeeded: string[],
   now = new Date(),
 ): Brief | null {
@@ -101,16 +101,4 @@ export function acceptAiBrief(
     ? [...new Set(r.needed.filter((id): id is string => typeof id === 'string').map((id) => idToKey.get(id)).filter((k): k is string => !!k))].slice(0, 8)
     : [];
   return { source, sentence, ...(sections ? { sections } : {}), highlights, needed: needed.length ? needed : fallbackNeeded, createdAt: now.toISOString() };
-}
-
-/** Pull a JSON object out of model text (it may be wrapped in ``` fences or have extra words). */
-export function extractJson(text: string): unknown {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end <= start) return null;
-  try {
-    return JSON.parse(text.slice(start, end + 1));
-  } catch {
-    return null;
-  }
 }

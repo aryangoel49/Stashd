@@ -1,11 +1,11 @@
-// Picks who writes the brief: Claude (if connected), then Apple Intelligence, then the basic template.
+// Picks who writes the brief: your own Claude key (if you added one), then Stashd AI, then the basic template.
 
 import type { Brief, Item, SaveEntry } from '../../shared/types';
 import { basicBrief } from './basic';
 
 export interface BriefWriter {
-  name: 'claude' | 'apple';
-  /** Returns null when this writer is not set up (no key, no Apple Intelligence). Throws on failure. */
+  name: 'claude' | 'stashd';
+  /** Returns null when this writer is not set up (no key, or Stashd AI turned off). Throws on failure. */
   write(entry: SaveEntry, previous: SaveEntry | null, feedback: string | null): Promise<Brief | null>;
   /** A short name for a new job from its items, or null when this writer is not set up. */
   suggestName(items: Item[]): Promise<string | null>;
@@ -36,7 +36,7 @@ export async function writeBrief(
       const b = await w.write(entry, previous, feedback);
       if (b) return reasons.length ? { ...b, fallbackReason: reasons.join(' ') } : b;
     } catch (e) {
-      reasons.push(`${w.name === 'claude' ? 'Claude' : 'Apple Intelligence'}: ${e instanceof Error ? e.message : String(e)}`);
+      reasons.push(`${w.name === 'claude' ? 'Claude' : 'Stashd AI'}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
   const b = basicBrief(entry);

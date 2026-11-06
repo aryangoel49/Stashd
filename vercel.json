@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "installCommand": "echo 'The website is plain files in site/'",
+  "installCommand": "npm install --omit=dev --ignore-scripts --no-audit --no-fund",
   "buildCommand": "",
   "outputDirectory": "site",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- site vercel.json"
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- site vercel.json api src/main/brief/spec.ts src/shared/models.ts package.json"
 }

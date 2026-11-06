@@ -10,7 +10,6 @@ import type { SecretStore } from './secrets';
 import { fitHeight, getWindow, holdWindow, isAppUrl, routeOf, showWindow } from './windows';
 
 const AUTOMATION_SETTINGS = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Automation';
-const APPLE_AI_SETTINGS = 'x-apple.systempreferences:com.apple.Siri-Settings.extension';
 const CLAUDE_KEYS_PAGE = 'https://console.anthropic.com/settings/keys';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
@@ -30,7 +29,6 @@ function handle(channel: string, fn: Handler): void {
 
 export interface IpcHooks {
   shortcutErrors: () => string[];
-  appleStatus: () => Promise<AppInfo['appleAi']>;
   afterSave: (result: { jobId: string; entryId: string; tidy: boolean }) => void;
   payload: (route: string) => unknown;
   finishNaming: (names: (string | null)[]) => void;
@@ -62,7 +60,6 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('app:info', async (): Promise<AppInfo> => ({
     version: app.getVersion(),
     hasApiKey: await secrets.has(),
-    appleAi: await hooks.appleStatus(),
     shortcutErrors: hooks.shortcutErrors(),
   }));
 
@@ -208,10 +205,6 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   });
   handle('system:setupChromeGroups', async () => {
     await setupChromeHelper();
-    return true;
-  });
-  handle('system:openAppleAiSettings', async () => {
-    await shell.openExternal(APPLE_AI_SETTINGS);
     return true;
   });
   handle('ui:payload', (event) => hooks.payload(routeOf(BrowserWindow.fromWebContents(event.sender)) ?? ''));

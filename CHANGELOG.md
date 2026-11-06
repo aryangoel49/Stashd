@@ -6,6 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
+- **Stashd AI** (Settings → Briefs): AI briefs and folder names for everyone, free with a daily limit, no Claude key needed. It's off until you turn it on, and Settings says exactly what it sends.
 - Tidy all has a shortcut: ⌃⇧S (change it in Settings).
 - Continue watching: streams (Twitch, Kick, and YouTube streams that are live) get a red Live tag.
 - Websites you add to Your places on the Break page show their own logo instead of a letter.
@@ -13,6 +14,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed
+- Briefs are written the same way on every Mac: Apple Intelligence no longer writes them. Your own Claude key is now an optional extra.
 - Tidy all is quicker and calmer: the panel gets out of the way at once, the menu bar says "Tidying…" until it's done, and a Chrome window whose tabs all go closes in one step instead of tab by tab.
 - Stashd no longer opens a quick hidden tab in Chrome to see how far into a video you got or which tab group a tab is in: the Chrome extension tells it directly (restart Chrome once after updating).
 - Continue watching only shows things you can carry on with (a video, an episode, a stream, a song); home pages like YouTube's or Netflix's front page stay in your places instead.

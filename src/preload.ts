@@ -55,7 +55,6 @@ const api = {
   closeWindow: () => invoke<boolean>('window:close'),
   fitWindow: (height: number) => invoke<boolean>('window:fit', height),
   openAutomationSettings: () => invoke<boolean>('system:openAutomationSettings'),
-  openAppleAiSettings: () => invoke<boolean>('system:openAppleAiSettings'),
   setupChromeGroups: () => invoke<boolean>('system:setupChromeGroups'),
   quit: () => invoke<boolean>('app:quit'),
   getPayload: <T>() => invoke<T | null>('ui:payload'),

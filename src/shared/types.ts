@@ -25,6 +25,8 @@ export interface Settings {
   tidyUp: boolean;
   aiModel: string;
   aiDisclosureAccepted: boolean;
+  /** Stashd AI writes briefs and folder names (through Stashd's server). Off until you agree. */
+  stashdAi: boolean;
   /** Light glass by default; dark, or follow the Mac. */
   appearance: Appearance;
   /** The soft whoosh when windows fly into the menu bar. */
@@ -284,7 +286,6 @@ export interface OpenResult {
 export interface AppInfo {
   version: string;
   hasApiKey: boolean;
-  appleAi: 'available' | 'unavailable' | 'unknown';
   shortcutErrors: string[];
 }
 

@@ -11,7 +11,7 @@
 
 **Stashd** is a menu bar app for your Mac. Press **⌃S** and it stashes the work you're in the middle of: your open tabs, documents and apps, plus a quick note. When you come back, pick the folder from the menu bar. A short brief tells you where you left off, and one click reopens what you need.
 
-Everything stays on your Mac. It only goes online to write Claude briefs (after you connect your own Claude key) and to show YouTube video thumbnails and the logos of sites you add on the Break page (loaded from those sites).
+Everything stays on your Mac. It only goes online to write AI briefs (if you turn on Stashd AI, or add your own Claude key) and to show YouTube video thumbnails and the logos of sites you add on the Break page (loaded from those sites).
 
 ---
 
@@ -75,9 +75,11 @@ Stashd doesn't update itself yet. To get the newest version, download **Stashd.d
 
 Each brief is written by the first of these that's available:
 
-1. **Claude**, if you connected it (Settings → Claude). Costs about $0.0003 per brief. It gets file names, tab titles and addresses with secrets removed, your note, and the last few messages of a Claude chat you had open for this work (also with secrets removed). It never sees what's inside your files.
-2. **Apple Intelligence** on your Mac, if it's turned on (macOS 26 or later on Apple silicon). Free and offline.
-3. A **basic brief** from a template, so there's always something.
+1. **Your own Claude key**, if you added one (Settings → Briefs). Costs about $0.0004 per brief, paid to Anthropic.
+2. **Stashd AI**, if you turned it on (Settings → Briefs). Free, with a daily limit. It goes through Stashd's own server (`api/brief.ts`), which asks Claude (Haiku 5.5) and keeps nothing, so every Mac gets the same brief.
+3. A **basic brief** from a template, so there's always something (for example when you're offline).
+
+Both AI options are sent the same thing: file names, tab titles and addresses with secrets removed, your note, and the last few messages of a Claude chat you had open for this work (also with secrets removed). Never what's inside your files. The instructions they get live in one place, `src/main/brief/spec.ts`.
 
 The bottom of each brief says which one wrote it. Click **No** under "Helpful?" to say what was wrong, and the next brief for that folder takes it into account.
 
@@ -87,7 +89,8 @@ The bottom of each brief says which one wrote it. Click **No** under "Helpful?" 
 - Your Claude key is stored encrypted in the macOS keychain.
 - With the Accessibility permission, Stashd notes which Claude or ChatGPT chat is open when you stash, and saves its name, its link and the end of the conversation with the folder, so it can reopen the chat and write a better brief.
 - Incognito windows in Chrome and Arc are never saved or closed. **Safari Private windows can't be told apart** (Safari doesn't let other apps see that), so close them before you stash, or leave Safari unticked in Settings.
-- `tests/privacy.test.ts` fails the build if anything except `src/main/brief/claude.ts` tries to use the internet.
+- Stashd AI counts requests per install (a random ID) to share out the free daily briefs, and how many installs used it each week. Only hashes are kept, and they expire.
+- `tests/privacy.test.ts` fails the build if anything except the two brief writers (`src/main/brief/claude.ts` and `src/main/brief/stashd.ts`) tries to use the internet, and checks that Stashd AI only talks to Stashd's own server.
 
 ---
 
@@ -132,7 +135,7 @@ src/main/tidy*.ts      closing safely, naming untitled files, the fly-in animati
 src/main/store.ts      jobs on disk
 src/main/legacy.ts     one-time move of data from the old Where Was I folder
 src/renderer/          the screens: Panel, Save, Tidy, Main, SettingsView
-native/wwi-helper.swift  window order, app icons, Apple Intelligence
+native/wwi-helper.swift  window order, app icons
 ```
 
 `PLAN.md` is the product plan. `design/` has the mockups, the build prompt and the brand page.

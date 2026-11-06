@@ -49,15 +49,6 @@ export class Helper {
     return parseWindows(r.stdout);
   }
 
-  async appleStatus(): Promise<'available' | 'unavailable'> {
-    try {
-      const r = await run(this.binary, ['status'], { timeoutMs: 4000 });
-      return (JSON.parse(r.stdout) as { apple?: string }).apple === 'available' ? 'available' : 'unavailable';
-    } catch {
-      return 'unavailable';
-    }
-  }
-
   /** Finder icons for files and apps, as PNG data URLs (null where there is none). */
   async icons(paths: string[]): Promise<(string | null)[]> {
     const r = await run(this.binary, ['icons'], { timeoutMs: 8000, input: JSON.stringify(paths), maxBuffer: 16 * 1024 * 1024 });
@@ -93,11 +84,4 @@ export class Helper {
     return { trusted: out.trusted === true, chats };
   }
 
-  /** Ask Apple's on-device model. Throws if it is unavailable or fails. */
-  async appleBrief(instructions: string, prompt: string): Promise<string> {
-    const r = await run(this.binary, ['brief'], { timeoutMs: 45_000, input: JSON.stringify({ instructions, prompt }) });
-    const out = JSON.parse(r.stdout) as { text?: string; error?: string };
-    if (out.error || typeof out.text !== 'string') throw new Error(out.error ?? 'no answer');
-    return out.text;
-  }
 }

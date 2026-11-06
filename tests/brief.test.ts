@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { writeBrief, type BriefWriter } from '../src/main/brief';
-import { acceptAiBrief, basicBrief, extractJson, neededItems } from '../src/main/brief/basic';
+import { acceptAiBrief, basicBrief, neededItems } from '../src/main/brief/basic';
 import { buildPromptData } from '../src/main/brief/prompt';
 import { hintFrom, iconFor } from '../src/main/core';
 import type { Item, SaveEntry } from '../src/shared/types';
@@ -48,13 +48,8 @@ describe('AI answers', () => {
   });
 
   it('rejects junk', () => {
-    expect(acceptAiBrief(null, ids, 'apple', [])).toBeNull();
-    expect(acceptAiBrief({ sentence: 'hi' }, ids, 'apple', [])).toBeNull();
-  });
-
-  it('pulls JSON out of chatty model text', () => {
-    expect(extractJson('Sure! ```json\n{"sentence":"x"}\n```')).toEqual({ sentence: 'x' });
-    expect(extractJson('no json here')).toBeNull();
+    expect(acceptAiBrief(null, ids, 'claude', [])).toBeNull();
+    expect(acceptAiBrief({ sentence: 'hi' }, ids, 'claude', [])).toBeNull();
   });
 });
 
@@ -74,7 +69,7 @@ describe('what the AI is sent', () => {
 
 const ok: BriefWriter = { name: 'claude', write: async () => ({ source: 'claude', sentence: 'From Claude.', highlights: [], needed: [], createdAt: '' }), suggestName: async () => 'From Claude' };
 const off: BriefWriter = { name: 'claude', write: async () => null, suggestName: async () => null };
-const broken: BriefWriter = { name: 'apple', write: async () => { throw new Error('model not ready'); }, suggestName: async () => { throw new Error('model not ready'); } };
+const broken: BriefWriter = { name: 'stashd', write: async () => { throw new Error('model not ready'); }, suggestName: async () => { throw new Error('model not ready'); } };
 
 describe('choosing a writer', () => {
 

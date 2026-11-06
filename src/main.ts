@@ -3,9 +3,10 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { app, globalShortcut, Menu, nativeTheme, type Rectangle } from 'electron';
-import type { AppInfo, Item, OpenState, Route, Settings } from './shared/types';
-import { appleWriter } from './main/brief/apple';
+import type { Item, OpenState, Route, Settings } from './shared/types';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
+import { stashdWriter } from './main/brief/stashd';
+import { installId } from './main/install';
 import { Core } from './main/core';
 import { createMeaning } from './main/meaning';
 import { Helper } from './main/helper';
@@ -47,7 +48,6 @@ function start(): void {
   let beforeOpen: (items: Item[]) => void = () => undefined;
   let shortcutErrors: string[] = [];
   let tidyAllNow: () => Promise<void> = async () => undefined;
-  let appleStatus: AppInfo['appleAi'] = 'unknown';
 
   app.on('web-contents-created', (_e, contents) => hardenWebContents(contents));
   // Keep running in the menu bar when every window is closed.
@@ -141,12 +141,12 @@ function start(): void {
     const helper = new Helper(helperPath());
     const fake = !app.isPackaged ? process.env.WWI_FAKE_CAPTURE : undefined;
     core = new Core(settings, new JobStore(path.join(dir, 'jobs')), helper, dir, [app.getName(), 'Stashd', LEGACY_NAME, 'Electron'], fake ? async () => ({ ...JSON.parse(await readFile(fake, 'utf8')), at: new Date().toISOString() }) : undefined);
-    void helper.appleStatus().then((s) => (appleStatus = s));
     core.meaning = createMeaning();
     setTimeout(() => core.meaning?.warm(), 3000);
+    let myId: Promise<string> | null = null;
     core.writers = [
       claudeWriter({ getKey: () => secrets.get(), getModel: () => settings.get().aiModel, allowed: () => settings.get().aiDisclosureAccepted }),
-      appleWriter(helper, () => appleStatus === 'available'),
+      stashdWriter({ installId: () => (myId ??= installId(dir)), allowed: () => settings.get().stashdAi, version: app.getVersion() }),
     ];
 
     tray = new AppTray({ togglePanel: (b) => togglePanel(b), save: openSave, openMain: () => showWindow('main') });
@@ -194,7 +194,6 @@ function start(): void {
 
     registerIpc(core, secrets, {
       shortcutErrors: () => shortcutErrors,
-      appleStatus: async () => (appleStatus = await helper.appleStatus()),
       afterSave: ({ jobId, entryId, tidy: tidyUp }) => {
         if (tidyUp) void tidy.run(jobId, entryId).then(() => tray.wink());
         else {

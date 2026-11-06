@@ -1,4 +1,5 @@
-// Privacy guard: only src/main/brief/claude.ts may touch the network.
+// Privacy guard: only the two brief writers may touch the network: claude.ts (your own key, to Anthropic)
+// and stashd.ts (Stashd AI, only ever to Stashd's own server).
 // This fails if any other source file imports a networking module or calls fetch.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -6,7 +7,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const SRC = path.resolve(__dirname, '../src');
-const ALLOWED = new Set([path.join(SRC, 'main/brief/claude.ts')]);
+const ALLOWED = new Set([path.join(SRC, 'main/brief/claude.ts'), path.join(SRC, 'main/brief/stashd.ts')]);
 
 const FORBIDDEN: [string, RegExp][] = [
   ['imports a Node networking module', /(from\s+|require\(\s*|import\(\s*)['"](node:)?(http|https|http2|net|tls|dgram|undici)['"]/],
@@ -35,6 +36,13 @@ describe('network access', () => {
   it('finds the source files', () => {
     expect(files.length).toBeGreaterThan(10);
     expect(files).toContain(path.join(SRC, 'main/brief/claude.ts'));
+  });
+
+  it('Stashd AI only ever talks to Stashd’s own server', () => {
+    const text = readFileSync(path.join(SRC, 'main/brief/stashd.ts'), 'utf8');
+    expect(text.match(/https?:\/\/[^\s'"`]+/g)).toEqual(['https://getstashd.vercel.app/api/brief']);
+    expect(text.match(/\bfetch\s*\(/g)).toHaveLength(1);
+    expect(text).toContain('fetch(STASHD_AI,');
   });
 
   for (const file of files) {

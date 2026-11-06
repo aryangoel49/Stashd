@@ -7,7 +7,8 @@ import type { Brief, SaveEntry } from '../../shared/types';
 import type { BriefWriter } from './index';
 import { modelInfo } from '../../shared/models';
 import { acceptAiBrief } from './basic';
-import { buildPromptData, cleanAiName, INSTRUCTIONS, NAME_INSTRUCTIONS, NAME_SCHEMA, namePayload, OUTPUT_SCHEMA } from './prompt';
+import { buildPromptData, cleanAiName, namePayload } from './prompt';
+import { briefParams, responseText, type AskKind } from './spec';
 
 function friendlyError(e: unknown): string {
   if (e instanceof Anthropic.AuthenticationError) return 'The API key was not accepted.';
@@ -19,25 +20,16 @@ function friendlyError(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
-async function ask(
-  apiKey: string,
-  model: string,
-  content: string,
-  opts: { system?: string; schema?: Record<string, unknown>; maxTokens?: number; quick?: boolean } = {},
-) {
-  // Bigger models think for longer, so they get more room and more time.
+async function ask(apiKey: string, model: string, kind: AskKind, content: string) {
+  // Bigger models think for longer, so they get more time.
   const slow = modelInfo(model)?.slow ?? true;
-  const timeout = opts.quick ? (slow ? 20_000 : 8_000) : slow ? 60_000 : 30_000;
+  const timeout = kind === 'name' ? (slow ? 20_000 : 8_000) : slow ? 60_000 : 30_000;
   const client = new Anthropic({ apiKey, timeout, maxRetries: 1 });
   try {
     return await client.beta.messages.create({
-      model,
-      max_tokens: (opts.maxTokens ?? 2000) * (slow ? 2 : 1),
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: opts.schema ?? OUTPUT_SCHEMA } },
-      system: opts.system ?? INSTRUCTIONS,
-      messages: [{ role: 'user', content }],
+      ...briefParams(kind, model, content),
       // If a bigger model declines (its safety checks can be over-cautious), Anthropic retries on a suitable model.
-      // Haiku has no such fallback; a decline there just moves on to Apple Intelligence or the basic brief.
+      // Haiku has no such fallback; a decline there just moves on to the next brief writer.
       ...(model.startsWith('claude-haiku') ? {} : { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }),
     });
   } catch (e) {
@@ -53,9 +45,9 @@ export function claudeWriter(opts: { getKey: () => Promise<string | null>; getMo
       const key = await opts.getKey();
       if (!key) return null;
       const data = buildPromptData(entry, previous, feedback);
-      const response = await ask(key, opts.getModel(), JSON.stringify(data.payload));
+      const response = await ask(key, opts.getModel(), 'brief', JSON.stringify(data.payload));
       if (response.stop_reason === 'refusal') throw new Error('Claude declined to write this brief.');
-      const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+      const text = responseText(response);
       let parsed: unknown = null;
       try {
         parsed = JSON.parse(text);
@@ -70,9 +62,9 @@ export function claudeWriter(opts: { getKey: () => Promise<string | null>; getMo
       if (!opts.allowed()) return null;
       const key = await opts.getKey();
       if (!key) return null;
-      const response = await ask(key, opts.getModel(), namePayload(items), { system: NAME_INSTRUCTIONS, schema: NAME_SCHEMA, maxTokens: 1000, quick: true });
+      const response = await ask(key, opts.getModel(), 'name', namePayload(items));
       if (response.stop_reason === 'refusal') return null;
-      const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+      const text = responseText(response);
       try {
         return cleanAiName((JSON.parse(text) as { name?: unknown }).name);
       } catch {

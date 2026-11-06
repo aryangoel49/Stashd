@@ -29,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tidyUp: false,
   aiModel: 'claude-haiku-5-5',
   aiDisclosureAccepted: false,
+  stashdAi: false,
   appearance: 'light',
   sounds: true,
 };
@@ -143,6 +144,7 @@ export function settingsPatch(v: unknown, current: Settings): Settings {
         break;
       }
       case 'aiDisclosureAccepted': next.aiDisclosureAccepted = bool(val, k); break;
+      case 'stashdAi': next.stashdAi = bool(val, k); break;
       default: fail(`unknown setting: ${k}`);
     }
   }
