@@ -1,6 +1,6 @@
 // Hands Stashd two things, straight to its helper program through Chrome's native messaging (no tabs, no
 // windows): how far into each video you got (noted by progress.js), and which named tab group each tab
-// is in. Sent shortly after a tab closes, moves or changes group, and at most once a minute while a video
+// is in. Sent shortly after a tab closes, moves or changes group, and about once a minute while a video
 // plays. It never leaves your Mac.
 
 const HOST = 'com.aryangoel.stashd';
@@ -19,6 +19,7 @@ function soon(ms) {
 async function send() {
   timer = null;
   due = Infinity;
+  lastSent = Date.now();
   try {
     const { progress = {} } = await chrome.storage.local.get('progress');
     const titles = new Map((await chrome.tabGroups.query({})).map((g) => [g.id, g.title ?? '']));
@@ -33,7 +34,14 @@ async function send() {
   }
 }
 
-chrome.storage.onChanged.addListener((c) => c.progress && soon(60_000));
+// While a video plays its position changes every few seconds: pass it on at most once a minute. Chrome
+// puts this script to sleep after about 30 quiet seconds, which would kill a long timer, so instead it
+// sends right away once a minute has passed since the last send, and otherwise soon after.
+let lastSent = 0;
+chrome.storage.onChanged.addListener((c) => {
+  if (!c.progress) return;
+  if (Date.now() - lastSent > 60_000) soon(500);
+});
 chrome.tabs.onRemoved.addListener(() => soon(1_500));
 chrome.tabs.onUpdated.addListener((_id, c) => (c.url || 'groupId' in c) && soon(1_500));
 chrome.tabGroups.onUpdated.addListener(() => soon(1_000));

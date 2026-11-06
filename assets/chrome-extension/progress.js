@@ -17,7 +17,12 @@ function youtubeLive() {
   return !!id && (new URLSearchParams(location.search).get('v') === id || /\/live(\/|$)/.test(location.pathname));
 }
 
+// YouTube plays previews on its home and search pages when you hover a thumbnail: only a video's own page
+// counts.
+const notAVideoPage = () => location.hostname.endsWith('youtube.com') && !/^\/(watch|live|embed)\b|^\/@[^/]+\/live\b/.test(location.pathname);
+
 function save() {
+  if (notAVideoPage()) return;
   // A stream has no length to get through: it's noted with length 0, which Stashd shows as Live. A live
   // YouTube page counts even while an ad plays (the ad is the only video on the page then).
   const ytLive = location.hostname.endsWith('youtube.com') && youtubeLive();
