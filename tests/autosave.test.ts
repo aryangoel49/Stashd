@@ -76,6 +76,8 @@ function rig(over: Partial<Settings> = {}, answer: 'act' | 'dismiss' | 'timeout'
     lookNow: async () => look('essay'),
     frontFolder: (l) => l.front ?? 'neutral',
     foldersInUse: () => ['essay'],
+    homeOf: async () => null,
+    wouldSave: async () => true,
     save: async (_cap, ids) => (saves.push(ids), ids.map((id) => ({ jobId: id, entryId: '2026-11-06T09-00-00-000Z', name: 'Climate essay' }))),
     remove: async (jobId) => void removed.push(jobId),
     unpack: async () => undefined,

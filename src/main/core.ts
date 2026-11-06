@@ -187,10 +187,10 @@ export class Core {
   }
 
   /** `asFolder`: you said "Save as a folder instead" to the Break offer, so the videos go in a folder. */
-  async preview(opts: { asNew?: boolean; asFolder?: boolean; jobId?: string } = {}): Promise<SavePreview> {
-    if (!this.pending) this.beginSave();
+  async preview(opts: { asNew?: boolean; asFolder?: boolean; jobId?: string } = {}, own?: PendingSave): Promise<SavePreview> {
+    if (!own && !this.pending) this.beginSave();
     // Hold on to this save: Escape or a new shortcut press may replace this.pending while we work.
-    const pending = this.pending!;
+    const pending = own ?? this.pending!;
     const cap = await pending.capture;
     const settings = this.settings.get();
     const learned = learnedLifestyleApps(this.state.appUnticks);
@@ -295,8 +295,8 @@ export class Core {
     };
   }
 
-  async commitSave(req: SaveRequest): Promise<SaveResult> {
-    const pending = this.pending;
+  async commitSave(req: SaveRequest, own?: PendingSave): Promise<SaveResult> {
+    const pending = own ?? this.pending;
     if (!pending) throw new Error('Nothing to save. Press the shortcut again.');
     const cap = await pending.capture;
     const offered = pending.offered ?? { sure: cap.items, likely: [], maybe: [], hidden: [], breaks: [], why: {} };
@@ -368,8 +368,9 @@ export class Core {
     if (this.pending === pending) this.pending = null;
     this.notify();
     await this.refreshCard(job.id).catch(() => undefined);
-    // The folder may be deleted while its brief is still being written; that's fine.
-    void this.ensureBrief(job.id, entry.id).catch(() => undefined);
+    // The folder may be deleted while its brief is still being written; that's fine. An automatic save's brief
+    // is written when you come back to it, so saves made while you're away don't use up AI calls.
+    if (!req.auto) void this.ensureBrief(job.id, entry.id).catch(() => undefined);
     return { jobId: job.id, entryId: entry.id, needsNaming: req.tidy ? items.filter((i) => i.untitled) : [] };
   }
 
@@ -732,25 +733,42 @@ export class Core {
   async autoSave(cap: Capture, jobIds: string[]): Promise<{ jobId: string; entryId: string; name: string }[]> {
     const out: { jobId: string; entryId: string; name: string }[] = [];
     for (const id of jobIds) {
-      if (this.pending || !(await this.store.exists(id))) continue;
-      const job = await this.store.get(id);
-      if (job.done) continue;
-      const latest = await this.store.latest(id);
-      this.pending = { capture: Promise.resolve(cap), target: id };
-      try {
-        const p = await this.preview({ jobId: id });
-        if (!p.sure.length) continue;
-        const keep = [...p.sure, ...p.kept];
-        const now = new Set(keep.map(looseKey));
-        const before = new Set((latest?.items ?? []).map(looseKey));
-        if (now.size === before.size && [...now].every((k) => before.has(k))) continue;
-        const r = await this.commitSave({ jobId: id, name: job.name, note: latest?.note ?? '', keys: keep.map((i) => i.key), tidy: false, auto: true });
-        out.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
-      } finally {
-        this.pending = null;
-      }
+      const plan = await this.autoPlan(cap, id);
+      if (!plan) continue;
+      const r = await this.commitSave({ jobId: id, name: plan.job.name, note: plan.latest?.note ?? '', keys: plan.keep.map((i) => i.key), tidy: false, auto: true }, plan.own);
+      out.push({ jobId: r.jobId, entryId: r.entryId, name: plan.job.name });
     }
     return out;
+  }
+
+  /** Would an automatic save of this folder change anything right now? */
+  async wouldSave(cap: Capture, jobId: string): Promise<boolean> {
+    return !!(await this.autoPlan(cap, jobId));
+  }
+
+  /** What an automatic save would hold. Null if there's nothing new, or the folder is gone or finished. */
+  private async autoPlan(cap: Capture, id: string): Promise<{ job: Job; latest: SaveEntry | null; keep: Item[]; own: PendingSave } | null> {
+    if (this.pending || !(await this.store.exists(id))) return null;
+    const job = await this.store.get(id);
+    if (job.done) return null;
+    const latest = await this.store.latest(id);
+    // Its own save, not this.pending: a save box you open in the meantime is left alone.
+    const own: PendingSave = { capture: Promise.resolve(cap), target: id };
+    const p = await this.preview({ jobId: id }, own);
+    if (!p.sure.length) return null;
+    const keep = [...p.sure, ...p.kept];
+    const now = new Set(keep.map(looseKey));
+    const before = new Set((latest?.items ?? []).map(looseKey));
+    if (now.size === before.size && [...now].every((k) => before.has(k))) return null;
+    return { job, latest, keep, own };
+  }
+
+  /** The one folder the thing in front clearly belongs to, though it isn't saved there yet (a new tab on the topic). */
+  async homeOf(look: OpenLook): Promise<string | null> {
+    const item = look.items.find((i) => i.key === look.front);
+    if (!item || item.kind === 'app') return null;
+    const [home] = (await this.homesFor([item], new Set())).keys();
+    return home ?? null;
   }
 
   /** "Remove" on an automatic save: it goes, and the folder is back to how it was. Your own saves can't go this way. */
@@ -1100,6 +1118,11 @@ export class Core {
 
   async deleteJob(jobId: string): Promise<void> {
     await this.store.delete(jobId);
+    try {
+      this.memory?.forgetFolder(jobId);
+    } catch {
+      // The memory is a helper; deleting never fails because of it.
+    }
     if (this.state.currentJobId === jobId) await this.setCurrent(null);
     this.notify();
   }

@@ -193,6 +193,8 @@ function start(): void {
       lookNow: () => core.lookAtOpen(),
       frontFolder: (l) => core.frontFolder(l),
       foldersInUse: (l) => core.foldersInUse(l),
+      homeOf: (l) => core.homeOf(l),
+      wouldSave: (cap, id) => core.wouldSave(cap, id),
       save: async (cap, ids) => {
         const saved = await core.autoSave(cap, ids);
         if (saved.length) tray.flash('Saved automatically');
@@ -204,9 +206,16 @@ function start(): void {
       busy: () => !!getWindow('save')?.isVisible() || !!getWindow('panel')?.isVisible(),
     });
     powerMonitor.on('suspend', () => void auto.leaving('sleep'));
-    powerMonitor.on('lock-screen', () => void auto.leaving('lock'));
-    powerMonitor.on('resume', () => void auto.back());
-    powerMonitor.on('unlock-screen', () => void auto.back());
+    powerMonitor.on('lock-screen', () => {
+      auto.setLocked(true);
+      void auto.leaving('lock');
+    });
+    // A moment's wait: a Mac that locks when it sleeps can say so just after it wakes.
+    powerMonitor.on('resume', () => void setTimeout(() => void auto.back(), 3000));
+    powerMonitor.on('unlock-screen', () => {
+      auto.setLocked(false);
+      void auto.back();
+    });
     // Shutting down: macOS waits a moment for Stashd to save, then Stashd quits.
     // (Electron passes the event, though its types don't say so.)
     powerMonitor.on('shutdown', ((e?: { preventDefault?: () => void }) => {

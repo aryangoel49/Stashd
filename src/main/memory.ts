@@ -16,7 +16,7 @@
 // then brought up to date in one transaction: if any step fails, nothing changes and the copy remains.
 
 import { DatabaseSync } from 'node:sqlite';
-import { chmodSync, existsSync, renameSync } from 'node:fs';
+import { chmodSync, existsSync, readdirSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import type { Item } from '../shared/types';
 
@@ -105,11 +105,14 @@ const MOMENT_DAYS = 365;
 export type MomentKind = 'manual' | 'drift' | 'sleep' | 'lock' | 'shutdown' | 'away' | 'call';
 
 export class Memory {
-  private constructor(private readonly db: DatabaseSync) {}
+  private constructor(
+    private readonly db: DatabaseSync,
+    private readonly file: string,
+  ) {}
 
   /**
    * Opens (or creates) <dir>/memory.db and brings it up to date. A file that can't be read is set aside as
-   * memory.db.damaged-<when> (never deleted) and a fresh one starts, because the memory must never stop Stashd.
+   * memory.db.damaged-<when> (kept until "Forget my history") and a fresh one starts, because the memory must never stop Stashd.
    */
   static open(dir: string, now = new Date()): Memory {
     const file = path.join(dir, 'memory.db');
@@ -127,10 +130,11 @@ export class Memory {
   private static openFile(file: string, now: Date): Memory {
     const db = new DatabaseSync(file);
     try {
-      // Survives crashes and power cuts mid-write; only this user can read the file.
-      db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 2000;');
-      db.prepare('SELECT count(*) FROM sqlite_master').get();
+      // Only this user can read the file; set first, because its journal files copy these permissions.
       chmodSync(file, 0o600);
+      // Survives crashes and power cuts mid-write; what's deleted is overwritten, not just marked free.
+      db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 2000; PRAGMA secure_delete = ON;');
+      db.prepare('SELECT count(*) FROM sqlite_master').get();
       const version = Number((db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version);
       if (version > STEPS.length) throw new Error('This memory is from a newer Stashd.');
       if (version < STEPS.length) {
@@ -148,7 +152,7 @@ export class Memory {
           throw e;
         }
       }
-      return new Memory(db);
+      return new Memory(db, file);
     } catch (e) {
       db.close();
       throw e;
@@ -258,6 +262,31 @@ export class Memory {
       throw e;
     }
     this.db.exec('VACUUM');
+    this.clearJournal();
+    // Copies made before an upgrade, or set aside as damaged, hold the same titles.
+    const dir = path.dirname(this.file);
+    const name = path.basename(this.file);
+    for (const f of readdirSync(dir)) if (f.startsWith(`${name}.damaged-`) || f.startsWith(`${name}.before-`)) rmSync(path.join(dir, f), { force: true });
+  }
+
+  /** A folder you deleted: what the memory held about it goes too. */
+  forgetFolder(folder: string): void {
+    this.db.exec('BEGIN');
+    try {
+      this.db.prepare('DELETE FROM snapshot_items WHERE folder_guess = ?').run(folder);
+      this.db.prepare('DELETE FROM saves WHERE folder = ?').run(folder);
+      this.db.prepare('DELETE FROM moments WHERE from_folder = ? OR to_folder = ?').run(folder, folder);
+      this.db.exec('COMMIT');
+    } catch (e) {
+      this.db.exec('ROLLBACK');
+      throw e;
+    }
+    this.clearJournal();
+  }
+
+  /** The journal keeps old pages until they're moved into the file: empty it, so what's gone is gone. */
+  private clearJournal(): void {
+    this.db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
   }
 
   /** For tests and for checking what's stored. */

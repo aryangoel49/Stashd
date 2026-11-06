@@ -92,6 +92,10 @@ export interface AutoDeps {
   /** A fresh look at what's open (may be slow). */
   lookNow: () => Promise<OpenLook>;
   frontFolder: (look: OpenLook) => string;
+  /** The folder the thing in front clearly belongs to, though it's new (a new tab on the topic); null if none. */
+  homeOf: (look: OpenLook) => Promise<string | null>;
+  /** Would saving this folder now change anything? No card when it wouldn't. */
+  wouldSave: (cap: Capture, jobId: string) => Promise<boolean>;
   foldersInUse: (look: OpenLook) => string[];
   save: (cap: Capture, jobIds: string[]) => Promise<{ jobId: string; entryId: string; name: string }[]>;
   remove: (jobId: string, entryId: string) => Promise<void>;
@@ -108,6 +112,7 @@ export class AutoSaver {
   private lastLook: { at: number; look: OpenLook } | null = null;
   private left: { kind: Leave; at: number; momentId: number; saved: { jobId: string; entryId: string; name: string }[] } | null = null;
   private asking = false;
+  private locked = false;
 
   constructor(private readonly d: AutoDeps) {}
 
@@ -119,11 +124,22 @@ export class AutoSaver {
     return this.d.settings().autoSave;
   }
 
+  /** Uses the memory if it's there and working. It's a helper: nothing here may stop a save because of it. */
+  private note<T>(use: (memory: Memory) => T): T | undefined {
+    try {
+      const memory = this.d.memory();
+      return memory ? use(memory) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   /** Notes a shown card, with the rule book that decided it (kept once per version). */
-  private promptRow(memory: Memory | undefined, momentId: number, type: string): number | undefined {
-    if (!memory) return undefined;
-    memory.useRules(this.d.rules.version, this.d.rules);
-    return memory.prompt(momentId, type, this.d.rules.version);
+  private promptRow(momentId: number, type: string): number | undefined {
+    return this.note((memory) => {
+      memory.useRules(this.d.rules.version, this.d.rules);
+      return memory.prompt(momentId, type, this.d.rules.version);
+    });
   }
 
   /** Every look at what's open (about every 20 seconds while you're at the Mac). */
@@ -131,23 +147,28 @@ export class AutoSaver {
     const now = this.now();
     this.lastLook = { at: now, look };
     if (!this.on()) return;
-    const { track, drifted } = driftStep(this.track, this.d.frontFolder(look), now, this.d.rules);
+    let front = this.d.frontFolder(look);
+    // Something new on the same work (a new tab on the topic) isn't moving on.
+    if (front === 'other' && this.track.focus) front = (await this.d.homeOf(look).catch(() => null)) ?? 'other';
+    const { track, drifted } = driftStep(this.track, front, now, this.d.rules);
     const minutes = Math.round(this.track.worked / 60_000);
     this.track = track;
     if (drifted) await this.drift(drifted, minutes, look);
   }
 
   private async drift(jobId: string, minutesWorking: number, look: OpenLook): Promise<void> {
-    const memory = this.d.memory();
     const name = look.jobs.find((j: Job) => j.id === jobId)?.name ?? 'your work';
-    const momentId = memory?.moment('drift', { from: jobId, to: this.track.focus, minutesWorking, items: look.items }) ?? 0;
+    const momentId = this.note((memory) => memory.moment('drift', { from: jobId, to: this.track.focus, minutesWorking, items: look.items })) ?? 0;
     const type = 'drift_ask';
-    const v = memory ? verdict(memory.answers(type), memory.lastShown(type), true, this.d.rules, this.now()) : 'ask';
+    const v = this.note((memory) => verdict(memory.answers(type), memory.lastShown(type), true, this.d.rules, this.now())) ?? 'ask';
     if (v === 'stop') return;
+    const cap = (this.lastLook?.look ?? look).cap;
+    // Nothing new since your last save, you packed it up yourself, or it's gone: nothing to ask about.
+    if (!(await this.d.wouldSave(cap, jobId).catch(() => true))) return;
     const quiet = v === 'quiet' || this.d.settings().autoSaveTalk === 'quiet' || this.asking || this.d.busy();
     let answer: Answer = 'timeout';
     if (!quiet) {
-      const promptId = this.promptRow(memory, momentId, type);
+      const promptId = this.promptRow(momentId, type);
       const shown = this.now();
       this.asking = true;
       try {
@@ -155,27 +176,35 @@ export class AutoSaver {
       } finally {
         this.asking = false;
       }
-      if (promptId) memory?.answer(promptId, answer === 'act' ? 'save' : answer === 'dismiss' ? 'not_now' : 'ignored', (this.now() - shown) / 1000);
+      if (promptId) this.note((memory) => memory.answer(promptId, answer === 'act' ? 'save' : answer === 'dismiss' ? 'not_now' : 'ignored', (this.now() - shown) / 1000));
     }
     if (answer === 'dismiss') return;
     // Saved from what's open now: your folder's things are still open, you only moved on.
-    const saved = await this.d.save((this.lastLook?.look ?? look).cap, [jobId]).catch(() => []);
-    for (const s of saved) memory?.autoSaved(momentId, s.jobId, s.entryId);
+    const saved = await this.d.save(cap, [jobId]).catch(() => []);
+    for (const s of saved) this.note((memory) => memory.autoSaved(momentId, s.jobId, s.entryId));
   }
 
   /** The Mac is about to sleep, lock or shut down, or you walked away. Saves first; asks when you're back. */
   async leaving(kind: Leave, at = this.now()): Promise<void> {
     if (!this.on()) return;
-    if (this.left && at - this.left.at < this.d.rules.sameMomentSec * 1000) return;
+    // Not back yet (you walked away, then the Mac slept; the lid also locks the screen): what was open is
+    // already saved, and that first moment is the one to tell you about. A shutdown still counts, for the restart.
+    if (this.left && kind !== 'shutdown') return;
+    const left: NonNullable<typeof this.left> = { kind, at, momentId: 0, saved: [] };
+    this.left = left;
     const look = await this.freshLook();
-    if (!look) return;
-    const memory = this.d.memory();
+    if (!look) {
+      if (this.left === left) this.left = null;
+      return;
+    }
     const folders = [...new Set([...this.d.foldersInUse(look), ...(this.track.focus ? [this.track.focus] : [])])];
-    const momentId = memory?.moment(kind as MomentKind, { from: this.track.focus, minutesWorking: Math.round(this.track.worked / 60_000), items: look.items, at: new Date(at) }) ?? 0;
-    this.left = { kind, at, momentId, saved: [] };
+    const momentId = this.note((memory) => memory.moment(kind as MomentKind, { from: this.track.focus, minutesWorking: Math.round(this.track.worked / 60_000), items: look.items, at: new Date(at) })) ?? 0;
+    left.momentId = momentId;
     const saved = folders.length ? await this.d.save(look.cap, folders).catch(() => []) : [];
-    for (const s of saved) memory?.autoSaved(momentId, s.jobId, s.entryId);
-    if (this.left?.momentId === momentId) this.left.saved = saved;
+    for (const s of saved) this.note((memory) => memory.autoSaved(momentId, s.jobId, s.entryId));
+    // Nothing new since your last save is still worth bringing back after the restart.
+    if (kind === 'shutdown') for (const id of folders) if (!saved.some((s) => s.jobId === id)) this.note((memory) => memory.autoSaved(momentId, id, 'unchanged'));
+    left.saved = saved;
   }
 
   /** A recent look, or a quick new one; null when neither can be had (nothing is saved then). */
@@ -186,19 +215,23 @@ export class AutoSaver {
     return quick ?? (this.lastLook && this.now() - this.lastLook.at < 30 * 60_000 ? this.lastLook.look : null);
   }
 
-  /** You're back (the Mac woke, unlocked, or you touched it after a while away). */
+  /** The screen locked or unlocked. A Mac can wake long before you've typed your password. */
+  setLocked(locked: boolean): void {
+    this.locked = locked;
+  }
+
+  /** You're back (the Mac woke, unlocked, or you touched it after a while away). Not until it's unlocked: no one would see a card. */
   async back(): Promise<void> {
     const left = this.left;
-    if (!left) return;
+    if (!left || this.locked) return;
     this.left = null;
     this.track = { ...this.track, last: null };
     const minutes = (this.now() - left.at) / 60_000;
-    const memory = this.d.memory();
-    memory?.away(left.momentId, minutes);
+    this.note((memory) => memory.away(left.momentId, minutes));
     if (!left.saved.length || minutes < this.d.rules.returnCardAfterMin || this.d.settings().autoSaveTalk === 'quiet') return;
     const type = `back_${left.kind}`;
-    if (memory && verdict(memory.answers(type), memory.lastShown(type), false, this.d.rules, this.now()) !== 'ask') return;
-    const promptId = this.promptRow(memory, left.momentId, type);
+    if ((this.note((memory) => verdict(memory.answers(type), memory.lastShown(type), false, this.d.rules, this.now())) ?? 'ask') !== 'ask') return;
+    const promptId = this.promptRow(left.momentId, type);
     const shown = this.now();
     const answer = await this.d.ask({
       title: `Saved ${namesOf(left.saved.map((s) => s.name))} ${LEAVE_WORDS[left.kind]}`,
@@ -207,27 +240,26 @@ export class AutoSaver {
       seconds: this.d.rules.returnSeconds,
     });
     if (answer === 'act') for (const s of left.saved) await this.d.remove(s.jobId, s.entryId).catch(() => undefined);
-    if (promptId) memory?.answer(promptId, answer === 'act' ? 'remove' : answer === 'dismiss' ? 'keep' : 'ignored', (this.now() - shown) / 1000);
+    if (promptId) this.note((memory) => memory.answer(promptId, answer === 'act' ? 'remove' : answer === 'dismiss' ? 'keep' : 'ignored', (this.now() - shown) / 1000));
   }
 
   /** After a restart: offer to bring back what was saved before the Mac shut down. */
   async afterRestart(): Promise<void> {
-    const memory = this.d.memory();
-    if (!memory || !this.on()) return;
-    const last = memory.unanswered('shutdown', new Date(this.now() - 3 * 86_400_000));
+    if (!this.on()) return;
+    const last = this.note((memory) => memory.unanswered('shutdown', new Date(this.now() - 3 * 86_400_000)));
     if (!last) return;
-    memory.away(last.id, (this.now() - Date.parse(last.at)) / 60_000);
+    this.note((memory) => memory.away(last.id, (this.now() - Date.parse(last.at)) / 60_000));
     if (!last.saves.length || this.d.settings().autoSaveTalk === 'quiet') return;
     const type = 'back_shutdown';
-    if (verdict(memory.answers(type), memory.lastShown(type), false, this.d.rules, this.now()) !== 'ask') return;
+    if ((this.note((memory) => verdict(memory.answers(type), memory.lastShown(type), false, this.d.rules, this.now())) ?? 'ask') !== 'ask') return;
     const look = await this.d.lookNow().catch(() => null);
     const names = last.saves.map((s) => look?.jobs.find((j) => j.id === s.folder)?.name).filter((n): n is string => !!n);
     if (!names.length) return;
-    const promptId = this.promptRow(memory, last.id, type);
+    const promptId = this.promptRow(last.id, type);
     const shown = this.now();
     const answer = await this.d.ask({ title: `Saved ${namesOf(names)} ${LEAVE_WORDS.shutdown}`, detail: 'Bring it all back?', action: 'Bring it back', seconds: this.d.rules.returnSeconds * 2 });
     if (answer === 'act') for (const s of last.saves) await this.d.unpack(s.folder).catch(() => undefined);
-    if (promptId) memory.answer(promptId, answer === 'act' ? 'reopen' : answer === 'dismiss' ? 'not_now' : 'ignored', (this.now() - shown) / 1000);
+    if (promptId) this.note((memory) => memory.answer(promptId, answer === 'act' ? 'reopen' : answer === 'dismiss' ? 'not_now' : 'ignored', (this.now() - shown) / 1000));
   }
 
   /** Away: no mouse or keyboard for a while counts as leaving; touching it again is coming back. */

@@ -80,7 +80,7 @@ export class JobStore {
     let id = jobIdFor(name, now.toISOString());
     for (let i = 2; await this.exists(id); i++) id = jobIdFor(`${name} ${i}`, now.toISOString());
     const job: Job = { id, name, createdAt: now.toISOString(), updatedAt: now.toISOString(), done: false, prefs: { hide: {}, add: {} } };
-    await this.put(job);
+    await writeFileKeepingLast(path.join(this.dir(id), 'job.json'), JSON.stringify(job, null, 2));
     return job;
   }
 
@@ -130,6 +130,8 @@ export class JobStore {
   }
 
   async put(job: Job): Promise<void> {
+    // A write finishing after the folder was deleted (a brief, a card) must not bring it back.
+    await fs.access(this.dir(job.id));
     await writeFileKeepingLast(path.join(this.dir(job.id), 'job.json'), JSON.stringify(job, null, 2));
   }
 
@@ -167,6 +169,7 @@ export class JobStore {
   }
 
   async saveEntry(entry: SaveEntry): Promise<void> {
+    await fs.access(this.dir(entry.jobId));
     await writeFileAtomic(this.entryFile(entry.jobId, entry.id), JSON.stringify(entry, null, 2));
   }
 
@@ -233,7 +236,8 @@ export class JobStore {
 
   /** Deleted means deleted: it goes from the backups too. */
   async delete(jobId: string): Promise<void> {
-    await fs.rm(this.dir(jobId), { recursive: true, force: true });
+    // Retries: a brief or card may be finishing a write in the folder at this moment.
+    await fs.rm(this.dir(jobId), { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
     if (!this.backups) return;
     const dir = path.basename(this.dir(jobId));
     for (const b of await fs.readdir(this.backups).catch(() => [])) await fs.rm(path.join(this.backups, b, 'jobs', dir), { recursive: true, force: true });

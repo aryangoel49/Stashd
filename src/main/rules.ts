@@ -22,8 +22,6 @@ export interface Rules {
   quietWhenIgnored: number;
   /** "Not now" at least this share of the time on drift: Stashd stops asking and stops saving on drift. */
   stopWhenNotNow: number;
-  /** Two moments closer than this count as one (the lid closing also locks the screen). */
-  sameMomentSec: number;
   /** A look at what's open older than this isn't trusted for a save. */
   freshLookMin: number;
 }
@@ -39,6 +37,5 @@ export const RULES: Rules = {
   learnFrom: 5,
   quietWhenIgnored: 0.75,
   stopWhenNotNow: 0.8,
-  sameMomentSec: 120,
   freshLookMin: 5,
 };

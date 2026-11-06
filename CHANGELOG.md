@@ -19,6 +19,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed
+- Deleting a folder also removes what Stashd's memory held about it.
 - Apple silicon and Intel Macs sort your tabs the same way.
 - Briefs are written the same way on every Mac: Apple Intelligence no longer writes them. Your own Claude key is now an optional extra.
 - Tidy all is quicker and calmer: the panel gets out of the way at once, the menu bar says "Tidying…" until it's done, and a Chrome window whose tabs all go closes in one step instead of tab by tab.

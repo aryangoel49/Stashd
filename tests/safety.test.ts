@@ -53,7 +53,7 @@ describe('never losing a save', () => {
       mkdirSync(path.join(dir, 'Cache'));
       const made = backupBeforeChange(dir, '1.5.0')!;
       expect(made).toBeTruthy();
-      expect(readdirSync(made).sort()).toEqual(['break.json', 'jobs', 'memory.db', 'settings.json', 'state.json']);
+      expect(readdirSync(made).sort()).toEqual(['break.json', 'jobs', 'settings.json', 'state.json']);
       expect(JSON.parse(readFileSync(path.join(made, 'jobs', id, 'history', `${NEW}.json`), 'utf8')).id).toBe(NEW);
       expect(backupBeforeChange(dir, '1.5.0')).toBeNull();
       expect(backupBeforeChange(dir, '1.5.1')).toContain('1.5.0');

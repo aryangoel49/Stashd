@@ -12,7 +12,8 @@ import path from 'node:path';
 export const STORAGE_VERSION = 1;
 export const KEEP_BACKUPS = 5;
 
-const SAVED = ['jobs', 'settings.json', 'state.json', 'break.json', 'memory.db', 'memory.db-wal', 'memory.db-shm'];
+// Not memory.db: it makes its own copy before an upgrade, and "Forget my history" has to be able to reach every copy.
+const SAVED = ['jobs', 'settings.json', 'state.json', 'break.json'];
 const STAMP = 'storage.json';
 
 export const backupsDir = (dataDir: string): string => path.join(dataDir, 'backups');
