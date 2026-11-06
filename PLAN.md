@@ -198,10 +198,11 @@ Each brief request carries the anonymous install ID, so the server can count how
 
 ### Stage 1: ready for a private beta (about 2 weeks)
 **Build:**
-- [ ] Stashd AI server (Vercel function + a small counter store), with the caps and budget above
-- [ ] Brief writers in order: Stashd AI, then the template when offline. Your own key becomes an "Advanced" option.
+- [x] Stashd AI server (`api/brief.ts`, live at getstashd.vercel.app/api/brief), with per-install, per-address and daily-total caps. It stays switched off until the key is added. Optional: connect Upstash Redis in Vercel so the counters are shared and the weekly count works.
+- [x] Brief writers in order: your own key (optional), then Stashd AI, then the template. Apple Intelligence removed, so briefs are the same everywhere.
 - [ ] Consent screen at first launch
-- [ ] Update the privacy test, README and website
+- [x] Privacy test (Stashd AI may only talk to Stashd's server) and README
+- [ ] Website wording about Stashd AI, once it's switched on
 - [ ] Intel build: Swift helper for macOS 13 on both chips, onnxruntime 1.23 for Intel, the same matching results on both
 - [ ] Release signing with the kept Stashd certificate, plus Stashd's own updater with the "Install and restart" prompt
 - [ ] Installers: DMG (with the "Open Anyway" picture guide), the one-line command, and `npx stashd`
