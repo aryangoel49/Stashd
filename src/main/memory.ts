@@ -96,6 +96,25 @@ export const STEPS: string[] = [
     vector BLOB NOT NULL
   );
   `,
+  // 2: Ask Stashd conversations, so past chats come back.
+  `
+  CREATE TABLE chats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started TEXT NOT NULL,
+    updated TEXT NOT NULL,
+    title TEXT NOT NULL
+  );
+  CREATE INDEX chats_updated ON chats(updated);
+
+  CREATE TABLE chat_turns (
+    id INTEGER PRIMARY KEY,
+    chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+    at TEXT NOT NULL,
+    question TEXT NOT NULL,
+    reply TEXT NOT NULL
+  );
+  CREATE INDEX chat_turns_chat ON chat_turns(chat_id, id);
+  `,
 ];
 
 /** How long the detail of what was open is kept; the moments themselves stay a year. */
@@ -250,6 +269,45 @@ export class Memory {
     ).map((r) => ({ folder: r.folder, moments: Number(r.moments), minutes: Number(r.minutes), last: r.last }));
   }
 
+  /** Adds a question and its reply to a chat (a new chat when there's none yet). Returns the chat's id. */
+  addTurn(chatId: number | null, question: string, reply: unknown, at = new Date()): number {
+    const when = at.toISOString();
+    this.db.exec('BEGIN');
+    try {
+      let id = chatId != null && this.db.prepare('SELECT 1 FROM chats WHERE id = ?').get(chatId) ? chatId : null;
+      if (id == null) id = Number(this.db.prepare('INSERT INTO chats (started, updated, title) VALUES (?, ?, ?)').run(when, when, question.slice(0, 120)).lastInsertRowid);
+      else this.db.prepare('UPDATE chats SET updated = ? WHERE id = ?').run(when, id);
+      this.db.prepare('INSERT INTO chat_turns (chat_id, at, question, reply) VALUES (?, ?, ?, ?)').run(id, when, question, JSON.stringify(reply));
+      this.db.exec('COMMIT');
+      return id;
+    } catch (e) {
+      this.db.exec('ROLLBACK');
+      throw e;
+    }
+  }
+
+  /** Past chats, newest first. */
+  chats(limit = 50): { id: number; title: string; updated: string; turns: number }[] {
+    return (this.db.prepare('SELECT c.id, c.title, c.updated, count(t.id) AS turns FROM chats c LEFT JOIN chat_turns t ON t.chat_id = c.id GROUP BY c.id ORDER BY c.updated DESC LIMIT ?').all(limit) as { id: number; title: string; updated: string; turns: number }[]).map((r) => ({ ...r, id: Number(r.id), turns: Number(r.turns) }));
+  }
+
+  /** One chat's questions and replies, oldest first. */
+  chat(id: number): { question: string; reply: unknown; at: string }[] {
+    return (this.db.prepare('SELECT question, reply, at FROM chat_turns WHERE chat_id = ? ORDER BY id').all(id) as { question: string; reply: string; at: string }[]).map((r) => {
+      let reply: unknown = null;
+      try {
+        reply = JSON.parse(r.reply);
+      } catch {
+        // a broken reply shows as missing
+      }
+      return { question: r.question, reply, at: r.at };
+    });
+  }
+
+  deleteChat(id: number): void {
+    this.db.prepare('DELETE FROM chats WHERE id = ?').run(id);
+  }
+
   /** How much is remembered, for Settings. */
   counts(): { moments: number; since: string | null } {
     const r = this.db.prepare('SELECT count(*) AS n, min(at) AS first FROM moments').get() as { n: number; first: string | null };
@@ -261,13 +319,14 @@ export class Memory {
     const days = (n: number) => new Date(now.getTime() - n * 86_400_000).toISOString();
     this.db.prepare('DELETE FROM snapshots WHERE moment_id IN (SELECT id FROM moments WHERE at < ?)').run(days(DETAIL_DAYS));
     this.db.prepare('DELETE FROM moments WHERE at < ?').run(days(MOMENT_DAYS));
+    this.db.prepare('DELETE FROM chats WHERE updated < ?').run(days(MOMENT_DAYS));
   }
 
   /** "Forget my history": everything Stashd learned goes. Your folders don't. */
   forget(): void {
     this.db.exec('BEGIN');
     try {
-      for (const t of ['snapshot_items', 'snapshots', 'prompts', 'saves', 'moments', 'patterns', 'meanings']) this.db.exec(`DELETE FROM ${t}`);
+      for (const t of ['snapshot_items', 'snapshots', 'prompts', 'saves', 'moments', 'patterns', 'meanings', 'chat_turns', 'chats']) this.db.exec(`DELETE FROM ${t}`);
       this.db.exec('COMMIT');
     } catch (e) {
       this.db.exec('ROLLBACK');

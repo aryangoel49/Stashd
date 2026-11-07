@@ -4,8 +4,8 @@
 // press its button, and can be undone.
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { AskAnswer, AskProblem, AskRef, JobSummary } from '../shared/types';
-import { api, errorText } from './api';
+import type { AskAnswer, AskChat, AskProblem, AskRef, JobSummary } from '../shared/types';
+import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
 import { Button, FolderMark, motion } from './ui';
 import { folderTone, ItemBadge, titleOf } from './visuals';
@@ -18,9 +18,10 @@ export interface AskTurn {
 
 let nextTurn = 1;
 
-/** A conversation: ask, and the reply lands on the same turn. */
+/** A conversation: ask, and the reply lands on the same turn. Kept in Stashd's memory as a chat. */
 export function useAsk() {
   const [turns, setTurns] = useState<AskTurn[]>([]);
+  const [chatId, setChatId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const ask = async (question: string) => {
     const id = nextTurn++;
@@ -28,14 +29,26 @@ export function useAsk() {
     setBusy(true);
     let reply: AskAnswer | AskProblem;
     try {
-      reply = await api.ask(question);
+      const r = await api.ask(question, chatId);
+      reply = r.reply;
+      if (r.chatId != null) setChatId(r.chatId);
     } catch (e) {
       reply = { problem: 'error', message: errorText(e) };
     }
     setTurns((t) => t.map((x) => (x.id === id ? { ...x, reply } : x)));
     setBusy(false);
   };
-  return { turns, busy, ask, clear: () => setTurns([]) };
+  /** Opens a past chat, to read it or carry on. */
+  const open = async (id: number) => {
+    const past = await api.askChat(id);
+    setChatId(id);
+    setTurns(past.map((p) => ({ id: nextTurn++, question: p.question, reply: p.reply })));
+  };
+  const clear = () => {
+    setTurns([]);
+    setChatId(null);
+  };
+  return { turns, busy, ask, open, clear, chatId };
 }
 
 /** Questions to start with, using your own folder names. */
@@ -106,6 +119,8 @@ const VERB: Record<string, string> = { add: 'Add', remove: 'Remove', move: 'Move
 
 function Proposal({ reply }: { reply: AskAnswer }) {
   const a = reply.action!;
+  // From a past chat: the change was offered then; it can't run from here any more.
+  if (reply.past) return <p className="ask-note">Offered: {VERB[a.type] ?? 'a change'} {a.item ? `“${titleOf(a.item)}”` : ''} {a.type === 'move' ? `to ${a.to}` : `in ${a.folder}`}.</p>;
   const [state, setState] = useState<'ask' | 'busy' | 'done' | 'undone' | 'cancelled'>('ask');
   const [undoId, setUndoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -271,29 +286,76 @@ function Problem({ p }: { p: AskProblem }) {
   return <div className="banner">{p.message}</div>;
 }
 
+/** Your past chats: newest first, one click to open, the trash to delete. */
+function PastChats({ chats, onOpen, onDelete }: { chats: AskChat[]; onOpen: (id: number) => void; onDelete: (id: number) => void }) {
+  if (!chats.length) return null;
+  return (
+    <div className="ask-past">
+      <div className="ask-past-title">Past chats</div>
+      {chats.map((c) => (
+        <div key={c.id} className="ask-past-row" role="button" tabIndex={0} onClick={() => onOpen(c.id)} onKeyDown={(e) => e.key === 'Enter' && onOpen(c.id)}>
+          <Icon name="spark" />
+          <span className="grow">
+            <span className="t">{c.title}</span>
+            <span className="m">
+              {timeAgo(c.updated)}
+              {c.turns > 1 ? ` · ${c.turns} questions` : ''}
+            </span>
+          </span>
+          <button
+            type="button"
+            className="ask-past-del"
+            aria-label={`Delete “${c.title}”`}
+            title="Delete this chat"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(c.id);
+            }}
+          >
+            <Icon name="trash" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** The Stashd window's Ask Stashd page. */
 export function AskPage({ jobs, onShow }: { jobs: JobSummary[]; onShow: (jobId: string) => void }) {
-  const { turns, busy, ask } = useAsk();
+  const { turns, busy, ask, open, clear } = useAsk();
+  const [chats, setChats] = useState<AskChat[]>([]);
   const end = useRef<HTMLDivElement>(null);
   const limited = turns.some((t) => t.reply && 'problem' in t.reply && t.reply.problem === 'limit');
+  const loadChats = () => void api.askChats().then(setChats, () => undefined);
+  useEffect(loadChats, [busy]);
   useEffect(() => {
     // (Newer Chromium returns a promise from scrollIntoView; an effect must return nothing.)
     void end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [turns]);
   return (
     <div className="page ask-page">
-      <div>
-        <h1 className="display" style={{ margin: 0 }}>Ask Stashd</h1>
-        <p className="muted">Questions about your own work. Answers come only from your stash.</p>
+      <div className="ask-head">
+        <div>
+          <h1 className="display" style={{ margin: 0 }}>Ask Stashd</h1>
+          <p className="muted">Questions about your own work. Answers come only from your stash.</p>
+        </div>
+        {turns.length > 0 && (
+          <Button size="small" onClick={clear}>
+            <Icon name="plus" /> New chat
+          </Button>
+        )}
       </div>
       {turns.length === 0 ? (
-        <div className="ask-ideas">
-          {ideasFor(jobs).map((i) => (
-            <button key={i.q} type="button" className="ask-idea" onClick={() => void ask(i.q)}>
-              <b>{i.q}</b>
-              <span>{i.hint}</span>
-            </button>
-          ))}
+        <div className="ask-start">
+          <div className="ask-ideas">
+            {ideasFor(jobs).map((i) => (
+              <button key={i.q} type="button" className="ask-idea" onClick={() => void ask(i.q)}>
+                <b>{i.q}</b>
+                <span>{i.hint}</span>
+              </button>
+            ))}
+          </div>
+          <PastChats chats={chats} onOpen={(id) => void open(id)} onDelete={(id) => void api.deleteAskChat(id).then(setChats)} />
         </div>
       ) : (
         <div className="ask-thread">
@@ -304,8 +366,8 @@ export function AskPage({ jobs, onShow }: { jobs: JobSummary[]; onShow: (jobId: 
         </div>
       )}
       <div className="ask-foot">
-        <AskBox big disabled={busy || limited} placeholder={limited ? 'Back tomorrow' : 'Ask about your work…'} onAsk={(q) => void ask(q)} />
-        <p className="faint small">Sends your question and the names, titles and sites of the folders it needs to Stashd AI. Never file contents.</p>
+        <AskBox big disabled={busy || limited} placeholder={limited ? 'Back tomorrow' : turns.length ? 'Ask a follow-up…' : 'Ask about your work…'} onAsk={(q) => void ask(q)} />
+        <p className="faint small">Sends your question and the names, titles and sites of the folders it needs to Stashd AI. Never file contents. Chats are kept on this Mac.</p>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 // and validates its input before doing anything.
 
 import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
-import type { AppInfo, AskAction, BrowserName, SaveEntry } from '../shared/types';
+import type { AppInfo, AskAction, AskAnswer, BrowserName, SaveEntry } from '../shared/types';
 import { timeAgo } from '../shared/time';
 import { askStashd, runAction } from './ask';
 import * as v from '../shared/validate';
@@ -72,8 +72,10 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   const proposals = new Map<string, AskAction>();
   const undos = new Map<string, () => Promise<void>>();
   const savedLabel = (latest: SaveEntry | null) => (latest ? `${latest.items.length} ${latest.items.length === 1 ? 'thing' : 'things'} · saved ${timeAgo(latest.savedAt)}` : 'Empty');
-  handle('ask:question', async (_e, question) => {
+  handle('ask:question', async (_e, question, chat) => {
     const q = v.str(question, 'question', 500).trim();
+    const chatId = chat == null ? null : Number(chat);
+    if (chatId != null && !Number.isInteger(chatId)) throw new Error('bad chat');
     if (!q) throw new Error('Ask a question first.');
     const answer = await askStashd(q, {
       enabled: () => core.settings.get().stashdAi,
@@ -91,7 +93,24 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
       if (proposals.size > 20) proposals.clear();
       proposals.set(answer.action.id, answer.action);
     }
-    return answer;
+    // Answers are kept in Stashd's memory, so past chats come back (Forget my history clears them).
+    let id = chatId;
+    if ('answer' in answer) {
+      try {
+        id = core.memory?.addTurn(chatId, q, { ...answer, left: undefined }) ?? null;
+      } catch {
+        // the chat still shows; it just isn't kept
+      }
+    }
+    return { chatId: id, reply: answer };
+  });
+  handle('ask:chats', () => core.memory?.chats() ?? []);
+  handle('ask:chat', (_e, id) =>
+    (core.memory?.chat(Number(id)) ?? []).map((t) => ({ question: t.question, reply: t.reply && typeof t.reply === 'object' ? { ...(t.reply as AskAnswer), past: true } : { problem: 'error', message: 'This answer couldn’t be read.' } })),
+  );
+  handle('ask:deleteChat', (_e, id) => {
+    core.memory?.deleteChat(Number(id));
+    return core.memory?.chats() ?? [];
   });
   handle('ask:do', async (_e, id) => {
     const action = proposals.get(v.str(id, 'id', 100));

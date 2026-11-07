@@ -393,6 +393,16 @@ export interface AskAnswer {
   week?: { name: string; minutes: number; saves: number }[];
   /** Questions left today, when Stashd AI says. */
   left?: number;
+  /** From a past chat: its proposed change can't run any more. */
+  past?: boolean;
+}
+
+/** A past Ask Stashd conversation, for the list. */
+export interface AskChat {
+  id: number;
+  title: string;
+  updated: string;
+  turns: number;
 }
 
 /** Why Ask Stashd couldn't answer: Stashd AI is off, today's limit is used, or something went wrong. */

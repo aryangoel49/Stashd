@@ -15,7 +15,7 @@ describe("Stashd's memory", () => {
     const d = dir();
     const m = Memory.open(d);
     expect(m.version()).toBe(STEPS.length);
-    for (const t of ['moments', 'snapshots', 'snapshot_items', 'prompts', 'saves', 'patterns', 'meanings', 'rulebooks']) expect(m.rows(t)).toEqual([]);
+    for (const t of ['moments', 'snapshots', 'snapshot_items', 'prompts', 'saves', 'patterns', 'meanings', 'rulebooks', 'chats', 'chat_turns']) expect(m.rows(t)).toEqual([]);
     expect(statSync(path.join(d, 'memory.db')).mode & 0o777).toBe(0o600);
     m.close();
   });
@@ -54,15 +54,28 @@ describe("Stashd's memory", () => {
     db.exec(STEPS[0]);
     db.exec('PRAGMA user_version = 1');
     db.close();
-    STEPS.push('CREATE TABLE later (y);');
-    try {
-      const m = Memory.open(d);
-      expect(m.version()).toBe(2);
-      expect(readdirSync(d).some((f) => f.startsWith('memory.db.before-v2-'))).toBe(true);
-      m.close();
-    } finally {
-      STEPS.pop();
-    }
+    // A file from the first version (before chats) comes up to date, keeping a copy first.
+    const m = Memory.open(d);
+    expect(m.version()).toBe(STEPS.length);
+    expect(readdirSync(d).some((f) => f.startsWith(`memory.db.before-v${STEPS.length}-`))).toBe(true);
+    expect(m.chats()).toEqual([]);
+    m.close();
+  });
+
+  it('keeps Ask Stashd chats: a new chat, follow-ups in it, newest chat first, and delete', () => {
+    const m = Memory.open(dir());
+    const a = m.addTurn(null, 'What was I doing on Toronto trip?', { answer: 'Hotels.' }, new Date('2026-11-07T10:00:00Z'));
+    const b = m.addTurn(null, 'What did I do this week?', { answer: 'Stashd.' }, new Date('2026-11-07T11:00:00Z'));
+    expect(m.addTurn(a, 'And the budget?', { answer: 'Under $180.' }, new Date('2026-11-07T12:00:00Z'))).toBe(a);
+    expect(m.chats().map((c) => [c.id, c.title, c.turns])).toEqual([[a, 'What was I doing on Toronto trip?', 2], [b, 'What did I do this week?', 1]]);
+    expect(m.chat(a).map((t) => t.question)).toEqual(['What was I doing on Toronto trip?', 'And the budget?']);
+    expect(m.chat(a)[1].reply).toEqual({ answer: 'Under $180.' });
+    // A chat that's gone starts a new one instead of failing.
+    m.deleteChat(b);
+    expect(m.addTurn(b, 'Hello?', { answer: 'Hi.' })).not.toBe(b);
+    m.forget();
+    expect(m.chats()).toEqual([]);
+    m.close();
   });
 
   it('sets a damaged file aside and starts fresh, so Stashd never stops', () => {
