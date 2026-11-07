@@ -68,6 +68,7 @@ function rig(over: Partial<Settings> = {}, answer: 'act' | 'dismiss' | 'timeout'
   const memory = Memory.open(mkdtempSync(path.join(os.tmpdir(), 'stashd-auto-')));
   const saves: string[][] = [];
   const removed: string[] = [];
+  const packed: string[] = [];
   const cards: string[] = [];
   const auto = new AutoSaver({
     settings: () => ({ autoSave: true, autoSaveTalk: 'helpful', ...over }) as Settings,
@@ -80,6 +81,7 @@ function rig(over: Partial<Settings> = {}, answer: 'act' | 'dismiss' | 'timeout'
     wouldSave: async () => true,
     save: async (_cap, ids) => (saves.push(ids), ids.map((id) => ({ jobId: id, entryId: '2026-11-06T09-00-00-000Z', name: 'Climate essay' }))),
     remove: async (jobId) => void removed.push(jobId),
+    packUp: async (jobId) => void packed.push(jobId),
     unpack: async () => undefined,
     ask: async (card) => (cards.push(card.title), answer),
     busy: () => false,
@@ -91,18 +93,51 @@ function rig(over: Partial<Settings> = {}, answer: 'act' | 'dismiss' | 'timeout'
       await auto.look(look(front));
     }
   };
-  return { auto, memory, saves, removed, cards, tick, advance: (ms: number) => (clock += ms) };
+  return { auto, memory, saves, removed, packed, cards, tick, advance: (ms: number) => (clock += ms) };
 }
 
 describe('automatic saving', () => {
-  it('saves on its own when you move on, without asking, and remembers the moment', async () => {
+  it('saves on its own when you move on, then says so; the card closes nothing by itself', async () => {
     const r = rig();
     await r.tick('essay', 11);
     await r.tick('other', 4);
-    expect(r.cards).toEqual([]);
     expect(r.saves).toEqual([['essay']]);
+    expect(r.cards).toEqual(['Saved Climate essay']);
+    expect(r.packed).toEqual([]);
     expect(r.memory.rows('moments')).toMatchObject([{ kind: 'drift', from_folder: 'essay' }]);
     expect(r.memory.rows('saves')).toMatchObject([{ folder: 'essay', how: 'auto' }]);
+    expect(r.memory.answers('drift_saved')).toEqual(['ignored']);
+  });
+
+  it('Pack up on the card packs the folder up from the save it just made', async () => {
+    const r = rig({}, 'act');
+    await r.tick('essay', 11);
+    await r.tick('other', 4);
+    expect(r.packed).toEqual(['essay']);
+    expect(r.removed).toEqual([]);
+    expect(r.memory.answers('drift_saved')).toEqual(['pack']);
+  });
+
+  it('shows the moving-on card at most once every half hour; the saving goes on', async () => {
+    const r = rig();
+    await r.tick('essay', 11);
+    await r.tick('other', 4);
+    await r.tick('essay', 11);
+    await r.tick('other', 4);
+    expect(r.saves).toEqual([['essay'], ['essay']]);
+    expect(r.cards).toHaveLength(1);
+    r.advance(31 * MIN);
+    await r.tick('essay', 11);
+    await r.tick('other', 4);
+    expect(r.cards).toHaveLength(2);
+  });
+
+  it('with cards off, it saves and shows nothing', async () => {
+    const r = rig({ autoSaveTalk: 'quiet' });
+    await r.tick('essay', 11);
+    await r.tick('other', 4);
+    expect(r.saves).toEqual([['essay']]);
+    expect(r.cards).toEqual([]);
   });
 
   it('turned off, it does nothing at all', async () => {

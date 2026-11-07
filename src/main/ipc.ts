@@ -34,6 +34,7 @@ export interface IpcHooks {
   finishNaming: (names: (string | null)[]) => void;
   undoTidy: () => Promise<void>;
   dismissToast: () => void;
+  holdToast: (on: boolean) => void;
   toastAction: () => Promise<void>;
   tidyAll: () => Promise<void>;
   afterShelve: (items: import('../shared/types').Item[]) => void;
@@ -229,6 +230,10 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('tidy:all', () => {
     getWindow('panel')?.hide();
     void hooks.tidyAll();
+    return true;
+  });
+  handle('toast:hold', (_e, on) => {
+    hooks.holdToast(on === true);
     return true;
   });
   handle('toast:dismiss', () => {

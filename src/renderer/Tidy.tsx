@@ -230,6 +230,8 @@ export function Overlay() {
 
 export function Toast() {
   useSettings();
+  // The window follows the card's height, so longer text wraps and is read whole, never cut off.
+  const fit = useFitWindow<HTMLDivElement>();
   const [info, setInfo] = useState<ToastInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [key, setKey] = useState(0);
@@ -264,52 +266,66 @@ export function Toast() {
       offLeave();
     };
   }, []);
-  if (!info) return null;
+  // One element that stays while cards come and go, so the window can follow each card's height.
   return (
-    <Motion>
-      <div className={`toast ${leaving ? 'leaving' : ''}`} key={key} role="status" aria-live="polite">
-        <motion.span initial={{ scale: 0.6, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
-          <FolderMark size={34} alive mood={mood} />
-        </motion.span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span className="toast-title">{info.title}</span>
-          <span className="muted small toast-detail">{info.detail}</span>
-        </span>
-        {info.action ? (
-          <>
-            <Button
-              size="small"
-              tabIndex={-1}
-              disabled={busy}
-              onClick={() => {
-                setBusy(true);
-                void api.toastAction();
-              }}
-            >
-              {info.action}
-            </Button>
-            <Button variant="ghost" className="close" tabIndex={-1} aria-label="Not now" onClick={() => void api.dismissToast()}>
-              ✕
-            </Button>
-          </>
-        ) : info.canUndo ? (
-          <Button
-            size="small"
-            tabIndex={-1}
-            disabled={busy}
-            onClick={() => {
-              setBusy(true);
-              void api.undoTidy();
-            }}
+    <div ref={fit}>
+      {info ? (
+        <Motion>
+          <div
+            className={`toast ${leaving ? 'leaving' : ''}`}
+            key={key}
+            role="status"
+            aria-live="polite"
+            onMouseEnter={() => void api.holdToast(true)}
+            onMouseLeave={() => void api.holdToast(false)}
           >
-            Undo
-          </Button>
-        ) : (
-          <Button variant="ghost" className="close" tabIndex={-1} aria-label="Close" onClick={() => void api.dismissToast()}>
-            ✕
-          </Button>
-        )}
-      </div>
-    </Motion>
+            {info.ms ? <span className="toast-time" style={{ animationDuration: `${info.ms}ms` }} aria-hidden /> : null}
+            <motion.span initial={{ scale: 0.6, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}>
+              <FolderMark size={34} alive mood={mood} />
+            </motion.span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="toast-title">{info.title}</span>
+              <span className="muted small toast-detail">{info.detail}</span>
+            </span>
+            {info.action ? (
+              <>
+                <Button
+                  size="small"
+                  // An offer on the side (Pack up after an automatic save) is plain text until you point at it.
+                  variant={info.subtle ? 'ghost' : 'secondary'}
+                  tabIndex={-1}
+                  disabled={busy}
+                  onClick={() => {
+                    setBusy(true);
+                    void api.toastAction();
+                  }}
+                >
+                  {info.action}
+                </Button>
+                <Button variant="ghost" className="close" tabIndex={-1} aria-label="Not now" onClick={() => void api.dismissToast()}>
+                  ✕
+                </Button>
+              </>
+            ) : info.canUndo ? (
+              <Button
+                size="small"
+                tabIndex={-1}
+                disabled={busy}
+                onClick={() => {
+                  setBusy(true);
+                  void api.undoTidy();
+                }}
+              >
+                Undo
+              </Button>
+            ) : (
+              <Button variant="ghost" className="close" tabIndex={-1} aria-label="Close" onClick={() => void api.dismissToast()}>
+                ✕
+              </Button>
+            )}
+          </div>
+        </Motion>
+      ) : null}
+    </div>
   );
 }

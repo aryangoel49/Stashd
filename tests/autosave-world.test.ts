@@ -46,6 +46,7 @@ function world(answer: 'act' | 'dismiss' | 'timeout' = 'timeout') {
       wouldSave: (cap, id) => core.wouldSave(cap, id),
       save: (cap, ids) => core.autoSave(cap, ids),
       remove: (j, e) => core.removeAutoSave(j, e),
+      packUp: async () => undefined,
       unpack: async () => undefined,
       ask: async (card) => (cards.push(card.title), answer),
       busy: () => false,
@@ -68,13 +69,13 @@ function world(answer: 'act' | 'dismiss' | 'timeout' = 'timeout') {
 }
 
 describe('moving on', () => {
-  it('saves on its own, without asking, when there is something new', async () => {
+  it('saves on its own, without asking, when there is something new, then says so', async () => {
     const w = world();
     const s = await w.save();
     await w.tick(11);
     w.setOpen([dog(), A, B, C]);
     await w.tick(4);
-    expect(w.cards).toEqual([]);
+    expect(w.cards).toEqual(['Saved Carbon tax essay']);
     expect((await w.store.latest(s.jobId))?.auto).toBe(true);
     expect((await w.store.latest(s.jobId))?.items.map((i) => i.label)).toContain(C.label);
   });
@@ -197,6 +198,7 @@ function stub(saves: { jobId: string; entryId: string; name: string }[][] = []) 
     wouldSave: async () => true,
     save: async (_c: unknown, ids: string[]) => (saved.push(ids), saves.shift() ?? []),
     remove: async () => undefined,
+    packUp: async () => undefined,
     unpack: async () => undefined,
     ask: async (c: { title: string }) => (cards.push(c.title), 'timeout' as const),
     busy: () => false,

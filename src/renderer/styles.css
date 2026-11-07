@@ -266,14 +266,19 @@ button { cursor: default; }
   max-width: 110px; font-size: 11px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   background: rgba(0, 0, 0, 0.55); padding: 2px 8px; border-radius: 99px;
 }
-/* Fixed size, matching the toast window (400 × 68), so it never lays out at the wrong width.
-   Generous side padding keeps the buttons clear of the window's rounded corners. */
-.toast { display: flex; align-items: center; gap: 10px; width: 400px; height: 68px; padding: 0 18px; overflow: hidden; animation: toastIn 0.36s var(--ease); }
+/* As wide as the toast window (400), so it never lays out at the wrong width; as tall as its text, and the
+   window follows, so nothing is cut off. Generous side padding keeps the buttons clear of the rounded corners. */
+.toast { display: flex; align-items: center; gap: 10px; width: 400px; min-height: 68px; padding: 13px 18px; overflow: hidden; animation: toastIn 0.36s var(--ease); }
 .toast button { flex: none; }
 .toast button:focus, .toast button:focus-visible { outline: none; box-shadow: none; }
 .toast .close { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
-.toast-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-weight: 600; line-height: 1.2; overflow: hidden; }
-.toast-detail { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.toast-title { display: block; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.toast-detail { display: block; margin-top: 2px; line-height: 1.35; overflow-wrap: anywhere; }
+/* A card that goes by itself shows how long it has left: a thin line in the accent that runs out, and waits while you point at it. */
+.toast { position: relative; }
+.toast-time { position: absolute; left: 18px; right: 18px; bottom: 6px; height: 2px; border-radius: 1px; background: var(--accent); opacity: 0.85; transform-origin: left; animation: toastTime linear forwards; pointer-events: none; }
+.toast:hover .toast-time { animation-play-state: paused; }
+@keyframes toastTime { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 .toast { transition: opacity var(--dur-leave) var(--ease-out), transform var(--dur-leave) var(--ease-out); }
 .toast.leaving { opacity: 0; transform: translateY(-4px) scale(0.98); }

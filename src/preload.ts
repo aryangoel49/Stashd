@@ -63,6 +63,7 @@ const api = {
   finishNaming: (names: (string | null)[]) => invoke<boolean>('naming:done', names),
   undoTidy: () => invoke<void>('tidy:undo'),
   dismissToast: () => invoke<boolean>('toast:dismiss'),
+  holdToast: (on: boolean) => invoke<boolean>('toast:hold', on),
   toastAction: () => invoke<void>('toast:action'),
   tidyAll: () => invoke<boolean>('tidy:all'),
   recentlyTidied: () => invoke<{ at: string; until: string; items: Item[] } | null>('tidy:recent'),

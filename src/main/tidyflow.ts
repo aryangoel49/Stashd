@@ -25,6 +25,9 @@ export class TidyFlow {
   private naming: { jobId: string; entryId: string; items: Item[]; resolve: (names: (string | null)[]) => void } | null = null;
   private undo: { items: Item[]; frontKey: string | null; timer: NodeJS.Timeout } | null = null;
   private toastTimer: NodeJS.Timeout | null = null;
+  /** When the toast goes by itself, or, while you point at it, how long it has left. */
+  private toastEnds = 0;
+  private toastLeft: number | null = null;
   /** A card waiting for your answer (automatic saving), resolved by its button, its close, or time running out. */
   private asked: ((a: 'act' | 'dismiss' | 'timeout' | 'replaced') => void) | null = null;
   private overlayDone: (() => void) | null = null;
@@ -335,9 +338,9 @@ export class TidyFlow {
   }
 
   /** Shows a card with one button and waits: 'act' (the button), 'dismiss' (closed), 'timeout', or 'replaced'. */
-  ask(card: { title: string; detail: string; action: string; seconds: number }): Promise<'act' | 'dismiss' | 'timeout' | 'replaced'> {
+  ask(card: { title: string; detail: string; action: string; seconds: number; subtle?: boolean }): Promise<'act' | 'dismiss' | 'timeout' | 'replaced'> {
     return new Promise((resolve) => {
-      this.toast({ title: card.title, detail: card.detail, canUndo: false, action: card.action, mood: 'curious' }, card.seconds * 1000);
+      this.toast({ title: card.title, detail: card.detail, canUndo: false, action: card.action, subtle: card.subtle, mood: 'curious', ms: card.seconds * 1000 }, card.seconds * 1000);
       this.asked = resolve;
     });
   }
@@ -363,17 +366,37 @@ export class TidyFlow {
     win.webContents.send('toast:show', info);
     // Let it draw the new text first, then slide it in under the menu bar icon.
     setTimeout(() => showWindow('toast', { near: this.trayBounds() }), 60);
+    this.toastLeft = null;
+    this.runToastTimer(ms ?? (info.action ? OFFER_MS : info.canUndo ? UNDO_MS : 4000));
+  }
+
+  private runToastTimer(ms: number): void {
     if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastEnds = Date.now() + ms;
     this.toastTimer = setTimeout(() => {
       this.settle('timeout');
       this.hideToast();
-    }, ms ?? (info.action ? OFFER_MS : info.canUndo ? UNDO_MS : 4000));
+    }, ms);
+  }
+
+  /** You're pointing at the toast: it waits for you, then takes up where it left off (with a moment to spare). */
+  holdToast(on: boolean): void {
+    if (!getWindow('toast')?.isVisible()) return;
+    if (on && this.toastLeft == null) {
+      if (this.toastTimer) clearTimeout(this.toastTimer);
+      this.toastLeft = Math.max(0, this.toastEnds - Date.now());
+    } else if (!on && this.toastLeft != null) {
+      const left = Math.max(this.toastLeft, 1500);
+      this.toastLeft = null;
+      this.runToastTimer(left);
+    }
   }
 
   /** Let the toast fade up and away, then hide its window. A new toast cancels the hide. */
   private hideToast(): void {
     const win = getWindow('toast');
     if (!win?.isVisible()) return;
+    this.toastLeft = null;
     win.webContents.send('toast:leave');
     if (this.toastTimer) clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => getWindow('toast')?.hide(), TOAST_LEAVE_MS);

@@ -190,10 +190,11 @@ function placeCentered(win: BrowserWindow): void {
 /** The UI asks for its window to fit its content height. */
 export function fitHeight(win: BrowserWindow, height: number): void {
   const route = [...windows.entries()].find(([, w]) => w === win)?.[0];
-  if (!route || route === 'main' || route === 'overlay' || route === 'toast') return;
+  if (!route || route === 'main' || route === 'overlay') return;
   const area = screen.getDisplayMatching(win.getBounds()).workArea;
   // Size the inside of the window (not its outer frame), plus a little room so nothing is clipped.
-  const h = Math.round(Math.min(Math.max(height + 2, 80), area.height - 40));
+  // The toast is exactly its card: never shorter than one line of each, and it grows to fit longer text.
+  const h = route === 'toast' ? Math.round(Math.min(Math.max(height, 68), 200)) : Math.round(Math.min(Math.max(height + 2, 80), area.height - 40));
   const [w, current] = win.getContentSize();
   if (current !== h) win.setContentSize(w, h, false);
 }

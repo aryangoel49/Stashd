@@ -329,6 +329,10 @@ export interface ToastInfo {
   mood?: 'awake' | 'sleep' | 'curious' | 'wide';
   /** A button that does something else than Undo (Unpack a folder you seem to be back on). */
   action?: string;
+  /** The action is an offer on the side, not the point of the card: shown as a quiet text button. */
+  subtle?: boolean;
+  /** How long it stays (ms), shown as a thin line that runs out; pointing at the card holds it. */
+  ms?: number;
 }
 
 /** A place on the Break shelf you go to often (YouTube, Netflix…). */

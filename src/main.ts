@@ -201,6 +201,7 @@ function start(): void {
         return saved;
       },
       remove: (jobId, entryId) => core.removeAutoSave(jobId, entryId),
+      packUp: (jobId, entryId) => tidy.run(jobId, entryId).then(() => tray.wink()),
       unpack: (jobId) => core.open(jobId, undefined, 'all', beforeOpen).then(() => undefined),
       ask: (card) => tidy.ask(card),
       busy: () => !!getWindow('save')?.isVisible() || !!getWindow('panel')?.isVisible(),
@@ -269,6 +270,7 @@ function start(): void {
       finishNaming: (names) => tidy.finishNaming(names),
       undoTidy: () => tidy.undoLast(),
       dismissToast: () => tidy.dismissToast(),
+      holdToast: (on) => tidy.holdToast(on),
       tidyAll: tidyAllNow,
       afterShelve: (items) => void tidy.shelve(items).then(() => tray.wink()),
       toastAction: async () => {

@@ -1,6 +1,8 @@
 // Automatic saving: Stashd saves your work at moments that already happen, so you don't have to remember ⌃S.
 //
-//   You move on from a folder (drift)   it saves on its own, without asking; the menu bar says "Saved automatically".
+//   You move on from a folder (drift)   it saves on its own, without asking, then says so on a card:
+//                                        "Saved X. It's still open." · a quiet Pack up, to close it if you're done.
+//                                        At most one such card every half hour.
 //   The Mac sleeps or locks, you walk   saves first, and tells you when you're back:
 //   away                                 "Saved X before your Mac slept" · Remove (leaving it keeps it).
 //   Shutdown or restart                  saves first; after the restart: "Saved X before your Mac shut down"
@@ -98,8 +100,10 @@ export interface AutoDeps {
   save: (cap: Capture, jobIds: string[]) => Promise<{ jobId: string; entryId: string; name: string }[]>;
   remove: (jobId: string, entryId: string) => Promise<void>;
   unpack: (jobId: string) => Promise<void>;
-  /** Shows a card with one button; resolves with what you did. */
-  ask: (card: { title: string; detail: string; action: string; seconds: number }) => Promise<Answer>;
+  /** Pack up a folder from one of its saves: close its things (with Undo), as the panel's Pack up does. */
+  packUp: (jobId: string, entryId: string) => Promise<void>;
+  /** Shows a card with one button (a quiet one when `subtle`); resolves with what you did. */
+  ask: (card: { title: string; detail: string; action: string; seconds: number; subtle?: boolean }) => Promise<Answer>;
   /** True while you're in Stashd (the save box or the panel is up): no cards then. */
   busy: () => boolean;
   now?: () => number;
@@ -135,7 +139,7 @@ export class AutoSaver {
   private promptRow(momentId: number, type: string): number | undefined {
     return this.note((memory) => {
       memory.useRules(this.d.rules.version, this.d.rules);
-      return memory.prompt(momentId, type, this.d.rules.version);
+      return memory.prompt(momentId, type, this.d.rules.version, new Date(this.now()));
     });
   }
 
@@ -161,6 +165,27 @@ export class AutoSaver {
     // Saved from what's open now: your folder's things are still open, you only moved on.
     const saved = await this.d.save(cap, [jobId]).catch(() => []);
     for (const s of saved) this.note((memory) => memory.autoSaved(momentId, s.jobId, s.entryId));
+    if (saved.length) await this.tellSaved(momentId, saved);
+  }
+
+  /** After a moving-on save: a card saying so, with a quiet Pack up. Not while you're in Stashd, nor more than once every half hour. */
+  private async tellSaved(momentId: number, saved: { jobId: string; entryId: string; name: string }[]): Promise<void> {
+    if (this.d.settings().autoSaveTalk === 'quiet' || this.d.busy()) return;
+    const type = 'drift_saved';
+    const last = this.note((memory) => memory.lastShown(type)) ?? null;
+    if (last && this.now() - Date.parse(last) < this.d.rules.driftCardGapMin * 60_000) return;
+    if ((this.note((memory) => verdict(memory.answers(type), last, this.d.rules, this.now())) ?? 'ask') !== 'ask') return;
+    const promptId = this.promptRow(momentId, type);
+    const shown = this.now();
+    const answer = await this.d.ask({
+      title: `Saved ${namesOf(saved.map((s) => s.name))}`,
+      detail: saved.length === 1 ? 'It’s still open. Pack it up when you’re done.' : 'They’re still open. Pack them up when you’re done.',
+      action: 'Pack up',
+      seconds: this.d.rules.returnSeconds,
+      subtle: true,
+    });
+    if (promptId) this.note((memory) => memory.answer(promptId, answer === 'act' ? 'pack' : answer === 'dismiss' ? 'keep' : 'ignored', (this.now() - shown) / 1000));
+    if (answer === 'act') for (const s of saved) await this.d.packUp(s.jobId, s.entryId).catch(() => undefined);
   }
 
   /** The Mac is about to sleep, lock or shut down, or you walked away. Saves first; asks when you're back. */
