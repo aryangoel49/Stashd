@@ -303,7 +303,7 @@ Each brief request carries the anonymous install ID, so the server can count how
 - **Design chat:** the look of the first-run setup and the brief tests.
 - **Marketing chat:** the marketing phase, website copy, launch week.
 - **Aryan:**
-  - the Anthropic server key with a spend limit, added to Vercel (and Upstash Redis from the Vercel Marketplace);
+  - ~~the Anthropic server key~~ done 7 Nov: Stashd AI is live; Upstash Redis from the Vercel Marketplace is still to do;
   - a free npm account for `npx stashd`;
   - a backup of the "Stashd Local Signing" certificate (every release is signed with it; if it's lost, everyone approves permissions again once);
   - the Chrome Web Store account and the domain;
