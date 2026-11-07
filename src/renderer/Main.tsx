@@ -2,10 +2,10 @@
 // brief and everything inside as cards you can click to reopen. Drag a card onto another folder in
 // the sidebar to move it. The layout reflows to any window size, full screen included.
 
-import { AskPage } from './Ask';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { mostlyOpen, type BriefView, type Item, type JobSummary, type OpenState, type Suggestion } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useSettings } from './api';
+import { AskPage } from './Ask';
 import { BriefCard } from './BriefCard';
 import { Icon } from './icons';
 import { ProjectCard } from './ProjectCard';

@@ -275,9 +275,12 @@ export function AskPage({ jobs, onShow }: { jobs: JobSummary[]; onShow: (jobId: 
   const { turns, busy, ask } = useAsk();
   const end = useRef<HTMLDivElement>(null);
   const limited = turns.some((t) => t.reply && 'problem' in t.reply && t.reply.problem === 'limit');
-  useEffect(() => end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), [turns]);
+  useEffect(() => {
+    // (Newer Chromium returns a promise from scrollIntoView; an effect must return nothing.)
+    void end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [turns]);
   return (
-    <div className="ask-page">
+    <div className="page ask-page">
       <div>
         <h1 className="display" style={{ margin: 0 }}>Ask Stashd</h1>
         <p className="muted">Questions about your own work. Answers come only from your stash.</p>
