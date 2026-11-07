@@ -114,7 +114,7 @@ const ACTIONS: AskActionType[] = ['add', 'remove', 'move', 'rename', 'pin', 'unp
 /** Turns Stashd AI's answer (ids) back into real folders, items and a checked proposal. Anything that doesn't fit is dropped. */
 export function readAnswer(raw: unknown, question: string, b: Built, savedLabel: (latest: SaveEntry | null) => string): AskAnswer | null {
   if (!raw || typeof raw !== 'object') return null;
-  const r = raw as { answer?: unknown; highlights?: unknown; refs?: unknown; action?: Record<string, unknown> };
+  const r = raw as { answer?: unknown; aside?: unknown; highlights?: unknown; refs?: unknown; action?: Record<string, unknown> };
   if (typeof r.answer !== 'string' || !r.answer.trim()) return null;
   const answer = r.answer.trim().slice(0, 600);
   const highlights = Array.isArray(r.highlights) ? r.highlights.filter((h): h is string => typeof h === 'string' && !!h && answer.includes(h)).slice(0, 2) : [];
@@ -143,7 +143,8 @@ export function readAnswer(raw: unknown, question: string, b: Built, savedLabel:
     else if (['pin', 'unpin', 'unpack', 'done'].includes(type)) action = base;
   }
   // A proposal only makes sense with words to confirm; refs aren't shown for one, the card says it all.
-  return { question, answer, highlights, refs: action ? [] : refs, action, week: /week|today|yesterday|monday|tuesday|wednesday|thursday|friday|worked|spent/i.test(question) ? b.week : undefined };
+  const aside = typeof r.aside === 'string' && r.aside.trim() && !action ? r.aside.trim().slice(0, 120) : undefined;
+  return { question, answer, ...(aside ? { aside } : {}), highlights, refs: action ? [] : refs, action, week: /week|today|yesterday|monday|tuesday|wednesday|thursday|friday|worked|spent/i.test(question) ? b.week : undefined };
 }
 
 export interface AskDeps {

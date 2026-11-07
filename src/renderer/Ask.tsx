@@ -235,6 +235,7 @@ export function AskReply({ turn, onShow }: { turn: AskTurn; onShow?: (jobId: str
           <p className="ask-a">
             <Marked text={r.answer} marks={r.highlights} />
           </p>
+          {r.aside && <p className="ask-aside">{r.aside}</p>}
           {r.action ? <Proposal reply={r} /> : r.refs.map((ref, i) => <Ref key={i} r={ref} onShow={onShow} />)}
           {r.week && r.week.length > 0 && <Week week={r.week} />}
           {r.left != null && r.left <= 5 && <p className="ask-left">{r.left === 0 ? 'That was today’s last free question.' : `${r.left} ${r.left === 1 ? 'question' : 'questions'} left today`}</p>}

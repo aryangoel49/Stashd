@@ -6,6 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
+- Ask Stashd has a bit of personality: under each answer, a short friendly line from Stashd (in italics, so the facts stay easy to spot).
 - **Ask Stashd**: ask about your own work in plain words: what you were doing on a folder, where you saved something, what you worked on this week, or change a folder ("add this tab to Stashd project", rename, pin, move, unpack). Answers point at your real folders and tabs; changes run only when you press the button, and can be undone. In the Stashd window (Ask Stashd) and in the menu bar panel (press /). Uses Stashd AI.
 - **Automatic saving**: Stashd saves your work by itself when you move on to something else (without asking; a small card says so, with a quiet Pack up if you're done), and when your Mac sleeps, locks or shuts down, or you walk away (it saves first and tells you when you're back, with Remove). After a restart it offers to bring your work back. It never closes anything, keeps only the latest automatic save per folder, and learns which cards you don't want. Settings → General → Automatic saving.
 - **Stashd's memory**: Stashd now remembers when you saved and what was open (titles and sites, never page contents), on this Mac only, so it can learn your habits. Settings → Privacy shows how much it remembers and has **Forget my history**.

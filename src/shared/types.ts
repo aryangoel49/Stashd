@@ -384,6 +384,8 @@ export interface AskAction {
 export interface AskAnswer {
   question: string;
   answer: string;
+  /** A short friendly line under the answer (personality, never facts). */
+  aside?: string;
   highlights: string[];
   refs: AskRef[];
   action: AskAction | null;

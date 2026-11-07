@@ -29,8 +29,9 @@ describe('reading the answer', () => {
   const label = () => 'saved';
 
   it('turns ids into your real folders and things, and drops ones it made up', () => {
-    const a = readAnswer({ answer: 'It’s in Climate essay.', highlights: ['Climate essay', 'not in it'], refs: ['i2', 'f9', 'f1'], action: { type: 'none', folder: '', item: '', to: '', name: '' } }, 'where is jstor', b, label)!;
+    const a = readAnswer({ answer: 'It’s in Climate essay.', aside: 'Carbon pricing awaits.', highlights: ['Climate essay', 'not in it'], refs: ['i2', 'f9', 'f1'], action: { type: 'none', folder: '', item: '', to: '', name: '' } }, 'where is jstor', b, label)!;
     expect(a.highlights).toEqual(['Climate essay']);
+    expect(a.aside).toBe('Carbon pricing awaits.');
     expect(a.refs.map((r) => (r.kind === 'folder' ? r.name : r.item.label))).toEqual(['Carbon pricing and emissions · JSTOR', 'Climate essay']);
     expect(a.action).toBeNull();
   });
