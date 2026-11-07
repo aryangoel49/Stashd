@@ -14,23 +14,39 @@ import type { AskKind } from './spec';
 
 export const STASHD_AI = 'https://getstashd.vercel.app/api/brief';
 
-export function stashdWriter(opts: { installId: () => Promise<string>; allowed: () => boolean; version: string }): BriefWriter {
-  async function ask(kind: AskKind, content: string, timeoutMs: number): Promise<string> {
-    let res: Response;
-    try {
-      res = await fetch(STASHD_AI, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ install: await opts.installId(), kind, content, v: opts.version }),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-    } catch {
-      throw new Error('Could not reach Stashd AI (are you offline?).');
-    }
-    const out = (await res.json().catch(() => ({}))) as { text?: unknown; message?: unknown };
-    if (!res.ok || typeof out.text !== 'string') throw new Error(typeof out.message === 'string' ? out.message : 'Stashd AI isn’t available right now.');
-    return out.text;
+/** The one request to Stashd AI. Returns the model's JSON text and how many requests are left today. */
+async function post(install: string, version: string, kind: AskKind, content: string, timeoutMs: number): Promise<{ text: string; left?: number }> {
+  let res: Response;
+  try {
+    res = await fetch(STASHD_AI, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ install, kind, content, v: version }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch {
+    throw new StashdAiError('error', 'Could not reach Stashd AI (are you offline?).');
   }
+  const out = (await res.json().catch(() => ({}))) as { text?: unknown; message?: unknown; left?: unknown };
+  if (!res.ok || typeof out.text !== 'string') {
+    throw new StashdAiError(res.status === 429 ? 'limit' : 'error', typeof out.message === 'string' ? out.message : 'Stashd AI isn’t available right now.');
+  }
+  return { text: out.text, left: typeof out.left === 'number' ? out.left : undefined };
+}
+
+export class StashdAiError extends Error {
+  constructor(readonly code: 'limit' | 'error', message: string) {
+    super(message);
+  }
+}
+
+/** Ask Stashd: one question with its context (see ask.ts). */
+export async function stashdAsk(opts: { installId: () => Promise<string>; version: string }, content: string): Promise<{ text: string; left?: number }> {
+  return post(await opts.installId(), opts.version, 'ask', content, 30_000);
+}
+
+export function stashdWriter(opts: { installId: () => Promise<string>; allowed: () => boolean; version: string }): BriefWriter {
+  const ask = async (kind: AskKind, content: string, timeoutMs: number) => (await post(await opts.installId(), opts.version, kind, content, timeoutMs)).text;
 
   return {
     name: 'stashd',

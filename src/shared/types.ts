@@ -359,3 +359,42 @@ export interface BreakShelf {
   /** Where break things open: a browser, or a clean window of its own. Null until you choose. */
   browser: BrowserName | 'window' | null;
 }
+
+// ---------- Ask Stashd ----------
+
+/** Something an answer points at: a folder, or one thing inside a folder (or open right now). */
+export type AskRef =
+  | { kind: 'folder'; jobId: string; name: string; meta: string }
+  | { kind: 'item'; jobId: string | null; folder: string | null; item: Item };
+
+export type AskActionType = 'add' | 'remove' | 'move' | 'rename' | 'pin' | 'unpin' | 'unpack' | 'done';
+
+/** A change Ask Stashd proposes. It runs only when you confirm it (by its id), and can be undone. */
+export interface AskAction {
+  id: string;
+  type: AskActionType;
+  jobId: string;
+  folder: string;
+  item?: Item;
+  toJobId?: string;
+  to?: string;
+  name?: string;
+}
+
+export interface AskAnswer {
+  question: string;
+  answer: string;
+  highlights: string[];
+  refs: AskRef[];
+  action: AskAction | null;
+  /** Minutes and saves per folder this week, when the question is about time. */
+  week?: { name: string; minutes: number; saves: number }[];
+  /** Questions left today, when Stashd AI says. */
+  left?: number;
+}
+
+/** Why Ask Stashd couldn't answer: Stashd AI is off, today's limit is used, or something went wrong. */
+export interface AskProblem {
+  problem: 'off' | 'limit' | 'error';
+  message: string;
+}

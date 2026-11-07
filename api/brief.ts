@@ -50,13 +50,16 @@ export function makeHandler(deps: Deps) {
     }
     const { install, kind, content } = body;
     if (typeof install !== 'string' || !INSTALL.test(install)) return fail(400, 'bad');
-    if (kind !== 'brief' && kind !== 'name') return fail(400, 'bad');
+    if (kind !== 'brief' && kind !== 'name' && kind !== 'ask') return fail(400, 'bad');
     if (typeof content !== 'string' || !content || content.length > MAX_CONTENT) return fail(400, 'bad');
     if (!deps.create) return fail(503, 'off');
 
     const address = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+    let left: number | undefined;
     try {
-      if (await check(deps.counter, install, address, deps.totalPerDay)) return fail(429, 'limit');
+      const c = await check(deps.counter, install, address, deps.totalPerDay);
+      if (c.refused) return fail(429, 'limit');
+      left = c.left;
     } catch {
       // If the counter store is down, keep briefs working; the Anthropic spend limit still caps the cost.
     }
@@ -64,7 +67,7 @@ export function makeHandler(deps: Deps) {
     try {
       const response = await deps.create(briefParams(kind as AskKind, STASHD_MODEL, content));
       if (response.stop_reason === 'refusal') return fail(422, 'declined');
-      return reply(200, { text: responseText(response) });
+      return reply(200, { text: responseText(response), left });
     } catch (e) {
       if (e instanceof Anthropic.APIError && (e.status === 429 || (e.status ?? 0) >= 500)) return fail(503, 'busy');
       if (e instanceof Anthropic.APIConnectionError) return fail(503, 'busy');

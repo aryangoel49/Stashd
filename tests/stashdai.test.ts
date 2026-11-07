@@ -20,7 +20,7 @@ describe('Stashd AI server', () => {
     const d = deps();
     const res = await makeHandler(d)(post({ install, kind: 'brief', content: '{"items":[]}' }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ text: '{"name":"Climate essay"}' });
+    expect(await res.json()).toEqual({ text: '{"name":"Climate essay"}', left: 59 });
     expect(d.calls[0]).toEqual(briefParams('brief', STASHD_MODEL, '{"items":[]}'));
     expect(d.calls[0].output_config?.format).toEqual({ type: 'json_schema', schema: OUTPUT_SCHEMA });
   });
@@ -63,9 +63,9 @@ describe('Stashd AI server', () => {
 describe('fair-use counters', () => {
   it('pauses for everyone once the daily total is reached', async () => {
     const c = memoryCounter();
-    expect(await check(c, install, 'a', 2)).toBeNull();
-    expect(await check(c, install, 'b', 2)).toBeNull();
-    expect(await check(c, install, 'c', 2)).toBe('total');
+    expect((await check(c, install, 'a', 2)).refused).toBeNull();
+    expect((await check(c, install, 'b', 2)).refused).toBeNull();
+    expect((await check(c, install, 'c', 2)).refused).toBe('total');
   });
 
   it('only stores hashes, never the install ID or address itself', async () => {

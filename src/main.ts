@@ -5,7 +5,7 @@ import path from 'node:path';
 import { app, globalShortcut, Menu, nativeTheme, powerMonitor, type Rectangle } from 'electron';
 import type { Item, OpenState, Route, Settings } from './shared/types';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
-import { stashdWriter } from './main/brief/stashd';
+import { stashdAsk, stashdWriter } from './main/brief/stashd';
 import { installId } from './main/install';
 import { backupBeforeChange, backupsDir, onDamage } from './main/safety';
 import { Core } from './main/core';
@@ -258,6 +258,7 @@ function start(): void {
     };
 
     registerIpc(core, secrets, {
+      askSend: (content) => stashdAsk({ installId: () => (myId ??= installId(dir)), version: app.getVersion() }, content),
       shortcutErrors: () => shortcutErrors,
       afterSave: ({ jobId, entryId, tidy: tidyUp }) => {
         if (tidyUp) void tidy.run(jobId, entryId).then(() => tray.wink());

@@ -238,6 +238,18 @@ export class Memory {
     return { id: Number(m.id), at: m.at, saves };
   }
 
+  /** This week per folder: how many moments (saves, moving on, sleep) and minutes of work Stashd noticed. */
+  week(now = new Date()): { folder: string; moments: number; minutes: number; last: string }[] {
+    const since = new Date(now.getTime() - 7 * 86_400_000).toISOString();
+    return (
+      this.db
+        .prepare(
+          'SELECT COALESCE(to_folder, from_folder) AS folder, count(*) AS moments, sum(COALESCE(minutes_working, 0)) AS minutes, max(at) AS last FROM moments WHERE at >= ? AND COALESCE(to_folder, from_folder) IS NOT NULL GROUP BY folder ORDER BY minutes DESC, moments DESC',
+        )
+        .all(since) as { folder: string; moments: number; minutes: number; last: string }[]
+    ).map((r) => ({ folder: r.folder, moments: Number(r.moments), minutes: Number(r.minutes), last: r.last }));
+  }
+
   /** How much is remembered, for Settings. */
   counts(): { moments: number; since: string | null } {
     const r = this.db.prepare('SELECT count(*) AS n, min(at) AS first FROM moments').get() as { n: number; first: string | null };

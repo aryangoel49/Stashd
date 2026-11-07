@@ -36,15 +36,16 @@ export function weekOf(d: Date): string {
   return `${t.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
-/** Counts this request, then says whether it's over a limit (null when it may go ahead). */
-export async function check(counter: Counter, install: string, address: string, totalPerDay: number, now = new Date()): Promise<Refusal | null> {
+/** Counts this request, then says whether it's over a limit (refused: null when it may go ahead) and how many are left today. */
+export async function check(counter: Counter, install: string, address: string, totalPerDay: number, now = new Date()): Promise<{ refused: Refusal | null; left: number }> {
   const day = now.toISOString().slice(0, 10);
   const [mine, here, all] = await counter.bump([`d:${day}:i:${hash(install)}`, `d:${day}:a:${hash(address)}`, `d:${day}:all`], 2 * DAY);
-  if (all > totalPerDay) return 'total';
-  if (mine > LIMITS.perInstall) return 'install';
-  if (here > LIMITS.perAddress) return 'address';
+  const left = Math.max(0, LIMITS.perInstall - mine);
+  if (all > totalPerDay) return { refused: 'total', left };
+  if (mine > LIMITS.perInstall) return { refused: 'install', left };
+  if (here > LIMITS.perAddress) return { refused: 'address', left };
   await counter.note(`active:${weekOf(now)}`, hash(install), 120 * DAY);
-  return null;
+  return { refused: null, left };
 }
 
 export function memoryCounter(): Counter {

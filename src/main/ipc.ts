@@ -2,7 +2,9 @@
 // and validates its input before doing anything.
 
 import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
-import type { AppInfo, BrowserName } from '../shared/types';
+import type { AppInfo, AskAction, BrowserName, SaveEntry } from '../shared/types';
+import { timeAgo } from '../shared/time';
+import { askStashd, runAction } from './ask';
 import * as v from '../shared/validate';
 import { setupChromeHelper } from './chromehelper';
 import type { Core } from './core';
@@ -28,6 +30,8 @@ function handle(channel: string, fn: Handler): void {
 }
 
 export interface IpcHooks {
+  /** Sends one Ask Stashd question (with its context) to Stashd AI. */
+  askSend: (content: string) => Promise<{ text: string; left?: number }>;
   shortcutErrors: () => string[];
   afterSave: (result: { jobId: string; entryId: string; tidy: boolean }) => void;
   payload: (route: string) => unknown;
@@ -63,6 +67,57 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     hasApiKey: await secrets.has(),
     shortcutErrors: hooks.shortcutErrors(),
   }));
+
+  // Ask Stashd. Proposed changes wait here by id; only what Stashd proposed can run, and only after you confirm.
+  const proposals = new Map<string, AskAction>();
+  const undos = new Map<string, () => Promise<void>>();
+  const savedLabel = (latest: SaveEntry | null) => (latest ? `${latest.items.length} ${latest.items.length === 1 ? 'thing' : 'things'} · saved ${timeAgo(latest.savedAt)}` : 'Empty');
+  handle('ask:question', async (_e, question) => {
+    const q = v.str(question, 'question', 500).trim();
+    if (!q) throw new Error('Ask a question first.');
+    const answer = await askStashd(q, {
+      enabled: () => core.settings.get().stashdAi,
+      jobs: async () => Promise.all((await core.store.list()).map(async (job) => ({ job, latest: await core.store.latest(job.id).catch(() => null) }))),
+      look: async () => {
+        const l = await core.lookAtOpen();
+        return { items: l.items, front: l.front };
+      },
+      week: () => core.memory?.week() ?? [],
+      vectors: core.meaning ? async (texts) => (await core.meaning?.vectors(texts)) ?? undefined : undefined,
+      send: hooks.askSend,
+      savedLabel,
+    });
+    if ('answer' in answer && answer.action) {
+      if (proposals.size > 20) proposals.clear();
+      proposals.set(answer.action.id, answer.action);
+    }
+    return answer;
+  });
+  handle('ask:do', async (_e, id) => {
+    const action = proposals.get(v.str(id, 'id', 100));
+    if (!action) throw new Error('That change has expired. Ask again.');
+    proposals.delete(action.id);
+    const undo = await runAction(action, {
+      addToFolder: (jobId, items) => core.addToFolder(jobId, items),
+      removeItem: (jobId, key) => core.removeItem(jobId, key),
+      restoreItem: (jobId, key) => core.restoreItem(jobId, key),
+      moveItem: (from, key, to) => core.moveItem(from, key, to),
+      rename: (jobId, name) => core.rename(jobId, name),
+      currentName: async (jobId) => (await core.store.get(jobId)).name,
+      setPinned: (jobId, pinned) => core.setPinned(jobId, pinned),
+      setDone: (jobId, done) => core.setDone(jobId, done),
+      unpack: (jobId) => core.open(jobId, undefined, 'all', hooks.beforeOpen).then(() => undefined),
+    });
+    if (!undo) return null;
+    undos.set(action.id, undo);
+    return action.id;
+  });
+  handle('ask:undo', async (_e, id) => {
+    const undo = undos.get(v.str(id, 'id', 100));
+    undos.delete(String(id));
+    if (undo) await undo();
+    return true;
+  });
 
   handle('memory:info', () => core.memory?.counts() ?? null);
   handle('memory:forget', () => {

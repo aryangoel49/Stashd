@@ -60,16 +60,68 @@ export const NAME_SCHEMA = {
 } as const;
 
 /** Titles only (scrubbed), for naming. */
-export type AskKind = 'brief' | 'name';
+export const ASK_INSTRUCTIONS = `You are Ask Stashd. You answer questions about the user's own saved work on their Mac, and change their Stashd folders when they ask you to.
+You get their question, today's date, the folders that seem relevant (each with an id like f1, its name, when it was last saved, their note, the last brief, and what's inside: items with ids like i1), what is open on their Mac right now (ids like o1), and how much each folder was worked on this week.
+
+Answer:
+- "answer": one or two short sentences in plain, common words. Say what they need: what they were doing, where something is, what they worked on. No markdown, no lists, no em dashes, no exclamation marks.
+- "highlights": 0 to 2 short phrases copied exactly from your answer that matter most.
+- "refs": the ids of the 0 to 4 folders or items that best answer the question, most useful first.
+- "action": only when they ask you to change something, otherwise type "none" with empty fields:
+  - "add": add an item to a folder. "item" is an o id (something open now) or an i id, "folder" is the f id.
+  - "remove": take item i out of folder f.
+  - "move": move item i from folder f to folder "to".
+  - "rename": rename folder f to "name".
+  - "pin" / "unpin": pin or unpin folder f.
+  - "unpack": reopen folder f.
+  - "done": mark folder f as finished.
+  For an action, "answer" says what will happen, like "Add the Vercel dashboard to Stashd project?". It runs only after they confirm.
+
+Rules:
+- Use only the data you're given. Never invent folders, items, ids, times or progress. If it isn't there, say "I couldn't find that in your stash." and suggest what they could ask instead.
+- "This tab" or "this page" means the item open in front (marked inFront).
+- Week questions: use "week" (minutes and saves per folder). Round times like "about 3 hours".
+- If the question isn't about their work in Stashd, say briefly that you can only help with their saved work.`;
+
+export const ASK_SCHEMA = {
+  type: 'object',
+  properties: {
+    answer: { type: 'string' },
+    highlights: { type: 'array', items: { type: 'string' } },
+    refs: { type: 'array', items: { type: 'string' } },
+    action: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: ['none', 'add', 'remove', 'move', 'rename', 'pin', 'unpin', 'unpack', 'done'] },
+        folder: { type: 'string' },
+        item: { type: 'string' },
+        to: { type: 'string' },
+        name: { type: 'string' },
+      },
+      required: ['type', 'folder', 'item', 'to', 'name'],
+      additionalProperties: false,
+    },
+  },
+  required: ['answer', 'highlights', 'refs', 'action'],
+  additionalProperties: false,
+} as const;
+
+export type AskKind = 'brief' | 'name' | 'ask';
+
+const KINDS = {
+  brief: { system: INSTRUCTIONS, schema: OUTPUT_SCHEMA, maxTokens: 2000 },
+  name: { system: NAME_INSTRUCTIONS, schema: NAME_SCHEMA, maxTokens: 1000 },
+  ask: { system: ASK_INSTRUCTIONS, schema: ASK_SCHEMA, maxTokens: 1500 },
+} as const;
 
 /** The request for one brief or one folder name. Bigger models think for longer, so they get more room. */
 export function briefParams(kind: AskKind, model: string, content: string) {
   const slow = modelInfo(model)?.slow ?? true;
   return {
     model,
-    max_tokens: (kind === 'brief' ? 2000 : 1000) * (slow ? 2 : 1),
-    output_config: { effort: 'low' as const, format: { type: 'json_schema' as const, schema: kind === 'brief' ? OUTPUT_SCHEMA : NAME_SCHEMA } },
-    system: kind === 'brief' ? INSTRUCTIONS : NAME_INSTRUCTIONS,
+    max_tokens: KINDS[kind].maxTokens * (slow ? 2 : 1),
+    output_config: { effort: 'low' as const, format: { type: 'json_schema' as const, schema: KINDS[kind].schema } },
+    system: KINDS[kind].system,
     messages: [{ role: 'user' as const, content }],
   };
 }

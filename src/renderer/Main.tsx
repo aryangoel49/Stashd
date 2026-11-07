@@ -2,6 +2,7 @@
 // brief and everything inside as cards you can click to reopen. Drag a card onto another folder in
 // the sidebar to move it. The layout reflows to any window size, full screen included.
 
+import { AskPage } from './Ask';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { mostlyOpen, type BriefView, type Item, type JobSummary, type OpenState, type Suggestion } from '../shared/types';
 import { api, errorText, prettyShortcut, timeAgo, useSettings } from './api';
@@ -38,7 +39,7 @@ function MainView() {
   const load = useCallback(() => {
     void api.listJobs().then((list) => {
       setJobs(list);
-      setView((cur) => (cur === 'home' || cur === 'settings' || cur === 'recent' || list.some((j) => j.id === cur) ? cur : 'home'));
+      setView((cur) => (cur === 'home' || cur === 'settings' || cur === 'recent' || cur === 'ask' || list.some((j) => j.id === cur) ? cur : 'home'));
     });
     api.openState().then(setOpenMap, () => undefined);
   }, []);
@@ -116,12 +117,11 @@ function MainView() {
             </span>
             {recent && <span className="side-count" title={`Clears in ${minutesLeft} min`}>{recent.items.length}</span>}
           </button>
-          <button className="side-row nav soon" disabled title="Ask about your folders and pick up work by chatting. Coming in a future version.">
+          <button className={`side-row nav ${view === 'ask' ? 'on' : ''}`} onClick={() => setView('ask')} title="Ask about your own work in plain words">
             <Icon name="spark" />
             <span className="grow">
               <span className="t">Ask Stashd</span>
             </span>
-            <span className="soon-tag">Soon</span>
           </button>
         </nav>
         <div className="side-title">Folders</div>
@@ -161,6 +161,8 @@ function MainView() {
               <SettingsView />
             ) : view === 'recent' ? (
               <RecentPage />
+            ) : view === 'ask' ? (
+              <AskPage jobs={jobs} onShow={setView} />
             ) : view === 'home' ? (
               <Home jobs={jobs} openMap={openMap} onOpen={setView} shortcut={settings ? prettyShortcut(settings.shortcutSave) : '⌃S'} />
             ) : (

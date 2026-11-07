@@ -2,7 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppInfo, BreakShelf, BrowserName, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion } from './shared/types';
+import type { AppInfo, AskAnswer, AskProblem, BreakShelf, BrowserName, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -46,6 +46,9 @@ const api = {
   projectCard: (jobId: string) => invoke<ProjectCard>('jobs:card', jobId),
   breakShelf: () => invoke<BreakShelf>('break:shelf'),
   openBreak: (url: string) => invoke<void>('break:open', url),
+  ask: (question: string) => invoke<AskAnswer | AskProblem>('ask:question', question),
+  askDo: (id: string) => invoke<string | null>('ask:do', id),
+  askUndo: (id: string) => invoke<boolean>('ask:undo', id),
   memoryInfo: () => invoke<{ moments: number; since: string | null } | null>('memory:info'),
   forgetMemory: () => invoke<{ moments: number; since: string | null } | null>('memory:forget'),
   changeBreak: (change: { browser?: BrowserName | 'window'; removeItem?: string; addPlace?: { name: string; url: string }; renamePlace?: { name: string; url: string }; removePlace?: string; orderPlaces?: string[] }) => invoke<BreakShelf>('break:change', change),

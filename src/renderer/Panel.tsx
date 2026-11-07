@@ -9,6 +9,7 @@ import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './deleteFx'
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
 import { playMerge } from './mergeFx';
 import { BreakView, ModeSwitch } from './Break';
+import { PanelAsk } from './Ask';
 import { useRecentlyTidied } from './Recent';
 import { useSuggestions } from './Suggestions';
 import { folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
@@ -124,7 +125,13 @@ function PanelView() {
             <PanelHead settings={settings} />
             <ModeSwitch mode={mode} onChange={setMode} />
             <Swap id={mode} direction={mode === 'break' ? 1 : -1}>
-              {mode === 'break' ? <BreakView /> : <JobList jobs={jobs} openMap={openMap} settings={settings} onPick={setSelected} />}
+              {mode === 'break' ? (
+                <BreakView />
+              ) : (
+                <PanelAsk jobs={jobs ?? []} onShow={setSelected}>
+                  <JobList jobs={jobs} openMap={openMap} settings={settings} onPick={setSelected} />
+                </PanelAsk>
+              )}
             </Swap>
           </div>
         )}

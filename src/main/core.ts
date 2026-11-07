@@ -474,7 +474,7 @@ export class Core {
   }
 
   /** Adds items to a folder's latest save (a new save, so the brief is rewritten). Returns the folder's name. */
-  private async addToFolder(jobId: string, items: Item[]): Promise<string> {
+  async addToFolder(jobId: string, items: Item[]): Promise<string> {
     const job = await this.store.get(jobId);
     const latest = await this.store.latest(jobId);
     const now = new Date();
