@@ -1,17 +1,16 @@
 // Automatic saving: Stashd saves your work at moments that already happen, so you don't have to remember ⌃S.
 //
-//   You move on from a folder (drift)   you're here, so it asks: "You've moved on from X. Save it?"
-//                                        Ignoring it saves (saving never closes anything); "Not now" doesn't.
-//   The Mac sleeps or locks, you walk   you're gone, so it saves first, and asks when you're back:
+//   You move on from a folder (drift)   it saves on its own, without asking; the menu bar says "Saved automatically".
+//   The Mac sleeps or locks, you walk   saves first, and tells you when you're back:
 //   away                                 "Saved X before your Mac slept" · Remove (leaving it keeps it).
 //   Shutdown or restart                  saves first; after the restart: "Saved X before your Mac shut down"
 //                                        · Bring it back.
 //
 // Every moment, card and answer goes into Stashd's memory (memory.ts). Each kind of card adapts to you:
-// ignored most of the time, it goes quiet (the saving goes on); "Not now" to nearly every drift card, Stashd
-// stops asking about drift and stops saving on it. A week later it tries once more. The numbers are in rules.ts.
+// ignored most of the time, it goes quiet (the saving goes on). A week later it tries once more. The numbers
+// are in rules.ts.
 
-import type { Capture, Job, Settings } from '../shared/types';
+import type { Capture, Settings } from '../shared/types';
 import type { OpenLook } from './core';
 import type { Memory, MomentKind } from './memory';
 import type { Rules } from './rules';
@@ -62,13 +61,12 @@ export function driftStep(t: Track, front: string, now: number, r: Rules): { tra
 }
 
 /** Should this kind of card show, given your latest answers to it? */
-export function verdict(answers: string[], lastShown: string | null, isDrift: boolean, r: Rules, now = Date.now()): 'ask' | 'quiet' | 'stop' {
+export function verdict(answers: string[], lastShown: string | null, r: Rules, now = Date.now()): 'ask' | 'quiet' {
   if (answers.length < r.learnFrom) return 'ask';
-  const share = (a: string) => answers.filter((x) => x === a).length / answers.length;
-  const out = isDrift && share('not_now') >= r.stopWhenNotNow ? 'stop' : share('ignored') >= r.quietWhenIgnored ? 'quiet' : 'ask';
+  const ignored = answers.filter((x) => x === 'ignored').length / answers.length;
+  if (ignored < r.quietWhenIgnored) return 'ask';
   // Gone quiet a week ago: give it one more chance, in case you've changed.
-  if (out !== 'ask' && lastShown && now - Date.parse(lastShown) > 7 * 86_400_000) return 'ask';
-  return out;
+  return lastShown && now - Date.parse(lastShown) > 7 * 86_400_000 ? 'ask' : 'quiet';
 }
 
 /** "Climate essay", "Climate essay and Toronto trip", "3 folders". */
@@ -111,7 +109,6 @@ export class AutoSaver {
   private track: Track = START;
   private lastLook: { at: number; look: OpenLook } | null = null;
   private left: { kind: Leave; at: number; momentId: number; saved: { jobId: string; entryId: string; name: string }[] } | null = null;
-  private asking = false;
   private locked = false;
 
   constructor(private readonly d: AutoDeps) {}
@@ -157,28 +154,10 @@ export class AutoSaver {
   }
 
   private async drift(jobId: string, minutesWorking: number, look: OpenLook): Promise<void> {
-    const name = look.jobs.find((j: Job) => j.id === jobId)?.name ?? 'your work';
     const momentId = this.note((memory) => memory.moment('drift', { from: jobId, to: this.track.focus, minutesWorking, items: look.items })) ?? 0;
-    const type = 'drift_ask';
-    const v = this.note((memory) => verdict(memory.answers(type), memory.lastShown(type), true, this.d.rules, this.now())) ?? 'ask';
-    if (v === 'stop') return;
     const cap = (this.lastLook?.look ?? look).cap;
-    // Nothing new since your last save, you packed it up yourself, or it's gone: nothing to ask about.
+    // Nothing new since your last save, you packed it up yourself, or it's gone: nothing to save.
     if (!(await this.d.wouldSave(cap, jobId).catch(() => true))) return;
-    const quiet = v === 'quiet' || this.d.settings().autoSaveTalk === 'quiet' || this.asking || this.d.busy();
-    let answer: Answer = 'timeout';
-    if (!quiet) {
-      const promptId = this.promptRow(momentId, type);
-      const shown = this.now();
-      this.asking = true;
-      try {
-        answer = await this.d.ask({ title: `You’ve moved on from ${name}`, detail: 'Save it for later?', action: 'Save it', seconds: this.d.rules.askSeconds });
-      } finally {
-        this.asking = false;
-      }
-      if (promptId) this.note((memory) => memory.answer(promptId, answer === 'act' ? 'save' : answer === 'dismiss' ? 'not_now' : 'ignored', (this.now() - shown) / 1000));
-    }
-    if (answer === 'dismiss') return;
     // Saved from what's open now: your folder's things are still open, you only moved on.
     const saved = await this.d.save(cap, [jobId]).catch(() => []);
     for (const s of saved) this.note((memory) => memory.autoSaved(momentId, s.jobId, s.entryId));
@@ -230,7 +209,7 @@ export class AutoSaver {
     this.note((memory) => memory.away(left.momentId, minutes));
     if (!left.saved.length || minutes < this.d.rules.returnCardAfterMin || this.d.settings().autoSaveTalk === 'quiet') return;
     const type = `back_${left.kind}`;
-    if ((this.note((memory) => verdict(memory.answers(type), memory.lastShown(type), false, this.d.rules, this.now())) ?? 'ask') !== 'ask') return;
+    if ((this.note((memory) => verdict(memory.answers(type), memory.lastShown(type), this.d.rules, this.now())) ?? 'ask') !== 'ask') return;
     const promptId = this.promptRow(left.momentId, type);
     const shown = this.now();
     const answer = await this.d.ask({
@@ -251,7 +230,7 @@ export class AutoSaver {
     this.note((memory) => memory.away(last.id, (this.now() - Date.parse(last.at)) / 60_000));
     if (!last.saves.length || this.d.settings().autoSaveTalk === 'quiet') return;
     const type = 'back_shutdown';
-    if ((this.note((memory) => verdict(memory.answers(type), memory.lastShown(type), false, this.d.rules, this.now())) ?? 'ask') !== 'ask') return;
+    if ((this.note((memory) => verdict(memory.answers(type), memory.lastShown(type), this.d.rules, this.now())) ?? 'ask') !== 'ask') return;
     const look = await this.d.lookNow().catch(() => null);
     const names = last.saves.map((s) => look?.jobs.find((j) => j.id === s.folder)?.name).filter((n): n is string => !!n);
     if (!names.length) return;

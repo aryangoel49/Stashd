@@ -48,10 +48,10 @@ describe('noticing that you moved on', () => {
 
 describe('learning from your answers', () => {
   const now = Date.parse('2026-11-06T12:00:00Z');
-  it('asks until it has heard enough', () => expect(verdict(['ignored', 'ignored'], null, true, RULES, now)).toBe('ask'));
-  it('goes quiet when you mostly ignore a card', () => expect(verdict(['ignored', 'ignored', 'ignored', 'ignored', 'save'], '2026-11-06T11:00:00Z', false, RULES, now)).toBe('quiet'));
-  it('stops asking about drift when you nearly always say Not now', () => expect(verdict(Array(5).fill('not_now'), '2026-11-06T11:00:00Z', true, RULES, now)).toBe('stop'));
-  it('tries once more after a week', () => expect(verdict(Array(5).fill('not_now'), '2026-10-20T11:00:00Z', true, RULES, now)).toBe('ask'));
+  it('asks until it has heard enough', () => expect(verdict(['ignored', 'ignored'], null, RULES, now)).toBe('ask'));
+  it('goes quiet when you mostly ignore a card', () => expect(verdict(['ignored', 'ignored', 'ignored', 'ignored', 'keep'], '2026-11-06T11:00:00Z', RULES, now)).toBe('quiet'));
+  it('keeps showing a card you answer', () => expect(verdict(Array(5).fill('keep'), '2026-11-06T11:00:00Z', RULES, now)).toBe('ask'));
+  it('tries once more after a week', () => expect(verdict(Array(5).fill('ignored'), '2026-10-20T11:00:00Z', RULES, now)).toBe('ask'));
   it('names one, two or many folders', () => {
     expect(namesOf(['Climate essay'])).toBe('Climate essay');
     expect(namesOf(['Climate essay', 'Toronto trip'])).toBe('Climate essay and Toronto trip');
@@ -95,34 +95,14 @@ function rig(over: Partial<Settings> = {}, answer: 'act' | 'dismiss' | 'timeout'
 }
 
 describe('automatic saving', () => {
-  it('asks when you move on, saves when you say yes, and remembers your answer', async () => {
-    const r = rig({}, 'act');
-    await r.tick('essay', 11);
-    await r.tick('other', 4);
-    expect(r.cards).toEqual(['You’ve moved on from Climate essay']);
-    expect(r.saves).toEqual([['essay']]);
-    expect(r.memory.answers('drift_ask')).toEqual(['save']);
-    expect(r.memory.rows('saves')).toMatchObject([{ folder: 'essay', how: 'auto' }]);
-  });
-
-  it('"Not now" saves nothing; ignoring the card saves anyway', async () => {
-    const no = rig({}, 'dismiss');
-    await no.tick('essay', 11);
-    await no.tick('other', 4);
-    expect(no.saves).toEqual([]);
-    const ignored = rig({}, 'timeout');
-    await ignored.tick('essay', 11);
-    await ignored.tick('other', 4);
-    expect(ignored.saves).toEqual([['essay']]);
-    expect(ignored.memory.answers('drift_ask')).toEqual(['ignored']);
-  });
-
-  it('with cards off, it saves quietly and never asks', async () => {
-    const r = rig({ autoSaveTalk: 'quiet' });
+  it('saves on its own when you move on, without asking, and remembers the moment', async () => {
+    const r = rig();
     await r.tick('essay', 11);
     await r.tick('other', 4);
     expect(r.cards).toEqual([]);
     expect(r.saves).toEqual([['essay']]);
+    expect(r.memory.rows('moments')).toMatchObject([{ kind: 'drift', from_folder: 'essay' }]);
+    expect(r.memory.rows('saves')).toMatchObject([{ folder: 'essay', how: 'auto' }]);
   });
 
   it('turned off, it does nothing at all', async () => {

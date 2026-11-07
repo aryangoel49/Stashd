@@ -100,7 +100,7 @@ export function SettingsView() {
         <Toggle label="Save automatically" on={s.autoSave} onChange={(v) => void update({ autoSave: v })} />
         <Toggle
           label="Show short cards"
-          hint="“You’ve moved on from Climate essay. Save it?”, or “Saved before your Mac slept” when you’re back. Off: Stashd saves quietly and never asks."
+          hint="“Saved Climate essay before your Mac slept” when you’re back, and “Bring it back?” after a restart. Off: Stashd saves quietly and shows no cards."
           on={s.autoSaveTalk === 'helpful'}
           onChange={(v) => void update({ autoSaveTalk: v ? 'helpful' : 'quiet' })}
         />

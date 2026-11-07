@@ -206,14 +206,14 @@ Each brief request carries the anonymous install ID, so the server can count how
 - [x] Intel build: Swift helper for macOS 13 on both chips, onnxruntime 1.23.2 for Intel and the default (1.30) on Apple silicon, the same matching results on both because both run the model with `basic` optimization (`npm run check:chips`). `npm run make:intel` builds Stashd-Intel.dmg. Minimum for the meaning model: macOS 14 on Apple silicon, 13.4 on Intel; older Macs (down to 13.0, Electron's limit) still run with word matching.
 - [ ] Release signing with the kept Stashd certificate, plus Stashd's own updater, automatic like Chrome or Slack: it downloads new versions quietly and installs them the next time Stashd or the Mac restarts. A small "Restart to update" in the panel lets people do it now.
 - [x] **Memory database** (`src/main/memory.ts`, one SQLite file on the Mac): moments, snapshots, prompts, saves, patterns, meanings, rule books; numbered upgrade steps with a copy first; damaged file set aside; detail kept 90 days, moments a year; Forget my history. Records your ⌃S saves today.
-- [x] **Automatic stashing, first version (7 Nov):** drift asks "Save it?"; sleep, lock, shutdown and away save first and ask on return (Remove); after a restart "Bring it back"; one automatic save per folder; cards learn from your answers (memory + rules.ts). Still to come: calls, Loose ends for work that fits no folder, Focus and full-screen silence, remote rule book.
+- [x] **Automatic stashing, first version (7 Nov):** drift saves on its own without asking; sleep, lock, shutdown and away save first and ask on return (Remove); after a restart "Bring it back"; one automatic save per folder; cards learn from your answers (memory + rules.ts). Still to come: calls, Loose ends for work that fits no folder, Focus and full-screen silence, remote rule book.
 - [ ] ~~Automatic stashing (moved up from Later, 6 Nov).~~ The research's biggest lever: people shouldn't have to remember ⌃S. Stashd saves quietly, into the folder the work matches, at moments that already happen:
   - the lid closes or the Mac goes to sleep or locks;
   - a shutdown, a restart or a macOS update;
   - you've been away a while (for example 20 minutes);
   - a call starts (Zoom, Meet, Teams opening);
   - you switch to another folder's work (the matching model already notices this).
-  - Rules: it never closes or quits anything on its own, it says "Saved automatically" in the menu bar, and each moment can be switched off in Settings. Coming back shows the brief.
+  - Rules: it never closes or quits anything on its own, it says "Saved automatically" in the menu bar, and one switch in Settings turns it all on or off (Aryan, 7 Nov: one switch, and the saving happens on its own). Coming back shows the brief.
   - Later, it learns each person's habits (when their day ends, which moments they use) and tunes itself.
 - [ ] Installers: DMG (with the "Open Anyway" picture guide), the one-line command, and `npx stashd`
 - [ ] First-run permissions step: ask for every installed app at once, with a reason for each

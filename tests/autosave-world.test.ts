@@ -68,27 +68,27 @@ function world(answer: 'act' | 'dismiss' | 'timeout' = 'timeout') {
 }
 
 describe('moving on', () => {
-  it('asks when there is really something new to save', async () => {
+  it('saves on its own, without asking, when there is something new', async () => {
     const w = world();
     const s = await w.save();
     await w.tick(11);
     w.setOpen([dog(), A, B, C]);
     await w.tick(4);
-    expect(w.cards).toEqual(['You’ve moved on from Carbon tax essay']);
+    expect(w.cards).toEqual([]);
     expect((await w.store.latest(s.jobId))?.auto).toBe(true);
     expect((await w.store.latest(s.jobId))?.items.map((i) => i.label)).toContain(C.label);
   });
 
-  it('does not ask "Save it?" right after you saved, when nothing changed', async () => {
+  it('saves nothing right after you saved, when nothing changed', async () => {
     const w = world();
-    await w.save();
+    const s = await w.save();
     await w.tick(11);
     w.setOpen([dog(), A, B]);
     await w.tick(4);
-    expect(w.cards).toEqual([]);
+    expect(await w.store.entryIds(s.jobId)).toEqual([s.entryId]);
   });
 
-  it('does not ask after you packed the folder up yourself', async () => {
+  it('saves nothing after you packed the folder up yourself', async () => {
     const w = world();
     await w.tick(0);
     const s = await w.save();
@@ -100,17 +100,17 @@ describe('moving on', () => {
     });
     w.setOpen([dog()]);
     await w.tick(4);
-    expect(w.cards).toEqual([]);
+    expect((await w.store.latest(s.jobId))?.auto).toBeFalsy();
   });
 
-  it('does not ask about a folder you deleted', async () => {
+  it('does not save a folder you deleted', async () => {
     const w = world();
     const s = await w.save();
     await w.tick(11);
     await w.core.deleteJob(s.jobId);
     w.setOpen([dog(), A, B]);
     await w.tick(4);
-    expect(w.cards).toEqual([]);
+    expect((await w.store.list()).map((j) => j.id)).not.toContain(s.jobId);
   });
 
   it('a new tab on the same topic is not moving on', async () => {
@@ -120,7 +120,7 @@ describe('moving on', () => {
     w.setOpen([{ ...tab('9', 'Carbon tax essay more reading', true), window: 1 }, A, B]);
     await w.tick(4);
     expect(await w.core.homeOf(await (w.core.notify(), w.core.lookAtOpen()))).toBe(s.jobId);
-    expect(w.cards).toEqual([]);
+    expect(await w.store.entryIds(s.jobId)).toEqual([s.entryId]);
   });
 });
 
