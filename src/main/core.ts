@@ -20,6 +20,7 @@ import { documentFrequency, FIT_SUGGEST, hasProof, jobFit, jobProfile, meaningTe
 import { suggest, type FolderData } from './jobs/suggest';
 import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
+import type { SiteSorter } from './sites';
 import { BROWSER_APPS } from './collectors/browsers';
 import { changeChromeGroup, finished, openForBreak, openItems, videoProgress } from './open';
 import { BreakStore, isBreakItem, videoKey } from './breaks';
@@ -121,6 +122,8 @@ export class Core {
   meaning?: Meaning;
   /** Stashd's memory (memory.db): what happened and what it learned. Optional: Stashd works without it. */
   memory?: Memory;
+  /** Learns which unknown sites are for breaks (sites.ts). Optional. */
+  sites?: SiteSorter;
 
   constructor(
     readonly settings: SettingsStore,
@@ -196,6 +199,8 @@ export class Core {
     const learned = learnedLifestyleApps(this.state.appUnticks);
     const candidates = cap.items.filter((i) => !isLifestyle(i, settings, learned));
     const frontKey = frontItemKey(candidates, cap.appOrder);
+    // A streaming site Stashd hasn't seen before? Sort it first, so it doesn't land in a work folder.
+    await this.sites?.look(candidates);
 
     // Your jobs and what was in each, ready to compare against.
     const jobs: { job: Job; latest: SaveEntry | null; profile: ReturnType<typeof jobProfile> | null }[] = [];
@@ -383,6 +388,7 @@ export class Core {
   async tidyAll(): Promise<TidyAllPlan> {
     const settings = this.settings.get();
     const cap = this.fakeCapture ? await this.fakeCapture() : await capture(settings, this.helper, this.selfNames);
+    await this.sites?.look(cap.items);
     const learned = learnedLifestyleApps(this.state.appUnticks);
     const openKeys = new Set(cap.items.map(looseKey));
     const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0 };
@@ -696,6 +702,7 @@ export class Core {
         const items = content.length ? content : all;
         out[j.id] = { open: items.filter(isOpen).length, total: items.length };
       }
+      void this.sites?.look(cap.items);
       return { state: out, open, jobs, latest, items: cap.items, cap, front: frontItemKey(cap.items, cap.appOrder) };
     })();
     this.openCache = { at: Date.now(), result };

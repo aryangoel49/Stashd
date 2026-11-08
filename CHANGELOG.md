@@ -6,6 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
+- Stashd learns which sites are for breaks, even ones it has never heard of: your Mac's own model reads the page title (so a streaming site like 1Flex goes to Continue watching, not your work folder). Sites it can't tell go to Stashd AI if you turned it on, just the site and a few page titles. Forget my history clears what it learned.
 - Ask Stashd keeps your chats: past chats are listed on the Ask Stashd page, open again with every question and answer, and you can carry on or delete them. New chat starts fresh. They stay on this Mac, and Forget my history clears them.
 - Ask Stashd has a bit of personality: under each answer, a short friendly line from Stashd (in italics, so the facts stay easy to spot).
 - **Ask Stashd**: ask about your own work in plain words: what you were doing on a folder, where you saved something, what you worked on this week, or change a folder ("add this tab to Stashd project", rename, pin, move, unpack). Answers point at your real folders and tabs; changes run only when you press the button, and can be undone. In the Stashd window (Ask Stashd) and in the menu bar panel (press /). Uses Stashd AI.

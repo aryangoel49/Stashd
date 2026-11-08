@@ -5,7 +5,8 @@ import path from 'node:path';
 import { app, globalShortcut, Menu, nativeTheme, powerMonitor, type Rectangle } from 'electron';
 import type { Item, OpenState, Route, Settings } from './shared/types';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
-import { stashdAsk, stashdWriter } from './main/brief/stashd';
+import { stashdAsk, stashdSites, stashdWriter } from './main/brief/stashd';
+import { SiteSorter } from './main/sites';
 import { installId } from './main/install';
 import { backupBeforeChange, backupsDir, onDamage } from './main/safety';
 import { Core } from './main/core';
@@ -163,6 +164,11 @@ function start(): void {
     }
     setTimeout(() => core.meaning?.warm(), 3000);
     let myId: Promise<string> | null = null;
+    core.sites = new SiteSorter(dir, {
+      meaning: () => core.meaning,
+      ai: () => (settings.get().stashdAi ? (content) => stashdSites({ installId: () => (myId ??= installId(dir)), version: app.getVersion() }, content) : null),
+    });
+    void core.sites.start().catch(() => undefined);
     core.writers = [
       claudeWriter({ getKey: () => secrets.get(), getModel: () => settings.get().aiModel, allowed: () => settings.get().aiDisclosureAccepted }),
       stashdWriter({ installId: () => (myId ??= installId(dir)), allowed: () => settings.get().stashdAi, version: app.getVersion() }),

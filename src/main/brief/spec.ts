@@ -113,12 +113,43 @@ export const ASK_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-export type AskKind = 'brief' | 'name' | 'ask';
+/** Sorting sites Stashd doesn't know: is each one for breaks or for work? (sites.ts, only when the Mac's own model can't tell.) */
+export const SITES_INSTRUCTIONS = `You sort websites for Stashd, a Mac app that keeps work apart from breaks.
+You get a list of sites, each with its address and a few page titles seen on it.
+For each site, answer:
+- "break" if people mainly use it to watch, listen, play games, follow sport, scroll social feeds or for other entertainment (streaming and piracy sites included).
+- "work" if people mainly use it for work, study, coding, documents, email, shopping, banking or other tasks.
+- "mixed" if it is often used for both, like Reddit or Medium, or if you can't tell.
+Answer every site, using its address exactly as given.`;
+
+export const SITES_SCHEMA = {
+  type: 'object',
+  properties: {
+    sites: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { site: { type: 'string' }, kind: { type: 'string', enum: ['break', 'work', 'mixed'] } },
+        required: ['site', 'kind'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['sites'],
+  additionalProperties: false,
+} as const;
+
+export type AskKind = 'brief' | 'name' | 'ask' | 'sites';
+
+export function isAskKind(kind: unknown): kind is AskKind {
+  return typeof kind === 'string' && Object.hasOwn(KINDS, kind);
+}
 
 const KINDS = {
   brief: { system: INSTRUCTIONS, schema: OUTPUT_SCHEMA, maxTokens: 2000 },
   name: { system: NAME_INSTRUCTIONS, schema: NAME_SCHEMA, maxTokens: 1000 },
   ask: { system: ASK_INSTRUCTIONS, schema: ASK_SCHEMA, maxTokens: 1500 },
+  sites: { system: SITES_INSTRUCTIONS, schema: SITES_SCHEMA, maxTokens: 800 },
 } as const;
 
 /** The request for one brief or one folder name. Bigger models think for longer, so they get more room. */

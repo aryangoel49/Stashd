@@ -11,7 +11,7 @@
 //   Upstash Redis       optional but recommended: connect it from Vercel's Marketplace for shared counters
 
 import Anthropic from '@anthropic-ai/sdk';
-import { briefParams, responseText, STASHD_MODEL, type AskKind } from '../src/main/brief/spec';
+import { briefParams, isAskKind, responseText, STASHD_MODEL } from '../src/main/brief/spec';
 import { check, counterFromEnv, type Counter } from './_limits';
 
 const MAX_BODY = 80_000;
@@ -50,7 +50,7 @@ export function makeHandler(deps: Deps) {
     }
     const { install, kind, content } = body;
     if (typeof install !== 'string' || !INSTALL.test(install)) return fail(400, 'bad');
-    if (kind !== 'brief' && kind !== 'name' && kind !== 'ask') return fail(400, 'bad');
+    if (!isAskKind(kind)) return fail(400, 'bad');
     if (typeof content !== 'string' || !content || content.length > MAX_CONTENT) return fail(400, 'bad');
     if (!deps.create) return fail(503, 'off');
 
@@ -65,7 +65,7 @@ export function makeHandler(deps: Deps) {
     }
 
     try {
-      const response = await deps.create(briefParams(kind as AskKind, STASHD_MODEL, content));
+      const response = await deps.create(briefParams(kind, STASHD_MODEL, content));
       if (response.stop_reason === 'refusal') return fail(422, 'declined');
       return reply(200, { text: responseText(response), left });
     } catch (e) {

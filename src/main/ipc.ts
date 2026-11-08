@@ -139,8 +139,9 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   });
 
   handle('memory:info', () => core.memory?.counts() ?? null);
-  handle('memory:forget', () => {
+  handle('memory:forget', async () => {
     core.memory?.forget();
+    await core.sites?.forget().catch(() => undefined);
     return core.memory?.counts() ?? null;
   });
   handle('settings:get', () => core.settings.get());

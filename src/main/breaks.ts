@@ -32,16 +32,36 @@ export function videoKey(url: string): string {
   }
 }
 
+/** A web page's site, as Stashd compares them: "www.youtube.com" and "m.youtube.com" are both "youtube.com". Null for anything that isn't a web page. */
+export function siteOfUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    return u.hostname.toLowerCase().replace(/^(www|m)\./, '') || null;
+  } catch {
+    return null;
+  }
+}
+
+/** One of the sites Stashd knows from the start (BREAK_SITES). */
+export function isListedBreak(url: string): boolean {
+  const host = siteOfUrl(url);
+  if (!host) return false;
+  const hp = `${host}${new URL(url).pathname}`;
+  return BREAK_SITES.some((s) => (s.includes('/') ? hp.startsWith(s) : host === s || host.endsWith(`.${s}`)));
+}
+
+/** More break sites, found by looking at the pages you open (sites.ts). */
+let learnedBreaks = new Set<string>();
+export function setLearnedBreakSites(sites: Iterable<string>): void {
+  learnedBreaks = new Set(sites);
+}
+
 export function isBreakItem(item: Item): boolean {
   if (item.kind !== 'tab' || !item.url) return false;
-  try {
-    const u = new URL(item.url);
-    const host = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
-    const hp = `${host}${u.pathname}`;
-    return BREAK_SITES.some((s) => (s.includes('/') ? hp.startsWith(s) : host === s || host.endsWith(`.${s}`)));
-  } catch {
-    return false;
-  }
+  if (isListedBreak(item.url)) return true;
+  const host = siteOfUrl(item.url);
+  return !!host && learnedBreaks.has(host);
 }
 
 /** Short videos you scroll through (YouTube Shorts, Reels, TikTok): never kept on the shelf, there's nothing to carry on with. */

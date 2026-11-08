@@ -74,3 +74,8 @@ export function stashdWriter(opts: { installId: () => Promise<string>; allowed: 
     },
   };
 }
+
+/** Sort sites Stashd doesn't know (see sites.ts): one small request for a few sites at a time. */
+export async function stashdSites(opts: { installId: () => Promise<string>; version: string }, content: string): Promise<string> {
+  return (await post(await opts.installId(), opts.version, 'sites', content, 20_000)).text;
+}
