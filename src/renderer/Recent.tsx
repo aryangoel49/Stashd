@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from 'react';
 import type { Item } from '../shared/types';
-import { api } from './api';
+import { api, prettyShortcut, useSettings } from './api';
+import { TidyChoice } from './TidyChoice';
 import { Icon } from './icons';
 import { Button, FolderMark } from './ui';
 import { describe, ItemBadge, titleOf } from './visuals';
@@ -37,7 +38,7 @@ export function useRecentlyTidied(): { recent: RecentTidy | null; minutesLeft: n
 /** The page in the Stashd window. */
 export function RecentPage() {
   const { recent, minutesLeft } = useRecentlyTidied();
-  const [busy, setBusy] = useState(false);
+  const settings = useSettings();
   return (
     <div className="page">
       <header className="page-head">
@@ -45,18 +46,8 @@ export function RecentPage() {
           <div className="eyebrow">Tidy all</div>
           <h1 className="page-title">Recently closed</h1>
         </div>
-        <Button
-          variant="primary"
-          disabled={busy}
-          onClick={() => {
-            setBusy(true);
-            void api.tidyAll().finally(() => setTimeout(() => setBusy(false), 1500));
-          }}
-          title="Save your open folders and close everything else"
-        >
-          <Icon name="spark" /> Tidy all
-        </Button>
       </header>
+      {settings && <TidyChoice inline last={settings.tidyKeep} shortcut={prettyShortcut(settings.shortcutTidy)} />}
       {recent ? (
         <>
           <div className="recent-page-sub">

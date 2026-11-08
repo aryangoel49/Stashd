@@ -262,6 +262,7 @@ button { cursor: default; }
 .fly-count { position: absolute; top: -4px; right: -6px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; display: grid; place-items: center; background: #1c1d22; color: #fff; font: 700 12px/1 -apple-system, sans-serif; font-variant-numeric: tabular-nums; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
 .fly-tray { position: absolute; border-radius: 26px; background: rgba(250, 248, 242, 0.82); box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.9), 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 24px 60px rgba(0, 0, 0, 0.22); opacity: 0; will-change: transform, opacity; }
 .fly-caption { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font: 600 12.5px -apple-system, sans-serif; color: rgba(28, 29, 34, 0.72); letter-spacing: 0.01em; }
+.fly-spark { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #f2cd5c; box-shadow: 0 0 6px rgba(242, 205, 92, 0.9); opacity: 0; will-change: transform, opacity; }
 .fly-ripple { position: absolute; width: 40px; height: 40px; border-radius: 50%; border: 2.5px solid #e2b53c; box-shadow: 0 0 12px rgba(242, 205, 92, 0.6); opacity: 0; will-change: transform, opacity; }
 @media (prefers-color-scheme: dark) {
   .fly-tray { background: rgba(40, 40, 44, 0.82); box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.12), 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 24px 60px rgba(0, 0, 0, 0.45); }
@@ -884,3 +885,74 @@ details summary { cursor: default; }
 .ask-foot { display: grid; gap: 6px; position: sticky; bottom: 12px; }
 @media (prefers-color-scheme: dark) { .ask-q { background: rgba(242, 205, 92, 0.18); } .ask-sug { background: rgba(255, 255, 255, 0.06); } .ask-key { background: rgba(255, 255, 255, 0.08); } .ask-week-row .bar { background: rgba(255, 255, 255, 0.08); } }
 @media (prefers-reduced-motion: reduce) { .ask-idea { transition: none; } }
+
+/* ---------- Tidy all's choice: keep this tab, or close everything ---------- */
+.tidy-all-btn.on { background: var(--accent-soft); color: var(--accent-ink); }
+.tidy-choice {
+  display: grid; gap: 10px; padding: 12px; margin: 0 2px 6px; border-radius: 16px;
+  background: var(--tint);
+  box-shadow: inset 0 0.5px 0 var(--rim), inset 0 0 0 0.5px var(--hair), 0 10px 30px rgba(28, 29, 34, 0.08);
+  transform-origin: top right;
+  animation: tc-in 200ms var(--ease-out) both;
+}
+.tidy-choice.inline { margin: 0 0 18px; padding: 0; background: none; box-shadow: none; animation: none; max-width: 460px; }
+@keyframes tc-in { from { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+.tc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 2px; }
+.tc-heading { font-weight: 650; font-size: 13px; }
+.tc-hint, .tc-foot { font-size: 11px; color: var(--faint); }
+.tc-foot { text-align: center; }
+.tc-cards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.tc-card {
+  position: relative; display: grid; justify-items: start; align-content: start; gap: 3px; min-width: 0; padding: 10px 10px 9px;
+  border: none; border-radius: 13px; text-align: left; cursor: pointer; color: var(--text);
+  background: var(--well);
+  box-shadow: inset 0 0.5px 0 var(--rim), inset 0 0 0 0.5px var(--hair), 0 1px 2px rgba(28, 29, 34, 0.05);
+  transition: transform var(--dur-press) var(--ease-out), box-shadow var(--dur-quick) ease, background-color var(--dur-quick) ease;
+}
+.tc-card.last { box-shadow: inset 0 0 0 1.5px var(--accent-line), 0 4px 14px rgba(201, 158, 30, 0.16); }
+.tc-card:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent-line), 0 0 0 3px var(--accent-soft); }
+.tc-card:active:not(:disabled), .tc-card.chosen { transform: scale(0.96); }
+.tc-card.chosen { background: var(--accent-soft); }
+.tc-card:disabled { cursor: default; opacity: 0.5; }
+@media (hover: hover) and (pointer: fine) {
+  .tc-card:hover:not(:disabled) { background: var(--well-hover); }
+  .tc-card:hover:not(:disabled) .tc-pic.all .tc-win { transform: translateY(-3px); opacity: 0.35; }
+  .tc-card:hover:not(:disabled) .tc-pic.front .tc-win:not(.w3) { opacity: 0.18; }
+}
+.tc-title { font-weight: 650; font-size: 12.5px; }
+.tc-sub { font-size: 11px; color: var(--muted); max-width: 100%; }
+.tc-front { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.tc-loading { color: var(--faint); }
+.tc-last { font-size: 10px; font-weight: 600; color: var(--accent-ink); margin-top: 2px; }
+
+/* The little picture: three windows, stacked like on your screen. */
+.tc-pic { position: relative; width: 64px; height: 40px; margin-bottom: 4px; }
+.tc-win {
+  position: absolute; width: 38px; height: 26px; border-radius: 6px;
+  background: rgba(28, 29, 34, 0.1); box-shadow: inset 0 0 0 0.5px var(--hair);
+  transition: transform 220ms var(--ease-out), opacity 220ms ease;
+}
+.tc-win::before { content: ''; position: absolute; left: 4px; top: 4px; width: 12px; height: 3px; border-radius: 2px; background: rgba(28, 29, 34, 0.14); }
+.tc-win.w1 { left: 0; top: 0; }
+.tc-win.w2 { left: 13px; top: 7px; }
+.tc-win.w3 { left: 26px; top: 14px; display: grid; place-items: center; }
+.tc-win img { width: 16px; height: 16px; margin-top: 3px; }
+.tc-pic.front .tc-win:not(.w3) { opacity: 0.35; border: 1px dashed rgba(28, 29, 34, 0.25); background: none; box-shadow: none; }
+.tc-pic.front .tc-win.w3 { background: var(--accent); box-shadow: 0 3px 10px rgba(201, 158, 30, 0.35); }
+.tc-pic.front .tc-win.w3::before { background: rgba(28, 29, 34, 0.25); }
+.tc-pic.all .tc-win { opacity: 0.55; }
+@media (prefers-reduced-motion: reduce) {
+  .tidy-choice { animation: tc-fade 160ms ease both; }
+  .tc-card, .tc-win { transition: none; }
+}
+@keyframes tc-fade { from { opacity: 0; } }
+
+/* The toast's count: rolls up to how many things were put away, then gives a small pop. */
+.toast-count {
+  display: inline-grid; place-items: center; min-width: 22px; height: 18px; padding: 0 6px; margin-left: 6px; vertical-align: 1px;
+  border-radius: 9px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--accent); color: var(--on-accent); box-shadow: 0 2px 8px rgba(201, 158, 30, 0.35);
+}
+.toast-count.done { animation: count-pop 260ms var(--ease-out); }
+@keyframes count-pop { 40% { transform: scale(1.18); } }
+@media (prefers-reduced-motion: reduce) { .toast-count.done { animation: none; } }

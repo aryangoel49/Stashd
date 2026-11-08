@@ -2,7 +2,7 @@
 // and validates its input before doing anything.
 
 import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
-import type { AppInfo, AskAction, AskAnswer, BrowserName, SaveEntry } from '../shared/types';
+import type { AppInfo, AskAction, AskAnswer, BrowserName, SaveEntry, TidyKeep } from '../shared/types';
 import { timeAgo } from '../shared/time';
 import { askStashd, runAction } from './ask';
 import * as v from '../shared/validate';
@@ -40,7 +40,7 @@ export interface IpcHooks {
   dismissToast: () => void;
   holdToast: (on: boolean) => void;
   toastAction: () => Promise<void>;
-  tidyAll: () => Promise<void>;
+  tidyAll: (keep?: TidyKeep) => Promise<void>;
   afterShelve: (items: import('../shared/types').Item[]) => void;
   overlayDone: () => void;
   testClaude: (key: string) => Promise<void>;
@@ -302,11 +302,12 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('toast:action', () => hooks.toastAction());
   handle('tidy:recent', () => core.recentlyTidied());
   handle('tidy:reopen', (_e, key) => core.reopenTidied(key == null ? undefined : v.itemKey(key)));
-  handle('tidy:all', () => {
+  handle('tidy:all', (_e, keep) => {
     getWindow('panel')?.hide();
-    void hooks.tidyAll();
+    void hooks.tidyAll(keep === 'front' || keep === 'all' ? keep : undefined);
     return true;
   });
+  handle('tidy:front', () => core.tidyFront());
   handle('toast:hold', (_e, on) => {
     hooks.holdToast(on === true);
     return true;

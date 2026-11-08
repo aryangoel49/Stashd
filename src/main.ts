@@ -3,7 +3,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { app, globalShortcut, Menu, nativeTheme, powerMonitor, type Rectangle } from 'electron';
-import type { Item, OpenState, Route, Settings } from './shared/types';
+import type { Item, OpenState, Route, Settings, TidyKeep } from './shared/types';
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
 import { stashdAsk, stashdSites, stashdWriter } from './main/brief/stashd';
 import { SiteSorter } from './main/sites';
@@ -55,7 +55,7 @@ function start(): void {
   /** Hides the panel and plays the Unpack animation (set once the app is ready). */
   let beforeOpen: (items: Item[]) => void = () => undefined;
   let shortcutErrors: string[] = [];
-  let tidyAllNow: () => Promise<void> = async () => undefined;
+  let tidyAllNow: (keep?: TidyKeep) => Promise<void> = async () => undefined;
 
   app.on('web-contents-created', (_e, contents) => hardenWebContents(contents));
   // Keep running in the menu bar when every window is closed.
@@ -179,17 +179,16 @@ function start(): void {
     // Build the panel now, hidden, so the first click on the icon shows it at once.
     prepareWindow('panel');
     core.onChanged(() => broadcast('jobs:changed'));
-    const tidy = new TidyFlow(core, () => tray.bounds());
+    const tidy = new TidyFlow(core, () => tray.bounds(), () => tray.wink());
     // Tidy all (the panel's button, ⌃⇧S or the toast): the panel steps aside at once so you can watch it
     // go, and the menu bar says it's working until it's done. A second press while it runs does nothing.
-    tidyAllNow = () => {
+    // Which kind (keep the tab you're on, or close everything) is your last choice unless one is given.
+    tidyAllNow = (keep?: TidyKeep) => {
       getWindow('panel')?.hide();
       if (tidy.tidyingAll) return tidy.tidyingAll;
+      if (keep && keep !== settings.get().tidyKeep) void settings.update({ tidyKeep: keep }).catch(() => undefined);
       tray.status('Tidying…');
-      return tidy.tidyAll().finally(() => {
-        tray.status(null);
-        tray.wink();
-      });
+      return tidy.tidyAll((keep ?? settings.get().tidyKeep) === 'front').finally(() => tray.status(null));
     };
     // Automatic saving: moving on from a folder, the Mac sleeping, locking or shutting down, walking away.
     const auto = new AutoSaver({

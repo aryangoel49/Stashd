@@ -35,6 +35,18 @@ export interface Settings {
   autoSave: boolean;
   /** Helpful: short cards ("Save it?", "Saved before your Mac slept"). Quiet: save, never speak. */
   autoSaveTalk: 'helpful' | 'quiet';
+  /** Tidy all: keep the tab (or window) you're on open, or close everything. The last choice is kept. */
+  tidyKeep: TidyKeep;
+}
+
+export type TidyKeep = 'front' | 'all';
+
+/** What Tidy all would leave open with "Keep this tab": the tab or window in front. */
+export interface TidyFront {
+  label: string;
+  app: string;
+  kind: Item['kind'];
+  icon: string | null;
 }
 
 export type Appearance = 'light' | 'dark' | 'system';
@@ -327,6 +339,8 @@ export interface OverlayPlay {
 
 export interface ToastInfo {
   title: string;
+  /** How many things were put away: counts up beside the title. */
+  count?: number;
   detail: string;
   canUndo: boolean;
   /** How the folder in the toast looks: asleep after packing, wide-eyed when things come back. */

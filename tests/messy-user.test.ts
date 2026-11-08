@@ -319,6 +319,29 @@ describe('Tidy all', () => {
     expect((await core.store.latest(first.jobId))!.items.map((i) => i.key).sort()).toEqual(trip.map((i) => i.key).sort());
   });
 
+  it('"Keep this tab" leaves the tab you are on open (saved with its folder), and closes the rest', async () => {
+    const core = makeCore();
+    const trip = [tab(1, 'Flights to Tokyo'), { ...tab(2, 'Ryokans in Kyoto'), active: true }];
+    open = trip;
+    core.beginSave();
+    await core.preview({ asNew: true });
+    const first = await core.commitSave({ jobId: null, name: 'Japan trip', note: '', keys: trip.map((i) => i.key), tidy: false });
+    const stray: Item = { ...tab(9, 'Warriors vs Lakers'), key: 'tab:https://www.espn.com/nba/game', url: 'https://www.espn.com/nba/game', detail: 'espn.com' };
+    open = [...trip, stray];
+    const plan = await core.tidyAll({ keepFront: true });
+    expect(plan.kept?.key).toBe(trip[1].key);
+    expect((await core.store.latest(first.jobId))!.items.map((i) => i.key)).toContain(trip[1].key);
+    expect(plan.close.map((i) => i.key)).toEqual([stray.key]);
+
+    // The tab in front is a stray: it stays open, isn't filed, and doesn't go on the Break shelf.
+    const front: Item = { ...stray, active: true };
+    open = [front];
+    const again = await core.tidyAll({ keepFront: true });
+    expect(again.kept?.key).toBe(front.key);
+    expect(again.close).toEqual([]);
+    expect(again.breaks).toBe(0);
+  });
+
   it('files a stray tab into the packed folder it clearly belongs to, and leaves unclear ones out', async () => {
     const core = makeCore();
     const site = (host: string, p: string, title: string): Item => ({ ...tab(0, title), key: `tab:https://${host}${p}`, url: `https://${host}${p}`, detail: host });

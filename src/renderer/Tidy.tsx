@@ -106,7 +106,7 @@ async function ready(imgs: HTMLImageElement[]): Promise<void> {
 
 // ---------- sound ----------
 // Made on the fly with Web Audio, so there are no sound files: a soft whoosh as things fly,
-// then a small wooden "tock" as they land in the folder.
+// then a small two-note chime as they land in the menu bar.
 
 let audio: AudioContext | null = null;
 
@@ -131,18 +131,24 @@ function whoosh(ctx: AudioContext, at: number, length: number, reverse: boolean)
   src.stop(at + length);
 }
 
-function tock(ctx: AudioContext, at: number): void {
-  const osc = ctx.createOscillator();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(880, at);
-  osc.frequency.exponentialRampToValueAtTime(330, at + 0.12);
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, at);
-  gain.gain.exponentialRampToValueAtTime(0.16, at + 0.008);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.16);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start(at);
-  osc.stop(at + 0.18);
+/** The landing: two soft bell notes a fifth apart, the second a touch later, like something clicking into place. */
+function chime(ctx: AudioContext, at: number): void {
+  const note = (freq: number, start: number, peak: number, length: number) => {
+    for (const [mult, level] of [[1, 1], [2, 0.18], [3, 0.06]] as const) {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq * mult, start);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(peak * level, start + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + length / mult);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + length);
+    }
+  };
+  note(659.25, at, 0.11, 0.42);
+  note(987.77, at + 0.075, 0.09, 0.55);
 }
 
 function playSound(count: number, reverse: boolean): void {
@@ -155,7 +161,7 @@ function playSound(count: number, reverse: boolean): void {
     const flyAt = (APPEAR_MS + HOLD_MS + GATHER_MS) / 1000;
     // Packing: the whoosh rides the flight and the tock is the landing. Unpacking: the whoosh comes out first.
     whoosh(ctx, t + (reverse ? 0 : flyAt), fly, reverse);
-    if (!reverse) tock(ctx, t + flyAt + fly - 0.03);
+    if (!reverse) chime(ctx, t + flyAt + fly - 0.03);
   } catch {
     // no sound, no problem
   }
@@ -224,7 +230,8 @@ async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<
     // In the stack: a little fanned, the first icon on top.
     const spread = i - (n - 1) / 2;
     node.x.style.zIndex = String(n - i);
-    return { ...node, rowX, stackX: midX + spread * 7, stackY: rowY + Math.abs(spread) * 2, tilt: spread * 4 };
+    // The stack dips a little before it launches (anticipation), so the flight reads as a throw.
+    return { ...node, rowX, stackX: midX + spread * 7, stackY: rowY + 7 + Math.abs(spread) * 2, tilt: spread * 4 };
   });
   await ready(imgs);
   await new Promise((r) => requestAnimationFrame(r));
@@ -311,6 +318,31 @@ async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<
       fill: 'both',
     }).finished,
   );
+  // Packing lands with a small burst of sparks: the "done" moment.
+  if (!play.reverse) {
+    const SPARKS = 10;
+    for (let i = 0; i < SPARKS; i++) {
+      const spark = document.createElement('div');
+      spark.className = 'fly-spark';
+      Object.assign(spark.style, { left: `${play.target.x - 3}px`, top: `${play.target.y - 3}px` });
+      layer.appendChild(spark);
+      // Mostly downwards and to the sides: up is off the top of the screen.
+      const angle = Math.PI * (0.05 + (0.9 * i) / (SPARKS - 1)) + (i % 2 ? 0.08 : -0.08);
+      const dist = 26 + (i % 3) * 9;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+      finished.push(
+        spark.animate(
+          [
+            { opacity: 0, transform: 'translate3d(0,0,0) scale(0.6)' },
+            { opacity: 1, transform: `translate3d(${dx * 0.35}px,${dy * 0.35}px,0) scale(1)`, offset: 0.2 },
+            { opacity: 0, transform: `translate3d(${dx}px,${dy}px,0) scale(0.4)` },
+          ],
+          { duration: 460, delay: flyEnd - 40 + (i % 3) * 18, easing: EASE_OUT, fill: 'both' },
+        ).finished,
+      );
+    }
+  }
   await Promise.all(finished).catch(() => undefined);
 }
 
@@ -330,6 +362,30 @@ export function Overlay() {
 }
 
 // ---------- the toast ----------
+
+/** Counts up from 0 to n in about half a second (fast at first, settling at the end), then pops once. */
+function CountUp({ n }: { n: number }) {
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setShown(n);
+      return;
+    }
+    const start = performance.now();
+    const length = Math.min(650, 260 + n * 30);
+    let frame = requestAnimationFrame(function step(now) {
+      const t = Math.min(1, (now - start) / length);
+      setShown(Math.round(n * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [n]);
+  return (
+    <span className={`toast-count ${shown === n ? 'done' : ''}`} aria-label={`${n}`}>
+      {shown}
+    </span>
+  );
+}
 
 export function Toast() {
   useSettings();
@@ -387,7 +443,10 @@ export function Toast() {
               <FolderMark size={34} alive mood={mood} />
             </motion.span>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span className="toast-title">{info.title}</span>
+              <span className="toast-title">
+                {info.title}
+                {info.count ? <CountUp n={info.count} /> : null}
+              </span>
               <span className="muted small toast-detail">{info.detail}</span>
             </span>
             {info.action ? (

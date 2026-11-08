@@ -58,8 +58,8 @@ function SaveBox() {
     try {
       await api.commitSave({ jobId: p.jobId, name: opts.name, note: opts.note, keys: opts.keys, tidy: opts.tidy });
       setState('saved');
-      // With Pack up, get out of the way quickly so the windows can be seen flying into the menu bar.
-      closeTimer.current = setTimeout(() => void api.closeWindow(), opts.tidy ? 450 : p.jobId ? 600 : 1200);
+      // With Pack up, get out of the way at once: the same fly-in as Tidy all plays, with nothing in front of it.
+      closeTimer.current = setTimeout(() => void api.closeWindow(), opts.tidy ? 60 : p.jobId ? 600 : 1200);
     } catch (e) {
       setError(errorText(e));
       setState('ready');

@@ -1,7 +1,7 @@
 // The app's actions, shared by the menu bar, keyboard shortcuts and the windows.
 
 import path from 'node:path';
-import { mostlyOpen, type BriefView, type Capture, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult } from '../shared/types';
+import { mostlyOpen, type BriefView, type Capture, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult, type TidyFront } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, CHAT_APPS, frontItemKey } from './capture';
@@ -27,7 +27,7 @@ import { BreakStore, isBreakItem, videoKey } from './breaks';
 import type { SettingsStore } from './settings';
 import { readJsonSafely } from './safety';
 import { JobStore, writeFileKeepingLast } from './store';
-import { IconCache } from './icons';
+import { IconCache, iconSource } from './icons';
 import { Memory } from './memory';
 import { cleanTabUrl, looseKey, matchKeys, siteOf } from './urls';
 
@@ -78,6 +78,8 @@ export interface TidyAllPlan {
   loose: number;
   /** Break tabs put on the Break shelf. */
   breaks: number;
+  /** "Keep this tab": the tab or window you were on, saved like the rest but left open. */
+  kept: Item | null;
 }
 
 /** Tidy all quits every app except these: Claude (you work with it alongside everything), Finder and Stashd. */
@@ -385,13 +387,16 @@ export class Core {
    * nowhere (listed under "Recently closed" for 10 minutes). Everyday sites (mail, music) stay.
    * Returns the things to close; closing is up to the caller.
    */
-  async tidyAll(): Promise<TidyAllPlan> {
+  async tidyAll(opts: { keepFront?: boolean } = {}): Promise<TidyAllPlan> {
     const settings = this.settings.get();
     const cap = this.fakeCapture ? await this.fakeCapture() : await capture(settings, this.helper, this.selfNames);
     await this.sites?.look(cap.items);
     const learned = learnedLifestyleApps(this.state.appUnticks);
     const openKeys = new Set(cap.items.map(looseKey));
-    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0 };
+    const frontKey = opts.keepFront ? frontItemKey(cap.items, cap.appOrder) : null;
+    const kept = cap.items.find((i) => i.key === frontKey) ?? null;
+    const isKept = (i: Item) => !!kept && matchKeys(i).includes(looseKey(kept));
+    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0, kept };
     const claimed = new Set<string>();
     const claim = (items: Item[]) => items.forEach((i) => matchKeys(i).forEach((k) => claimed.add(k)));
     const openItem = (i: Item) => cap.items.find((c) => matchKeys(i).includes(looseKey(c)));
@@ -406,7 +411,7 @@ export class Core {
       if (!isOpen) {
         // Already saved in this folder: close it, nothing to save.
         claim(openNow);
-        plan.close.push(...openNow.map(openItem).filter((i): i is Item => !!i));
+        plan.close.push(...openNow.map(openItem).filter((i): i is Item => !!i && !isKept(i)));
         continue;
       }
       // An open folder: save it the way Pack up would, then close what was saved.
@@ -422,7 +427,8 @@ export class Core {
 
     // Tabs left over: one that clearly belongs to one of your other folders is added to it. The rest
     // belong nowhere and just close (they stay in "Recently closed" for a while, in case one mattered).
-    const strays = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
+    // (The one you're keeping open stays where it is: not filed, not on the Break shelf.)
+    const strays = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned) && !isKept(i));
     const homes = await this.homesFor(strays, new Set(plan.saved.map((s) => s.jobId)));
     for (const [jobId, items] of homes) {
       const name = await this.addToFolder(jobId, items);
@@ -451,6 +457,16 @@ export class Core {
     this.pending = null;
     this.notify();
     return plan;
+  }
+
+  /** What "Keep this tab" would leave open: the tab or window you're on, with its app's icon. */
+  async tidyFront(): Promise<TidyFront | null> {
+    const look = await this.lookAtOpen();
+    const item = look.items.find((i) => i.key === look.front);
+    if (!item) return null;
+    const source = iconSource(item);
+    await Promise.race([this.icons.get([source]), new Promise((r) => setTimeout(r, 300))]);
+    return { label: item.label, app: item.app, kind: item.kind, icon: this.icons.peek(source) };
   }
 
   /** For each stray item, the one folder it clearly belongs to (if any). Finished folders and `skip` aren't offered. */

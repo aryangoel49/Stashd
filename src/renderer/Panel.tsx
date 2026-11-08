@@ -11,6 +11,7 @@ import { playMerge } from './mergeFx';
 import { BreakView, ModeSwitch } from './Break';
 import { PanelAsk } from './Ask';
 import { useRecentlyTidied } from './Recent';
+import { TidyChoice } from './TidyChoice';
 import { useSuggestions } from './Suggestions';
 import { folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
 
@@ -143,6 +144,9 @@ function PanelView() {
 
 /** The panel's top bar: the app, Tidy all, stash, the window and Settings. */
 function PanelHead({ settings }: { settings: Settings }) {
+  const [choosing, setChoosing] = useState(false);
+  // The panel hides when Tidy all starts; it opens fresh next time.
+  useEffect(() => api.onWindowShown(() => setChoosing(false)), []);
   return (
     <>
       <div className="panel-head">
@@ -151,7 +155,14 @@ function PanelHead({ settings }: { settings: Settings }) {
           <span className="display" style={{ fontSize: 15 }}>Stashd</span>
         </button>
         <span className="head-tools">
-          <Button variant="ghost" size="small" className="tidy-all-btn" onClick={() => void api.tidyAll()} title={`Save your open folders, keep loose tabs in a folder of their own, and close it all (${prettyShortcut(settings.shortcutTidy)})`}>
+          <Button
+            variant="ghost"
+            size="small"
+            className={`tidy-all-btn ${choosing ? 'on' : ''}`}
+            onClick={() => setChoosing((c) => !c)}
+            aria-expanded={choosing}
+            title={`Save your open folders and close the rest (${prettyShortcut(settings.shortcutTidy)})`}
+          >
             <Icon name="spark" /> Tidy all
           </Button>
           <Button
@@ -172,6 +183,7 @@ function PanelHead({ settings }: { settings: Settings }) {
           </Button>
         </span>
       </div>
+      {choosing && <TidyChoice last={settings.tidyKeep} shortcut={prettyShortcut(settings.shortcutTidy)} onClose={() => setChoosing(false)} />}
     </>
   );
 }

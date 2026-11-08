@@ -6,6 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
+- Tidy all asks one quick question: **Keep this tab** (shows the tab you're on, which stays open with its app) or **Close everything**. Your last choice is marked, Enter picks it, and the shortcut uses it.
 - Stashd learns which sites are for breaks, even ones it has never heard of: your Mac's own model reads the page title (so a streaming site like 1Flex goes to Continue watching, not your work folder). Sites it can't tell go to Stashd AI if you turned it on, just the site and a few page titles. Forget my history clears what it learned.
 - Ask Stashd keeps your chats: past chats are listed on the Ask Stashd page, open again with every question and answer, and you can carry on or delete them. New chat starts fresh. They stay on this Mac, and Forget my history clears them.
 - Ask Stashd has a bit of personality: under each answer, a short friendly line from Stashd (in italics, so the facts stay easy to spot).
@@ -23,6 +24,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed
+- Pack up and Tidy all now look and feel the same: the windows go into one tray, dip, and arc into the menu bar icon, which winks as they land with a burst of sparks and a soft two-note chime. Every app Tidy all quits is part of it (nothing vanishes on its own), and the toast counts up what was put away.
 - Continue watching shows there's more to the side: the next video peeks in, the edge fades only where there's more, round arrows page through it, the count sits next to the title, and the first time the row nudges sideways to show it scrolls.
 - Tidy all and Pack up look calmer and more polished: your apps settle into one frosted tray (one icon per app with a count, like Chrome 8), gather into a stack, sweep in a curve into the menu bar icon and land with a soft ripple. Unpacking plays it in reverse.
 - Deleting a folder also removes what Stashd's memory held about it.

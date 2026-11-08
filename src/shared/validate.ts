@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sounds: true,
   autoSave: true,
   autoSaveTalk: 'helpful',
+  tidyKeep: 'front',
 };
 
 const OLD_SHORTCUT_SAVE = 'CommandOrControl+Shift+S';
@@ -138,6 +139,10 @@ export function settingsPatch(v: unknown, current: Settings): Settings {
       case 'autoSaveTalk':
         if (val !== 'helpful' && val !== 'quiet') fail('autoSaveTalk must be helpful or quiet');
         next.autoSaveTalk = val;
+        break;
+      case 'tidyKeep':
+        if (val !== 'front' && val !== 'all') fail('tidyKeep must be front or all');
+        next.tidyKeep = val;
         break;
       case 'appearance': {
         if (val !== 'light' && val !== 'dark' && val !== 'system') fail('unknown appearance');

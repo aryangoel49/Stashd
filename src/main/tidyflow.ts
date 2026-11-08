@@ -7,6 +7,7 @@ import { screen, type Rectangle } from 'electron';
 import type { FlyItem, Item, NamingRequest, OverlayPlay, Route, ToastInfo } from '../shared/types';
 import { CHAT_APPS } from './capture';
 import { appsToQuit, type Core } from './core';
+import { matchKeys } from './urls';
 import { iconSource } from './icons';
 import { openItems } from './open';
 import { canName, cleanFileName, closeItems, freePath, saveUntitled, suggestedFileName } from './tidy';
@@ -19,6 +20,8 @@ const UNDO_MS = 2_000;
 const OFFER_MS = 8_000;
 /** Just longer than the toast's 150ms fade-out, so the window hides after it has gone. */
 const TOAST_LEAVE_MS = 170;
+/** Windows close once the tray has come in (OverlayPlay APPEAR), so they seem to go into it. */
+const CLOSE_AFTER_MS = 200;
 
 export class TidyFlow {
   private payloads = new Map<Route, unknown>();
@@ -37,6 +40,8 @@ export class TidyFlow {
   constructor(
     private readonly core: Core,
     private readonly trayBounds: () => Rectangle,
+    /** Things just landed in the menu bar: the icon winks. */
+    private readonly landed: () => void = () => undefined,
   ) {}
 
   /** Make the animation and toast windows ahead of time, so they appear instantly. */
@@ -70,21 +75,36 @@ export class TidyFlow {
   /** The Tidy all that's running, if one is. */
   tidyingAll: Promise<void> | null = null;
 
-  /** Tidy all: save open folders, keep loose tabs in a folder of their own, then close it all at once. */
-  tidyAll(): Promise<void> {
+  /**
+   * Tidy all: save open folders, keep loose tabs in a folder of their own, then close it all at once.
+   * With "Keep this tab" (keepFront), the tab or window you're on stays open, and so does its app.
+   */
+  tidyAll(keepFront = false): Promise<void> {
     if (this.tidyingAll) return this.tidyingAll;
     if (this.naming) this.finishNaming([]);
     this.queue = this.queue.then(async () => {
       try {
-        const plan = await this.core.tidyAll();
+        const plan = await this.core.tidyAll({ keepFront });
+        const keptApp = plan.kept?.app.toLowerCase() ?? null;
+        const keptKeys = new Set(plan.kept ? matchKeys(plan.kept) : []);
+        const stays = (i: Item) => keptKeys.size > 0 && matchKeys(i).some((k) => keptKeys.has(k));
         const saved = await Promise.all(plan.saved.map((s) => this.core.store.entry(s.jobId, s.entryId)));
-        const items = [...saved.flatMap((e) => e.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen)), ...plan.close];
+        const items = [...saved.flatMap((e) => e.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen)), ...plan.close].filter(
+          // A document's app stays open with it, so its other documents stay too (they close only when their app quits).
+          (i) => !stays(i) && !(i.kind === 'doc' && i.app.toLowerCase() === keptApp),
+        );
         // The apps of the folders it packed go too, like Pack up: quit (asking about unsaved work),
-        // Claude and ChatGPT only hidden. Every other app quits after (see below).
-        const apps = saved.flatMap((e) => e.items.filter((i) => i.kind === 'app' && !i.notOpen));
+        // Claude and ChatGPT only hidden. Then every other app except Claude (only Tidy all does this;
+        // Pack up quits just the folder's apps). The app you're keeping stays.
+        const apps = saved.flatMap((e) => e.items.filter((i) => i.kind === 'app' && !i.notOpen && i.app.toLowerCase() !== keptApp));
+        const win = await Promise.resolve().then(() => this.core.helper.windows()).catch(() => null);
+        const mine = new Set(apps.map((a) => a.app.toLowerCase()));
+        const others = win ? appsToQuit(win.apps.map((a) => a.name).filter((n) => !mine.has(n.toLowerCase()) && n.toLowerCase() !== keptApp)) : [];
+        const otherItems = others.map((n): Item => ({ key: `app:${n}`, kind: 'app', label: n, detail: '', app: n }));
 
-        const animation = this.play([...items, ...apps], false);
-        await wait(120);
+        // Everything that will go flies, the other apps too, so nothing just vanishes on its own.
+        const animation = this.play([...items, ...apps, ...otherItems], false);
+        await wait(CLOSE_AFTER_MS);
         // Documents aren't closed one by one: their apps quit below anyway (asking about unsaved work),
         // and some (Preview) are slow to answer a close. Tabs and Finder windows are closed, since
         // Finder stays and a browser might reopen its tabs.
@@ -92,20 +112,18 @@ export class TidyFlow {
         const [{ closed }, doneNames] = await Promise.all([closeItems(items.filter((i) => i.kind !== 'doc'), this.urlOptions()), this.quitOrHide(apps)]);
         const done = new Set(doneNames.map((n) => n.toLowerCase()));
         closed.push(...apps.filter((a) => done.has(a.app.toLowerCase())));
-        // Then every other app except Claude (only Tidy all does this; Pack up quits just the folder's apps).
         // Each quits like ⌘Q, so anything unsaved still asks first.
-        const win = await Promise.resolve().then(() => this.core.helper.windows()).catch(() => null);
-        if (win) {
-          const others = appsToQuit(win.apps.map((a) => a.name).filter((n) => !done.has(n.toLowerCase())));
-          const quit = new Set((await this.core.helper.quitApps(others).catch(() => [] as string[])).map((n) => n.toLowerCase()));
-          closed.push(...others.filter((n) => quit.has(n.toLowerCase())).map((n): Item => ({ key: `app:${n}`, kind: 'app', label: n, detail: '', app: n })));
+        const rest = others.filter((n) => !done.has(n.toLowerCase()));
+        if (rest.length) {
+          const quit = new Set((await this.core.helper.quitApps(rest).catch(() => [] as string[])).map((n) => n.toLowerCase()));
+          closed.push(...otherItems.filter((a) => quit.has(a.app.toLowerCase())));
           for (const n of quit) done.add(n);
         }
         // A document counts as closed once its app has quit.
         closed.push(...docs.filter((d) => done.has(d.app.toLowerCase())));
         await animation;
         if (!closed.length) {
-          this.toast({ title: 'Already tidy', detail: 'Nothing to close.', canUndo: false, mood: 'awake' });
+          this.toast({ title: 'Already tidy', detail: plan.kept ? `Only ${shortName(plan.kept.label)} is open.` : 'Nothing to close.', canUndo: false, mood: 'awake' });
           return;
         }
         this.setUndo(closed, null);
@@ -116,9 +134,11 @@ export class TidyFlow {
           filed ? `${filed} ${filed === 1 ? 'tab' : 'tabs'} added to ${plan.filed.length === 1 ? shortName(plan.filed[0].name) : `${plan.filed.length} folders`}` : '',
           plan.breaks ? `${plan.breaks} on your Break shelf` : '',
         ].filter(Boolean);
+        if (plan.kept) parts.unshift(`kept ${shortName(plan.kept.label)} open`);
         this.toast({
-          title: `Tidied up · ${closed.length} closed`,
-          detail: parts.length ? `${parts.join(', ')}. All in Recently closed for 10 min.` : 'In Recently closed for 10 min, in case.',
+          title: 'Tidied up',
+          count: closed.length,
+          detail: parts.length ? `${capitalise(parts.join(', '))}. All in Recently closed for 10 min.` : 'In Recently closed for 10 min, in case.',
           canUndo: closed.length > 0,
           mood: 'sleep',
         });
@@ -196,7 +216,7 @@ export class TidyFlow {
       return;
     }
     const animation = this.play([...closable, ...apps], false);
-    await wait(120);
+    await wait(CLOSE_AFTER_MS);
     const [{ closed, failed }, doneNames] = await Promise.all([
       closeItems([...closable, ...maybeOpen], this.urlOptions()),
       Promise.all([
@@ -213,7 +233,8 @@ export class TidyFlow {
     this.setUndo(closed, entry.frontKey);
     const left = failed.length + entry.items.filter((i) => i.untitled).length;
     this.toast({
-      title: `${shortName(job.name)} · ${closed.length} packed`,
+      title: `${shortName(job.name)} packed`,
+      count: closed.length,
       detail: left ? `${left} stayed open. Undo brings them all back.` : 'Tucked away. Undo brings them back.',
       canUndo: closed.length > 0,
       mood: 'sleep',
@@ -290,6 +311,7 @@ export class TidyFlow {
     win.showInactive();
     await finished;
     this.overlayDone = null;
+    if (!reverse) this.landed();
     if (this.payloads.get('overlay') === play) win.hide();
   }
 
@@ -310,7 +332,7 @@ export class TidyFlow {
     this.queue = this.queue.then(async () => {
       try {
         const animation = this.play(items, false);
-        await wait(120);
+        await wait(CLOSE_AFTER_MS);
         const { closed } = await closeItems(items, this.urlOptions());
         await animation;
         this.setUndo(closed, null);
@@ -483,6 +505,10 @@ function shortName(name: string, max = 24): string {
   if (name.length <= max) return name;
   const cut = name.slice(0, max).replace(/\s+\S*$/, '');
   return `${cut || name.slice(0, max)}…`;
+}
+
+function capitalise(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function wait(ms: number): Promise<void> {
