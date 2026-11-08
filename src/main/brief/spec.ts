@@ -117,9 +117,10 @@ export const ASK_SCHEMA = {
 export const SITES_INSTRUCTIONS = `You sort websites for Stashd, a Mac app that keeps work apart from breaks.
 You get a list of sites, each with its address and a few page titles seen on it.
 For each site, answer:
-- "break" if people mainly use it to watch, listen, play games, follow sport, scroll social feeds or for other entertainment (streaming and piracy sites included).
-- "work" if people mainly use it for work, study, coding, documents, email, shopping, banking or other tasks.
-- "mixed" if it is often used for both, like Reddit or Medium, or if you can't tell.
+- "break" if people mainly use it for fun: streaming and piracy sites, video sites, music, radio and podcasts, games and gaming news or reviews, sport (live scores, streams, sports news, fantasy leagues, betting), social feeds, memes, celebrity news, fan sites and wikis, fiction, comics and manga.
+- "work" if people mainly use it for work, study, coding, documents, email, meetings, shopping, banking, travel, jobs or other tasks.
+- "mixed" only if the site is really used for both, like Reddit, general news sites, Wikipedia or newsletters. Having articles or news doesn't make a site mixed: sports news and gaming news are "break".
+Use the titles: on a site you don't know, the titles tell you what it is.
 Answer every site, using its address exactly as given.`;
 
 export const SITES_SCHEMA = {
@@ -149,7 +150,7 @@ const KINDS = {
   brief: { system: INSTRUCTIONS, schema: OUTPUT_SCHEMA, maxTokens: 2000 },
   name: { system: NAME_INSTRUCTIONS, schema: NAME_SCHEMA, maxTokens: 1000 },
   ask: { system: ASK_INSTRUCTIONS, schema: ASK_SCHEMA, maxTokens: 1500 },
-  sites: { system: SITES_INSTRUCTIONS, schema: SITES_SCHEMA, maxTokens: 800 },
+  sites: { system: SITES_INSTRUCTIONS, schema: SITES_SCHEMA, maxTokens: 2000 },
 } as const;
 
 /** The request for one brief or one folder name. Bigger models think for longer, so they get more room. */

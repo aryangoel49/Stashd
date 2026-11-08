@@ -68,7 +68,7 @@ export function modelCanRead(title: string): boolean {
 }
 
 const MAX_TITLES = 3;
-const AI_BATCH = 20;
+const AI_BATCH = 15;
 const AI_EVERY = 60 * 60_000;
 const AI_AGAIN = 24 * 60 * 60_000;
 const MAX_SITES = 2000;
