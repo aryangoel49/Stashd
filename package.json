@@ -21,6 +21,7 @@
     "package:intel": "electron-forge package --arch=x64",
     "check:chips": "node scripts/compare-chips.mjs",
     "install-local": "bash scripts/install-local.sh",
+    "check:release": "bash scripts/check-release.sh",
     "release": "electron-forge release",
     "lint": "oxlint && oxfmt --check",
     "lint:fix": "oxlint --fix && oxfmt --write",

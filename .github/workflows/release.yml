@@ -1,16 +1,16 @@
-# Builds Stashd.dmg (Apple silicon) and Stashd-Intel.dmg on a Mac runner.
-# - Run it by hand (Actions → Release → Run workflow) to get the DMG as a downloadable build artifact.
-# - Push a tag like v1.0.1 (matching "version" in package.json) to also publish a GitHub Release with
-#   the DMG and zip attached. The README links to releases/latest/download/Stashd.dmg.
-name: Release
+# A check that Stashd builds on a clean Mac, for both chips. It does NOT publish releases.
+# Releases are built and published from Aryan's Mac (see CLAUDE.md), because only that Mac has the
+# "Stashd Local Signing" certificate: builds made here have no certificate, so the updater would refuse
+# them and anyone installing one would have to approve Stashd's permissions again.
+# (Later: put the certificate in this repo's secrets, sign here, and publish from here again. See PLAN.md.)
+# Run it by hand: Actions → Build check → Run workflow. The DMGs it keeps are for testing only.
+name: Build check
 
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -31,14 +31,6 @@ jobs:
           npm run typecheck
           npm test
 
-      - name: Tag matches package.json
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          want="v$(node -p "require('./package.json').version")"
-          if [ "$GITHUB_REF_NAME" != "$want" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match package.json version ($want)." && exit 1
-          fi
-
       - name: Build DMG and zip
         run: |
           npm run make
@@ -51,7 +43,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Stashd-${{ github.ref_name }}
+          name: Stashd-unsigned-test-build-${{ github.sha }}
           path: |
             out/make/dmg/arm64/Stashd.dmg
             out/make/zip/darwin/arm64/*.zip
@@ -59,8 +51,3 @@ jobs:
             out/make/zip/darwin/x64/*.zip
           if-no-files-found: error
 
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" out/make/dmg/arm64/Stashd.dmg out/make/zip/darwin/arm64/*.zip out/make/dmg/x64/Stashd-Intel.dmg out/make/zip/darwin/x64/*.zip --title "Stashd $GITHUB_REF_NAME" --generate-notes
