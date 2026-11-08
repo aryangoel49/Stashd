@@ -2,7 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppInfo, AskAnswer, AskChat, AskProblem, BreakShelf, BrowserName, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion, TidyFront, TidyKeep, UpdateState } from './shared/types';
+import type { AppInfo, AskAnswer, AskChat, AskProblem, BreakShelf, BrowserName, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion, TidyFront, TidyKeep, UpdateState, SetupItem } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -59,7 +59,7 @@ const api = {
   deleteJob: (jobId: string) => invoke<boolean>('jobs:delete', jobId),
   confirmDelete: (jobId: string) => invoke<boolean>('jobs:confirmDelete', jobId),
 
-  openWindow: (route: 'save' | 'pack' | 'main' | 'settings', jobId?: string) => invoke<boolean>('window:open', route, jobId),
+  openWindow: (route: 'save' | 'pack' | 'main' | 'settings' | 'welcome', jobId?: string) => invoke<boolean>('window:open', route, jobId),
   closeWindow: () => invoke<boolean>('window:close'),
   fitWindow: (height: number) => invoke<boolean>('window:fit', height),
   openAutomationSettings: () => invoke<boolean>('system:openAutomationSettings'),
@@ -76,6 +76,10 @@ const api = {
   updateState: () => invoke<UpdateState | null>('update:state'),
   checkForUpdate: () => invoke<UpdateState | null>('update:check'),
   restartToUpdate: () => invoke<boolean>('update:restart'),
+  setupStatus: () => invoke<SetupItem[]>('setup:status'),
+  setupAllow: () => invoke<SetupItem[]>('setup:allow'),
+  setupAccessibility: () => invoke<boolean>('setup:accessibility'),
+  setupDone: () => invoke<boolean>('setup:done'),
   openUpdatePage: () => invoke<boolean>('update:page'),
   onUpdateChanged: (cb: (s: UpdateState) => void) => on('update:changed', cb as never),
   recentlyTidied: () => invoke<{ at: string; until: string; items: Item[] } | null>('tidy:recent'),

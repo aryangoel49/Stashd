@@ -274,6 +274,14 @@ function start(): void {
         })
       : null;
     updater?.start();
+
+    // First run: the welcome. Someone who already has folders (they used Stashd before the welcome existed) skips it.
+    if (!settings.get().welcomed) {
+      void core.store.list().then((jobs) => {
+        if (jobs.length) void settings.update({ welcomed: true });
+        else showWindow('welcome');
+      });
+    }
     app.on('will-quit', () => void updater?.installOnExit(false));
 
     registerIpc(core, secrets, {

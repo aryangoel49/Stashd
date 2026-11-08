@@ -72,6 +72,22 @@ export class Helper {
     return Array.isArray(out.quit) ? out.quit.filter((n): n is string => typeof n === 'string') : [];
   }
 
+  /**
+   * Whether Stashd may control these apps (Automation), by bundle id, without asking unless `ask`: then
+   * macOS asks for each running app it hasn't asked yet, one after another (so it can take a while).
+   */
+  async automation(bundleIds: string[], ask = false): Promise<Record<string, string>> {
+    const r = await run(this.binary, ask ? ['automation', 'ask'] : ['automation'], { timeoutMs: ask ? 5 * 60_000 : 5000, input: JSON.stringify(bundleIds) });
+    const out = JSON.parse(r.stdout) as Record<string, unknown>;
+    return Object.fromEntries(Object.entries(out).filter((e): e is [string, string] => typeof e[1] === 'string'));
+  }
+
+  /** Whether Stashd may use Accessibility. `ask`: macOS shows its prompt, which leads to System Settings. */
+  async accessibility(ask = false): Promise<boolean> {
+    const r = await run(this.binary, ask ? ['accessibility', 'ask'] : ['accessibility'], { timeoutMs: 5000 });
+    return (JSON.parse(r.stdout) as { trusted?: unknown }).trusted === true;
+  }
+
   /** The chat open in each of these apps (Claude, ChatGPT). `ask`: let macOS ask for Accessibility if it isn't on. */
   async chats(names: string[], ask = false): Promise<{ trusted: boolean; chats: ChatInfo[] }> {
     const r = await run(this.binary, ask ? ['chats', 'ask'] : ['chats'], { timeoutMs: 3000, input: JSON.stringify(names) });

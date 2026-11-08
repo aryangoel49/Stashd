@@ -6,6 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
+- **A welcome for new people.** The first time Stashd opens, five short steps: what it does, the permissions it needs (all at once, each with its reason and whether it's already allowed), Stashd AI (a plain yes or no, saying what it sends), the Chrome helper, and a first ⌃S. Any step can be skipped, and Settings → Startup shows it again.
 - **Stashd updates itself.** It quietly downloads new versions and installs them the next time it starts; when one is ready, the menu bar panel shows **Restart to update**. Settings has an Updates section with **Check now**. It only asks GitHub which version is the latest, and only installs a version signed by Stashd.
 - Tidy all asks one quick question in a small menu: **Keep what you're on** (the tab, document or app in front, like Claude, which stays open) or **Close everything**. Your last choice is marked, Return picks it, and the shortcut uses it.
 - Stashd learns which sites are for breaks, even ones it has never heard of: your Mac's own model reads the page title (so a streaming site like 1Flex goes to Continue watching, not your work folder). Sites it can't tell go to Stashd AI if you turned it on, just the site and a few page titles. Forget my history clears what it learned.

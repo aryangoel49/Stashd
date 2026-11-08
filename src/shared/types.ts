@@ -2,7 +2,7 @@
 
 export type BrowserName = 'chrome' | 'brave' | 'edge' | 'vivaldi' | 'arc' | 'safari';
 export type Accent = 'indigo' | 'teal' | 'coral';
-export type Route = 'panel' | 'save' | 'main' | 'overlay' | 'naming' | 'toast';
+export type Route = 'panel' | 'save' | 'main' | 'overlay' | 'naming' | 'toast' | 'welcome';
 
 export interface Settings {
   browsers: Record<BrowserName, boolean>;
@@ -37,6 +37,8 @@ export interface Settings {
   autoSaveTalk: 'helpful' | 'quiet';
   /** Tidy all: keep the tab (or window) you're on open, or close everything. The last choice is kept. */
   tidyKeep: TidyKeep;
+  /** The welcome (first run) has been seen, or skipped. */
+  welcomed: boolean;
 }
 
 export type TidyKeep = 'front' | 'all';
@@ -440,4 +442,16 @@ export interface UpdateState {
   canInstall?: boolean;
   checkedAt?: string;
   error?: string;
+}
+
+/** One permission in the welcome's checklist (src/main/setup.ts). */
+export interface SetupItem {
+  /** A bundle id, or "accessibility". */
+  id: string;
+  name: string;
+  /** Why Stashd needs it, in a few words. */
+  why: string;
+  kind: 'automation' | 'accessibility';
+  /** allowed; denied (turned off in System Settings); ask (not asked yet); later (asked the first time you use the app). */
+  status: 'allowed' | 'denied' | 'ask' | 'later';
 }

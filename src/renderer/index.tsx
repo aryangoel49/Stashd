@@ -5,6 +5,7 @@ import { Main } from './Main';
 import { Panel } from './Panel';
 import { Save } from './Save';
 import { Naming, Overlay, Toast } from './Tidy';
+import { Welcome } from './Welcome';
 import './tailwind.css';
 import './styles.css';
 
@@ -20,6 +21,7 @@ const views: Partial<Record<Route, ComponentType>> = {
   naming: Naming,
   overlay: Overlay,
   toast: Toast,
+  welcome: Welcome,
 };
 const View = views[route] ?? Panel;
 

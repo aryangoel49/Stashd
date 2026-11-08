@@ -3,6 +3,7 @@
 
 import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import { RELEASES_PAGE } from './updater';
+import { setupItems } from './setup';
 import type { AppInfo, AskAction, AskAnswer, BrowserName, SaveEntry, TidyKeep, UpdateState } from '../shared/types';
 import { timeAgo } from '../shared/time';
 import { askStashd, runAction } from './ask';
@@ -13,6 +14,7 @@ import type { SecretStore } from './secrets';
 import { fitHeight, getWindow, holdWindow, isAppUrl, routeOf, showWindow } from './windows';
 
 const AUTOMATION_SETTINGS = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Automation';
+const ACCESSIBILITY_SETTINGS = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
 const CLAUDE_KEYS_PAGE = 'https://console.anthropic.com/settings/keys';
 
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
@@ -268,6 +270,9 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
       // The panel's "See in Stashd" opens the window on Recently closed.
       const page = route === 'main' && jobId === 'recent' ? 'recent' : route;
       showWindow('main', { onReady: (w) => w.webContents.send('main:show', page) });
+    } else if (route === 'welcome') {
+      getWindow('panel')?.hide();
+      showWindow('welcome');
     } else throw new Error('bad window');
     return true;
   });
@@ -310,6 +315,20 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     return true;
   });
   handle('tidy:front', () => core.tidyFront());
+  // The welcome (first run).
+  handle('setup:status', () => setupItems(core.helper, core.settings.get()));
+  handle('setup:allow', () => setupItems(core.helper, core.settings.get(), true));
+  handle('setup:accessibility', async () => {
+    // macOS's own prompt leads to the right place in System Settings; open it too, in case the prompt was turned down before.
+    const trusted = await core.helper.accessibility(true).catch(() => false);
+    if (!trusted) await shell.openExternal(ACCESSIBILITY_SETTINGS);
+    return trusted;
+  });
+  handle('setup:done', async () => {
+    await core.settings.update({ welcomed: true });
+    getWindow('welcome')?.close();
+    return true;
+  });
   handle('update:state', () => hooks.update.state());
   handle('update:check', () => hooks.update.check());
   handle('update:page', () => {

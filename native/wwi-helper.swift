@@ -266,6 +266,46 @@ func chromeHostCommand() {
     out.write(reply)
 }
 
+/// Which apps Stashd may control (macOS's Automation permission), without asking: one of
+/// "allowed", "denied", "ask" (macOS hasn't asked yet), "notRunning" (macOS can only check a running app),
+/// "notInstalled". With "ask", macOS shows its "Stashd wants to control …" prompt for each running app that
+/// hasn't been asked, one after another. Input: a JSON list of bundle ids. Checked with the kind of message
+/// Stashd's scripts send (Core suite, get data), so the answer is the one that counts.
+func automationCommand(ask: Bool) {
+    let input = FileHandle.standardInput.readDataToEndOfFile()
+    let ids = ((try? JSONSerialization.jsonObject(with: input)) as? [String]) ?? []
+    var out: [String: String] = [:]
+    for id in ids.prefix(40) {
+        if NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) == nil {
+            out[id] = "notInstalled"
+            continue
+        }
+        var target = AEAddressDesc()
+        let made = id.withCString { AECreateDesc(DescType(typeApplicationBundleID), $0, strlen($0), &target) }
+        guard made == noErr else {
+            out[id] = "error"
+            continue
+        }
+        let r = AEDeterminePermissionToAutomateTarget(&target, AEEventClass(kAECoreSuite), AEEventID(kAEGetData), ask)
+        AEDisposeDesc(&target)
+        switch r {
+        case noErr: out[id] = "allowed"
+        case OSStatus(errAEEventNotPermitted): out[id] = "denied"
+        case OSStatus(errAEEventWouldRequireUserConsent): out[id] = "ask"
+        case OSStatus(procNotFound): out[id] = "notRunning"
+        default: out[id] = "error"
+        }
+    }
+    printJSON(out)
+}
+
+/// Whether Stashd may use Accessibility (to see which Claude or ChatGPT chat is open). With "ask", macOS
+/// shows its prompt that leads to System Settings.
+func accessibilityCommand(ask: Bool) {
+    let trusted = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: ask] as CFDictionary)
+    printJSON(["trusted": trusted])
+}
+
 let args = CommandLine.arguments
 if args.count > 1, args[1].hasPrefix("chrome-extension://") {
     chromeHostCommand()
@@ -277,7 +317,9 @@ case "icons": iconsCommand()
 case "hide": hideCommand()
 case "quit": quitCommand()
 case "chats": chatsCommand(ask: args.count > 2 && args[2] == "ask")
+case "automation": automationCommand(ask: args.count > 2 && args[2] == "ask")
+case "accessibility": accessibilityCommand(ask: args.count > 2 && args[2] == "ask")
 default:
-    printJSON(["error": "usage: wwi-helper windows|icons|hide|quit|chats"])
+    printJSON(["error": "usage: wwi-helper windows|icons|hide|quit|chats|automation|accessibility"])
     exit(2)
 }

@@ -200,7 +200,7 @@ Each brief request carries the anonymous install ID, so the server can count how
 **Build:**
 - [x] Stashd AI server (`api/brief.ts`, live at getstashd.vercel.app/api/brief), with per-install, per-address and daily-total caps. It stays switched off until the key is added. Optional: connect Upstash Redis in Vercel so the counters are shared and the weekly count works.
 - [x] Brief writers in order: your own key (optional), then Stashd AI, then the template. Apple Intelligence removed, so briefs are the same everywhere.
-- [ ] Consent screen at first launch
+- [x] Consent screen at first launch (the welcome's Stashd AI step, 8 Nov)
 - [x] Privacy test (Stashd AI may only talk to Stashd's server) and README
 - [ ] Website wording about Stashd AI, once it's switched on
 - [x] Intel build: Swift helper for macOS 13 on both chips, onnxruntime 1.23.2 for Intel and the default (1.30) on Apple silicon, the same matching results on both because both run the model with `basic` optimization (`npm run check:chips`). `npm run make:intel` builds Stashd-Intel.dmg. Minimum for the meaning model: macOS 14 on Apple silicon, 13.4 on Intel; older Macs (down to 13.0, Electron's limit) still run with word matching.
@@ -218,7 +218,7 @@ Each brief request carries the anonymous install ID, so the server can count how
   - Rules: it never closes or quits anything on its own, it says "Saved automatically" in the menu bar, and one switch in Settings turns it all on or off (Aryan, 7 Nov: one switch, and the saving happens on its own). Coming back shows the brief.
   - Later, it learns each person's habits (when their day ends, which moments they use) and tunes itself.
 - [ ] Installers: DMG (with the "Open Anyway" picture guide), the one-line command, and `npx stashd`
-- [ ] First-run permissions step: ask for every installed app at once, with a reason for each
+- [x] First-run permissions step: ask for every installed app at once, with a reason for each (the welcome, 8 Nov: macOS can only ask about open apps, so the rest are asked on first use; the helper's `automation` and `accessibility` commands check without prompting)
 - [x] **Brave, Edge and Vivaldi support.** They work like Chrome, so it's cheap, and many developers use Brave. Tested on the real browsers (Brave 1.99, Edge 157, Vivaldi 8.3) with `tests/browsers-live.test.ts`, and Edge and Vivaldi through the whole save, Pack up and Unpack flow. Still open: after Pack up closed a whole window, Unpack showed each Vivaldi tab twice; and Brave's whole flow hasn't been run.
   - Firefox and Zen can't share their tabs with other apps on a Mac; the website says so plainly.
 - [x] Never lose a save: back up before any change to how saves are stored (`src/main/safety.ts`, last 5 kept), recover from a damaged file

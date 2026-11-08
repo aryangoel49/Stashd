@@ -113,6 +113,15 @@ export function SettingsView() {
         <Toggle label="Open Stashd when I log in" hint="Works in the installed app." on={s.launchAtLogin} onChange={(v) => void update({ launchAtLogin: v })} />
         <div className="srow">
           <span>
+            The welcome
+            <span className="faint small" style={{ display: 'block' }}>Permissions, Stashd AI and the Chrome helper, step by step.</span>
+          </span>
+          <Button size="small" onClick={() => void api.openWindow('welcome')}>
+            Show it again
+          </Button>
+        </div>
+        <div className="srow">
+          <span>
             Quit Stashd
             <span className="faint small" style={{ display: 'block' }}>Your shortcuts stop working until you open it again.</span>
           </span>

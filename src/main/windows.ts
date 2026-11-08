@@ -61,6 +61,7 @@ const OPTIONS: Record<Route, Electron.BrowserWindowConstructorOptions> = {
   save: { ...GLASS, width: 540, height: 200, alwaysOnTop: true },
   naming: { ...GLASS, width: 460, height: 220, alwaysOnTop: true },
   toast: { ...GLASS, width: 400, height: 68, alwaysOnTop: true },
+  welcome: { ...GLASS, width: 480, height: 520, skipTaskbar: false },
   main: {
     width: 960,
     height: 640,
@@ -112,7 +113,7 @@ export function showWindow(
   const existing = getWindow(route);
   if (existing) {
     if (opts.near) placeUnder(existing, opts.near);
-    else if (route === 'save' || route === 'naming') placeCentered(existing);
+    else if (route === 'save' || route === 'naming' || route === 'welcome') placeCentered(existing);
     existing.webContents.send('window:shown');
     reveal(existing, route);
     opts.onReady?.(existing);
@@ -149,6 +150,7 @@ export function showWindow(
 
   if (opts.near) placeUnder(win, opts.near);
   else if (route === 'save' || route === 'naming') placeCentered(win);
+  else if (route === 'welcome') win.center();
 
   if (route === 'overlay') win.setBounds(screen.getPrimaryDisplay().bounds);
 
