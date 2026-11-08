@@ -2,7 +2,7 @@
 // (put here by Tidy all) as a row of thumbnails, and where they open. The first time you open something it asks which
 // browser; the "Opens in …" line changes it any time.
 
-import { useEffect, useMemo, useRef, useState, type Ref } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { useDragControls } from 'motion/react';
 import type { BreakItem, BreakShelf, BrowserName } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
@@ -209,6 +209,55 @@ function EditPlace({ place, onLift, onMove, onDrop, onStep, onRename, onRemove, 
     </motion.div>
   );
 }
+
+/**
+ * Continue watching scrolls sideways. So it's clear there's more: the next card peeks in, the edge fades only
+ * where there's more to see, round arrows page through it (for mice without sideways scrolling), and the
+ * first time the row has more than fits, it nudges a little to the side and settles back.
+ */
+function ScrollRow({ count, children }: { count: number; children: ReactNode }) {
+  const row = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ start: true, end: true });
+  const measure = () => {
+    const el = row.current;
+    if (!el) return;
+    setEdges({ start: el.scrollLeft < 4, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 });
+  };
+  useEffect(() => {
+    measure();
+    const el = row.current;
+    if (!el || el.scrollWidth <= el.clientWidth + 4) return;
+    // Once per run: a small sideways nudge that says "this scrolls".
+    if (nudged || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    nudged = true;
+    const t = setTimeout(() => {
+      el.scrollTo({ left: 36, behavior: 'smooth' });
+      setTimeout(() => el.scrollTo({ left: 0, behavior: 'smooth' }), 420);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [count]);
+  const page = (dir: 1 | -1) => {
+    const el = row.current;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>('.nf-card');
+    const step = card ? (card.offsetWidth + 10) * 2 : el.clientWidth * 0.8;
+    el.scrollBy({ left: dir * step, behavior: 'smooth' });
+  };
+  return (
+    <div className="nf-row-wrap">
+      <div ref={row} className={`nf-row ${edges.start ? '' : 'fade-l'} ${edges.end ? '' : 'fade-r'}`} onScroll={measure}>
+        {children}
+      </div>
+      <button type="button" className={`nf-arrow left ${edges.start ? 'gone' : ''}`} aria-label="Show earlier videos" tabIndex={edges.start ? -1 : 0} onClick={() => page(-1)}>
+        <Icon name="chevron" />
+      </button>
+      <button type="button" className={`nf-arrow right ${edges.end ? 'gone' : ''}`} aria-label="Show more videos" tabIndex={edges.end ? -1 : 0} onClick={() => page(1)}>
+        <Icon name="chevron" />
+      </button>
+    </div>
+  );
+}
+let nudged = false;
 
 /** Episodes of one show sit together ("Shark Tank · 4 episodes"); everything else on its own. */
 function showOf(title: string): string | null {
@@ -505,9 +554,12 @@ export function BreakView() {
         )}
       </div>
 
-      <div className="nf-label">Continue watching</div>
+      <div className="nf-label nf-label-row">
+        <span>Continue watching</span>
+        {list.length > 2 && <span className="nf-count">{list.length}</span>}
+      </div>
       {list.length > 0 ? (
-        <div className={`nf-row ${list.length > 2 ? 'more' : ''}`}>
+        <ScrollRow count={list.length}>
           {list.map((r, i) => (
             <motion.div key={r.key} className="nf-card" initial={{ opacity: 0, transform: 'translateY(4px)' }} animate={{ opacity: 1, transform: 'translateY(0px)' }} transition={{ duration: 0.2, delay: Math.min(i, 4) * 0.03 }}>
               <button type="button" className="nf-card-hit" onClick={() => open(r.url)} title={`${i === 0 ? 'Resume' : 'Open'} ${r.title}`}>
@@ -528,7 +580,7 @@ export function BreakView() {
               </button>
             </motion.div>
           ))}
-        </div>
+        </ScrollRow>
       ) : (
         <div className="nf-empty">
           <FolderMark size={30} mood="sleep" />

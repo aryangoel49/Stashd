@@ -739,8 +739,24 @@ details summary { cursor: default; }
 .nf-place-form .field { width: 100%; }
 .nf-row { display: flex; gap: 10px; margin: 0 -12px; padding: 2px 12px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; scroll-padding: 0 12px; }
 .nf-row::-webkit-scrollbar { display: none; }
-.nf-row.more { mask-image: linear-gradient(90deg, #000 84%, transparent); }
-.nf-card { position: relative; flex: 0 0 132px; min-width: 0; scroll-snap-align: start; }
+.nf-row-wrap { position: relative; }
+/* The edge fades only where there's more to see. */
+.nf-row.fade-r { mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); }
+.nf-row.fade-l { mask-image: linear-gradient(90deg, transparent, #000 44px); }
+.nf-row.fade-l.fade-r { mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent); }
+/* Two and a bit cards fit, so the next one always peeks in. */
+.nf-card { position: relative; flex: 0 0 124px; min-width: 0; scroll-snap-align: start; }
+.nf-count { font-size: 11px; font-weight: 600; color: var(--faint); font-variant-numeric: tabular-nums; }
+.nf-arrow { position: absolute; top: 22px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.9); color: var(--text); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.14); cursor: pointer; transition: opacity 180ms ease, transform 180ms var(--ease-out, ease-out), background 150ms ease; }
+.nf-arrow svg { width: 14px; height: 14px; }
+.nf-arrow.right { right: -4px; }
+.nf-arrow.left { left: -4px; }
+.nf-arrow.left svg { transform: rotate(180deg); }
+.nf-arrow:hover { background: #fff; transform: scale(1.06); }
+.nf-arrow:active { transform: scale(0.94); }
+.nf-arrow.gone { opacity: 0; pointer-events: none; transform: scale(0.85); }
+.nf-arrow:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+@media (prefers-color-scheme: dark) { .nf-arrow { background: rgba(58, 58, 62, 0.92); box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.4); } .nf-arrow:hover { background: #48484d; } }
 .nf-card-hit { display: flex; flex-direction: column; gap: 6px; width: 100%; min-width: 0; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
 .nf-card-art { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: var(--well); box-shadow: inset 0 0 0 0.5px var(--hair); transition: transform 200ms var(--ease-out, ease-out); }
 @media (hover: hover) and (pointer: fine) { .nf-card-hit:hover .nf-card-art { transform: scale(1.03); } }
