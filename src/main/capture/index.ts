@@ -104,6 +104,18 @@ export function assemble(
 }
 
 /**
+ * What you're on right now, for Tidy all's "Keep": the front app's active tab, document or chat, or
+ * the app itself (Claude, Terminal) when Stashd can't see inside it. Unlike frontItemKey, a bare app
+ * counts: you're looking at it. Null only if nothing is open.
+ */
+export function frontThing(items: Item[], appOrder: string[]): Item | null {
+  const app = appOrder[0];
+  if (!app) return null;
+  const key = frontItemKey(items.filter((i) => i.app === app), [app]);
+  return items.find((i) => i.key === key) ?? { key: `app:${app}`, kind: 'app', label: app, detail: 'App', app };
+}
+
+/**
  * The item you were on last: the front document or active tab of the front app.
  * A bare app (Notion, Terminal) says nothing about what you're working on, so it's skipped
  * for the next app that has a tab or document; only if nothing has one does a bare app count.

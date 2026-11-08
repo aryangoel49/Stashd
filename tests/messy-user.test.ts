@@ -342,6 +342,15 @@ describe('Tidy all', () => {
     expect(again.breaks).toBe(0);
   });
 
+  it('"Keep" means the app in front when Stashd can\'t see inside it (Claude), not a tab in the app behind', async () => {
+    const { frontThing } = await import('../src/main/capture');
+    const video: Item = { ...tab(3, 'A video'), active: true };
+    const claude: Item = { key: 'app:Claude', kind: 'app', label: 'Claude', detail: 'App', app: 'Claude' };
+    expect(frontThing([video, claude], ['Claude', 'Google Chrome'])?.key).toBe('app:Claude');
+    expect(frontThing([video], ['Claude', 'Google Chrome'])?.key).toBe('app:Claude');
+    expect(frontThing([video, claude], ['Google Chrome', 'Claude'])?.key).toBe(video.key);
+  });
+
   it('files a stray tab into the packed folder it clearly belongs to, and leaves unclear ones out', async () => {
     const core = makeCore();
     const site = (host: string, p: string, title: string): Item => ({ ...tab(0, title), key: `tab:https://${host}${p}`, url: `https://${host}${p}`, detail: host });

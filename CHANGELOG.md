@@ -6,7 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
-- Tidy all asks one quick question: **Keep this tab** (shows the tab you're on, which stays open with its app) or **Close everything**. Your last choice is marked, Enter picks it, and the shortcut uses it.
+- Tidy all asks one quick question in a small menu: **Keep what you're on** (the tab, document or app in front, like Claude, which stays open) or **Close everything**. Your last choice is marked, Return picks it, and the shortcut uses it.
 - Stashd learns which sites are for breaks, even ones it has never heard of: your Mac's own model reads the page title (so a streaming site like 1Flex goes to Continue watching, not your work folder). Sites it can't tell go to Stashd AI if you turned it on, just the site and a few page titles. Forget my history clears what it learned.
 - Ask Stashd keeps your chats: past chats are listed on the Ask Stashd page, open again with every question and answer, and you can carry on or delete them. New chat starts fresh. They stay on this Mac, and Forget my history clears them.
 - Ask Stashd has a bit of personality: under each answer, a short friendly line from Stashd (in italics, so the facts stay easy to spot).

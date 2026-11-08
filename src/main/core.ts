@@ -4,7 +4,7 @@ import path from 'node:path';
 import { mostlyOpen, type BriefView, type Capture, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult, type TidyFront } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
-import { capture, CHAT_APPS, frontItemKey } from './capture';
+import { capture, CHAT_APPS, frontItemKey, frontThing } from './capture';
 import type { Helper, WindowsInfo } from './helper';
 import {
   classify,
@@ -393,8 +393,7 @@ export class Core {
     await this.sites?.look(cap.items);
     const learned = learnedLifestyleApps(this.state.appUnticks);
     const openKeys = new Set(cap.items.map(looseKey));
-    const frontKey = opts.keepFront ? frontItemKey(cap.items, cap.appOrder) : null;
-    const kept = cap.items.find((i) => i.key === frontKey) ?? null;
+    const kept = opts.keepFront ? frontThing(cap.items, cap.appOrder) : null;
     const isKept = (i: Item) => !!kept && matchKeys(i).includes(looseKey(kept));
     const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0, kept };
     const claimed = new Set<string>();
@@ -461,8 +460,11 @@ export class Core {
 
   /** What "Keep this tab" would leave open: the tab or window you're on, with its app's icon. */
   async tidyFront(): Promise<TidyFront | null> {
-    const look = await this.lookAtOpen();
-    const item = look.items.find((i) => i.key === look.front);
+    // What's open can be a few seconds old, but which app is in front must be now: you may just have switched.
+    const [look, win] = await Promise.all([this.lookAtOpen(), this.fakeCapture ? null : this.helper.windows().catch(() => null)]);
+    const known = new Set(look.cap.appOrder);
+    const order = win ? [...win.order.filter((n) => known.has(n)), ...look.cap.appOrder.filter((n) => !win.order.includes(n))] : look.cap.appOrder;
+    const item = frontThing(look.items, order);
     if (!item) return null;
     const source = iconSource(item);
     await Promise.race([this.icons.get([source]), new Promise((r) => setTimeout(r, 300))]);
