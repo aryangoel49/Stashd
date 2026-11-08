@@ -51,10 +51,9 @@ describe.skipIf(!ready)('with the meaning model', () => {
     const sites = new SiteSorter(dir(), { meaning: realMeaning, ai: () => null });
     await sites.look([flex, sflix, vercel, docs]);
     expect(isBreakItem(flex)).toBe(true);
-    expect(isBreakItem(sflix)).toBe(true);
     expect(isBreakItem(vercel)).toBe(false);
     expect(isBreakItem(docs)).toBe(false);
-    expect(await sites.kindOf('vercel.com')).toBe('work');
+    expect(await sites.kindOf('docs.google.com')).toBe('work');
   });
 
   it('remembers what it learned after a restart, and Forget my history clears it', async () => {
@@ -69,23 +68,41 @@ describe.skipIf(!ready)('with the meaning model', () => {
     expect(existsSync(path.join(d, 'sites.json'))).toBe(false);
   });
 
-  it('asks Stashd AI only about the sites the model could not tell, once, and trusts only answers about them', async () => {
+  it('gives Stashd AI the last word, unclear sites first, and trusts only answers about the sites it asked about', async () => {
     setLearnedBreakSites([]);
     const sent: string[] = [];
     const ai = vi.fn(async (content: string) => {
       sent.push(content);
-      return JSON.stringify({ sites: [{ site: 'medium.com', kind: 'break' }, { site: 'vercel.com', kind: 'break' }] });
+      return JSON.stringify({ sites: [{ site: 'medium.com', kind: 'mixed' }, { site: '1flex.org', kind: 'break' }, { site: 'vercel.com', kind: 'work' }, { site: 'evil.example', kind: 'break' }] });
     });
-    let now = Date.parse("2026-11-07T12:00:00Z");
+    let now = Date.parse('2026-11-07T12:00:00Z');
     const sites = new SiteSorter(dir(), { meaning: realMeaning, ai: () => ai, now: () => now });
     await sites.look([medium, vercel, flex]);
     await vi.waitFor(() => expect(ai).toHaveBeenCalledTimes(1));
     const asked = JSON.parse(sent[0]).sites.map((s: { site: string }) => s.site);
-    expect(asked).toEqual(['medium.com']);
-    await vi.waitFor(async () => expect(await sites.kindOf('medium.com')).toBe('break'));
-    expect(await sites.kindOf('vercel.com')).toBe('work');
+    expect(asked[0]).toBe('medium.com');
+    expect(asked.sort()).toEqual(['1flex.org', 'medium.com', 'vercel.com']);
+    await vi.waitFor(async () => expect(await sites.kindOf('medium.com')).toBe('mixed'));
+    expect(await sites.kindOf('evil.example')).toBeUndefined();
+    expect(isBreakItem(flex)).toBe(true);
     now += 2 * 60 * 60_000;
     await sites.look([medium, vercel, flex]);
     expect(ai).toHaveBeenCalledTimes(1);
+  });
+
+  it('without the model (older Macs) it still learns, through Stashd AI', async () => {
+    setLearnedBreakSites([]);
+    const ai = vi.fn(async () => JSON.stringify({ sites: [{ site: '1flex.org', kind: 'break' }] }));
+    const sites = new SiteSorter(dir(), { meaning: () => undefined, ai: () => ai });
+    await sites.look([flex]);
+    await vi.waitFor(() => expect(isBreakItem(flex)).toBe(true));
+  });
+});
+
+describe('the built-in list', () => {
+  it('leaves the work parts of break sites with your work', () => {
+    expect(isBreakItem(tab('https://studio.youtube.com/channel/1', 'Channel content - YouTube Studio'))).toBe(false);
+    expect(isBreakItem(tab('https://dev.twitch.tv/console', 'Twitch Developers Console'))).toBe(false);
+    expect(isBreakItem(tab('https://www.twitch.tv/somestreamer', 'somestreamer - Twitch'))).toBe(true);
   });
 });

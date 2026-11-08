@@ -43,10 +43,13 @@ export function siteOfUrl(url: string): string | null {
   }
 }
 
+/** The parts of break sites where people work: YouTube Studio, Twitch's developer console, TikTok Ads Manager. */
+const WORK_PARTS = /^(studio|dev|developers?|ads|business|partners?|creators?|analytics|admin|api|docs|help|support|seller|sellercentral)\./;
+
 /** One of the sites Stashd knows from the start (BREAK_SITES). */
 export function isListedBreak(url: string): boolean {
   const host = siteOfUrl(url);
-  if (!host) return false;
+  if (!host || WORK_PARTS.test(host)) return false;
   const hp = `${host}${new URL(url).pathname}`;
   return BREAK_SITES.some((s) => (s.includes('/') ? hp.startsWith(s) : host === s || host.endsWith(`.${s}`)));
 }

@@ -37,6 +37,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Break page: your places are bigger tiles at the top, and Continue watching is a row of video thumbnails you scroll sideways, showing how far you got and how much is left.
 
 ### Fixed
+- YouTube Studio, Twitch's developer console, TikTok Ads Manager and other work parts of break sites stay with your work instead of counting as breaks.
 - A folder named after a tab no longer ends with a stray colon.
 - Tidy all no longer skips the next Chrome window (and leaves its tabs open) after closing a whole window.
 - How far into a video you got now reaches Stashd even if you leave the tab open, and YouTube's hover previews on its home page are no longer counted as watching.

@@ -3,8 +3,8 @@
 //
 // 1. The Mac's own meaning model compares each page title with short descriptions of break pages and work
 //    pages. Free, offline and private. It settles most sites at once ("1Flex - Stream Movies, TV Shows").
-// 2. Sites it can't tell, only if you turned Stashd AI on: a few at a time go to Stashd AI (the site and up
-//    to three page titles, nothing else), at most once an hour.
+// 2. Only if you turned Stashd AI on: Stashd AI has the last word, the unclear sites first (the site and up
+//    to three page titles, nothing else), a few at a time, at most once an hour.
 // Answers are kept in sites.json, so each site is looked at once. A site that shows both kinds of page
 // (a work title and a break title) counts as "mixed": its pages stay with your work, like before.
 
@@ -38,7 +38,7 @@ const BREAK_MEANINGS = [
   'online games to play for fun',
   'music, songs and podcasts to listen to',
   'celebrity gossip, memes and funny videos',
-  'social media feed',
+  'scrolling social media posts, photos and memes',
 ];
 const WORK_MEANINGS = [
   'code, docs and developer tools',
@@ -48,14 +48,27 @@ const WORK_MEANINGS = [
   'research paper and technical article',
   'spreadsheet, design and analytics dashboard',
   'shopping, banking and account settings',
+  'team chat and video meetings',
+  'professional networking and job listings',
+  'app and website design mockups',
 ];
 
-/** How far a title must lean to count. Measured on real titles: streaming sites lean +0.16 to +0.63, work sites -0.02 to -0.2. */
-export const BREAK_LEAN = 0.14;
-export const WORK_LEAN = -0.05;
+/**
+ * How far a title must lean for the Mac's model to decide on its own; anything in between goes to Stashd AI.
+ * Tuned on half of tests/fixtures/sites-eval.ts (scripts/eval-sites.ts) so that no work site counts as a break:
+ * that mistake costs more (a work tab missing from its folder) than a break left with your work.
+ */
+export const BREAK_LEAN = 0.18;
+export const WORK_LEAN = -0.12;
+
+/** The model reads English (and other Latin-script languages, roughly). Other scripts go to Stashd AI. */
+export function modelCanRead(title: string): boolean {
+  const letters = [...title].filter((c) => /\p{L}/u.test(c));
+  return letters.length > 0 && letters.filter((c) => /\p{Script=Latin}/u.test(c)).length / letters.length >= 0.7;
+}
 
 const MAX_TITLES = 3;
-const AI_BATCH = 12;
+const AI_BATCH = 20;
 const AI_EVERY = 60 * 60_000;
 const AI_AGAIN = 24 * 60 * 60_000;
 const MAX_SITES = 2000;
@@ -146,7 +159,7 @@ export class SiteSorter {
 
   private async lookNow(items: Item[]): Promise<void> {
     const data = await this.load();
-    // New titles on sites that aren't settled yet (Stashd AI's answer is final; "mixed" can't change).
+    // New titles on sites Stashd AI hasn't answered for yet (its answer is final).
     const fresh = new Map<string, string>();
     for (const i of items) {
       if (i.kind !== 'tab' || !i.url || isListedBreak(i.url)) continue;
@@ -154,63 +167,61 @@ export class SiteSorter {
       const title = i.label.trim().slice(0, 120);
       if (!host || !sortable(host) || title.length < 3) continue;
       const s = data.sites[host];
-      if (s && (s.by === 'ai' || s.kind === 'mixed' || s.seen.length >= MAX_TITLES || s.seen.some((x) => x.title === title))) continue;
+      if (s && (s.by === 'ai' || s.seen.length >= MAX_TITLES || s.seen.some((x) => x.title === title))) continue;
       fresh.set(`${host}: ${title}`, host);
     }
 
-    let changed = false;
-    const meaning = this.deps.meaning();
-    if (fresh.size && meaning) {
+    if (fresh.size) {
+      // The Mac's model, when it's running: a quick first answer. Without it (older Macs) titles are
+      // still kept for Stashd AI.
       const texts = [...fresh.keys()];
-      const v = await meaning.vectors([...BREAK_MEANINGS, ...WORK_MEANINGS, ...texts], 8000).catch(() => null);
+      const meaning = this.deps.meaning();
+      const v = meaning ? await meaning.vectors([...BREAK_MEANINGS, ...WORK_MEANINGS, ...texts], 8000).catch(() => null) : null;
       const breaks = BREAK_MEANINGS.map((t) => v?.get(t)).filter((x): x is number[] => !!x);
       const works = WORK_MEANINGS.map((t) => v?.get(t)).filter((x): x is number[] => !!x);
-      if (v && breaks.length === BREAK_MEANINGS.length && works.length === WORK_MEANINGS.length) {
-        for (const text of texts) {
-          const vec = v.get(text);
-          if (!vec) continue;
-          const host = fresh.get(text)!;
-          const s = (data.sites[host] ??= { seen: [] });
-          s.seen.push({ title: text.slice(host.length + 2), lean: Math.round(leaning(vec, breaks, works) * 1000) / 1000 });
-          const kind = kindFromTitles(s.seen);
-          if (kind) {
-            s.kind = kind;
-            s.by = 'model';
-          }
-          changed = true;
-        }
+      const usable = breaks.length === BREAK_MEANINGS.length && works.length === WORK_MEANINGS.length;
+      for (const text of texts) {
+        const host = fresh.get(text)!;
+        const s = (data.sites[host] ??= { seen: [] });
+        const title = text.slice(host.length + 2);
+        const vec = usable ? v?.get(text) : undefined;
+        s.seen.push({ title, lean: vec && modelCanRead(title) ? Math.round(leaning(vec, breaks, works) * 1000) / 1000 : 0 });
+        if (s.by === 'ai') continue;
+        const kind = kindFromTitles(s.seen);
+        s.kind = kind;
+        s.by = kind ? 'model' : undefined;
       }
-    }
-    if (changed) {
       this.publish();
       await this.save();
     }
     void this.askAi().catch(() => undefined);
   }
 
-  /** Sites the Mac's model couldn't settle go to Stashd AI, a few at a time, at most once an hour. */
+  /**
+   * With Stashd AI on, it has the last word on every site: the ones the Mac's model couldn't tell first,
+   * then the ones it guessed (it's right about 3 times in 4; Stashd AI far more often). A few sites per
+   * request, at most one request an hour.
+   */
   private async askAi(): Promise<void> {
     const ai = this.deps.ai();
     const now = this.now();
     if (!ai || now - this.lastAi < AI_EVERY) return;
     const data = await this.load();
-    const unsure = Object.entries(data.sites)
-      .filter(([, s]) => !s.kind && s.seen.length && now - (s.askedAt ?? 0) >= AI_AGAIN)
-      .slice(0, AI_BATCH);
-    if (!unsure.length) return;
+    const waiting = Object.entries(data.sites).filter(([, s]) => s.by !== 'ai' && s.seen.length && now - (s.askedAt ?? 0) >= AI_AGAIN);
+    const batch = [...waiting.filter(([, s]) => !s.kind), ...waiting.filter(([, s]) => s.kind)].slice(0, AI_BATCH);
+    if (!batch.length) return;
     this.lastAi = now;
-    for (const [, s] of unsure) s.askedAt = now;
+    for (const [, s] of batch) s.askedAt = now;
     await this.save();
-    const text = await ai(JSON.stringify({ sites: unsure.map(([site, s]) => ({ site, titles: s.seen.map((x) => x.title) })) }));
+    const text = await ai(JSON.stringify({ sites: batch.map(([site, s]) => ({ site, titles: s.seen.map((x) => x.title) })) }));
     const answers = (JSON.parse(text) as { sites?: unknown }).sites;
     if (!Array.isArray(answers)) return;
-    const asked = new Set(unsure.map(([h]) => h));
+    const asked = new Set(batch.map(([h]) => h));
     for (const a of answers as { site?: unknown; kind?: unknown }[]) {
       if (typeof a?.site !== 'string' || !asked.has(a.site)) continue;
       if (a.kind !== 'break' && a.kind !== 'work' && a.kind !== 'mixed') continue;
-      // The Mac's model may have settled it while Stashd AI was thinking; its answer stands.
       const s = data.sites[a.site];
-      if (!s || s.kind) continue;
+      if (!s) continue;
       s.kind = a.kind;
       s.by = 'ai';
     }
