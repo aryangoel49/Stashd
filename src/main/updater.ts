@@ -25,7 +25,7 @@ export const RELEASES = 'https://api.github.com/repos/aryangoel49/Stashd/release
 export const RELEASES_PAGE = 'https://github.com/aryangoel49/Stashd/releases/latest';
 const DOWNLOAD_HOSTS = ['github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com'];
 const BUNDLE_ID = 'com.aryangoel.stashd';
-const FIRST_CHECK_MS = 60 * 60_000;
+const FIRST_CHECK_MS = 2 * 60_000;
 const CHECK_EVERY_MS = 6 * 60 * 60_000;
 
 /** "1.10.0" > "1.9.2". Anything that isn't three numbers counts as older. */
