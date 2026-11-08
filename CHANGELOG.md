@@ -39,6 +39,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Break page: your places are bigger tiles at the top, and Continue watching is a row of video thumbnails you scroll sideways, showing how far you got and how much is left.
 
 ### Fixed
+- Packing up or tidying a folder no longer leaves another copy of its Chrome tab group in your bookmarks bar each time: Stashd takes the tabs out of the group before closing them, so Chrome lets the group go.
 - YouTube Studio, Twitch's developer console, TikTok Ads Manager and other work parts of break sites stay with your work instead of counting as breaks.
 - A folder named after a tab no longer ends with a stray colon.
 - Tidy all no longer skips the next Chrome window (and leaves its tabs open) after closing a whole window.
@@ -79,6 +80,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Folder rows are calmer: pin and delete appear on hover, the pinned folder is highlighted, and finished folders live in the Stashd window.
 
 ### Fixed
+- Packing up or tidying a folder no longer leaves another copy of its Chrome tab group in your bookmarks bar each time: Stashd takes the tabs out of the group before closing them, so Chrome lets the group go.
 - Pressing ⌃S while watching a video no longer makes a new folder out of it when nothing else belongs with it; it offers to put the video on your Break shelf, with "Save as a folder instead" when the video is work.
 - ⌃S picks the right folder when the tab you're on clearly belongs to it (same site, its name), even with lots of unrelated tabs open next to it. Before, it offered a new folder.
 - A Claude or ChatGPT chat open on its own no longer makes ⌃S guess a folder, and unticking a chat is remembered straight away.

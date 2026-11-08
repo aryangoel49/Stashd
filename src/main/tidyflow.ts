@@ -9,7 +9,7 @@ import { CHAT_APPS } from './capture';
 import { appsToQuit, type Core } from './core';
 import { matchKeys } from './urls';
 import { iconSource } from './icons';
-import { openItems } from './open';
+import { changeChromeGroup, openItems } from './open';
 import { canName, cleanFileName, closeItems, freePath, saveUntitled, suggestedFileName } from './tidy';
 import type { UrlOptions } from './urls';
 import { getWindow, prepareWindow, showWindow } from './windows';
@@ -104,7 +104,7 @@ export class TidyFlow {
 
         // Everything that will go flies, the other apps too, so nothing just vanishes on its own.
         const animation = this.play([...items, ...apps, ...otherItems], false);
-        await wait(CLOSE_AFTER_MS);
+        await Promise.all([wait(CLOSE_AFTER_MS), releaseChromeGroups(items)]);
         // Documents aren't closed one by one: their apps quit below anyway (asking about unsaved work),
         // and some (Preview) are slow to answer a close. Tabs and Finder windows are closed, since
         // Finder stays and a browser might reopen its tabs.
@@ -216,7 +216,7 @@ export class TidyFlow {
       return;
     }
     const animation = this.play([...closable, ...apps], false);
-    await wait(CLOSE_AFTER_MS);
+    await Promise.all([wait(CLOSE_AFTER_MS), releaseChromeGroups([...closable, ...maybeOpen])]);
     const [{ closed, failed }, doneNames] = await Promise.all([
       closeItems([...closable, ...maybeOpen], this.urlOptions()),
       Promise.all([
@@ -332,7 +332,7 @@ export class TidyFlow {
     this.queue = this.queue.then(async () => {
       try {
         const animation = this.play(items, false);
-        await wait(CLOSE_AFTER_MS);
+        await Promise.all([wait(CLOSE_AFTER_MS), releaseChromeGroups(items)]);
         const { closed } = await closeItems(items, this.urlOptions());
         await animation;
         this.setUndo(closed, null);
@@ -505,6 +505,21 @@ function shortName(name: string, max = 24): string {
   if (name.length <= max) return name;
   const cut = name.slice(0, max).replace(/\s+\S*$/, '');
   return `${cut || name.slice(0, max)}…`;
+}
+
+/**
+ * Takes Chrome tabs out of their tab group just before they close. A group whose tabs are closed stays in
+ * Chrome's saved groups (the bookmarks bar), and the next Unpack makes a new one with the same name, so
+ * copies pile up. A group emptied by ungrouping is gone instead. Never holds the tidy up for long.
+ */
+async function releaseChromeGroups(items: Item[]): Promise<void> {
+  const byGroup = new Map<string, string[]>();
+  for (const i of items) if (i.kind === 'tab' && i.browser === 'chrome' && i.group && i.url) byGroup.set(i.group, [...(byGroup.get(i.group) ?? []), i.url]);
+  if (!byGroup.size) return;
+  const all = (async () => {
+    for (const [name, urls] of byGroup) await changeChromeGroup('ungroup', name, urls);
+  })();
+  await Promise.race([all, wait(3000)]);
 }
 
 function capitalise(s: string): string {
