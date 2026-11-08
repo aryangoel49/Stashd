@@ -7,6 +7,7 @@ import type { Item, OpenState, Route, Settings, TidyKeep } from './shared/types'
 import { claudeWriter, testClaudeKey } from './main/brief/claude';
 import { stashdAsk, stashdSites, stashdWriter } from './main/brief/stashd';
 import { SiteSorter } from './main/sites';
+import { Updater } from './main/updater';
 import { installId } from './main/install';
 import { backupBeforeChange, backupsDir, onDamage } from './main/safety';
 import { Core } from './main/core';
@@ -262,7 +263,27 @@ function start(): void {
       tidy.unpackAnimation(items);
     };
 
+    // Keeping itself up to date: only the real app (a test copy has nothing to replace).
+    const updater = app.isPackaged
+      ? new Updater({
+          current: app.getVersion(),
+          appPath: path.resolve(process.execPath, '..', '..', '..'),
+          dir,
+          arch: process.arch,
+          onChange: (s) => broadcast('update:changed', s),
+        })
+      : null;
+    updater?.start();
+    app.on('will-quit', () => void updater?.installOnExit(false));
+
     registerIpc(core, secrets, {
+      update: {
+        state: () => updater?.state ?? null,
+        check: () => (updater ? updater.check(true) : Promise.resolve(null)),
+        restart: () => {
+          if (updater?.installOnExit(true)) app.quit();
+        },
+      },
       askSend: (content) => stashdAsk({ installId: () => (myId ??= installId(dir)), version: app.getVersion() }, content),
       shortcutErrors: () => shortcutErrors,
       afterSave: ({ jobId, entryId, tidy: tidyUp }) => {

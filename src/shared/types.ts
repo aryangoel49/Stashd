@@ -428,3 +428,16 @@ export interface AskProblem {
   problem: 'off' | 'limit' | 'error';
   message: string;
 }
+
+/** Stashd keeping itself up to date (src/main/updater.ts). */
+export interface UpdateState {
+  status: 'idle' | 'checking' | 'downloading' | 'ready' | 'error';
+  /** The version running now. */
+  current: string;
+  /** The newer version being downloaded or ready. */
+  available?: string;
+  /** It can replace itself (false: Stashd isn't somewhere it can write, so the download page is offered). */
+  canInstall?: boolean;
+  checkedAt?: string;
+  error?: string;
+}

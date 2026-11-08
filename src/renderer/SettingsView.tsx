@@ -7,6 +7,7 @@ import { Switch } from './components/ui/switch';
 import { Icon } from './icons';
 import { AnimatePresence, Button, motion, spring } from './ui';
 import { api, errorText, prettyShortcut, useSettings } from './api';
+import { UpdateRow } from './Update';
 
 
 type Section = 'general' | 'briefs' | 'privacy';
@@ -104,6 +105,9 @@ export function SettingsView() {
           on={s.autoSaveTalk === 'helpful'}
           onChange={(v) => void update({ autoSaveTalk: v ? 'helpful' : 'quiet' })}
         />
+      </Card>
+      <Card title="Updates" hint="Stashd updates itself: it downloads new versions quietly and installs them the next time it starts. It only asks GitHub which version is the latest.">
+        <UpdateRow />
       </Card>
       <Card title="Startup">
         <Toggle label="Open Stashd when I log in" hint="Works in the installed app." on={s.launchAtLogin} onChange={(v) => void update({ launchAtLogin: v })} />

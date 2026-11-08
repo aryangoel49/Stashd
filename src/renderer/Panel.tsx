@@ -12,6 +12,7 @@ import { BreakView, ModeSwitch } from './Break';
 import { PanelAsk } from './Ask';
 import { useRecentlyTidied } from './Recent';
 import { TidyChoice } from './TidyChoice';
+import { UpdateBar } from './Update';
 import { useSuggestions } from './Suggestions';
 import { folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
 
@@ -244,6 +245,7 @@ function JobList(props: {
         <JobRow key={j.id} job={j} state={openMap[j.id]} onPick={onPick} />
       ))}
 
+      <UpdateBar />
       <RecentlyClosed />
 
     </>

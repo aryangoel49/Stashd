@@ -953,3 +953,13 @@ details summary { cursor: default; }
   .ask-bar.busy .ask-bar-mark { animation: none; }
   .ask-bar-ghost { animation: tc-fade 200ms ease both; }
 }
+
+/* A new version is ready (panel). */
+.update-bar {
+  display: flex; align-items: center; gap: 8px; margin: 4px 2px 0; padding: 7px 8px 7px 12px; border-radius: 12px;
+  background: var(--accent-soft); box-shadow: inset 0 0 0 0.5px var(--accent-line);
+  animation: tc-in 220ms var(--ease-out) both;
+}
+.update-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-ink); flex: none; }
+.update-text { flex: 1; min-width: 0; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (prefers-reduced-motion: reduce) { .update-bar { animation: tc-fade 160ms ease both; } }

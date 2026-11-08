@@ -1,5 +1,6 @@
-// Privacy guard: only the two brief writers may touch the network: claude.ts (your own key, to Anthropic)
-// and stashd.ts (Stashd AI, only ever to Stashd's own server).
+// Privacy guard: only three files may touch the network: claude.ts (your own key, to Anthropic),
+// stashd.ts (Stashd AI, only ever to Stashd's own server) and updater.ts (which version is the latest, and
+// the download, only ever from GitHub).
 // This fails if any other source file imports a networking module or calls fetch.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -7,7 +8,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const SRC = path.resolve(__dirname, '../src');
-const ALLOWED = new Set([path.join(SRC, 'main/brief/claude.ts'), path.join(SRC, 'main/brief/stashd.ts')]);
+const ALLOWED = new Set([path.join(SRC, 'main/brief/claude.ts'), path.join(SRC, 'main/brief/stashd.ts'), path.join(SRC, 'main/updater.ts')]);
 
 const FORBIDDEN: [string, RegExp][] = [
   ['imports a Node networking module', /(from\s+|require\(\s*|import\(\s*)['"](node:)?(http|https|http2|net|tls|dgram|undici)['"]/],
@@ -43,6 +44,14 @@ describe('network access', () => {
     expect(text.match(/https?:\/\/[^\s'"`]+/g)).toEqual(['https://getstashd.vercel.app/api/brief']);
     expect(text.match(/\bfetch\s*\(/g)).toHaveLength(1);
     expect(text).toContain('fetch(STASHD_AI,');
+  });
+
+  it('the updater only ever talks to GitHub, and sends nothing about you', () => {
+    const text = readFileSync(path.join(SRC, 'main/updater.ts'), 'utf8');
+    for (const url of text.match(/https?:\/\/[^\s'"`]+/g) ?? []) expect(new URL(url).hostname, url).toMatch(/^(api\.)?github\.com$/);
+    expect(text.match(/\bfetch\s*\(/g)).toHaveLength(2);
+    expect(text).not.toMatch(/method:\s*['"]POST/);
+    expect(text).not.toMatch(/body:/);
   });
 
   for (const file of files) {

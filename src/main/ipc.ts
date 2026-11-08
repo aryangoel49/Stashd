@@ -2,7 +2,8 @@
 // and validates its input before doing anything.
 
 import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
-import type { AppInfo, AskAction, AskAnswer, BrowserName, SaveEntry, TidyKeep } from '../shared/types';
+import { RELEASES_PAGE } from './updater';
+import type { AppInfo, AskAction, AskAnswer, BrowserName, SaveEntry, TidyKeep, UpdateState } from '../shared/types';
 import { timeAgo } from '../shared/time';
 import { askStashd, runAction } from './ask';
 import * as v from '../shared/validate';
@@ -46,6 +47,7 @@ export interface IpcHooks {
   testClaude: (key: string) => Promise<void>;
   openSave: (mode: 'save' | 'pack', jobId?: string) => void;
   beforeOpen: (items: import('../shared/types').Item[]) => void;
+  update: { state: () => UpdateState | null; check: () => Promise<UpdateState | null>; restart: () => void };
 }
 
 async function confirm(event: IpcMainInvokeEvent, message: string, detail: string, button: string): Promise<boolean> {
@@ -308,6 +310,16 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     return true;
   });
   handle('tidy:front', () => core.tidyFront());
+  handle('update:state', () => hooks.update.state());
+  handle('update:check', () => hooks.update.check());
+  handle('update:page', () => {
+    void shell.openExternal(RELEASES_PAGE);
+    return true;
+  });
+  handle('update:restart', () => {
+    hooks.update.restart();
+    return true;
+  });
   handle('toast:hold', (_e, on) => {
     hooks.holdToast(on === true);
     return true;

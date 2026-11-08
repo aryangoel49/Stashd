@@ -6,6 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
+- **Stashd updates itself.** It quietly downloads new versions and installs them the next time it starts; when one is ready, the menu bar panel shows **Restart to update**. Settings has an Updates section with **Check now**. It only asks GitHub which version is the latest, and only installs a version signed by Stashd.
 - Tidy all asks one quick question in a small menu: **Keep what you're on** (the tab, document or app in front, like Claude, which stays open) or **Close everything**. Your last choice is marked, Return picks it, and the shortcut uses it.
 - Stashd learns which sites are for breaks, even ones it has never heard of: your Mac's own model reads the page title (so a streaming site like 1Flex goes to Continue watching, not your work folder). Sites it can't tell go to Stashd AI if you turned it on, just the site and a few page titles. Forget my history clears what it learned.
 - Ask Stashd keeps your chats: past chats are listed on the Ask Stashd page, open again with every question and answer, and you can carry on or delete them. New chat starts fresh. They stay on this Mac, and Forget my history clears them.

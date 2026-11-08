@@ -2,7 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppInfo, AskAnswer, AskChat, AskProblem, BreakShelf, BrowserName, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion, TidyFront, TidyKeep } from './shared/types';
+import type { AppInfo, AskAnswer, AskChat, AskProblem, BreakShelf, BrowserName, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion, TidyFront, TidyKeep, UpdateState } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -73,6 +73,11 @@ const api = {
   toastAction: () => invoke<void>('toast:action'),
   tidyAll: (keep?: TidyKeep) => invoke<boolean>('tidy:all', keep),
   tidyFront: () => invoke<TidyFront | null>('tidy:front'),
+  updateState: () => invoke<UpdateState | null>('update:state'),
+  checkForUpdate: () => invoke<UpdateState | null>('update:check'),
+  restartToUpdate: () => invoke<boolean>('update:restart'),
+  openUpdatePage: () => invoke<boolean>('update:page'),
+  onUpdateChanged: (cb: (s: UpdateState) => void) => on('update:changed', cb as never),
   recentlyTidied: () => invoke<{ at: string; until: string; items: Item[] } | null>('tidy:recent'),
   reopenTidied: (key?: string) => invoke<OpenResult>('tidy:reopen', key),
   overlayDone: () => invoke<boolean>('overlay:done'),
