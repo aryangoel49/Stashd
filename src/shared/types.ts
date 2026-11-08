@@ -309,6 +309,8 @@ export interface FlyItem {
   label: string;
   /** data: URL of the app or file icon, or null for a plain card. */
   icon: string | null;
+  /** How many things this icon stands for (8 Chrome tabs are one Chrome icon with 8). */
+  count?: number;
 }
 
 export interface OverlayPlay {
@@ -319,6 +321,8 @@ export interface OverlayPlay {
   size: { width: number; height: number };
   reverse: boolean;
   sound: boolean;
+  /** How many things in all (the icons are grouped by app). */
+  total?: number;
 }
 
 export interface ToastInfo {

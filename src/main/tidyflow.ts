@@ -249,12 +249,20 @@ export class TidyFlow {
 
   // ---------- animation ----------
 
+  /** One icon per app (8 Chrome tabs are one Chrome icon marked 8), the busiest first, at most 6. */
   private async withIcons(items: Item[]): Promise<FlyItem[]> {
-    const shown = items.slice(0, 12);
-    const sources = shown.map(iconSource);
+    const groups = new Map<string, { label: string; source: string; count: number }>();
+    for (const it of items) {
+      const source = iconSource(it);
+      const g = groups.get(source);
+      if (g) g.count++;
+      else groups.set(source, { label: it.kind === 'doc' && !it.app ? it.label : it.app, source, count: 1 });
+    }
+    const shown = [...groups.values()].sort((a, b) => b.count - a.count).slice(0, 6);
+    const sources = shown.map((g) => g.source);
     // Don't hold the animation up for long: whatever isn't back in time flies as a plain card.
     await Promise.race([this.core.icons.get(sources), wait(120)]);
-    return shown.map((it, i) => ({ label: it.label, icon: this.core.icons.peek(sources[i]) }));
+    return shown.map((g) => ({ label: g.label, icon: this.core.icons.peek(g.source), count: g.count }));
   }
 
   /** Plays the fly-in (or fly-out) animation. Resolves when it has finished. */
@@ -268,6 +276,7 @@ export class TidyFlow {
       size: { width: display.bounds.width, height: display.bounds.height },
       reverse,
       sound: this.core.settings.get().sounds,
+      total: items.length,
     };
     this.payloads.set('overlay', play);
     const win = prepareWindow('overlay');
@@ -275,7 +284,7 @@ export class TidyFlow {
     const finished = new Promise<void>((resolve) => {
       this.overlayDone = resolve;
       // Safety net in case the window never reports back.
-      setTimeout(resolve, 1500 + flies.length * 120);
+      setTimeout(resolve, 2200);
     });
     win.webContents.send('overlay:play', play);
     win.showInactive();
@@ -433,7 +442,7 @@ export class TidyFlow {
       getWindow('naming')?.close();
       if (process.env.WWI_CAPTURE_DIR) {
         // Snap a few frames of the animation to check it.
-        for (const ms of [150, 450, 750, 1000]) {
+        for (const ms of [800, 1000, 1100, 1200, 1300, 1420]) {
           setTimeout(() => {
             const w = getWindow('overlay');
             void w?.webContents.capturePage().then((img) =>

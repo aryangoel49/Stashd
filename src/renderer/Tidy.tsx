@@ -85,10 +85,19 @@ export function Naming() {
 }
 
 // ---------- the fly-in animation ----------
+// One gesture, in four beats: your apps settle into a frosted tray (one icon per app, with a count), gather
+// into a stack, sweep in a curve into the menu bar icon, and land with a soft ripple. Unpacking plays it
+// backwards. Only transform and opacity move, so it stays smooth while windows close behind it.
 
-const POP_MS = 140;
-const FLY_MS = 420;
-const STAGGER_MS = 40;
+const APPEAR_MS = 220;
+const HOLD_MS = 140;
+const GATHER_MS = 180;
+const FLY_MS = 440;
+const STAGGER_MS = 28;
+const TOTAL_MS = APPEAR_MS + HOLD_MS + GATHER_MS + FLY_MS;
+const ICON = 60;
+const GAP = 16;
+const PAD = 20;
 
 /** Wait (briefly) for icons to be decoded, so nothing pops in half-drawn. */
 async function ready(imgs: HTMLImageElement[]): Promise<void> {
@@ -142,73 +151,167 @@ function playSound(count: number, reverse: boolean): void {
     const ctx = audio;
     void ctx.resume();
     const t = ctx.currentTime + 0.02;
-    const total = (POP_MS + FLY_MS + STAGGER_MS * Math.max(0, count - 1)) / 1000;
-    whoosh(ctx, t + (reverse ? 0 : POP_MS / 1000), total - (reverse ? 0.1 : POP_MS / 1000), reverse);
-    if (!reverse) tock(ctx, t + total - 0.04);
+    const fly = (FLY_MS + STAGGER_MS * Math.max(0, count - 1)) / 1000;
+    const flyAt = (APPEAR_MS + HOLD_MS + GATHER_MS) / 1000;
+    // Packing: the whoosh rides the flight and the tock is the landing. Unpacking: the whoosh comes out first.
+    whoosh(ctx, t + (reverse ? 0 : flyAt), fly, reverse);
+    if (!reverse) tock(ctx, t + flyAt + fly - 0.03);
   } catch {
     // no sound, no problem
   }
 }
 
+const at = (ms: number) => ms / TOTAL_MS;
+const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';
+const EASE_IN_OUT = 'cubic-bezier(0.65, 0, 0.35, 1)';
+
+/** Builds one icon: outer moves sideways, middle up and down (two curves make the arc), inner scales and fades. */
+function iconNode(item: OverlayPlay['items'][number], imgs: HTMLImageElement[]) {
+  const x = document.createElement('div');
+  x.className = 'fly';
+  const y = document.createElement('div');
+  y.className = 'fly-y';
+  const tile = document.createElement('div');
+  tile.className = 'fly-tile';
+  if (item.icon) {
+    const img = document.createElement('img');
+    img.src = item.icon;
+    img.alt = '';
+    imgs.push(img);
+    tile.appendChild(img);
+  } else {
+    tile.classList.add('plain');
+    tile.textContent = (item.label[0] ?? '•').toUpperCase();
+  }
+  if ((item.count ?? 1) > 1) {
+    const badge = document.createElement('span');
+    badge.className = 'fly-count';
+    badge.textContent = String(item.count);
+    tile.appendChild(badge);
+  }
+  y.appendChild(tile);
+  x.appendChild(y);
+  return { x, y, tile };
+}
+
 async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<void> {
   layer.innerHTML = '';
-  const w = play.size.width;
-  const h = play.size.height;
-  const n = play.items.length;
-  const perRow = Math.min(6, n);
+  const n = Math.max(1, play.items.length);
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const imgs: HTMLImageElement[] = [];
-  const cards = play.items.map((item, i) => {
-    const card = document.createElement('div');
-    card.className = 'fly';
-    const tile = document.createElement('div');
-    tile.className = 'fly-tile';
-    if (item.icon) {
-      const img = document.createElement('img');
-      img.src = item.icon;
-      img.alt = '';
-      imgs.push(img);
-      tile.appendChild(img);
-    }
-    const label = document.createElement('span');
-    label.textContent = item.label;
-    card.append(tile, label);
-    layer.appendChild(card);
 
-    // A neat row (or two) just above the middle of the screen.
-    const row = Math.floor(i / perRow);
-    const inRow = Math.min(perRow, n - row * perRow);
-    const col = i % perRow;
-    const x = w / 2 + (col - (inRow - 1) / 2) * 116 - 50;
-    const y = h * 0.4 + row * 120 - 46;
-    return { card, label, x, y };
+  // The tray: just above the middle of the screen, as wide as its icons.
+  const trayW = n * ICON + (n - 1) * GAP + PAD * 2;
+  const trayH = ICON + PAD * 2 + 26;
+  const left = play.size.width / 2 - trayW / 2;
+  const top = play.size.height * 0.36 - trayH / 2;
+  const tray = document.createElement('div');
+  tray.className = 'fly-tray';
+  Object.assign(tray.style, { left: `${left}px`, top: `${top}px`, width: `${trayW}px`, height: `${trayH}px` });
+  const caption = document.createElement('span');
+  caption.className = 'fly-caption';
+  const total = play.total ?? play.items.reduce((s, i) => s + (i.count ?? 1), 0);
+  caption.textContent = `${play.reverse ? 'Bringing back' : 'Tidying'} ${total} ${total === 1 ? 'thing' : 'things'}`;
+  tray.appendChild(caption);
+  layer.appendChild(tray);
+
+  const rowY = top + PAD;
+  const midX = play.size.width / 2 - ICON / 2;
+  const nodes = play.items.map((item, i) => {
+    const node = iconNode(item, imgs);
+    layer.appendChild(node.x);
+    const rowX = left + PAD + i * (ICON + GAP);
+    // In the stack: a little fanned, the first icon on top.
+    const spread = i - (n - 1) / 2;
+    node.x.style.zIndex = String(n - i);
+    return { ...node, rowX, stackX: midX + spread * 7, stackY: rowY + Math.abs(spread) * 2, tilt: spread * 4 };
   });
   await ready(imgs);
   await new Promise((r) => requestAnimationFrame(r));
   if (play.sound && !reduce) playSound(n, play.reverse);
 
-  const tx = play.target.x - 50;
-  const ty = play.target.y - 46;
-  const animations = cards.map(({ card, label, x, y }, i) => {
-    const at = `translate3d(${x}px, ${y}px, 0)`;
-    const home = `translate3d(${tx}px, ${ty}px, 0)`;
-    const frames: Keyframe[] = play.reverse
-      ? [
-          { transform: `${home} scale(0.12)`, opacity: 0, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' },
-          { transform: `${at} scale(1)`, opacity: 1, offset: 0.75 },
-          { transform: `${at} scale(1)`, opacity: 0 },
-        ]
-      : [
-          { transform: `${at} scale(0.85)`, opacity: 0, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
-          { transform: `${at} scale(1)`, opacity: 1, offset: POP_MS / (POP_MS + FLY_MS), easing: 'cubic-bezier(0.6, 0, 0.75, 0.25)' },
-          { transform: `${home} scale(0.1)`, opacity: 0.2 },
-        ];
-    const timing: KeyframeAnimationOptions = { duration: reduce ? 1 : POP_MS + FLY_MS, delay: reduce ? 0 : i * STAGGER_MS, fill: 'both' };
-    // Labels fade out as the icons start to fly, so the motion stays clean.
-    label.animate([{ opacity: 1 }, { opacity: 1, offset: 0.3 }, { opacity: 0, offset: 0.45 }, { opacity: 0 }], timing);
-    return card.animate(frames, timing).finished;
+  if (reduce) {
+    // Reduce Motion: the tray simply appears and fades, no flying.
+    const fade: Keyframe[] = [{ opacity: 0 }, { opacity: 1, offset: 0.2 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }];
+    const timing = { duration: 900, fill: 'both' as const };
+    const all = [tray.animate(fade, timing).finished];
+    for (const nd of nodes) {
+      nd.x.style.transform = `translate3d(${nd.rowX}px, 0, 0)`;
+      nd.y.style.transform = `translate3d(0, ${rowY}px, 0)`;
+      all.push(nd.tile.animate(fade, timing).finished);
+    }
+    await Promise.all(all).catch(() => undefined);
+    return;
+  }
+
+  const tx = play.target.x - ICON / 2;
+  const ty = play.target.y - ICON / 2;
+  const gatherAt = at(APPEAR_MS + HOLD_MS);
+  const flyAt = at(APPEAR_MS + HOLD_MS + GATHER_MS);
+  const flyEnd = TOTAL_MS + STAGGER_MS * (n - 1);
+
+  const finished: Promise<unknown>[] = [];
+  nodes.forEach((nd, i) => {
+    const delay = i * STAGGER_MS;
+    const timing: KeyframeAnimationOptions = { duration: TOTAL_MS, delay, fill: 'both' };
+    // Sideways: still, then into the stack, then picking up speed towards the menu bar (and the reverse).
+    // Up and down: rising early in the flight while sideways builds late, which bends the path into an arc.
+    const xs: Keyframe[] = [
+      { transform: `translate3d(${nd.rowX}px,0,0)` },
+      { transform: `translate3d(${nd.rowX}px,0,0)`, offset: gatherAt, easing: EASE_IN_OUT },
+      { transform: `translate3d(${nd.stackX}px,0,0)`, offset: flyAt, easing: 'cubic-bezier(0.5, 0, 0.75, 0.3)' },
+      { transform: `translate3d(${tx}px,0,0)` },
+    ];
+    const ys: Keyframe[] = [
+      { transform: `translate3d(0,${rowY + 10}px,0)`, easing: EASE_OUT },
+      { transform: `translate3d(0,${rowY}px,0)`, offset: at(APPEAR_MS) },
+      { transform: `translate3d(0,${rowY}px,0)`, offset: gatherAt, easing: EASE_IN_OUT },
+      { transform: `translate3d(0,${nd.stackY}px,0)`, offset: flyAt, easing: 'cubic-bezier(0.33, 0, 0.4, 1)' },
+      { transform: `translate3d(0,${ty}px,0)` },
+    ];
+    const looks: Keyframe[] = [
+      { opacity: 0, transform: 'scale(0.86) rotate(0deg)', easing: EASE_OUT },
+      { opacity: 1, transform: 'scale(1) rotate(0deg)', offset: at(APPEAR_MS) },
+      { opacity: 1, transform: 'scale(1) rotate(0deg)', offset: gatherAt, easing: EASE_IN_OUT },
+      { opacity: 1, transform: `scale(0.94) rotate(${nd.tilt}deg)`, offset: flyAt, easing: 'cubic-bezier(0.5, 0, 0.75, 0)' },
+      { opacity: 1, transform: `scale(0.3) rotate(${nd.tilt * 2}deg)`, offset: 0.93 },
+      { opacity: 0, transform: `scale(0.18) rotate(${nd.tilt * 2}deg)` },
+    ];
+    // Unpacking runs the same path backwards.
+    const dir: PlaybackDirection = play.reverse ? 'reverse' : 'normal';
+    finished.push(
+      nd.x.animate(xs, { ...timing, direction: dir }).finished,
+      nd.y.animate(ys, { ...timing, direction: dir }).finished,
+      nd.tile.animate(looks, { ...timing, direction: dir }).finished,
+    );
+    // The count badge steps aside before the flight, so the stack reads as one bundle.
+    nd.tile.querySelector('.fly-count')?.animate([{ opacity: 1 }, { opacity: 1, offset: gatherAt }, { opacity: 0, offset: flyAt }, { opacity: 0 }], { ...timing, direction: dir });
   });
-  await Promise.all(animations).catch(() => undefined);
+
+  // The tray comes in with the icons and melts away as they gather (it reappears last when unpacking).
+  const trayFrames: Keyframe[] = [
+    { opacity: 0, transform: 'scale(0.96)', easing: EASE_OUT },
+    { opacity: 1, transform: 'scale(1)', offset: at(APPEAR_MS) },
+    { opacity: 1, transform: 'scale(1)', offset: gatherAt, easing: EASE_IN_OUT },
+    { opacity: 0, transform: 'scale(0.97)', offset: flyAt },
+    { opacity: 0, transform: 'scale(0.97)' },
+  ];
+  finished.push(tray.animate(trayFrames, { duration: TOTAL_MS, fill: 'both', direction: play.reverse ? 'reverse' : 'normal' }).finished);
+
+  // A soft ripple where it all lands (or leaves from, when unpacking).
+  const ripple = document.createElement('div');
+  ripple.className = 'fly-ripple';
+  Object.assign(ripple.style, { left: `${play.target.x - 20}px`, top: `${play.target.y - 20}px` });
+  layer.appendChild(ripple);
+  finished.push(
+    ripple.animate([{ opacity: 0.55, transform: 'scale(0.3)' }, { opacity: 0, transform: 'scale(1.6)' }], {
+      duration: 420,
+      delay: play.reverse ? 0 : flyEnd - 60,
+      easing: EASE_OUT,
+      fill: 'both',
+    }).finished,
+  );
+  await Promise.all(finished).catch(() => undefined);
 }
 
 export function Overlay() {

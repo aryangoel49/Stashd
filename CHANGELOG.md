@@ -22,6 +22,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed
+- Tidy all and Pack up look calmer and more polished: your apps settle into one frosted tray (one icon per app with a count, like Chrome 8), gather into a stack, sweep in a curve into the menu bar icon and land with a soft ripple. Unpacking plays it in reverse.
 - Deleting a folder also removes what Stashd's memory held about it.
 - Apple silicon and Intel Macs sort your tabs the same way.
 - Briefs are written the same way on every Mac: Apple Intelligence no longer writes them. Your own Claude key is now an optional extra.
