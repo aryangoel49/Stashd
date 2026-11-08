@@ -820,9 +820,6 @@ details summary { cursor: default; }
 .ask-box.big { padding: 11px 13px; border-radius: 14px; }
 .ask-box.big input { font-size: 14.5px; }
 .ask-key { font-size: 11px; font-weight: 600; color: var(--faint); background: rgba(28, 29, 34, 0.05); border-radius: 5px; padding: 0 6px; }
-.ask-sugs { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 2px; }
-.ask-sug { border: 0; border-radius: 999px; padding: 5px 10px; background: rgba(28, 29, 34, 0.045); font: inherit; font-size: 12px; font-weight: 500; color: var(--text); cursor: pointer; text-align: left; transition: background 150ms ease; }
-.ask-sug:hover { background: var(--accent-soft, rgba(242, 205, 92, 0.25)); }
 .ask-panel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 /* Long titles shrink with an ellipsis instead of pushing the answer past the panel's edge. */
 .ask-turn, .ask-thread, .ask-confirm, .ask-card { grid-template-columns: minmax(0, 1fr); }
@@ -883,7 +880,7 @@ details summary { cursor: default; }
 @media (hover: none) { .ask-past-del { opacity: 1; } }
 @media (prefers-color-scheme: dark) { .ask-past-row:hover { background: rgba(255, 255, 255, 0.05); } }
 .ask-foot { display: grid; gap: 6px; position: sticky; bottom: 12px; }
-@media (prefers-color-scheme: dark) { .ask-q { background: rgba(242, 205, 92, 0.18); } .ask-sug { background: rgba(255, 255, 255, 0.06); } .ask-key { background: rgba(255, 255, 255, 0.08); } .ask-week-row .bar { background: rgba(255, 255, 255, 0.08); } }
+@media (prefers-color-scheme: dark) { .ask-q { background: rgba(242, 205, 92, 0.18); } .ask-key { background: rgba(255, 255, 255, 0.08); } .ask-week-row .bar { background: rgba(255, 255, 255, 0.08); } }
 @media (prefers-reduced-motion: reduce) { .ask-idea { transition: none; } }
 
 /* ---------- Tidy all's choice: keep what you're on, or close everything ---------- */
@@ -931,3 +928,28 @@ details summary { cursor: default; }
 .toast-count.done { animation: count-pop 260ms var(--ease-out); }
 @keyframes count-pop { 40% { transform: scale(1.18); } }
 @media (prefers-reduced-motion: reduce) { .toast-count.done { animation: none; } }
+
+/* ---------- The panel's Ask row: the Stashd folder and one question to try ---------- */
+.ask-bar {
+  display: flex; align-items: center; gap: 9px; padding: 5px 10px 5px 6px; margin: 2px 0; border-radius: 14px; cursor: text;
+  background: transparent; box-shadow: inset 0 0 0 0.5px var(--hair);
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+@media (hover: hover) and (pointer: fine) { .ask-bar:hover { background: var(--well); } }
+.ask-bar.on { background: var(--well); box-shadow: inset 0 0 0 1.5px var(--accent-line); }
+.ask-bar-mark { flex: none; display: grid; place-items: center; width: 30px; height: 30px; }
+.ask-bar.busy .ask-bar-mark { animation: ask-bob 900ms var(--ease-in-out) infinite alternate; }
+@keyframes ask-bob { to { transform: translateY(-2px) rotate(-4deg); } }
+.ask-bar-field { position: relative; flex: 1; min-width: 0; height: 22px; }
+.ask-bar-field input { position: absolute; inset: 0; width: 100%; border: 0; outline: none; background: none; font: inherit; font-size: 13px; color: var(--text); }
+.ask-bar-ghost {
+  position: absolute; inset: 0; pointer-events: none;
+  font-size: 13px; line-height: 22px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  animation: ask-ghost-in 320ms var(--ease-out) both;
+}
+@keyframes ask-ghost-in { from { opacity: 0; transform: translateY(5px); filter: blur(2px); } }
+.ask-bar .ask-key { flex: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ask-bar.busy .ask-bar-mark { animation: none; }
+  .ask-bar-ghost { animation: tc-fade 200ms ease both; }
+}

@@ -3,11 +3,12 @@
 // Answers point at real folders and things, one click to open. A change Stashd proposes runs only when you
 // press its button, and can be undone.
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { AskAnswer, AskChat, AskProblem, AskRef, JobSummary } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
-import { Button, FolderMark, motion } from './ui';
+import { Button, FolderMark, motion, type Mood } from './ui';
+import { markSeen, pickIdeas } from './askIdeas';
 import { folderTone, ItemBadge, titleOf } from './visuals';
 
 export interface AskTurn {
@@ -51,15 +52,100 @@ export function useAsk() {
   return { turns, busy, ask, open, clear, chatId };
 }
 
-/** Questions to start with, using your own folder names. */
-export function ideasFor(jobs: JobSummary[]): { q: string; hint: string }[] {
-  const [a, b] = jobs.filter((j) => !j.done);
-  return [
-    { q: a ? `What was I doing on ${a.name}?` : 'What was I working on last?', hint: 'Get back into any folder' },
-    { q: 'What did I work on this week?', hint: 'From Stashd’s memory' },
-    { q: b ? `What’s in ${b.name}?` : 'Where did I save that article?', hint: 'Find a tab or file you saved' },
-    { q: a ? `Add this tab to ${a.name}` : 'Pin my most recent folder', hint: 'Change a folder in words' },
-  ];
+/**
+ * The panel's way into Ask Stashd: the Stashd folder, and one question to try that changes every few
+ * seconds. Return asks it, Tab takes it to edit, or just type your own. The folder looks at what you type,
+ * wonders while Stashd thinks, and smiles when the answer comes.
+ */
+export function AskBar({ jobs, busy, onAsk }: { jobs: JobSummary[]; busy: boolean; onAsk: (q: string) => void }) {
+  const [value, setValue] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [smile, setSmile] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  const names = jobs.filter((j) => !j.done).slice(0, 2).map((j) => j.name).join('|');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ideas = useMemo(() => pickIdeas(jobs, 10), [names]);
+  const [n, setN] = useState(0);
+  const idea = ideas.length ? ideas[n % ideas.length] : null;
+
+  // A new question every few seconds while the box is empty (not while you read one with the box focused).
+  useEffect(() => {
+    if (value || focused || busy || ideas.length < 2) return;
+    const t = setInterval(() => setN((x) => x + 1), 4500);
+    return () => clearInterval(t);
+  }, [value, focused, busy, ideas.length]);
+  useEffect(() => {
+    if (idea) markSeen(idea.template);
+  }, [idea]);
+  // A smile when an answer lands.
+  const wasBusy = useRef(false);
+  useEffect(() => {
+    if (wasBusy.current && !busy) {
+      setSmile(true);
+      const t = setTimeout(() => setSmile(false), 1400);
+      wasBusy.current = busy;
+      return () => clearTimeout(t);
+    }
+    wasBusy.current = busy;
+  }, [busy]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key !== '/' || t?.closest('input, textarea, [contenteditable="true"]')) return;
+      e.preventDefault();
+      ref.current?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const mood: Mood = busy ? 'curious' : smile ? 'happy' : focused ? 'wide' : 'awake';
+  return (
+    <form
+      className={`ask-bar ${busy ? 'busy' : ''} ${focused ? 'on' : ''}`}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const q = value.trim() || idea?.q || '';
+        if (!q || busy) return;
+        onAsk(q);
+        setValue('');
+        setN((x) => x + 1);
+      }}
+      onClick={() => ref.current?.focus()}
+    >
+      <span className="ask-bar-mark">
+        <FolderMark size={26} alive mood={mood} lookAt={focused ? ref : null} />
+      </span>
+      <span className="ask-bar-field">
+        <input
+          ref={ref}
+          value={value}
+          disabled={busy}
+          maxLength={500}
+          aria-label={idea ? `Ask Stashd, for example: ${idea.q}` : 'Ask Stashd'}
+          onChange={(e) => setValue(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Tab' && !value && idea) {
+              e.preventDefault();
+              setValue(idea.q);
+            }
+          }}
+        />
+        {!value && (
+          <span key={busy ? 'busy' : idea?.q ?? ''} className="ask-bar-ghost" aria-hidden>
+            {busy ? 'Thinking…' : idea ? `“${idea.q}”` : 'Ask about your work…'}
+          </span>
+        )}
+      </span>
+      {!busy && (
+        <span className="ask-key" aria-hidden="true">
+          {focused && !value ? '↵' : '/'}
+        </span>
+      )}
+    </form>
+  );
 }
 
 /** The ask box. "/" anywhere in the window jumps into it. */
@@ -325,6 +411,8 @@ export function AskPage({ jobs, onShow }: { jobs: JobSummary[]; onShow: (jobId: 
   const { turns, busy, ask, open, clear } = useAsk();
   const [chats, setChats] = useState<AskChat[]>([]);
   const end = useRef<HTMLDivElement>(null);
+  // Four to start with, fresh each time the page opens.
+  const [pageIdeas] = useState(() => pickIdeas(jobs, 4));
   const limited = turns.some((t) => t.reply && 'problem' in t.reply && t.reply.problem === 'limit');
   const loadChats = () => void api.askChats().then(setChats, () => undefined);
   useEffect(loadChats, [busy]);
@@ -348,10 +436,9 @@ export function AskPage({ jobs, onShow }: { jobs: JobSummary[]; onShow: (jobId: 
       {turns.length === 0 ? (
         <div className="ask-start">
           <div className="ask-ideas">
-            {ideasFor(jobs).map((i) => (
+            {pageIdeas.map((i) => (
               <button key={i.q} type="button" className="ask-idea" onClick={() => void ask(i.q)}>
                 <b>{i.q}</b>
-                <span>{i.hint}</span>
               </button>
             ))}
           </div>
@@ -379,7 +466,7 @@ export function PanelAsk({ jobs, onShow, children }: { jobs: JobSummary[]; onSho
   const last = turns[turns.length - 1];
   return (
     <>
-      <AskBox disabled={busy} onAsk={(q) => void ask(q)} />
+      <AskBar jobs={jobs} busy={busy} onAsk={(q) => void ask(q)} />
       {last ? (
         <div className="ask-panel">
           <button type="button" className="ask-back" onClick={clear}>
@@ -388,20 +475,7 @@ export function PanelAsk({ jobs, onShow, children }: { jobs: JobSummary[]; onSho
           <AskReply key={last.id} turn={last} onShow={onShow} />
         </div>
       ) : (
-        <>
-          {jobs.length > 0 && (
-            <div className="ask-sugs">
-              {ideasFor(jobs)
-                .slice(0, 2)
-                .map((i) => (
-                  <button key={i.q} type="button" className="ask-sug" onClick={() => void ask(i.q)}>
-                    {i.q}
-                  </button>
-                ))}
-            </div>
-          )}
-          {children}
-        </>
+        children
       )}
     </>
   );

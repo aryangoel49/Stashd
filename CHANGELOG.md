@@ -24,6 +24,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Break page: Edit next to Your places (or right-click a place) lets you rename places by typing over their names, or remove them with the − badge. Done finishes.
 
 ### Changed
+- Ask Stashd in the menu bar panel is one slim row now: the Stashd folder asks you a question to try, a different one every few seconds (some to make you smile), using your own folder names. Return asks it, Tab lets you edit it, or type your own. The folder watches you type, wonders while it thinks, and smiles when the answer comes.
 - Pack up and Tidy all now look and feel the same: the windows go into one tray, dip, and arc into the menu bar icon, which winks as they land with a burst of sparks and a soft two-note chime. Every app Tidy all quits is part of it (nothing vanishes on its own), and the toast counts up what was put away.
 - Continue watching shows there's more to the side: the next video peeks in, the edge fades only where there's more, round arrows page through it, the count sits next to the title, and the first time the row nudges sideways to show it scrolls.
 - Tidy all and Pack up look calmer and more polished: your apps settle into one frosted tray (one icon per app with a count, like Chrome 8), gather into a stack, sweep in a curve into the menu bar icon and land with a soft ripple. Unpacking plays it in reverse.
