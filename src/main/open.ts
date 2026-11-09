@@ -171,7 +171,9 @@ ${
     : `    if (count of windows) is 0 then make new window
     set wwiId to id of (make new tab at end of tabs of front window with properties {URL:(item 1 of wwiArgs)})`
 }
-    repeat 30 times
+    -- Up to 10 seconds: a new window (or a busy Chrome) can be slow to show the page. Stashd's page is
+    -- titled "Stashd" as soon as it starts; while it's still loading, keep waiting.
+    repeat 100 times
       delay 0.1
       set wwiFound to false
       repeat with wwiW in windows
@@ -179,11 +181,16 @@ ${
           if id of wwiT is wwiId then
             set wwiFound to true
             if title of wwiT is "Stashd" then return "ok"
+            -- Loaded, and not Stashd's page: the error page you get without the extension.
+            if not (loading of wwiT) and (URL of wwiT) starts with "chrome-extension://" then set wwiFound to "error"
           end if
         end repeat
       end repeat
-      if not wwiFound then return "ok"
+      if wwiFound is false then return "ok"
+      if wwiFound is "error" then exit repeat
     end repeat
+    -- Never gave an answer: it may still be working, so opening the tabs again could double them.
+    if wwiFound is true then return "ok"
     repeat with wwiW in windows
       repeat with wwiT in tabs of wwiW
         if id of wwiT is wwiId then close wwiT
@@ -265,7 +272,7 @@ export function finished(p: { t: number; d: number } | undefined): boolean {
 
 async function openChromeGroup(name: string, urls: string[], bounds: string): Promise<boolean> {
   if (Date.now() - helperMissingAt < RETRY_HELPER_MS) return false;
-  const r = await run('osascript', ['-e', groupScript('new'), '--', groupPageUrl(name, urls), bounds], { timeoutMs: 20_000 });
+  const r = await run('osascript', ['-e', groupScript('new'), '--', groupPageUrl(name, urls), bounds], { timeoutMs: 30_000 });
   if (r.stdout.trim() === 'ok') return true;
   helperMissingAt = Date.now();
   return false;
@@ -334,6 +341,7 @@ async function openAll(
     result.problems.push({ key: item.key, label: item.label, kind: item.kind, why: 'failed' });
   };
   const here = screens();
+  const urlOptions = { keepQueryStrings: settings.keepQueryStrings, excludedDomains: settings.excludedDomains };
   const fit = (f: Frame | undefined) => (f ? fitFrame(f, here) : undefined);
 
   // Tabs that are already open are not opened twice.
@@ -396,22 +404,48 @@ async function openAll(
     );
     for (const { browser, items: group } of groups) {
       const app = browser ? BROWSER_APPS[browser as BrowserName].appName : '';
-      const urls = group
-        .map((i) => i.url)
-        .filter((u): u is string => !!u && /^(https?:|file:.*\.pdf$)/i.test(u));
       const frame = fit(group.find((i) => i.frame)?.frame);
       const bounds = frame ? frameToBounds(frame) : '';
+      // A first try can open some tabs and still fail (a timeout, the Chrome helper not answering), so
+      // anything tried again is checked against what's open first: nothing is ever opened twice.
+      let todo = group;
+      const leftToOpen = async () => {
+        if (!browser) return todo;
+        try {
+          const { tabs } = await collectTabs([browser as BrowserName], urlOptions);
+          const open = new Set(tabs.map((t) => looseKey({ key: `tab:${t.url}`, kind: 'tab', label: '', detail: '', app: '', url: t.url })));
+          const left = todo.filter((i) => !(i.url && matchKeys(i).some((k) => open.has(k))));
+          result.opened += todo.length - left.length;
+          return left;
+        } catch {
+          return todo;
+        }
+      };
+      const urlsOf = (list: Item[]) => list.map((i) => i.url).filter((u): u is string => !!u && /^(https?:|file:.*\.pdf$)/i.test(u));
       try {
+        let urls = urlsOf(todo);
         if (!app || !urls.length) throw new Error('one by one');
         // A window of its own when it had several tabs, or when it had its own place among other things.
         const own = urls.length >= 2 || (!!frame && items.length > 1);
         const together = own ? newWindowScript(browser as BrowserName) : null;
         const web = urls.filter((u) => /^https?:/i.test(u));
-        if (browser === 'chrome' && groupName && web.length === urls.length && (await isRunning('chrome')) && (await openChromeGroup(groupName, urls, bounds))) {
-          // opened in a tab group
+        let grouped = false;
+        if (browser === 'chrome' && groupName && web.length === urls.length && (await isRunning('chrome'))) {
+          try {
+            grouped = await openChromeGroup(groupName, urls, bounds);
+          } catch {
+            grouped = false;
+          }
+          if (!grouped) {
+            todo = await leftToOpen();
+            urls = urlsOf(todo);
+          }
+        }
+        if (grouped || !urls.length) {
+          // opened in a tab group (or the helper opened them all before giving up)
         } else if (together && (await isRunning(browser as BrowserName))) {
           // '--' so an address is never read as an option.
-          await run('osascript', ['-e', together, '--', bounds, ...urls], { timeoutMs: 30_000 });
+          await run('osascript', ['-e', together, '--', bounds, ...urls], { timeoutMs: 60_000 });
         } else if (urls.length <= GENTLE_MAX) {
           for (const [n, url] of urls.entries()) {
             if (n) await pause(GAP_MS);
@@ -421,9 +455,10 @@ async function openAll(
           await run('open', ['-a', app, ...urls], { timeoutMs: 20_000 });
         }
         result.opened += urls.length;
-        for (const i of group) if (!i.url || !urls.includes(i.url)) failed(i);
+        for (const i of todo) if (!i.url || !urls.includes(i.url)) failed(i);
       } catch {
-        for (const item of group) {
+        todo = await leftToOpen();
+        for (const item of todo) {
           try {
             await openUrl(item);
             result.opened++;

@@ -11,6 +11,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - **Tidy all with your trackpad.** Turn it on in Settings → Keyboard shortcuts, then tap the trackpad twice with four fingers to tidy, like the shortcut.
 
 ### Fixed
+- Unpack no longer opens tabs twice. When Chrome was slow to start Stashd's helper (in a new window, say), Stashd took it for missing and opened every tab again; now it waits for the helper, and anything it tries a second time is checked against what's already open first.
 - A folder where nothing could reopen no longer shows as "Open now".
 
 ## 1.8.1 (2026-11-09)
