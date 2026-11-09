@@ -62,7 +62,7 @@ export function AskBar({ jobs, busy, onAsk }: { jobs: JobSummary[]; busy: boolea
   const [focused, setFocused] = useState(false);
   const [smile, setSmile] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
-  const names = jobs.filter((j) => !j.done).slice(0, 2).map((j) => j.name).join('|');
+  const names = jobs.filter((j) => !j.done).slice(0, 8).map((j) => j.name).join('|');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const ideas = useMemo(() => pickIdeas(jobs, 10), [names]);
   const [n, setN] = useState(0);

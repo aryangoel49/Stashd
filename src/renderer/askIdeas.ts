@@ -63,13 +63,40 @@ export interface Idea {
   template: string;
 }
 
-/** Up to n questions, using your two most recent open folders, the least recently shown first (ties shuffled). */
-export function pickIdeas(jobs: JobSummary[], n: number): Idea[] {
-  const [a, b] = jobs.filter((j) => !j.done).map((j) => j.name);
+/**
+ * Up to n questions, the least recently shown first (ties shuffled). Folder questions take turns across
+ * your open folders, each folder used once (twice when you have only one), and they alternate with general
+ * questions, so the same folder name never comes up again and again.
+ */
+export function pickIdeas(jobs: JobSummary[], n: number, random: () => number = Math.random): Idea[] {
+  const folders = jobs.filter((j) => !j.done).map((j) => j.name).slice(0, 8);
+  // Start the turns at a random folder, so the newest (or pinned) one isn't always first.
+  const start = folders.length ? Math.floor(random() * folders.length) : 0;
+  const turns = folders.length === 1 ? [folders[0], folders[0]] : [...folders.slice(start), ...folders.slice(0, start)];
   const s = seen();
-  return BANK.map((template) => ({ template, q: fill(template, a, b ?? a), at: s[template] ?? 0, r: Math.random() }))
-    .filter((x): x is { template: (typeof BANK)[number]; q: string; at: number; r: number } => !!x.q)
-    .sort((x, y) => x.at - y.at || x.r - y.r)
-    .slice(0, n)
-    .map(({ q, template }) => ({ q, template }));
+  const order = BANK.map((template) => ({ template, at: s[template] ?? 0, r: random() })).sort((x, y) => x.at - y.at || x.r - y.r);
+  const general: Idea[] = [];
+  const named: Idea[] = [];
+  let next = 0;
+  for (const { template } of order) {
+    const needsTwo = template.includes('{a}') && template.includes('{b}');
+    if (!template.includes('{a}') && !template.includes('{b}')) {
+      general.push({ template, q: template });
+      continue;
+    }
+    if (next >= turns.length || (needsTwo && next + 1 >= turns.length)) continue;
+    const a = turns[next++];
+    const b = needsTwo ? turns[next++] : a;
+    const q = fill(template, a, b);
+    if (q) named.push({ template, q });
+  }
+  // General, folder, general, folder… so a folder name never shows twice in a row.
+  const out: Idea[] = [];
+  while ((general.length || named.length) && out.length < n) {
+    const g = general.shift();
+    if (g) out.push(g);
+    const f = named.shift();
+    if (f && out.length < n) out.push(f);
+  }
+  return out;
 }
