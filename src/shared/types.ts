@@ -39,6 +39,8 @@ export interface Settings {
   tidyKeep: TidyKeep;
   /** The welcome (first run) has been seen, or skipped. */
   welcomed: boolean;
+  /** Tidy all with a four-finger double tap on the trackpad. */
+  tidyGesture: boolean;
 }
 
 export type TidyKeep = 'front' | 'all';

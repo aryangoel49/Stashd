@@ -8,6 +8,7 @@ import { claudeWriter, testClaudeKey } from './main/brief/claude';
 import { stashdAsk, stashdSites, stashdWriter } from './main/brief/stashd';
 import { SiteSorter } from './main/sites';
 import { Updater } from './main/updater';
+import { GestureWatcher } from './main/gesture';
 import { installId } from './main/install';
 import { backupBeforeChange, backupsDir, onDamage } from './main/safety';
 import { Core } from './main/core';
@@ -183,6 +184,9 @@ function start(): void {
     const tidy = new TidyFlow(core, () => tray.bounds(), () => tray.wink());
     // Tidy all (the panel's button, ⌃⇧S or the toast): the panel steps aside at once so you can watch it
     // go, and the menu bar says it's working until it's done. A second press while it runs does nothing.
+    // A four-finger double tap on the trackpad does what the Tidy all shortcut does (when it's on in Settings).
+    const gestures = new GestureWatcher(helperPath(), () => void tidyAllNow());
+    app.on('will-quit', () => gestures.stop());
     // Which kind (keep the tab you're on, or close everything) is your last choice unless one is given.
     tidyAllNow = (keep?: TidyKeep, desk?: { keep: string[] }) => {
       getWindow('panel')?.hide();
@@ -332,7 +336,9 @@ function start(): void {
     applyShortcuts(initial);
     applyLoginItem(initial);
 
+    gestures.set(settings.get().tidyGesture);
     settings.onChange((next, prev) => {
+      if (next.tidyGesture !== prev.tidyGesture) gestures.set(next.tidyGesture);
       if (next.shortcutSave !== prev.shortcutSave || next.shortcutRecap !== prev.shortcutRecap || next.shortcutOpen !== prev.shortcutOpen || next.shortcutTidy !== prev.shortcutTidy) applyShortcuts(next);
       if (next.launchAtLogin !== prev.launchAtLogin) applyLoginItem(next);
       if (next.appearance !== prev.appearance) nativeTheme.themeSource = next.appearance;

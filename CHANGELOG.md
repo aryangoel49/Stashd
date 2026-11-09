@@ -5,6 +5,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+### Added
+- **Tidy all with your trackpad.** Turn it on in Settings → Keyboard shortcuts, then tap the trackpad twice with four fingers to tidy, like the shortcut.
+
 ## 1.8.1 (2026-11-09)
 
 ### Changed

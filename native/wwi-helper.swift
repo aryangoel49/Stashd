@@ -306,6 +306,100 @@ func accessibilityCommand(ask: Bool) {
     printJSON(["trusted": trusted])
 }
 
+// ---------- Trackpad gesture: four-finger double tap → Tidy all ----------
+// Reads the trackpad's touches through macOS's MultitouchSupport framework (loaded at run time; it has no
+// public header, the same way BetterTouchTool does it). Only the number of fingers, when they land and lift,
+// and how far they move are looked at. Prints {"gesture":"tidy"} on its own line for each four-finger double
+// tap, and keeps running until Stashd stops it. If the framework isn't there, prints {"error":…} and exits.
+
+typealias MTDeviceRef = UnsafeMutableRawPointer
+typealias MTContactCallback = @convention(c) (Int32, UnsafeMutableRawPointer?, Int32, Double, Int32) -> Int32
+
+/// One finger in a contact frame (96 bytes; the touch position, 0…1 on each side, is 32 bytes in).
+let FINGER_STRIDE = 96
+let FINGER_POS = 32
+
+final class TapWatcher {
+    static let shared = TapWatcher()
+    private var downAt = 0.0
+    private var peak = 0
+    private var start: (Float, Float)? = nil
+    private var moved: Float = 0
+    private var lastTap = 0.0
+    private var lastFired = 0.0
+
+    /// A tap: exactly four fingers at most, down and up again within 0.3 s, barely moving.
+    /// Two taps within 0.45 s are the gesture.
+    func frame(_ fingers: UnsafeMutableRawPointer?, _ count: Int, _ time: Double) {
+        if count > 0 {
+            if peak == 0 { downAt = time; moved = 0; start = nil }
+            peak = max(peak, count)
+            if count == 4, let f = fingers {
+                var cx: Float = 0, cy: Float = 0
+                for i in 0..<4 {
+                    let base = f + i * FINGER_STRIDE + FINGER_POS
+                    cx += base.load(as: Float.self); cy += (base + 4).load(as: Float.self)
+                }
+                cx /= 4; cy /= 4
+                if cx.isFinite, cy.isFinite, cx >= -0.1, cx <= 1.1, cy >= -0.1, cy <= 1.1 {
+                    if let s = start { moved = max(moved, abs(cx - s.0) + abs(cy - s.1)) } else { start = (cx, cy) }
+                }
+            }
+            return
+        }
+        // All fingers lifted.
+        let wasTap = peak == 4 && time - downAt < 0.3 && moved < 0.06
+        peak = 0
+        guard wasTap else { lastTap = 0; return }
+        if lastTap > 0, time - lastTap < 0.45, time - lastFired > 1.0 {
+            lastFired = time
+            lastTap = 0
+            printJSON(["gesture": "tidy"])
+            fflush(stdout)
+        } else {
+            lastTap = time
+        }
+    }
+}
+
+let contactCallback: MTContactCallback = { _, fingers, count, time, _ in
+    TapWatcher.shared.frame(fingers, Int(count), time)
+    return 0
+}
+
+func gesturesCommand() {
+    guard let lib = dlopen("/System/Library/PrivateFrameworks/MultitouchSupport.framework/MultitouchSupport", RTLD_NOW),
+          let listSym = dlsym(lib, "MTDeviceCreateList"),
+          let registerSym = dlsym(lib, "MTRegisterContactFrameCallback"),
+          let startSym = dlsym(lib, "MTDeviceStart") else {
+        printJSON(["error": "trackpad not available"])
+        exit(1)
+    }
+    typealias ListFn = @convention(c) () -> Unmanaged<CFArray>?
+    typealias RegisterFn = @convention(c) (MTDeviceRef, MTContactCallback) -> Void
+    typealias StartFn = @convention(c) (MTDeviceRef, Int32) -> Void
+    let list = unsafeBitCast(listSym, to: ListFn.self)
+    let register = unsafeBitCast(registerSym, to: RegisterFn.self)
+    let start = unsafeBitCast(startSym, to: StartFn.self)
+    guard let devices = list()?.takeRetainedValue() as? [AnyObject], !devices.isEmpty else {
+        printJSON(["error": "no trackpad"])
+        exit(1)
+    }
+    for d in devices {
+        let ref = Unmanaged.passUnretained(d).toOpaque()
+        register(ref, contactCallback)
+        start(ref, 0)
+    }
+    printJSON(["ready": devices.count])
+    fflush(stdout)
+    // Stop when Stashd goes away (its end of our input closes).
+    DispatchQueue.global().async {
+        _ = FileHandle.standardInput.readDataToEndOfFile()
+        exit(0)
+    }
+    CFRunLoopRun()
+}
+
 let args = CommandLine.arguments
 if args.count > 1, args[1].hasPrefix("chrome-extension://") {
     chromeHostCommand()
@@ -319,7 +413,8 @@ case "quit": quitCommand()
 case "chats": chatsCommand(ask: args.count > 2 && args[2] == "ask")
 case "automation": automationCommand(ask: args.count > 2 && args[2] == "ask")
 case "accessibility": accessibilityCommand(ask: args.count > 2 && args[2] == "ask")
+case "gestures": gesturesCommand()
 default:
-    printJSON(["error": "usage: wwi-helper windows|icons|hide|quit|chats|automation|accessibility"])
+    printJSON(["error": "usage: wwi-helper windows|icons|hide|quit|chats|automation|accessibility|gestures"])
     exit(2)
 }
