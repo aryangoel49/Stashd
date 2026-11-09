@@ -83,13 +83,14 @@ function AppTile({ path, size }: { path: string; size: number }) {
 }
 
 /** A place's tile: an app's icon, a site's real mark for the well-known ones, else its logo, else its first letter. */
-export function SiteTile({ url, size = 30 }: { url: string; size?: number }) {
+export function SiteTile({ url, size = 30, fallback }: { url: string; size?: number; fallback?: ReactNode }) {
   const app = appPathOf(url);
   if (app) return <AppTile path={app} size={size} />;
-  return <WebTile url={url} size={size} />;
+  return <WebTile url={url} size={size} fallback={fallback} />;
 }
 
-function WebTile({ url, size }: { url: string; size: number }) {
+/** `fallback` stands in when the site has no logo to show (instead of its first letter). */
+function WebTile({ url, size, fallback }: { url: string; size: number; fallback?: ReactNode }) {
   const h = hostOfUrl(url);
   const origin = originOf(url);
   const [step, setStep] = useState(() => (origin ? (iconMisses.get(origin) ?? 0) : ICON_PATHS.length));
@@ -126,6 +127,7 @@ function WebTile({ url, size }: { url: string; size: number }) {
       />
     );
   }
+  if (fallback) return <>{fallback}</>;
   return (
     <span className="site-tile" style={{ width: size, height: size, background: 'var(--well)', color: 'var(--text)', fontSize: size * 0.42 }} aria-hidden="true">
       {(h[0] ?? '•').toUpperCase()}

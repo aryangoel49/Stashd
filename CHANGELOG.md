@@ -5,6 +5,10 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+### Fixed
+- Tidy all's desk shows every app's real icon (Spotify, Figma and others showed a letter), and a tab whose site has no logo shows its browser's icon.
+- Tidy all's desk says what it'll quit and close, in two short lines ("Quits Chrome, Slack and 5 more apps", "Closes Hacker News and 4 more tabs"); point at any icon to see its name.
+
 ## 1.7.0 (2026-11-09)
 
 ### Changed

@@ -1100,3 +1100,5 @@ body.route-welcome { background: transparent; }
 .desk-more svg { width: 11px; height: 11px; }
 .desk-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
 @media (prefers-color-scheme: dark) { .desk-hero-card { box-shadow: 0 0 0 2.5px #26231d, 0 4px 10px rgba(0, 0, 0, 0.4); } }
+.desk-hero-hint { max-width: 100%; font-size: 11.5px; line-height: 1.4; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-hero-line + .desk-hero-hint { margin-top: 2px; }

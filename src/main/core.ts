@@ -464,7 +464,12 @@ export class Core {
     // Every app quits except a few (Claude, Finder), like Tidy all does.
     const running = win ? win.apps.map((a) => a.name) : [...new Set(cap.items.map((i) => i.app))];
     const quitting = appsToQuit(running).filter((n) => !(opts.keepFront && front?.kind === 'app' && front.app === n));
-    const appItem = (n: string): Item => ({ key: `app:${n}`, kind: 'app', label: n, detail: '', app: n });
+    // With the app's own location, so its real icon shows (looking an app up by name misses some, like Spotify).
+    const appPath = new Map([
+      ...cap.items.filter((i) => i.kind === 'app' && i.path).map((i): [string, string] => [i.app, i.path!]),
+      ...(win?.apps ?? []).filter((a) => a.path).map((a): [string, string] => [a.name, a.path]),
+    ]);
+    const appItem = (n: string): Item => ({ key: `app:${n}`, kind: 'app', label: n, detail: '', app: n, ...(appPath.has(n) ? { path: appPath.get(n) } : {}) });
     const staying = [
       ...(opts.keepFront && front ? [front] : []),
       ...cap.items.filter((i) => i.kind === 'tab' && isLifestyle(i, settings, learned)),

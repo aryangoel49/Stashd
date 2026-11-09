@@ -8,12 +8,42 @@ import { api, errorText, prettyShortcut } from './api';
 import { Icon } from './icons';
 import { AnimatePresence, Button, FolderMark, motion } from './ui';
 import { SiteTile } from './Break';
-import { folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
+import { folderTone, ItemBadge, titleOf, toneStyle, useMacIcon } from './visuals';
 
-/** A tab shows its site's own logo; documents and apps their real icons. */
-function Thing({ item, size }: { item: Item; size: number }) {
-  if (item.kind === 'tab' && item.url) return <SiteTile url={item.url} size={size} />;
+/** An app's real icon, from where it lives on this Mac. */
+function AppIcon({ item, size }: { item: Item; size: number }) {
+  const icon = useMacIcon(item.path!);
+  if (icon) return <img className="badge-icon badge-app" src={icon} width={size} height={size} alt="" aria-hidden="true" draggable={false} />;
   return <ItemBadge item={item} size={size} />;
+}
+
+/** A tab shows its site's own logo (or its browser's icon if the site has none); documents and apps their real icons. */
+function Thing({ item, size }: { item: Item; size: number }) {
+  if (item.kind === 'tab' && item.url) return <SiteTile url={item.url} size={size} fallback={<ItemBadge item={item} size={size} />} />;
+  if (item.kind === 'app' && item.path) return <AppIcon item={item} size={size} />;
+  return <ItemBadge item={item} size={size} />;
+}
+
+/** What a thing is called, short: "Logitech MX Master 3S - Amazon.com" → "Logitech MX Master 3S". */
+function shortTitle(item: Item): string {
+  const t = item.kind === 'app' ? item.app.replace(/^(Google|Microsoft) /, '') : titleOf(item).split(/\s+[-–|·:]\s+/)[0].trim();
+  return t.length > 26 ? `${t.slice(0, 24).trimEnd()}…` : t;
+}
+
+/** A hint at what's going, one short line each: "Quits Chrome, Slack and 5 more apps", "Closes Hacker News and 4 more tabs". */
+function hint(piles: DeskPile[]): string[] {
+  // Apps have short names, so two fit; a tab's title is longer, so one.
+  const line = (verb: string, items: Item[], show: number, noun: string) => {
+    const names = [...new Set(items.map(shortTitle))];
+    if (!names.length) return '';
+    if (names.length <= show) return `${verb} ${names.join(' and ')}`;
+    const rest = names.length - show;
+    return `${verb} ${names.slice(0, show).join(', ')} and ${rest} more ${rest === 1 ? noun : `${noun}s`}`;
+  };
+  return [
+    line('Quits', piles.filter((p) => p.kind === 'apps').flatMap((p) => p.items), 2, 'app'),
+    line('Closes', piles.filter((p) => p.kind === 'close').flatMap((p) => p.items), 1, 'tab'),
+  ].filter(Boolean);
 }
 
 /** A pile's first few things, fanned like cards. */
@@ -22,7 +52,7 @@ function Stack({ items }: { items: Item[] }) {
   return (
     <span className="desk-stack" aria-hidden="true">
       {shown.map((i, n) => (
-        <span key={i.key} className="desk-stack-card" style={{ zIndex: shown.length - n }}>
+        <span key={i.key} title={shortTitle(i)} className="desk-stack-card" style={{ zIndex: shown.length - n }}>
           <Thing item={i} size={24} />
         </span>
       ))}
@@ -58,6 +88,7 @@ function HeroStack({ items }: { items: Item[] }) {
       {shown.map((i, n) => (
         <motion.span
           key={i.key}
+          title={shortTitle(i)}
           className="desk-hero-card"
           style={{ zIndex: 10 - Math.abs(Math.round(n - mid)) }}
           initial={{ opacity: 0, y: 10, rotate: 0 }}
@@ -192,6 +223,11 @@ export function TidyDeskView({ settings, onClose }: { settings: Settings; onClos
             <b>{goingCount}</b> {goingCount === 1 ? 'thing' : 'things'} to put away
           </span>
           <span className="desk-hero-line">{summary(piles)}</span>
+          {hint(piles).map((h) => (
+            <span key={h} className="desk-hero-hint" title={h}>
+              {h}
+            </span>
+          ))}
           {desk.memoryMB ? <span className="desk-hero-mem">Your Mac is using {memoryLabel(desk.memoryMB)}</span> : null}
         </motion.div>
       )}
