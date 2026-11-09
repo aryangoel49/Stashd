@@ -3,8 +3,9 @@
 // (except in Safari, whose private windows it can't tell apart), and never reads cookies, history,
 // passwords or page contents.
 
-import type { BrowserName, CollectorError } from '../../shared/types';
+import type { BrowserName, CollectorError, Frame } from '../../shared/types';
 import { run, RunError } from '../exec';
+import { boundsToFrame } from '../frames';
 import { cleanTabUrl, type UrlOptions } from '../urls';
 
 export interface Tab {
@@ -13,6 +14,8 @@ export interface Tab {
   title: string;
   url: string;
   active: boolean;
+  /** Where its window is on screen. */
+  frame?: Frame;
 }
 
 export const BROWSER_APPS: Record<BrowserName, { bundleId: string; appName: string; label: string }> = {
@@ -33,6 +36,16 @@ export const MAX_TABS = 500;
 const US = 'character id 31';
 const RS = 'character id 30';
 
+// The window's place as "left,top,right,bottom" (empty when minimized or the browser won't say).
+const bounds = (minimized = 'minimized') => `
+      set wb to ""
+      try
+        if not (${minimized} of w) then
+          set b to bounds of w
+          set wb to ((item 1 of b) as text) & "," & (item 2 of b) & "," & (item 3 of b) & "," & (item 4 of b)
+        end if
+      end try`;
+
 // Chrome, Brave, Edge and Vivaldi share one AppleScript dictionary. A window that isn't "normal" is private
 // (Chrome and Brave call it incognito, Edge InPrivate).
 const chromiumScript = (id: string) => `
@@ -45,19 +58,19 @@ tell application id "${id}"
     try
       if mode of w is not "normal" then set skip to true
     end try
-    if not skip then
+    if not skip then${bounds()}
       set ai to active tab index of w
       set ti to 0
       repeat with t in tabs of w
         set ti to ti + 1
-        set out to out & wi & ${US} & (ti = ai) & ${US} & (URL of t) & ${US} & (title of t) & ${RS}
+        set out to out & wi & ${US} & (ti = ai) & ${US} & (URL of t) & ${US} & (title of t) & ${US} & wb & ${RS}
       end repeat
     end if
   end repeat
 end tell
 return out`;
 
-// Each script prints records "window<US>isActive<US>url<US>title<RS>".
+// Each script prints records "window<US>isActive<US>url<US>title<US>bounds<RS>".
 const SCRIPTS: Record<BrowserName, string> = {
   chrome: chromiumScript('com.google.Chrome'),
   brave: chromiumScript('com.brave.Browser'),
@@ -73,13 +86,13 @@ tell application id "company.thebrowser.Browser"
     try
       if incognito of w then set skip to true
     end try
-    if not skip then
+    if not skip then${bounds()}
       set activeId to ""
       try
         set activeId to id of active tab of w
       end try
       repeat with t in tabs of w
-        set out to out & wi & ${US} & ((id of t) = activeId) & ${US} & (URL of t) & ${US} & (title of t) & ${RS}
+        set out to out & wi & ${US} & ((id of t) = activeId) & ${US} & (URL of t) & ${US} & (title of t) & ${US} & wb & ${RS}
       end repeat
     end if
   end repeat
@@ -92,9 +105,9 @@ tell application id "com.apple.Safari"
   repeat with w in windows
     try
       set ct to index of current tab of w
-      set wi to wi + 1
+      set wi to wi + 1${bounds('miniaturized')}
       repeat with t in tabs of w
-        set out to out & wi & ${US} & ((index of t) = ct) & ${US} & (URL of t) & ${US} & (name of t) & ${RS}
+        set out to out & wi & ${US} & ((index of t) = ct) & ${US} & (URL of t) & ${US} & (name of t) & ${US} & wb & ${RS}
       end repeat
     end try
   end repeat
@@ -108,13 +121,15 @@ export function parseTabOutput(browser: BrowserName, out: string): Tab[] {
     .map((r) => r.replace(/^\n+/, ''))
     .filter((r) => r.includes('\x1f'))
     .map((r) => {
-      const [win, active, url, title] = r.split('\x1f');
+      const [win, active, url, title, bounds] = r.split('\x1f');
+      const frame = boundsToFrame(bounds);
       return {
         browser,
         window: Number.parseInt(win, 10) || 1,
         active: active.trim() === 'true',
         url: (url ?? '').trim(),
         title: (title ?? '').replace(/\s+/g, ' ').trim(),
+        ...(frame ? { frame } : {}),
       };
     });
 }

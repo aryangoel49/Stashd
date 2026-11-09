@@ -1,7 +1,9 @@
 // Talks to the small Swift helper (native/wwi-helper.swift) through exec.ts.
 // No Electron imports, so it can be tested with a fake binary path.
 
+import type { Frame } from '../shared/types';
 import { run } from './exec';
+import type { SeenWindow } from './frames';
 
 export interface RunningApp {
   name: string;
@@ -100,4 +102,27 @@ export class Helper {
     return { trusted: out.trusted === true, chats };
   }
 
+  /** Where these apps' windows are, by app name. Null without Accessibility (nothing is asked). */
+  async frames(names: string[]): Promise<Record<string, SeenWindow[]> | null> {
+    if (!names.length) return {};
+    const r = await run(this.binary, ['frames'], { timeoutMs: 4000, input: JSON.stringify(names) });
+    const out = JSON.parse(r.stdout) as { trusted?: unknown; apps?: Record<string, unknown> };
+    if (out.trusted !== true) return null;
+    const apps: Record<string, SeenWindow[]> = {};
+    for (const [name, list] of Object.entries(out.apps ?? {})) {
+      if (!Array.isArray(list)) continue;
+      apps[name] = list
+        .filter((w): w is SeenWindow => !!w && ['x', 'y', 'w', 'h'].every((k) => typeof (w as Record<string, unknown>)[k] === 'number'))
+        .map((w) => ({ title: typeof w.title === 'string' ? w.title : '', x: w.x, y: w.y, w: w.w, h: w.h, ...(w.full === true ? { full: true } : {}) }));
+    }
+    return apps;
+  }
+
+  /** Moves these apps' windows back to where they were (waits a few seconds for apps still opening). */
+  async place(targets: (Frame & { app: string; title?: string })[]): Promise<number> {
+    if (!targets.length) return 0;
+    const r = await run(this.binary, ['place'], { timeoutMs: 12_000, input: JSON.stringify(targets) });
+    const placed = (JSON.parse(r.stdout) as { placed?: unknown }).placed;
+    return typeof placed === 'number' ? placed : 0;
+  }
 }

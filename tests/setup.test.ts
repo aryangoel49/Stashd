@@ -20,11 +20,12 @@ describe('the welcome checklist', () => {
       ['Safari', 'ask'],
       ['Word', 'later'],
       ['Finder', 'denied'],
+      ['Window places', 'ask'],
     ]);
   });
 
-  it('asks about chats only when Claude or ChatGPT is installed', async () => {
-    expect((await setupItems(helper({}), DEFAULT_SETTINGS)).some((i) => i.kind === 'accessibility')).toBe(false);
+  it('asks for Accessibility (window places), mentioning chats only when Claude or ChatGPT is installed', async () => {
+    expect((await setupItems(helper({}), DEFAULT_SETTINGS)).find((i) => i.kind === 'accessibility')?.name).toBe('Window places');
     const items = await setupItems(helper({ 'com.anthropic.claudefordesktop': 'notRunning' }, true), DEFAULT_SETTINGS);
     expect(items.find((i) => i.kind === 'accessibility')?.status).toBe('allowed');
   });

@@ -33,10 +33,15 @@ export async function setupItems(helper: Helper, settings: Settings, ask = false
       kind: 'automation',
       status: status[a.id] === 'allowed' ? 'allowed' : status[a.id] === 'denied' ? 'denied' : status[a.id] === 'ask' ? 'ask' : 'later',
     }));
-  // Seeing which Claude or ChatGPT chat is open needs Accessibility, so only if one of them is here.
-  if (CHAT_BUNDLES.some((id) => status[id] && status[id] !== 'notInstalled')) {
-    const trusted = await helper.accessibility(false).catch(() => false);
-    items.push({ id: 'accessibility', name: 'Claude and ChatGPT chats', why: 'to reopen the exact chat you were in', kind: 'accessibility', status: trusted ? 'allowed' : 'ask' });
-  }
+  // Accessibility puts windows back where they were, and sees which Claude or ChatGPT chat is open.
+  const chats = CHAT_BUNDLES.some((id) => status[id] && status[id] !== 'notInstalled');
+  const trusted = await helper.accessibility(false).catch(() => false);
+  items.push({
+    id: 'accessibility',
+    name: chats ? 'Window places and chats' : 'Window places',
+    why: chats ? 'to put windows back where they were, and reopen the exact chat you were in' : 'to put windows back where they were',
+    kind: 'accessibility',
+    status: trusted ? 'allowed' : 'ask',
+  });
   return items;
 }

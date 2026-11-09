@@ -1154,3 +1154,13 @@ body.route-welcome { background: transparent; }
 .desk-fly-inner .site-tile, .desk-fly-inner img { border-radius: 8px; }
 .desk-result { display: flex; align-items: baseline; gap: 7px; margin-left: 16px; flex: 1; min-width: 0; }
 .desk-stage .desk-toast-undo { position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 3; }
+
+/* After Unpack: what didn't come back (NotBack.tsx). */
+.notback { margin-top: 10px; padding: 8px 10px; border-radius: 11px; background: var(--warn-bg); color: var(--warn-text); font-size: 12px; }
+.notback-title { font-weight: 600; margin-bottom: 2px; }
+.notback-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+.notback-row + .notback-row { border-top: 1px solid rgba(0, 0, 0, 0.06); }
+.notback-row > svg { width: 16px; height: 16px; flex: none; opacity: 0.7; }
+.notback-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.notback-text b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notback-text span { opacity: 0.75; }

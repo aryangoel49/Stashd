@@ -5,6 +5,7 @@ import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
 import { Button, motion, Reveal } from './ui';
 import { describe, ItemBadge, titleOf } from './visuals';
+import { NotBack } from './NotBack';
 
 /** Text with the brief's key words in the accent colour. */
 function Marked({ text, marks }: { text: string; marks: string[] }) {
@@ -165,14 +166,13 @@ export function BriefCard({ view, onOpened, current = false, hideTitle = false }
       </>
       )}
 
-      {result && (
+      {result && (result.opened > 0 || result.alreadyOpen > 0 || !result.problems.length) && (
         <motion.div className="muted small" style={{ marginTop: 10 }} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
           Opened {result.opened}
           {result.alreadyOpen ? `, ${result.alreadyOpen} already open` : ''}.
-          {result.missing.length > 0 && ` Not found: ${result.missing.join(', ')}.`}
-          {result.failed.length > 0 && ` Couldn't open: ${result.failed.join(', ')}.`}
         </motion.div>
       )}
+      {result && result.problems.length > 0 && <NotBack jobId={job.id} problems={result.problems} />}
       {error && <div className="banner" style={{ marginTop: 10 }}>{error}</div>}
 
       {/* What's inside: a clear box you open to see, and tick, each thing in the folder. */}

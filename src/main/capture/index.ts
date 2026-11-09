@@ -7,6 +7,7 @@ import { BROWSER_APPS, collectTabs, type Tab } from '../collectors/browsers';
 import type { ChatInfo, Helper, WindowsInfo } from '../helper';
 import { redactCommand, redactLongSecrets } from '../redact';
 import { chromeTabGroups } from '../open';
+import { attachFrames } from '../frames';
 import { cleanTabUrl, displayUrl, looseKey } from '../urls';
 import { collectDocs } from './docs';
 
@@ -47,6 +48,7 @@ export function tabToItem(t: Tab): Item {
     browser: t.browser,
     window: t.window,
     active: t.active,
+    ...(t.frame ? { frame: t.frame } : {}),
   };
 }
 
@@ -168,6 +170,12 @@ export async function capture(settings: Settings, helper: Helper, selfNames: str
   errors.push(...tabResult.errors, ...docResult.errors);
   const assembled = assemble(win, tabResult.tabs, docResult.items, selfNames, docResult.answered);
   if (chatResult) attachChats(assembled.items, chatResult.chats);
+  // Where each document's and app's window is (needs Accessibility; quick open checks skip it).
+  if (!onlyApps) {
+    const apps = [...new Set(assembled.items.filter((i) => i.kind !== 'tab').map((i) => i.app))];
+    const windows = await helper.frames(apps).catch(() => null);
+    if (windows) attachFrames(assembled.items, windows);
+  }
   const groups = await groupsP;
   if (groups.size) for (const it of assembled.items) if (it.kind === 'tab' && it.browser === 'chrome') it.group = groups.get(looseKey(it));
   // If an app's files couldn't be read (permission not given yet), say so on its item.

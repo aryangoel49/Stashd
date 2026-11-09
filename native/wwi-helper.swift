@@ -12,6 +12,13 @@
 //                        open in each one's front window: its title and, for web-based apps, its address
 //                        and the last ~2000 characters of the conversation on screen (for the brief).
 //                        Uses the Accessibility permission; with "chats ask" macOS asks for it if needed.
+//   wwi-helper frames    Reads a JSON list of app names on stdin and prints where each one's windows are on
+//                        screen (place, size, full screen, title), so Unpack can put them back. Needs
+//                        Accessibility; without it, prints {"trusted":false} and asks for nothing.
+//   wwi-helper place     Reads a JSON list of {app, title?, x, y, w, h, full?} on stdin and moves those
+//                        windows back to where they were, waiting a few seconds for apps still opening.
+//                        A title picks the window whose title contains it; without one, the app's main
+//                        window. Also needs Accessibility.
 //   (Chrome)             Started by Chrome for Stashd's extension (native messaging: Chrome passes the
 //                        extension's address as the first argument). Reads one message, how far into each
 //                        video you got and which tab group each tab is in, and keeps it in Stashd's folder
@@ -239,6 +246,102 @@ func chatsCommand(ask: Bool) {
     printJSON(["trusted": true, "chats": chats])
 }
 
+// ---------- Window places ----------
+
+func windowsOf(_ app: NSRunningApplication) -> [AXUIElement] {
+    let root = AXUIElementCreateApplication(app.processIdentifier)
+    AXUIElementSetMessagingTimeout(root, 1.0)
+    // Electron apps (Slack, Notion, Claude) only list their windows once asked to.
+    AXUIElementSetAttributeValue(root, "AXManualAccessibility" as CFString, kCFBooleanTrue)
+    return (axValue(root, "AXWindows") as? [AXUIElement]) ?? []
+}
+
+func mainWindowOf(_ app: NSRunningApplication) -> AXUIElement? {
+    let root = AXUIElementCreateApplication(app.processIdentifier)
+    AXUIElementSetMessagingTimeout(root, 1.0)
+    if let w = axValue(root, "AXMainWindow"), CFGetTypeID(w) == AXUIElementGetTypeID() { return (w as! AXUIElement) }
+    return windowsOf(app).first
+}
+
+/** A normal window's place, or nil for minimized windows, sheets and panels. */
+func frameOf(_ w: AXUIElement) -> [String: Any]? {
+    if (axValue(w, "AXMinimized") as? Bool) == true { return nil }
+    if let sub = axValue(w, "AXSubrole") as? String, sub != "AXStandardWindow" { return nil }
+    guard let pv = axValue(w, "AXPosition"), let sv = axValue(w, "AXSize"),
+          CFGetTypeID(pv) == AXValueGetTypeID(), CFGetTypeID(sv) == AXValueGetTypeID() else { return nil }
+    var p = CGPoint.zero
+    var s = CGSize.zero
+    guard AXValueGetValue(pv as! AXValue, .cgPoint, &p), AXValueGetValue(sv as! AXValue, .cgSize, &s) else { return nil }
+    return ["title": axValue(w, "AXTitle") as? String ?? "", "x": p.x, "y": p.y, "w": s.width, "h": s.height,
+            "full": (axValue(w, "AXFullScreen") as? Bool) ?? false]
+}
+
+func runningApps(named names: Set<String>) -> [NSRunningApplication] {
+    NSWorkspace.shared.runningApplications.filter {
+        $0.activationPolicy == .regular && names.contains(($0.localizedName ?? "").lowercased())
+    }
+}
+
+func framesCommand() {
+    let input = FileHandle.standardInput.readDataToEndOfFile()
+    let names = Set(((try? JSONSerialization.jsonObject(with: input)) as? [String] ?? []).map { $0.lowercased() })
+    guard AXIsProcessTrusted() else {
+        printJSON(["trusted": false, "apps": [:]])
+        return
+    }
+    var apps: [String: [[String: Any]]] = [:]
+    for app in runningApps(named: names) {
+        guard let name = app.localizedName else { continue }
+        apps[name] = windowsOf(app).compactMap(frameOf)
+    }
+    printJSON(["trusted": true, "apps": apps])
+}
+
+func placeCommand() {
+    let input = FileHandle.standardInput.readDataToEndOfFile()
+    var targets = (try? JSONSerialization.jsonObject(with: input)) as? [[String: Any]] ?? []
+    guard AXIsProcessTrusted() else {
+        printJSON(["trusted": false, "placed": 0])
+        return
+    }
+    var used: [AXUIElement] = []
+    var placed = 0
+    // Apps that are still opening get a few seconds for their windows to appear.
+    let deadline = Date().addingTimeInterval(8)
+    while !targets.isEmpty && Date() < deadline {
+        targets = targets.filter { t in
+            guard let name = t["app"] as? String,
+                  let x = t["x"] as? Double, let y = t["y"] as? Double,
+                  let w = t["w"] as? Double, let h = t["h"] as? Double else { return false }
+            guard let app = runningApps(named: [name.lowercased()]).first else { return true }
+            let free = { (e: AXUIElement) in !used.contains(where: { CFEqual($0, e) }) }
+            var win: AXUIElement?
+            if let hint = (t["title"] as? String)?.lowercased(), !hint.isEmpty {
+                win = windowsOf(app).first { free($0) && ((axValue($0, "AXTitle") as? String) ?? "").lowercased().contains(hint) }
+            } else if let main = mainWindowOf(app), free(main) {
+                win = main
+            }
+            guard let window = win else { return true }
+            used.append(window)
+            var p = CGPoint(x: x, y: y)
+            var s = CGSize(width: w, height: h)
+            if let pv = AXValueCreate(.cgPoint, &p), let sv = AXValueCreate(.cgSize, &s) {
+                // Position, size, then position again: some apps keep a window on screen while it's resized.
+                AXUIElementSetAttributeValue(window, "AXPosition" as CFString, pv)
+                AXUIElementSetAttributeValue(window, "AXSize" as CFString, sv)
+                AXUIElementSetAttributeValue(window, "AXPosition" as CFString, pv)
+            }
+            if (t["full"] as? Bool) == true {
+                AXUIElementSetAttributeValue(window, "AXFullScreen" as CFString, kCFBooleanTrue)
+            }
+            placed += 1
+            return false
+        }
+        if !targets.isEmpty { Thread.sleep(forTimeInterval: 0.25) }
+    }
+    printJSON(["trusted": true, "placed": placed])
+}
+
 /** Chrome's native messaging: a 4-byte length (this Mac's byte order), then that much JSON, each way. */
 func chromeHostCommand() {
     let input = FileHandle.standardInput
@@ -414,7 +517,9 @@ case "chats": chatsCommand(ask: args.count > 2 && args[2] == "ask")
 case "automation": automationCommand(ask: args.count > 2 && args[2] == "ask")
 case "accessibility": accessibilityCommand(ask: args.count > 2 && args[2] == "ask")
 case "gestures": gesturesCommand()
+case "frames": framesCommand()
+case "place": placeCommand()
 default:
-    printJSON(["error": "usage: wwi-helper windows|icons|hide|quit|chats|automation|accessibility|gestures"])
+    printJSON(["error": "usage: wwi-helper windows|icons|hide|quit|chats|automation|accessibility|gestures|frames|place"])
     exit(2)
 }

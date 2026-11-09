@@ -28,6 +28,8 @@ import { BreakStore, isBreakItem, videoKey } from './breaks';
 import { isListedApp, listApps, type MacApp } from './apps';
 import { appPathOf } from '../shared/places';
 import { run } from './exec';
+import { findDocument } from './capture/spotlight';
+import { shortDir } from './capture/docs';
 import { appsMemoryMB, usedMemoryMB } from './ram';
 import type { SettingsStore } from './settings';
 import { readJsonSafely } from './safety';
@@ -1082,11 +1084,13 @@ export class Core {
     const picked = await this.itemsToOpen(jobId, entryId, mode);
     const entry = picked.entry;
     const items = keys ? picked.items.filter((i) => keys.includes(i.key)) : picked.items;
-    if (!items.length) return { opened: 0, alreadyOpen: 0, missing: [], failed: [] };
+    if (!items.length) return { opened: 0, alreadyOpen: 0, missing: [], failed: [], problems: [] };
     before?.(items);
     let openBefore = new Set<string>();
     const name = (await this.store.get(jobId).catch(() => null))?.name;
-    const result = await openItems(items, entry.frontKey, this.settings.get(), (b) => (openBefore = b), name);
+    const result = await openItems(items, entry.frontKey, this.settings.get(), (b) => (openBefore = b), name, (t) => this.helper.place(t));
+    // Nothing came back: the folder isn't open, so it isn't the one you're on.
+    if (!result.opened && !result.alreadyOpen) return result;
     await this.setCurrent(jobId);
     const opened = await this.store.get(jobId).catch(() => null);
     if (opened) {
@@ -1105,7 +1109,28 @@ export class Core {
     const latest = await this.store.latest(jobId);
     const item = latest?.items.find((i) => i.key === key);
     if (!item) throw new Error('That is no longer in this folder.');
-    return openItems([item], null, this.settings.get());
+    return openItems([item], null, this.settings.get(), undefined, undefined, (t) => this.helper.place(t));
+  }
+
+  /**
+   * A file that moved since it was saved: looks for it by name (Spotlight) and, if found, points the
+   * folder at its new place and opens it. False if it can't be found.
+   */
+  async findMoved(jobId: string, key: string): Promise<boolean> {
+    const latest = await this.store.latest(jobId);
+    const item = latest?.items.find((i) => i.key === key);
+    if (!latest || !item || item.kind !== 'doc' || !item.path) return false;
+    const found = await findDocument(path.basename(item.path), item.app);
+    if (!found || found === item.path) return false;
+    const moved: Item = { ...item, key: `doc:${found}`, path: found, label: path.basename(found), detail: shortDir(path.dirname(found)) };
+    const swap = (k: string) => (k === key ? moved.key : k);
+    latest.items = latest.items.filter((i) => i.key !== moved.key).map((i) => (i.key === key ? moved : i));
+    latest.frontKey = latest.frontKey ? swap(latest.frontKey) : null;
+    if (latest.brief) latest.brief.needed = latest.brief.needed.map(swap);
+    await this.store.saveEntry(latest);
+    this.notify();
+    await openItems([moved], null, this.settings.get(), undefined, undefined, (t) => this.helper.place(t));
+    return true;
   }
 
   /** Swap one item in a save (used when an untitled document gets saved with a name). */

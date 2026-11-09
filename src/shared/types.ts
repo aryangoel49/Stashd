@@ -93,10 +93,12 @@ export interface Item {
   url?: string;
   path?: string;
   browser?: BrowserName;
-  /** Browser window number, for tabs. */
   /** The Chrome tab group it's in right now (its title), if any. Only meaningful while it's open. */
   group?: string;
+  /** Browser window number, for tabs. */
   window?: number;
+  /** Where its window was on screen, so Unpack can put it back (for tabs, their browser window's). */
+  frame?: Frame;
   /** For tabs: the active tab of its window. For docs: the front document of its app. */
   active?: boolean;
   /** A document that has never been saved (Word "Document1"). */
@@ -109,6 +111,16 @@ export interface Item {
   /** For tabs: where this address went after Unpack opened it (a login page, a redirect), as loose keys.
    *  The tab still counts as this item there, so Pack up closes it and the folder shows as open. */
   seenAs?: string[];
+}
+
+/** A window's place on screen, in points from the top left of the main screen (as macOS counts them). */
+export interface Frame {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Full screen. */
+  full?: boolean;
 }
 
 /** How Unpack groups things for "open by type". */
@@ -329,6 +341,8 @@ export interface OpenResult {
   alreadyOpen: number;
   missing: string[];
   failed: string[];
+  /** What didn't come back, and why: moved (the file isn't where it was), unsaved (never saved), failed. */
+  problems: { key: string; label: string; kind: Item['kind']; why: 'moved' | 'unsaved' | 'failed' }[];
 }
 
 export interface AppInfo {
