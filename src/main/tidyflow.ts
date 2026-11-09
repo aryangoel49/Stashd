@@ -17,8 +17,8 @@ import { getWindow, prepareWindow, showWindow } from './windows';
 
 // Undo is offered briefly: long enough to catch a slip, short enough to stay out of the way.
 const UNDO_MS = 2_000;
-/** Tidy all's Desk clear card stays long enough to enjoy the memory coming back (Undo works all that time). */
-const DESK_MS = 8_000;
+/** Tidy all's Desk clear card: long enough to watch the memory roll back and catch Undo, then gone (pointing holds it). */
+const DESK_MS = 4_500;
 /** An offer stays a little longer than Undo: it needs reading first. */
 const OFFER_MS = 8_000;
 /** Just longer than the toast's 150ms fade-out, so the window hides after it has gone. */
@@ -503,7 +503,7 @@ export class TidyFlow {
         detail: '',
         canUndo: true,
         mood: 'sleep',
-        ms: 60_000,
+        ms: 4_500,
         desk: {
           went: [{ label: 'into Climate essay', count: 7 }, { label: 'on your Break shelf', count: 2 }, { label: 'tabs closed', count: 7 }, { label: 'apps quit', count: 4 }],
           freedMB: 3174,
@@ -515,7 +515,7 @@ export class TidyFlow {
           times: 12,
         },
       },
-      60_000,
+      4_500,
     );
   }
 

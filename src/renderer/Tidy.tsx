@@ -394,42 +394,61 @@ function RollMemory({ mb }: { mb: number }) {
   );
 }
 
-/** Your Mac's memory as a bar: the part Tidy all freed glows, then drains away. */
+/** Your Mac's memory as a bar: the part Tidy all freed glows, then drains away as the number rolls up. */
 function MemoryDrop({ before, after, total }: { before: number; after: number; total: number }) {
   const pct = (mb: number) => `${Math.max(0, Math.min(100, (mb / total) * 100))}%`;
   return (
-    <span className="mem-drop">
-      <span className="mem-bar" aria-hidden="true">
-        <span className="mem-used" style={{ width: pct(after) }} />
-        <motion.span className="mem-freed" style={{ left: pct(after) }} initial={{ width: pct(before - after), opacity: 1 }} animate={{ width: '0%', opacity: 0.4 }} transition={{ delay: 0.5, duration: 1.1, ease: [0.4, 0, 0.2, 1] }} />
-      </span>
-      <span className="mem-drop-text">
-        {gbText(before)} → <b>{gbText(after)}</b> in use, of {gbText(total, 0)}
-      </span>
+    <span className="mem-bar desk-toast-bar" aria-hidden="true">
+      <span className="mem-used" style={{ width: pct(after) }} />
+      <motion.span className="mem-freed" style={{ left: pct(after) }} initial={{ width: pct(before - after), opacity: 1 }} animate={{ width: '0%', opacity: 0.5 }} transition={{ delay: 0.3, duration: 1.05, ease: [0.33, 0, 0.2, 1] }} />
     </span>
   );
 }
 
-/** Tidy all's payoff: the memory it gave back (rolling up, the bar draining), one line on where things went, what's next. */
-function DeskClear({ desk }: { desk: NonNullable<ToastInfo['desk']> }) {
-  const went = desk.went.map((w) => `${w.count} ${w.label}`).join(', ');
-  const showDrop = desk.freedMB != null && desk.beforeMB != null && desk.afterMB != null && !!desk.totalMB;
+/**
+ * Tidy all's payoff, one clean moment: the memory it gave back rolls up big (and glows as it lands)
+ * while the bar drains, with one quiet line and Undo. It goes by itself in a few seconds; pointing
+ * at it holds it. With nothing measurable freed, it just says the desk is clear.
+ */
+function DeskToast({ info, desk, leaving, busy, onUndo }: { info: ToastInfo; desk: NonNullable<ToastInfo['desk']>; leaving: boolean; busy: boolean; onUndo: () => void }) {
+  const freed = desk.freedMB;
+  const drop = freed != null && desk.beforeMB != null && desk.afterMB != null && !!desk.totalMB;
+  const things = info.count ?? 0;
+  const line = [things ? `${things} ${things === 1 ? 'thing' : 'things'} put away` : '', drop ? `${gbText(desk.afterMB!)} of ${gbText(desk.totalMB!, 0)} in use now` : ''].filter(Boolean).join(' · ');
   return (
-    <span className="desk-clear-card">
-      {desk.freedMB != null && (
-        <span className="desk-freed">
-          <RollMemory mb={desk.freedMB} /> <span className="desk-freed-label">of memory freed</span>
+    <motion.div
+      className={`desk-toast ${leaving ? 'leaving' : ''}`}
+      role="status"
+      aria-live="polite"
+      onMouseEnter={() => void api.holdToast(true)}
+      onMouseLeave={() => void api.holdToast(false)}
+      initial={{ opacity: 0, y: -10, scale: 0.96 }}
+      animate={leaving ? { opacity: 0, y: -6, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
+      transition={leaving ? { duration: 0.15 } : { type: 'spring', duration: 0.5, bounce: 0.28 }}
+    >
+      <div className="desk-toast-top">
+        <motion.span className="desk-toast-mark" initial={{ scale: 0.5, rotate: -14 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 520, damping: 16, delay: 0.08 }}>
+          <FolderMark size={30} alive mood="happy" />
+        </motion.span>
+        <span className="desk-toast-head">
+          {freed != null ? (
+            <>
+              <RollMemory mb={freed} />
+              <span className="desk-toast-label">freed</span>
+            </>
+          ) : (
+            <span className="desk-toast-title">Desk clear</span>
+          )}
         </span>
-      )}
-      {showDrop && <MemoryDrop before={desk.beforeMB!} after={desk.afterMB!} total={desk.totalMB!} />}
-      {went && <span className="desk-went">{went.replace(/^./, (c) => c.toUpperCase())}.</span>}
-      {desk.next && <span className="desk-next">{desk.next}</span>}
-      {desk.lifetimeMB != null && desk.times != null && desk.times > 1 && (
-        <span className="desk-lifetime">
-          {gbText(desk.lifetimeMB)} freed with Stashd so far · {desk.times} tidies
-        </span>
-      )}
-    </span>
+        <button type="button" className="desk-toast-undo" tabIndex={-1} disabled={busy} onClick={onUndo}>
+          Undo
+        </button>
+      </div>
+      {drop && <MemoryDrop before={desk.beforeMB!} after={desk.afterMB!} total={desk.totalMB!} />}
+      {line && <div className="desk-toast-line">{line}</div>}
+      {desk.lifetimeMB != null && desk.times != null && desk.times > 1 && <div className="desk-toast-total">{gbText(desk.lifetimeMB)} freed with Stashd so far</div>}
+      {info.ms ? <span className="desk-toast-time" style={{ animationDuration: `${info.ms}ms` }} aria-hidden /> : null}
+    </motion.div>
   );
 }
 
@@ -498,7 +517,14 @@ export function Toast() {
   // One element that stays while cards come and go, so the window can follow each card's height.
   return (
     <div ref={fit}>
-      {info ? (
+      {info?.desk ? (
+        <Motion>
+          <DeskToast key={key} info={info} desk={info.desk} leaving={leaving} busy={busy} onUndo={() => {
+            setBusy(true);
+            void api.undoTidy();
+          }} />
+        </Motion>
+      ) : info ? (
         <Motion>
           <div
             className={`toast ${leaving ? 'leaving' : ''}`}
@@ -517,7 +543,6 @@ export function Toast() {
                 {info.title}
                 {info.count ? <CountUp n={info.count} /> : null}
               </span>
-              {info.desk ? <DeskClear desk={info.desk} /> : null}
               {info.detail ? <span className="muted small toast-detail">{info.detail}</span> : null}
             </span>
             {info.action ? (

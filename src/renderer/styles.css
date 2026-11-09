@@ -1122,3 +1122,24 @@ body.route-welcome { background: transparent; }
 .desk-mem-text b { color: var(--accent-ink); font-weight: 650; }
 .desk-item-mem { flex: none; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .desk-item:hover .desk-item-mem { display: none; }
+
+/* ---------- Tidy all's Desk clear card ---------- */
+.desk-toast { position: relative; display: flex; flex-direction: column; gap: 9px; width: 400px; padding: 14px 18px 15px; overflow: hidden; }
+.desk-toast-top { display: flex; align-items: center; gap: 12px; }
+.desk-toast-mark { display: grid; flex: none; }
+.desk-toast-head { display: flex; align-items: baseline; gap: 7px; flex: 1; min-width: 0; }
+.desk-toast .mem-roll { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; background: linear-gradient(180deg, #e8b416 0%, #a87200 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.desk-toast .mem-roll.landed { animation: memGlow 900ms ease-out; }
+@keyframes memGlow { 0% { filter: drop-shadow(0 0 0 rgba(242, 205, 92, 0)); } 35% { filter: drop-shadow(0 0 12px rgba(242, 205, 92, 0.85)); } 100% { filter: drop-shadow(0 0 0 rgba(242, 205, 92, 0)); } }
+.desk-toast-label { font-size: 15px; font-weight: 500; color: var(--muted); }
+.desk-toast-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.desk-toast-undo { flex: none; padding: 5px 13px; border: 0; border-radius: 999px; background: var(--hair); font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text); cursor: pointer; transition: background 120ms ease; }
+.desk-toast-undo:hover { background: var(--accent-soft); }
+.desk-toast-undo:disabled { opacity: 0.5; }
+.desk-toast-bar { height: 6px; }
+.desk-toast-line { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.desk-toast-total { margin-top: -3px; font-size: 11.5px; font-weight: 500; color: var(--accent-ink); }
+.desk-toast-time { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--accent); opacity: 0.7; transform-origin: left; animation: toastTime linear forwards; pointer-events: none; }
+.desk-toast:hover .desk-toast-time { animation-play-state: paused; }
+@media (prefers-color-scheme: dark) { .desk-toast .mem-roll { background: linear-gradient(180deg, #ffe08a 0%, #f2cd5c 100%); -webkit-background-clip: text; background-clip: text; } }
+@media (prefers-reduced-motion: reduce) { .desk-toast .mem-roll.landed { animation: none; } }

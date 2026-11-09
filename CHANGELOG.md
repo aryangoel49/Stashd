@@ -5,6 +5,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+### Changed
+- Tidy all's Desk clear card is cleaner and quicker: the memory freed rolls up big and glows as it lands while the bar drains, with one short line and Undo, and it's gone after about 4 seconds (pointing at it holds it).
+
 ## 1.8.0 (2026-11-09)
 
 ### Added
