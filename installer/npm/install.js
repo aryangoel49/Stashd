@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// `npx stashd`: installs Stashd and opens it.
+// `npx get-stashd`: installs Stashd and opens it.
 //
 // Downloads the latest release for this Mac's chip from GitHub, and installs it only if:
 //   - its SHA-256 matches the one GitHub lists for the file;

@@ -1,8 +1,8 @@
 {
-  "name": "stashd",
+  "name": "get-stashd",
   "version": "1.0.0",
-  "description": "Install Stashd, the Mac menu bar app that saves where you left off: npx stashd",
-  "bin": { "stashd": "install.js" },
+  "description": "Install Stashd, the Mac menu bar app that saves where you left off: npx get-stashd",
+  "bin": { "get-stashd": "install.js" },
   "files": ["install.js", "README.md"],
   "engines": { "node": ">=18" },
   "os": ["darwin"],

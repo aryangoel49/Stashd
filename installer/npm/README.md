@@ -1,9 +1,9 @@
-# stashd
+# get-stashd
 
 Installs [Stashd](https://getstashd.vercel.app), the Mac menu bar app that saves the tabs, files and apps you're working on and brings them back later.
 
 ```bash
-npx stashd
+npx get-stashd
 ```
 
 It downloads the latest Stashd for your Mac (Apple silicon or Intel) from GitHub, checks it, puts it in Applications and opens it. If Stashd is already installed, it just opens it: Stashd keeps itself up to date.
