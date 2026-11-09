@@ -418,9 +418,14 @@ function JobDetail({ jobId, jobs, isOpen }: { jobId: string; jobs: JobSummary[];
 
   useEffect(() => {
     let cancelled = false;
+    setError(null);
     const load = () =>
       api.getBrief(jobId, entryId).then(
-        (v) => !cancelled && setView(v),
+        (v) => {
+          if (cancelled) return;
+          setView(v);
+          setError(null);
+        },
         (e) => !cancelled && setError(errorText(e)),
       );
     void load();

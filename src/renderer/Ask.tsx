@@ -505,8 +505,8 @@ export function AskPage({ jobs, onShow }: { jobs: JobSummary[]; onShow: (jobId: 
 }
 
 /** The panel's ask box and, once you've asked, the answer in place of the folder list. */
-export function PanelAsk({ jobs, onShow, children }: { jobs: JobSummary[]; onShow: (jobId: string) => void; children: ReactNode }) {
-  const { turns, busy, ask, clear } = useAsk();
+export function PanelAsk({ asker, jobs, onShow, children }: { asker: ReturnType<typeof useAsk>; jobs: JobSummary[]; onShow: (jobId: string) => void; children: ReactNode }) {
+  const { turns, busy, ask, clear } = asker;
   const last = turns[turns.length - 1];
   return (
     <>

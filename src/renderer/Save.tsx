@@ -28,6 +28,9 @@ function SaveBox() {
   const [preview, setPreview] = useState<SavePreview | null>(null);
   const [name, setName] = useState('');
   const [note, setNote] = useState('');
+  // Videos you unticked in "Taking a break?" (reset for each save), and whether they're being put away.
+  const [shelfOff, setShelfOff] = useState<Set<string>>(new Set());
+  const shelving = useRef(false);
   const [packFirst, setPackFirst] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState(false);
@@ -118,6 +121,8 @@ function SaveBox() {
       setPreview(null);
       setNote('');
       setExpanded(false);
+      setShelfOff(new Set());
+      shelving.current = false;
       setExample(Math.floor(Math.random() * EXAMPLES.length));
       void load();
     };
@@ -191,12 +196,16 @@ function SaveBox() {
 
   // Only videos or shows open (no work): ⌃S puts them on the Break shelf and closes them.
   const breakOnly = !!preview && preview.onlyBreaks.length > 0;
-  const [shelfOff, setShelfOff] = useState<Set<string>>(new Set());
   const shelve = () => {
-    if (!preview) return;
+    if (!preview || shelving.current) return;
     const keys = preview.onlyBreaks.map((i) => i.key).filter((k) => !shelfOff.has(k));
     if (!keys.length) return void cancel();
-    void api.shelveBreaks(keys).then(() => api.closeWindow(), (e) => setError(errorText(e)));
+    // Once only, even if Return is pressed twice.
+    shelving.current = true;
+    void api.shelveBreaks(keys).then(() => api.closeWindow(), (e) => {
+      shelving.current = false;
+      setError(errorText(e));
+    });
   };
 
   const save = (tidy: boolean) => {

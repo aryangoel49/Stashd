@@ -355,7 +355,7 @@ function ListRow({ label, value, onSave }: { label: string; value: string[]; onS
 
 /** Stashd's memory: how much it remembers, and a way to make it forget (asks once more before it does). */
 function MemoryRow() {
-  const [info, setInfo] = useState<{ moments: number; since: string | null } | null>(null);
+  const [info, setInfo] = useState<{ moments: number; since: string | null; chats: number } | null>(null);
   const [sure, setSure] = useState(false);
   useEffect(() => {
     void api.memoryInfo().then(setInfo, () => undefined);
@@ -373,7 +373,8 @@ function MemoryRow() {
       <Button
         size="small"
         variant={sure ? 'danger' : 'secondary'}
-        disabled={!info || info.moments === 0}
+        // Ask Stashd chats count too: they're cleared by the same button.
+        disabled={!info || (info.moments === 0 && !info.chats)}
         onClick={() => {
           if (!sure) return setSure(true);
           setSure(false);

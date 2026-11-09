@@ -20,7 +20,19 @@ export function ProjectCard({ jobId }: { jobId: string }) {
     };
   }, [jobId]);
   if (!card) return null;
-  const change = (c: { add?: string; hide?: string; unadd?: string }) => api.editCard(jobId, c).then(setCard, (e) => setError(errorText(e)));
+  // Resolves true when the change went through (so the name box clears only then).
+  const change = (c: { add?: string; hide?: string; unadd?: string }) =>
+    api.editCard(jobId, c).then(
+      (next) => {
+        setCard(next);
+        setError(null);
+        return true;
+      },
+      (e) => {
+        setError(errorText(e));
+        return false;
+      },
+    );
   const place = (p: string) => p.split('/').filter(Boolean).slice(-2).join('/');
   return (
     <section className="pcard">
@@ -48,7 +60,7 @@ export function ProjectCard({ jobId }: { jobId: string }) {
               className="pchip-add"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (adding.trim()) void change({ add: adding }).then(() => setAdding(''));
+                if (adding.trim()) void change({ add: adding }).then((ok) => ok && setAdding(''));
               }}
             >
               <input className="field small" value={adding} maxLength={40} placeholder="Add a name" aria-label="Add a name to look for" onChange={(e) => setAdding(e.target.value)} />

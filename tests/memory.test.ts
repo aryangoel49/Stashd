@@ -97,7 +97,7 @@ describe("Stashd's memory", () => {
     expect(m.rows('moments').map((r) => r.to_folder)).toEqual(['mid', 'new']);
     expect(m.rows('snapshot_items')).toHaveLength(1);
     m.forget();
-    expect(m.counts()).toEqual({ moments: 0, since: null });
+    expect(m.counts()).toEqual({ moments: 0, since: null, chats: 0 });
     expect(m.rows('saves')).toEqual([]);
     m.close();
   });

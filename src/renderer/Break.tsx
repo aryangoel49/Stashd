@@ -493,7 +493,8 @@ export function BreakView() {
   if (!shelf) return <div className="break-view" />;
 
   const open = (url: string) => {
-    if (!shelf.browser) return setAsking(url);
+    if (!shelf.browser && !appPathOf(url)) return setAsking(url);
+    setError(null);
     void api.openBreak(url).catch((e) => setError(errorText(e)));
   };
   const choose = (w: Where) => {

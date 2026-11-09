@@ -309,9 +309,10 @@ export class Memory {
   }
 
   /** How much is remembered, for Settings. */
-  counts(): { moments: number; since: string | null } {
+  counts(): { moments: number; since: string | null; chats: number } {
     const r = this.db.prepare('SELECT count(*) AS n, min(at) AS first FROM moments').get() as { n: number; first: string | null };
-    return { moments: Number(r.n), since: r.first };
+    const c = this.db.prepare('SELECT count(*) AS n FROM chats').get() as { n: number };
+    return { moments: Number(r.n), since: r.first, chats: Number(c.n) };
   }
 
   /** Old detail goes first (what was open, after 90 days), then old moments (after a year). */

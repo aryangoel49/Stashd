@@ -9,7 +9,7 @@ import { deleteWithFeel, FLINCH, reactionMood, type Reaction } from './deleteFx'
 import { Button, FolderMark, Kbd, motion, Motion, Swap } from './ui';
 import { playMerge } from './mergeFx';
 import { BreakView, ModeSwitch } from './Break';
-import { PanelAsk } from './Ask';
+import { PanelAsk, useAsk } from './Ask';
 import { useRecentlyTidied } from './Recent';
 import { TidyChoice } from './TidyChoice';
 import { UpdateBar } from './Update';
@@ -49,8 +49,15 @@ function PanelView() {
     }
   };
   const [openMap, setOpenMap] = useState<Record<string, OpenState>>({});
+  // The panel's Ask Stashd chat lives here, so opening a folder from an answer and coming back keeps it.
+  const asker = useAsk();
+  const askerRef = useRef(asker);
+  askerRef.current = asker;
   const loadJobs = useCallback(() => {
-    api.listJobs().then(setJobs, (e) => setError(errorText(e)));
+    api.listJobs().then((j) => {
+      setJobs(j);
+      setError(null);
+    }, (e) => setError(errorText(e)));
     // A moment later: which folders are already open (so they don't offer an Unpack that does nothing).
     api.openState().then(setOpenMap, () => undefined);
   }, []);
@@ -63,6 +70,8 @@ function PanelView() {
       // Reset while hidden, so the panel opens already showing the list: no swap or resize as you watch.
       api.onWindowHidden(() => {
         setSelected(null);
+        setError(null);
+        askerRef.current.clear();
         loadJobs();
       }),
       api.onWindowShown(loadJobs),
@@ -71,6 +80,7 @@ function PanelView() {
       // A box that used Escape itself (like the place search closing) keeps the panel open.
       if (e.key === 'Escape' && !e.defaultPrevented) {
         if (selected) setSelected(null);
+        else if (askerRef.current.turns.length) askerRef.current.clear();
         else void api.closeWindow();
       }
     };
@@ -88,6 +98,7 @@ function PanelView() {
     }
     let cancelled = false;
     setView(null);
+    setError(null);
     api.getBrief(selected).then(
       (v) => !cancelled && setView(v),
       (e) => !cancelled && setError(errorText(e)),
@@ -117,7 +128,7 @@ function PanelView() {
             </div>
             {view ? (
               <BriefCard view={view} current={!!jobs?.find((j) => j.id === view.job.id)?.current || mostlyOpen(openMap[view.job.id])} />
-            ) : (
+            ) : error ? null : (
               <div className="muted small" style={{ padding: '18px 8px' }}>
                 <span className="spinner" /> Getting your folder…
               </div>
@@ -131,7 +142,7 @@ function PanelView() {
               {mode === 'break' ? (
                 <BreakView />
               ) : (
-                <PanelAsk jobs={jobs ?? []} onShow={setSelected}>
+                <PanelAsk asker={asker} jobs={jobs ?? []} onShow={setSelected}>
                   <JobList jobs={jobs} openMap={openMap} settings={settings} onPick={setSelected} />
                 </PanelAsk>
               )}
@@ -231,6 +242,14 @@ function JobList(props: {
         <motion.div className="empty" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
           <p>
             Nothing stashed yet. Press <Kbd>{prettyShortcut(settings.shortcutSave)}</Kbd> when you're in the middle of something, and <Kbd>{prettyShortcut(settings.shortcutRecap)}</Kbd> to pick it back up.
+          </p>
+        </motion.div>
+      )}
+
+      {jobs && jobs.length > 0 && !current && !active.length && !doneOpen.length && (
+        <motion.div className="empty" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+          <p>
+            Every folder is finished. They’re in the Stashd window. Press <Kbd>{prettyShortcut(settings.shortcutSave)}</Kbd> to start something new.
           </p>
         </motion.div>
       )}

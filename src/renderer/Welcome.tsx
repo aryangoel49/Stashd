@@ -49,16 +49,24 @@ export function Welcome() {
   const next = () => setStep(steps[Math.min(at + 1, steps.length - 1)]);
   const finish = () => void api.setupDone();
 
-  // The first save, made from the "Try it" step: a moment to enjoy it, then out of the way.
+  // The first save, made from the "Try it" step: a moment to enjoy it, then out of the way. Only a new
+  // folder counts (not a brief or an automatic save landing in one you already had).
   useEffect(() => {
     if (step !== 'try') return;
-    return api.onJobsChanged(() =>
+    let before: number | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    void api.listJobs().then((jobs) => (before = jobs.length), () => undefined);
+    const off = api.onJobsChanged(() =>
       void api.listJobs().then((jobs) => {
-        if (!jobs.length) return;
+        if (before == null || jobs.length <= before || timer) return;
         setSaved(true);
-        setTimeout(finish, 2200);
+        timer = setTimeout(finish, 2200);
       }),
     );
+    return () => {
+      off();
+      clearTimeout(timer);
+    };
   }, [step]);
 
   const mood: Mood = saved ? 'happy' : step === 'hello' ? 'wide' : step === 'try' ? 'curious' : 'awake';
@@ -123,6 +131,8 @@ export function Welcome() {
                 onPrimary={() => void api.updateSettings({ stashdAi: true }).then(next)}
                 secondary="Not now"
                 onSecondary={() => void api.updateSettings({ stashdAi: false }).then(next)}
+                // Sending data is a choice to make on purpose, never by pressing Return through the steps.
+                noEnter
               />
               <p className="welcome-note">You can change this any time in Settings.</p>
             </>
@@ -176,10 +186,10 @@ function Row({ k, t, d }: { k: React.ReactNode; t: string; d: string }) {
   );
 }
 
-function Actions(props: { primary: string; onPrimary: () => void; busy?: boolean; secondary?: string; onSecondary?: () => void }) {
+function Actions(props: { primary: string; onPrimary: () => void; busy?: boolean; secondary?: string; onSecondary?: () => void; noEnter?: boolean }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && !props.busy && !(e.target as HTMLElement | null)?.closest('button')) props.onPrimary();
+      if (e.key === 'Enter' && !props.busy && !props.noEnter && !(e.target as HTMLElement | null)?.closest('button')) props.onPrimary();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

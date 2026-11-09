@@ -12,6 +12,13 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Ask Stashd follow-ups remember the question before: "and what's next there?" now knows which folder you mean.
 - Ask Stashd changes: if one fails you can press it again (it no longer says it expired), Cancel waits while a change runs, and Undo shows when it's working or can't undo.
 - Starting a new chat while Ask Stashd is still thinking no longer adds the late answer to the old chat.
+- The welcome no longer turns on Stashd AI when you press Return through the steps (that one needs a click), and its "Try it" step only celebrates a folder you really just saved.
+- An error in the menu bar panel or a folder page goes away once things work again, instead of staying until you restart.
+- The panel's Ask Stashd answer stays when you open a folder from it and come back; Escape clears it first, and it's gone the next time you open the panel.
+- When every folder is finished, the panel says so instead of showing an empty space.
+- Pressing Return twice on "Taking a break?" puts the videos away once, and videos you unticked last time start ticked again.
+- Adding a name to a project no longer clears what you typed when it didn't work.
+- Forget my history works when you only have Ask Stashd chats to clear.
 - Ask Stashd's suggested questions no longer keep naming the same folder: they take turns across all your folders and never name one twice in a row.
 - Adding a 13th place no longer silently does nothing: Stashd says the limit is 12 and the Add button steps aside until you remove one.
 
