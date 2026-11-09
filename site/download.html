@@ -140,12 +140,12 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     <h1>Let's get Stashd <em>on your Mac.</em></h1>
     <p>Five short steps, about a minute.</p>
     <div class="status"><a class="btn" id="dl" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download Stashd</a><span id="status">Your download should start in a moment.</span></div>
-    <p class="need">Free. Needs a Mac with Apple silicon (M1 or newer) and macOS 12 or later.</p>
+    <p class="need">Free. For Macs with macOS 13 or later, Apple silicon or Intel. <span id="other">On an Intel Mac? <a id="dl-other" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd-Intel.dmg">Get the Intel version</a>.</span></p>
   </div>
 
   <ol class="steps">
     <li class="step">
-      <div><div class="num">1</div><h2>Open the download</h2><p>Find <b>Stashd.dmg</b> in your Downloads folder, or click it at the bottom of your browser, and double-click it.</p></div>
+      <div><div class="num">1</div><h2>Open the download</h2><p>Find <b>Stashd.dmg</b> (or <b>Stashd-Intel.dmg</b>) in your Downloads folder, or click it at the bottom of your browser, and double-click it.</p></div>
       <div class="pic"><div class="alert"><b>Downloads</b><div style="display:flex;gap:10px;align-items:center;margin-top:6px"><span style="width:30px;height:34px;border-radius:5px;background:#e9e5d8;display:grid;place-items:center;font:700 9px var(--body);color:#7a7462">DMG</span>Stashd.dmg<span style="margin-left:auto;color:#8a887e">just now</span></div></div></div>
     </li>
     <li class="step">
@@ -157,7 +157,7 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
       <div class="pic"><div class="settings"><div class="bar">Privacy &amp; Security</div><div class="line"><span>"Stashd" was blocked to protect your Mac.</span><span class="b go">Open Anyway</span></div></div></div>
     </li>
     <li class="step">
-      <div><div class="num">4</div><h2>Click OK when your Mac asks</h2><p>The first time you save, your Mac asks if Stashd can see your browser's tabs. Click <b>OK</b>. It asks once for each app, like Chrome or Safari.</p><p>To reopen the exact Claude or ChatGPT chat, also turn on <b>Stashd</b> in <b>System Settings → Privacy &amp; Security → Accessibility</b>. This one is optional.</p></div>
+      <div><div class="num">4</div><h2>Follow the welcome</h2><p>Stashd opens a short welcome. Click <b>Allow all</b>, then <b>OK</b> in each box your Mac shows: it asks once for each app, like Chrome or Safari, so Stashd can see which tabs and files are open. Apps that aren't open get asked the first time you use them.</p><p>The welcome also asks whether to turn on Stashd AI for smarter notes, and helps you add the Chrome helper. You can skip any step.</p></div>
       <div class="pic"><div class="alert"><b>"Stashd" wants to control "Google Chrome".</b>This lets Stashd see which tabs are open, so it can save them.<div class="row"><span class="b">Don't Allow</span><span class="b go">OK</span></div></div></div>
     </li>
     <li class="step">
@@ -168,14 +168,12 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
 
   <div class="extras">
     <div class="extra">
-      <h3>Have an Intel Mac?</h3>
-      <p>The download is for Apple silicon. On an Intel Mac, paste this into Claude Code and it will build Stashd for you:</p>
-      <div class="prompt" id="prompt">Download and install the Stashd app from https://github.com/aryangoel49/Stashd. Clone it, install Node and the Xcode Command Line Tools if missing, run npm install, then npm run install-local to build it into /Applications and open it.</div>
-      <button class="copy" type="button" id="copy">Copy</button>
+      <h3>Apple silicon or Intel?</h3>
+      <p>This page picks the right download for your Mac. To check yourself: Apple menu → <b>About This Mac</b>. If it says <b>Chip: Apple M…</b>, use the main download. If it says <b>Processor: Intel</b>, use <a href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd-Intel.dmg">the Intel version</a>.</p>
     </div>
     <div class="extra">
       <h3>Updating later</h3>
-      <p>Download Stashd again from this page and drag it into Applications. Click <b>Replace</b> when asked. Your folders and notes are kept.</p>
+      <p>Stashd updates itself. When a new version is ready, the menu bar panel shows <b>Restart to update</b>, or it installs the next time Stashd starts. Your folders and notes are kept. (Coming from version 1.4.0 or older? Download it once more from this page and drag it into Applications.)</p>
       <p style="margin-top:12px">Something not working? <a href="https://github.com/aryangoel49/Stashd/issues">Tell us on GitHub</a>.</p>
     </div>
   </div>
@@ -208,6 +206,28 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   }
   // Coming from a Download button: start the download, and smile about it.
   const dl = document.getElementById('dl'), status = document.getElementById('status');
+  // The right download for this Mac. Chrome says which chip it runs on; elsewhere the graphics chip's name
+  // gives it away (Apple GPU on Apple silicon). When unsure, Apple silicon, with the Intel link right below.
+  const isIntel = (() => {
+    try {
+      const gl = document.createElement('canvas').getContext('webgl');
+      const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+      const gpu = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '';
+      return /intel|amd|radeon|nvidia/i.test(gpu) && !/apple/i.test(gpu);
+    } catch { return false; }
+  })();
+  const SILICON = 'https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg';
+  const INTEL = 'https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd-Intel.dmg';
+  const setChip = (intel) => {
+    dl.href = intel ? INTEL : SILICON;
+    dl.textContent = intel ? 'Download for Intel Mac' : 'Download Stashd';
+    const other = document.getElementById('dl-other');
+    other.href = intel ? SILICON : INTEL;
+    other.textContent = intel ? 'Get the Apple silicon version' : 'Get the Intel version';
+    other.parentElement.firstChild.textContent = intel ? 'On an Apple silicon Mac? ' : 'On an Intel Mac? ';
+  };
+  setChip(isIntel);
+  navigator.userAgentData?.getHighEntropyValues?.(['architecture']).then((v) => { if (v.architecture === 'x86' || v.architecture === 'arm') setChip(v.architecture === 'x86'); }).catch(() => {});
   if (new URLSearchParams(location.search).has('start')) {
     setTimeout(() => { location.href = dl.href; big.classList.add('smile'); status.textContent = 'Downloading. Then follow the steps below.'; dl.textContent = 'Download again'; setTimeout(() => big.classList.remove('smile'), 1800); }, 700);
   } else {
@@ -216,10 +236,6 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.15 });
   document.querySelectorAll('.step').forEach((el) => io.observe(el));
   dl.addEventListener('click', () => { big.classList.add('smile'); setTimeout(() => big.classList.remove('smile'), 1500); });
-  document.getElementById('copy').addEventListener('click', async (e) => {
-    try { await navigator.clipboard.writeText(document.getElementById('prompt').textContent); e.target.textContent = 'Copied'; }
-    catch { getSelection().selectAllChildren(document.getElementById('prompt')); e.target.textContent = 'Selected, press ⌘C'; }
-  });
 })();
 </script>
 </body>
