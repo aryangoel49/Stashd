@@ -1,0 +1,92 @@
+#!/bin/bash
+# Installs Stashd on a Mac:
+#
+#   curl -fsSL getstashd.vercel.app/install | bash
+#
+# Downloads the latest release for this Mac's chip from GitHub, and installs it only if its SHA-256
+# matches the one GitHub lists, it's Stashd (com.aryangoel.stashd) and its signature is intact. It goes
+# in /Applications (or ~/Applications), then opens. Files downloaded this way don't get macOS's
+# "downloaded from the internet" flag, so there's no "Open Anyway" step. If Stashd is already
+# installed, it just opens it: Stashd keeps itself up to date. Nothing about you is sent anywhere.
+#
+# Everything runs inside main(), so a half-downloaded script does nothing.
+
+main() {
+  set -euo pipefail
+  local api="https://api.github.com/repos/aryangoel49/Stashd/releases/latest"
+  local bundle="com.aryangoel.stashd"
+  local tmp=""
+  say() { printf '%s\n' "$*"; }
+  fail() {
+    printf '\nStashd was not installed: %s\nYou can also download it from https://getstashd.vercel.app/download.html\n' "$*" >&2
+    [ -n "$tmp" ] && rm -rf "$tmp"
+    exit 1
+  }
+
+  [ "$(uname -s)" = "Darwin" ] || fail "Stashd is a Mac app."
+  # For testing only: install somewhere else, and don't open it.
+  local test_dir="${STASHD_INSTALL_DIR:-}"
+
+  if [ -z "$test_dir" ]; then
+    for app in "/Applications/Stashd.app" "$HOME/Applications/Stashd.app"; do
+      if [ -d "$app" ]; then
+        say "Stashd is already installed. Opening it (it keeps itself up to date)."
+        open "$app"
+        exit 0
+      fi
+    done
+  fi
+
+  # Apple silicon even when this shell runs under Rosetta.
+  local arch="x64" chip="Intel"
+  if [ "$(sysctl -n hw.optional.arm64 2>/dev/null || echo 0)" = "1" ]; then arch="arm64"; chip="Apple silicon"; fi
+
+  say "Finding the latest Stashd for $chip..."
+  local json
+  json="$(curl -fsSL -H 'Accept: application/vnd.github+json' -H 'User-Agent: stashd-installer' "$api")" || fail "couldn't reach GitHub. Check your internet and try again."
+  local get
+  get() { plutil -extract "$1" raw -o - - <<<"$json" 2>/dev/null; }
+  local version
+  version="$(get tag_name)" || fail "couldn't read the latest release."
+  version="${version#v}"
+
+  local want="Stashd-darwin-$arch-$version.zip" url="" digest="" size=0 i=0 name
+  while name="$(get "assets.$i.name")"; do
+    if [ "$name" = "$want" ]; then
+      url="$(get "assets.$i.browser_download_url")"
+      digest="$(get "assets.$i.digest" || true)"
+      size="$(get "assets.$i.size" || echo 0)"
+      break
+    fi
+    i=$((i + 1))
+  done
+  [ -n "$url" ] || fail "the latest release has no download for this Mac yet."
+  case "$url" in https://github.com/*) ;; *) fail "the download link looks wrong." ;; esac
+  local sha="${digest#sha256:}"
+  [ ${#sha} -eq 64 ] || fail "the release has no checksum to check the download against."
+
+  tmp="$(mktemp -d)"
+  say "Downloading Stashd $version ($((size / 1000000)) MB)..."
+  curl -fL --progress-bar -o "$tmp/Stashd.zip" "$url" || fail "the download failed."
+  [ "$(shasum -a 256 "$tmp/Stashd.zip" | cut -d' ' -f1)" = "$sha" ] || fail "the download didn't match its checksum."
+
+  say "Checking it..."
+  ditto -x -k "$tmp/Stashd.zip" "$tmp/out"
+  local app="$tmp/out/Stashd.app"
+  [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist" 2>/dev/null)" = "$bundle" ] || fail "the download isn't Stashd."
+  codesign --verify --deep --strict "$app" 2>/dev/null || fail "the download's signature is broken."
+
+  local into="/Applications"
+  if [ -n "$test_dir" ]; then into="$test_dir"
+  elif [ ! -w /Applications ]; then into="$HOME/Applications"; mkdir -p "$into"; fi
+  say "Putting it in $into..."
+  rm -rf "$into/Stashd.app"
+  ditto "$app" "$into/Stashd.app"
+  rm -rf "$tmp"
+
+  if [ -n "$test_dir" ]; then say "Installed Stashd $version in $into (test: not opened)."; exit 0; fi
+  say "Stashd $version is installed. Opening it: look for the little folder in your menu bar."
+  open "$into/Stashd.app"
+}
+
+main "$@"
