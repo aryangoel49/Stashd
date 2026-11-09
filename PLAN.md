@@ -232,6 +232,32 @@ Each brief request carries the anonymous install ID, so the server can count how
 - [ ] A real Intel Mac
 - [ ] A brand-new Mac user account: the whole install and first run
 
+### "Exactly where you left off" (planned 9 Nov, from comparing JustForContext)
+Goal: Unpack puts your desk back the way it was, not just the same things open somewhere. Three parts, in this order. Each one ships on its own.
+
+**Part A: for everyone**
+1. **Window positions and sizes, and which screen.**
+   - Save: browsers report each window's position through AppleScript (no new permission). Other apps go through the helper using Accessibility, which Stashd already asks for (the welcome's row becomes "Window positions and chats").
+   - Unpack: each window goes back where it was. Tabs go back into the same windows they came from (each tab already knows its window), so two Chrome windows come back as two, not one.
+   - Edge cases: a screen that's no longer connected → onto the main screen, same size if it fits. Full-screen windows → back to full screen. macOS desktops (Spaces): not possible, Apple gives apps no way to move windows between them.
+   - Helps: the biggest gap in the "exactly as it was" promise, and the thing people notice first after Unpack.
+2. **What didn't come back.** After Unpack, a small card lists anything that couldn't reopen (a moved file, a signed-out site, an app that's gone) with Find it / Remove. Never a silent failure.
+
+**Part B: for developers**
+3. **Code editors: the project, not just the app.** VS Code, Cursor and Windsurf keep their open project folders (and window positions) in a settings file Stashd can read without any permission (checked on Aryan's Mac: `~/Library/Application Support/Code/User/globalStorage/storage.json`, `windowsState`). Unpack reopens those folders; the editor brings back its own open files. Xcode (AppleScript: open workspaces) and JetBrains IDEs (their recent-projects file) next.
+4. **Terminal tabs with their folders.** Terminal: each tab's tty → the shell's current folder (`lsof`). iTerm2: its own "session path". Unpack opens a Terminal window with one tab per folder, already `cd`'d there. It never runs any other command. Ghostty and Warp can't be read yet: app only.
+5. **Claude Code sessions.** Sessions live in `~/.claude/projects/<folder>/<session>.jsonl` with their folder and id. At save, the ones active in the last day whose folder matches the folder's code projects are kept (id, folder, time, and its short title, which stays on the Mac). Unpack: one Terminal tab per session running `claude --resume <id>` in its folder, so you're straight back in the conversation.
+6. **Git branch, read only.** The note says which branch each project was on ("Stashd: on branch fix-updater"). On Unpack, if the branch is different now, a line says so. Stashd never switches branches: that could throw away work.
+   - Helps: developers are a big part of the audience, and their real setup is editor + terminal + Claude Code, which today come back only as empty apps.
+
+**Part C: trust**
+7. **Saves you can see and keep.** Every folder also lives in `~/Documents/Stashd/<folder name>/`: `links.html` (every tab as a clickable link, files and apps listed, the note), and `stash.json` (the readable save). Kept up to date on every save; Stashd still works from its own copy. Plus Export in each folder's menu.
+   - Helps: the research's #1 reason people quit tab tools is losing everything. "Your stash works even without Stashd" answers that, and it's true only once these files exist.
+
+**Not doing:** moving windows between macOS desktops (no API), scroll position inside pages, unsaved text in forms, running terminal commands, switching git branches, token counting.
+**Privacy:** everything above is read on the Mac. Stashd AI (if on) sees only names: project folder names, branch names, "Claude Code session in stashd". Never file contents, terminal output or conversation text.
+**Order:** 1 → 2 → 3 → 5 → 4 → 6 → 7. Each with tests, and checked in a test copy.
+
 ### Stage 2: private beta (2–3 weeks, 20–50 people)
 - [ ] Mix of testers: developers, students, freelancers; at least 2 Intel Macs and 2 on macOS 14–15
 - [ ] **Brief research on real use.** With testers' OK, collect sample saves and their briefs.
