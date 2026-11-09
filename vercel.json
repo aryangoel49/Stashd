@@ -4,5 +4,5 @@
   "installCommand": "npm install --omit=dev --ignore-scripts --no-audit --no-fund",
   "buildCommand": "",
   "outputDirectory": "site",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- site vercel.json api src/main/brief/spec.ts src/shared/models.ts package.json"
+  "ignoreCommand": "git diff --quiet ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} HEAD -- site vercel.json api src/main/brief/spec.ts src/shared/models.ts package.json"
 }
