@@ -170,7 +170,7 @@ function useItemIcon(item: Item): string | null {
 export function useMacIcon(path: string): string | null {
   const [, bump] = useState(0);
   useEffect(() => {
-    if (!icons.has(path)) requestIcon(path, () => bump((n) => n + 1));
+    if (path && !icons.has(path)) requestIcon(path, () => bump((n) => n + 1));
   }, [path]);
   return icons.get(path) ?? null;
 }

@@ -1143,3 +1143,14 @@ body.route-welcome { background: transparent; }
 .desk-toast:hover .desk-toast-time { animation-play-state: paused; }
 @media (prefers-color-scheme: dark) { .desk-toast .mem-roll { background: linear-gradient(180deg, #ffe08a 0%, #f2cd5c 100%); -webkit-background-clip: text; background-clip: text; } }
 @media (prefers-reduced-motion: reduce) { .desk-toast .mem-roll.landed { animation: none; } }
+
+/* Desk clear: things fly into the folder */
+.desk-stage { position: relative; display: flex; align-items: center; height: 52px; }
+.desk-folder { position: relative; display: grid; place-items: center; width: 44px; height: 44px; flex: none; z-index: 2; }
+.desk-folder-bounce { display: grid; transform-origin: 50% 80%; }
+.desk-ripple { position: absolute; inset: 2px; border-radius: 12px; border: 2px solid var(--accent); pointer-events: none; }
+.desk-fly { position: absolute; top: 10px; z-index: 1; display: grid; }
+.desk-fly-inner { display: grid; filter: drop-shadow(0 3px 6px rgba(28, 29, 34, 0.18)); }
+.desk-fly-inner .site-tile, .desk-fly-inner img { border-radius: 8px; }
+.desk-result { display: flex; align-items: baseline; gap: 7px; margin-left: 16px; flex: 1; min-width: 0; }
+.desk-stage .desk-toast-undo { position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 3; }

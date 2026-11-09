@@ -389,6 +389,8 @@ export interface ToastInfo {
     /** Everything Tidy all has freed so far, and how many times it has run. */
     lifetimeMB?: number;
     times?: number;
+    /** A few of the things that went (apps first, with where they live, so their real icons show), to fly into the folder. */
+    items?: Item[];
   };
 }
 

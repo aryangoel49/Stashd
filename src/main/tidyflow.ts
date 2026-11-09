@@ -7,7 +7,7 @@ import { screen, type Rectangle } from 'electron';
 import type { FlyItem, Item, NamingRequest, OverlayPlay, Route, ToastInfo } from '../shared/types';
 import { CHAT_APPS } from './capture';
 import { appsToQuit, type Core } from './core';
-import { matchKeys } from './urls';
+import { matchKeys, siteOf } from './urls';
 import { iconSource } from './icons';
 import { changeChromeGroup, openItems } from './open';
 import { usedMemoryMB } from './ram';
@@ -18,7 +18,7 @@ import { getWindow, prepareWindow, showWindow } from './windows';
 // Undo is offered briefly: long enough to catch a slip, short enough to stay out of the way.
 const UNDO_MS = 2_000;
 /** Tidy all's Desk clear card: long enough to watch the memory roll back and catch Undo, then gone (pointing holds it). */
-const DESK_MS = 4_500;
+const DESK_MS = 5_000;
 /** An offer stays a little longer than Undo: it needs reading first. */
 const OFFER_MS = 8_000;
 /** Just longer than the toast's 150ms fade-out, so the window hides after it has gone. */
@@ -148,6 +148,18 @@ export class TidyFlow {
             { label: 'apps quit', count: closed.filter((i) => i.kind === 'app').length },
           ].filter((w) => w.count > 0);
           const next = plan.saved[0]?.name ?? plan.filed[0]?.name ?? null;
+          // What flies into the folder: the apps that quit (with their real icons), then documents and tabs, one per app or site.
+          const appPath = new Map((win?.apps ?? []).filter((a) => a.path).map((a) => [a.name.toLowerCase(), a.path]));
+          const seen = new Set<string>();
+          const flying = [...closed.filter((i) => i.kind === 'app'), ...closed.filter((i) => i.kind === 'doc'), ...closed.filter((i) => i.kind === 'tab')]
+            .filter((i) => {
+              const id = (i.kind === 'tab' && i.url ? siteOf(i.url) : null) ?? i.app.toLowerCase();
+              if (seen.has(id)) return false;
+              seen.add(id);
+              return true;
+            })
+            .slice(0, 6)
+            .map((i): Item => (i.kind === 'app' && appPath.has(i.app.toLowerCase()) ? { ...i, path: appPath.get(i.app.toLowerCase()) } : i));
           this.toast({
             title: 'Desk clear',
             count: closed.length,
@@ -165,6 +177,7 @@ export class TidyFlow {
               totalMB: Math.round(os.totalmem() / 1024 / 1024),
               lifetimeMB: total?.mb,
               times: total?.times,
+              items: flying,
             },
           }, DESK_MS);
           return;
@@ -496,6 +509,8 @@ export class TidyFlow {
   /** Development only: show the tidy screens with pretend data, without touching any real window. */
   /** Development only (WWI_DEMO_DESK): the Desk clear card with sample numbers, to check how it looks. */
   demoDesk(): void {
+    // WWI_DEMO_DESK_MS keeps it up longer, to look at it frame by frame.
+    const ms = Number(process.env.WWI_DEMO_DESK_MS) || 4_500;
     this.toast(
       {
         title: 'Desk clear',
@@ -503,7 +518,7 @@ export class TidyFlow {
         detail: '',
         canUndo: true,
         mood: 'sleep',
-        ms: 4_500,
+        ms,
         desk: {
           went: [{ label: 'into Climate essay', count: 7 }, { label: 'on your Break shelf', count: 2 }, { label: 'tabs closed', count: 7 }, { label: 'apps quit', count: 4 }],
           freedMB: 3174,
@@ -513,9 +528,16 @@ export class TidyFlow {
           totalMB: 49152,
           lifetimeMB: 42700,
           times: 12,
+          items: [
+            { key: 'app:Google Chrome', kind: 'app', label: 'Google Chrome', detail: '', app: 'Google Chrome', path: '/Applications/Google Chrome.app' },
+            { key: 'app:Spotify', kind: 'app', label: 'Spotify', detail: '', app: 'Spotify', path: '/Applications/Spotify (old).app' },
+            { key: 'app:Wispr Flow', kind: 'app', label: 'Wispr Flow', detail: '', app: 'Wispr Flow', path: '/Applications/Wispr Flow.app' },
+            { key: 'app:Notes', kind: 'app', label: 'Notes', detail: '', app: 'Notes', path: '/System/Applications/Notes.app' },
+            { key: 'tab:https://www.youtube.com/watch?v=x', kind: 'tab', label: 'lofi - YouTube', detail: '', app: 'Google Chrome', url: 'https://www.youtube.com/watch?v=x' },
+          ],
         },
       },
-      4_500,
+      ms,
     );
   }
 

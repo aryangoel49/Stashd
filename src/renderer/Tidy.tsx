@@ -1,9 +1,11 @@
 // The tidy-up screens: naming untitled files, the fly-into-the-menu-bar animation, and the toast.
 
 import { useEffect, useRef, useState } from 'react';
-import type { NamingRequest, OverlayPlay, ToastInfo } from '../shared/types';
+import type { Item, NamingRequest, OverlayPlay, ToastInfo } from '../shared/types';
 import { api, useFitWindow, useSettings } from './api';
 import { Button, FolderMark, motion, Motion, type Mood } from './ui';
+import { ItemBadge, useMacIcon } from './visuals';
+import { SiteTile } from './Break';
 
 function usePayload<T>(): T | null {
   const [p, setP] = useState<T | null>(null);
@@ -366,14 +368,14 @@ export function Overlay() {
 const gbText = (mb: number, digits = 1) => (mb >= 1024 ? `${(mb / 1024).toFixed(digits)} GB` : `${Math.round(mb)} MB`);
 
 /** The memory freed, rolling up from zero (fast, then settling) and popping when it lands. */
-function RollMemory({ mb }: { mb: number }) {
+function RollMemory({ mb, delay = 250 }: { mb: number; delay?: number }) {
   const [shown, setShown] = useState(0);
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return setShown(mb);
     const start = performance.now();
-    const length = 1100;
+    const length = 900;
     let frame = requestAnimationFrame(function step(now) {
-      const t = Math.min(1, (now - start - 250) / length);
+      const t = Math.min(1, (now - start - delay) / length);
       setShown(t <= 0 ? 0 : mb * (1 - Math.pow(1 - t, 4)));
       if (t < 1) frame = requestAnimationFrame(step);
     });
@@ -405,46 +407,96 @@ function MemoryDrop({ before, after, total }: { before: number; after: number; t
   );
 }
 
+/** A thing's real icon: an app's from where it lives, a tab's site logo, a document's own icon. */
+function FlyIcon({ item, size }: { item: Item; size: number }) {
+  const appIcon = useMacIcon(item.kind === 'app' && item.path ? item.path : '');
+  if (item.kind === 'app' && appIcon) return <img className="desk-fly-img" src={appIcon} width={size} height={size} alt="" draggable={false} />;
+  if (item.kind === 'tab' && item.url) return <SiteTile url={item.url} size={size} fallback={<ItemBadge item={item} size={size} />} />;
+  return <ItemBadge item={item} size={size} />;
+}
+
+const FLY_ICON = 32;
+const FIRST_X = 62;
+const STEP = 42;
+const FOLDER_X = 22;
+/** When each icon takes off, and how long it flies (ms). */
+const TAKEOFF = 520;
+const FLY_GAP = 130;
+const FLIGHT = 520;
+
 /**
- * Tidy all's payoff, one clean moment: the memory it gave back rolls up big (and glows as it lands)
- * while the bar drains, with one quiet line and Undo. It goes by itself in a few seconds; pointing
- * at it holds it. With nothing measurable freed, it just says the desk is clear.
+ * Tidy all's payoff: what you closed lines up beside the Stashd folder (real app icons, then sites), then
+ * each one arcs into it, nearest first. The folder gulps every one with a little bounce and a gold ripple.
+ * When the last lands, the memory it gave back rolls up where they were. One quiet line and Undo below.
  */
 function DeskToast({ info, desk, leaving, busy, onUndo }: { info: ToastInfo; desk: NonNullable<ToastInfo['desk']>; leaving: boolean; busy: boolean; onUndo: () => void }) {
+  const calm = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const items = calm ? [] : (desk.items ?? []).slice(0, 6);
+  const [landed, setLanded] = useState(0);
+  const done = landed >= items.length;
+  useEffect(() => {
+    const ts = items.map((_, i) => setTimeout(() => setLanded(i + 1), TAKEOFF + i * FLY_GAP + FLIGHT - 40));
+    return () => ts.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const freed = desk.freedMB;
-  const drop = freed != null && desk.beforeMB != null && desk.afterMB != null && !!desk.totalMB;
   const things = info.count ?? 0;
-  const line = [things ? `${things} ${things === 1 ? 'thing' : 'things'} put away` : '', drop ? `${gbText(desk.afterMB!)} of ${gbText(desk.totalMB!, 0)} in use now` : ''].filter(Boolean).join(' · ');
+  const apps = desk.went.find((w) => w.label === 'apps quit')?.count ?? 0;
+  const line = [things ? `${things} ${things === 1 ? 'thing' : 'things'} put away` : '', apps ? `${apps} ${apps === 1 ? 'app' : 'apps'} quit` : '', desk.afterMB != null && desk.totalMB ? `${gbText(desk.afterMB)} of ${gbText(desk.totalMB, 0)} in use` : ''].filter(Boolean).join(' · ');
   return (
     <motion.div
       className={`desk-toast ${leaving ? 'leaving' : ''}`}
       role="status"
       aria-live="polite"
+      aria-label={freed != null ? `Desk clear. ${gbText(freed)} of memory freed.` : 'Desk clear.'}
       onMouseEnter={() => void api.holdToast(true)}
       onMouseLeave={() => void api.holdToast(false)}
       initial={{ opacity: 0, y: -10, scale: 0.96 }}
       animate={leaving ? { opacity: 0, y: -6, scale: 0.98 } : { opacity: 1, y: 0, scale: 1 }}
       transition={leaving ? { duration: 0.15 } : { type: 'spring', duration: 0.5, bounce: 0.28 }}
     >
-      <div className="desk-toast-top">
-        <motion.span className="desk-toast-mark" initial={{ scale: 0.5, rotate: -14 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 520, damping: 16, delay: 0.08 }}>
-          <FolderMark size={30} alive mood="happy" />
-        </motion.span>
-        <span className="desk-toast-head">
-          {freed != null ? (
-            <>
-              <RollMemory mb={freed} />
-              <span className="desk-toast-label">freed</span>
-            </>
-          ) : (
-            <span className="desk-toast-title">Desk clear</span>
-          )}
+      <div className="desk-stage">
+        {/* The folder: wide-eyed while it eats, happy when it's done; a squash and a ripple for each one that lands. */}
+        <span className="desk-folder">
+          <motion.span key={landed} className="desk-folder-bounce" initial={landed ? { scale: 1.18, y: 1 } : false} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 600, damping: 13 }}>
+            <FolderMark size={40} alive mood={done ? 'happy' : 'wide'} />
+          </motion.span>
+          {landed > 0 && <motion.span key={`r${landed}`} className="desk-ripple" initial={{ scale: 0.6, opacity: 0.7 }} animate={{ scale: 1.9, opacity: 0 }} transition={{ duration: 0.55, ease: 'easeOut' }} />}
         </span>
+
+        {items.map((item, i) => {
+          const x = FIRST_X + i * STEP;
+          const dx = FOLDER_X - (x + FLY_ICON / 2);
+          return (
+            <motion.span key={item.key} className="desk-fly" style={{ left: x }} initial={{ opacity: 0, scale: 0.4, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ type: 'spring', duration: 0.42, bounce: 0.35, delay: 0.06 + i * 0.05 }}>
+              <motion.span
+                className="desk-fly-inner"
+                animate={{ x: [0, dx * 0.5, dx], y: [0, -20, 2], scale: [1, 0.92, 0.3], rotate: [0, -10, -24], opacity: [1, 1, 0] }}
+                transition={{ delay: (TAKEOFF + i * FLY_GAP) / 1000, duration: FLIGHT / 1000, times: [0, 0.5, 1], ease: ['easeOut', 'easeIn'] }}
+              >
+                <FlyIcon item={item} size={FLY_ICON} />
+              </motion.span>
+            </motion.span>
+          );
+        })}
+
+        {done && (
+          <motion.span className="desk-result" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', duration: 0.45, bounce: 0.3 }}>
+            {freed != null ? (
+              <>
+                <RollMemory mb={freed} delay={0} />
+                <span className="desk-toast-label">freed</span>
+              </>
+            ) : (
+              <span className="desk-toast-title">Desk clear</span>
+            )}
+          </motion.span>
+        )}
+
         <button type="button" className="desk-toast-undo" tabIndex={-1} disabled={busy} onClick={onUndo}>
           Undo
         </button>
       </div>
-      {drop && <MemoryDrop before={desk.beforeMB!} after={desk.afterMB!} total={desk.totalMB!} />}
       {line && <div className="desk-toast-line">{line}</div>}
       {desk.lifetimeMB != null && desk.times != null && desk.times > 1 && <div className="desk-toast-total">{gbText(desk.lifetimeMB)} freed with Stashd so far</div>}
       {info.ms ? <span className="desk-toast-time" style={{ animationDuration: `${info.ms}ms` }} aria-hidden /> : null}
