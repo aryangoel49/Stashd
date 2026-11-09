@@ -5,6 +5,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+## 1.8.1 (2026-11-09)
+
 ### Changed
 - Tidy all's Desk clear card is a little show: what you closed lines up beside the Stashd folder (the real app icons, then sites), each one arcs into it and the folder bounces as it lands, then the memory freed rolls up where they were. One short line and Undo below, and it's gone after 5 seconds (pointing at it holds it).
 
