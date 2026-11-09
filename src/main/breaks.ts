@@ -131,6 +131,7 @@ const DEFAULT_PLACES: BreakPlace[] = [
 ];
 
 const MAX_SHELF = 12;
+export const MAX_PLACES = 12;
 
 export class BreakStore {
   private file: string;
@@ -232,7 +233,9 @@ export class BreakStore {
 
   async addPlace(place: BreakPlace): Promise<void> {
     const shelf = await this.get();
-    shelf.places = [...shelf.places.filter((p) => p.url !== place.url), place].slice(0, 12);
+    if (shelf.places.some((p) => p.url === place.url)) return;
+    if (shelf.places.length >= MAX_PLACES) throw new Error(`You can have ${MAX_PLACES} places. Remove one to add another.`);
+    shelf.places = [...shelf.places, place];
     await this.save(shelf);
   }
 

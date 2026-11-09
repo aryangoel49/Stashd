@@ -736,8 +736,19 @@ details summary { cursor: default; }
 .nf-place .site-tile { border-radius: 12px; }
 .nf-add { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--well); box-shadow: inset 0 0 0 0.5px var(--hair); color: var(--faint); }
 .nf-add svg { width: 16px; height: 16px; }
-.nf-place-form { grid-column: span 2; display: flex; align-items: center; }
-.nf-place-form .field { width: 100%; }
+.nf-search { margin-top: 6px; }
+.nf-search .field { width: 100%; }
+.nf-options { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; padding: 4px; border-radius: 12px; background: var(--well); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 6px 18px rgba(28, 29, 34, 0.1); }
+.nf-option { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 8px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: 13px; color: var(--text); text-align: left; cursor: pointer; }
+.nf-option .grow { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.nf-option .faint { flex: none; }
+.nf-option.on { background: rgba(28, 29, 34, 0.06); }
+.nf-option .site-tile { border-radius: 6px; }
+.nf-option-none { padding: 8px; font-size: 12.5px; color: var(--muted); }
+@media (prefers-color-scheme: dark) {
+  .nf-options { box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.1), 0 6px 18px rgba(0, 0, 0, 0.3); }
+  .nf-option.on { background: rgba(255, 255, 255, 0.08); }
+}
 .nf-row { display: flex; gap: 10px; margin: 0 -12px; padding: 2px 12px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x mandatory; scroll-padding: 0 12px; }
 .nf-row::-webkit-scrollbar { display: none; }
 .nf-row-wrap { position: relative; }

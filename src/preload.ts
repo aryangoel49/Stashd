@@ -45,6 +45,7 @@ const api = {
   setPinned: (jobId: string, pinned: boolean) => invoke<void>('jobs:pin', jobId, pinned),
   projectCard: (jobId: string) => invoke<ProjectCard>('jobs:card', jobId),
   breakShelf: () => invoke<BreakShelf>('break:shelf'),
+  breakApps: () => invoke<{ name: string; path: string }[]>('break:apps'),
   openBreak: (url: string) => invoke<void>('break:open', url),
   ask: (question: string, chatId: number | null = null) => invoke<{ chatId: number | null; reply: AskAnswer | AskProblem }>('ask:question', question, chatId),
   askChats: () => invoke<AskChat[]>('ask:chats'),

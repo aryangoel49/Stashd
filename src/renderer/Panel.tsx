@@ -68,7 +68,8 @@ function PanelView() {
       api.onWindowShown(loadJobs),
     ];
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      // A box that used Escape itself (like the place search closing) keeps the panel open.
+      if (e.key === 'Escape' && !e.defaultPrevented) {
         if (selected) setSelected(null);
         else void api.closeWindow();
       }

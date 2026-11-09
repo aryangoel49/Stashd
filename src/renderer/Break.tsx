@@ -8,6 +8,8 @@ import type { BreakItem, BreakShelf, BrowserName } from '../shared/types';
 import { api, errorText, timeAgo } from './api';
 import { Icon } from './icons';
 import { AnimatePresence, Button, FolderMark, motion } from './ui';
+import { useMacIcon } from './visuals';
+import { appPathOf, searchPlaces, type PlaceOption } from '../shared/places';
 
 type Where = BrowserName | 'window';
 const WHERE: { id: Where; label: string }[] = [
@@ -68,8 +70,26 @@ function originOf(url: string): string | null {
   }
 }
 
-/** A site's own tile: its real mark for the well-known ones, else the site's logo, else its first letter. */
+/** An app place's tile: the app's own icon from this Mac. */
+function AppTile({ path, size }: { path: string; size: number }) {
+  const icon = useMacIcon(path);
+  const name = path.split('/').pop()?.replace(/\.app$/, '') ?? '';
+  if (icon) return <img className="site-tile app-icon" src={icon} width={size} height={size} alt="" aria-hidden="true" draggable={false} />;
+  return (
+    <span className="site-tile" style={{ width: size, height: size, background: 'var(--well)', color: 'var(--text)', fontSize: size * 0.42 }} aria-hidden="true">
+      {(name[0] ?? '•').toUpperCase()}
+    </span>
+  );
+}
+
+/** A place's tile: an app's icon, a site's real mark for the well-known ones, else its logo, else its first letter. */
 function SiteTile({ url, size = 30 }: { url: string; size?: number }) {
+  const app = appPathOf(url);
+  if (app) return <AppTile path={app} size={size} />;
+  return <WebTile url={url} size={size} />;
+}
+
+function WebTile({ url, size }: { url: string; size: number }) {
   const h = hostOfUrl(url);
   const origin = originOf(url);
   const [step, setStep] = useState(() => (origin ? (iconMisses.get(origin) ?? 0) : ICON_PATHS.length));
@@ -372,11 +392,91 @@ const Play = () => (
   </svg>
 );
 
+/** Most places you can have (matches the limit kept in the main process). */
+const MAX_PLACES = 12;
+
+/**
+ * Adding a place: type a few letters ("spo") and pick Spotify, the app on this Mac or the site, with a
+ * click or the arrow keys and Return. Any web address works too. Escape (or leaving it empty) closes it.
+ */
+function PlaceSearch({ taken, onPick, onClose }: { taken: string[]; onPick: (p: PlaceOption) => void; onClose: () => void }) {
+  const [text, setText] = useState('');
+  const [apps, setApps] = useState<{ name: string; path: string }[]>([]);
+  const [at, setAt] = useState(0);
+  useEffect(() => {
+    void api.breakApps().then(setApps, () => undefined);
+  }, []);
+  const options = useMemo(() => searchPlaces(text, apps, taken), [text, apps, taken]);
+  const pick = (p: PlaceOption | undefined) => p && onPick(p);
+  const kindLabel = (p: PlaceOption) => (p.kind === 'app' ? 'App on this Mac' : p.kind === 'address' ? 'Web address' : 'Website');
+  return (
+    <div className="nf-search">
+      <input
+        className="field small"
+        autoFocus
+        value={text}
+        placeholder="Search apps and sites, or type an address"
+        aria-label="Search apps and sites to add"
+        role="combobox"
+        aria-expanded={options.length > 0}
+        aria-controls="nf-search-list"
+        aria-activedescendant={options[at] ? `nf-opt-${at}` : undefined}
+        onChange={(e) => {
+          setText(e.target.value);
+          setAt(0);
+        }}
+        onBlur={() => !text.trim() && onClose()}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setAt((i) => Math.min(options.length - 1, i + 1));
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setAt((i) => Math.max(0, i - 1));
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            pick(options[at]);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            onClose();
+          }
+        }}
+      />
+      {text.trim() && (
+        <div className="nf-options" id="nf-search-list" role="listbox" aria-label="Matches">
+          {options.length ? (
+            options.map((p, i) => (
+              <button
+                key={p.url}
+                id={`nf-opt-${i}`}
+                type="button"
+                role="option"
+                aria-selected={i === at}
+                className={`nf-option ${i === at ? 'on' : ''}`}
+                // Keep the box focused, so it doesn't close before the click lands.
+                onMouseDown={(e) => e.preventDefault()}
+                onMouseEnter={() => setAt(i)}
+                onClick={() => pick(p)}
+              >
+                <SiteTile url={p.url} size={24} />
+                <span className="grow">{p.name}</span>
+                <span className="faint small">{kindLabel(p)}</span>
+              </button>
+            ))
+          ) : (
+            <div className="nf-option-none">No app or site called that. Type its address, like {text.trim().toLowerCase().replace(/\s+/g, '')}.com</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function BreakView() {
   const [shelf, setShelf] = useState<BreakShelf | null>(null);
   const [asking, setAsking] = useState<string | null | 'change'>(null);
   const [adding, setAdding] = useState(false);
-  const [newUrl, setNewUrl] = useState('');
   const [editing, setEditing] = useState(false);
   // While you drag a place: the order so far, and which one you're holding.
   const [order, setOrder] = useState<string[] | null>(null);
@@ -428,20 +528,10 @@ export function BreakView() {
     );
   }
 
-  const addPlace = () => {
-    let url = newUrl.trim();
-    if (!url) return setAdding(false);
-    if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
-    let name = url;
-    try {
-      const h = new URL(url).hostname.replace(/^www\./, '');
-      name = h.split('.')[0].replace(/^./, (c) => c.toUpperCase());
-    } catch {
-      return setError('That doesn’t look like a web address.');
-    }
-    void api.changeBreak({ addPlace: { name, url } }).then((s) => {
+  const addPlace = (p: PlaceOption) => {
+    setError(null);
+    void api.changeBreak({ addPlace: { name: p.name, url: p.url } }).then((s) => {
       setShelf(s);
-      setNewUrl('');
       setAdding(false);
     }, (e) => setError(errorText(e)));
   };
@@ -534,18 +624,16 @@ export function BreakView() {
             </button>
           ))
         )}
-        {editing ? null : adding ? (
-          <form
-            className="nf-place-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              addPlace();
+        {editing || adding || places.length >= MAX_PLACES ? null : (
+          <button
+            type="button"
+            className="nf-place"
+            onClick={() => {
+              setError(null);
+              setAdding(true);
             }}
+            title="Add an app or a site"
           >
-            <input className="field small" autoFocus value={newUrl} placeholder="twitch.tv" aria-label="Web address to add" onChange={(e) => setNewUrl(e.target.value)} onBlur={addPlace} />
-          </form>
-        ) : (
-          <button type="button" className="nf-place" onClick={() => setAdding(true)} title="Add a place">
             <span className="nf-add" aria-hidden="true">
               <Icon name="plus" />
             </span>
@@ -553,6 +641,7 @@ export function BreakView() {
           </button>
         )}
       </div>
+      {adding && !editing && <PlaceSearch taken={places.map((p) => p.url)} onPick={addPlace} onClose={() => setAdding(false)} />}
 
       <div className="nf-label nf-label-row">
         <span>Continue watching</span>

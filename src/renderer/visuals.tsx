@@ -166,6 +166,15 @@ function useItemIcon(item: Item): string | null {
   return icons.get(source) ?? (backup ? (icons.get(backup) ?? null) : null);
 }
 
+/** A file's or app's Finder icon by its path, null until it arrives (or if there's none). */
+export function useMacIcon(path: string): string | null {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    if (!icons.has(path)) requestIcon(path, () => bump((n) => n + 1));
+  }, [path]);
+  return icons.get(path) ?? null;
+}
+
 /** The little picture that says what something is. */
 export function ItemBadge({ item, size = 28 }: { item: Item; size?: number }) {
   const icon = useItemIcon(item);

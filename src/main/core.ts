@@ -24,6 +24,9 @@ import type { SiteSorter } from './sites';
 import { BROWSER_APPS } from './collectors/browsers';
 import { changeChromeGroup, finished, openForBreak, openItems, videoProgress } from './open';
 import { BreakStore, isBreakItem, videoKey } from './breaks';
+import { isListedApp, listApps, type MacApp } from './apps';
+import { appPathOf } from '../shared/places';
+import { run } from './exec';
 import type { SettingsStore } from './settings';
 import { readJsonSafely } from './safety';
 import { JobStore, writeFileKeepingLast } from './store';
@@ -566,8 +569,19 @@ export class Core {
     return this.breaks.get();
   }
 
-  /** Open something from the Break shelf (or one of your places) where you chose. */
+  /** The apps on this Mac, for adding one to Your places. */
+  macApps(): Promise<MacApp[]> {
+    return listApps();
+  }
+
+  /** Open something from the Break shelf (or one of your places) where you chose. An app place opens the app. */
   async openBreak(url: string): Promise<void> {
+    const app = appPathOf(url);
+    if (app) {
+      if (!(await isListedApp(app))) throw new Error('That app isn’t on this Mac any more.');
+      await run('open', [app], { timeoutMs: 10_000 });
+      return;
+    }
     const shelf = await this.breaks.get();
     await openForBreak(url, shelf.browser);
     await this.breaks.opened(url);
@@ -577,7 +591,11 @@ export class Core {
   async changeBreak(change: { browser?: BrowserName | 'window'; removeItem?: string; addPlace?: BreakPlace; renamePlace?: BreakPlace; removePlace?: string; orderPlaces?: string[] }): Promise<BreakShelf> {
     if (change.browser) await this.breaks.setBrowser(change.browser);
     if (change.removeItem) await this.breaks.remove(change.removeItem);
-    if (change.addPlace) await this.breaks.addPlace(change.addPlace);
+    if (change.addPlace) {
+      const app = appPathOf(change.addPlace.url);
+      if (app ? !(await isListedApp(app)) : !/^https?:$/.test(new URL(change.addPlace.url).protocol)) throw new Error('That can’t be added as a place.');
+      await this.breaks.addPlace(change.addPlace);
+    }
     if (change.renamePlace) await this.breaks.renamePlace(change.renamePlace.url, change.renamePlace.name);
     if (change.removePlace) await this.breaks.removePlace(change.removePlace);
     if (change.orderPlaces) await this.breaks.orderPlaces(change.orderPlaces);
