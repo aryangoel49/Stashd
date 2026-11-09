@@ -1,7 +1,7 @@
 {
   "name": "stashd",
   "productName": "Stashd",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "private": true,
   "description": "Stashes where you were in a project and helps you pick up again.",
   "keywords": [],

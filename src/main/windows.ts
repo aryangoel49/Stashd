@@ -62,6 +62,8 @@ const OPTIONS: Record<Route, Electron.BrowserWindowConstructorOptions> = {
   naming: { ...GLASS, width: 460, height: 220, alwaysOnTop: true },
   toast: { ...GLASS, width: 400, height: 68, alwaysOnTop: true },
   welcome: { ...GLASS, width: 480, height: 520, skipTaskbar: false },
+  // Adding the Chrome helper: a small card that stays beside Chrome while you follow its steps.
+  chromeguide: { ...GLASS, width: 330, height: 360, alwaysOnTop: true },
   main: {
     width: 960,
     height: 640,
@@ -128,6 +130,10 @@ export function showWindow(
     win.setAlwaysOnTop(true, 'pop-up-menu');
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   }
+  if (route === 'chromeguide') {
+    win.setAlwaysOnTop(true, 'floating');
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
   if (route === 'panel' || route === 'save' || route === 'naming') {
     win.setAlwaysOnTop(true, route === 'panel' ? 'pop-up-menu' : 'floating');
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -151,6 +157,7 @@ export function showWindow(
   if (opts.near) placeUnder(win, opts.near);
   else if (route === 'save' || route === 'naming') placeCentered(win);
   else if (route === 'welcome') win.center();
+  else if (route === 'chromeguide') placeTopRight(win);
 
   if (route === 'overlay') win.setBounds(screen.getPrimaryDisplay().bounds);
 
@@ -181,6 +188,13 @@ function placeUnder(win: BrowserWindow, anchor: Rectangle): void {
   const area = screen.getDisplayMatching(anchor).workArea;
   const x = Math.round(Math.min(Math.max(anchor.x + anchor.width / 2 - width / 2, area.x + 8), area.x + area.width - width - 8));
   win.setPosition(x, Math.round(area.y + 6));
+}
+
+/** Top right of the screen you're on, out of the way of Chrome's page. */
+function placeTopRight(win: BrowserWindow): void {
+  const { width } = win.getBounds();
+  const area = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea;
+  win.setPosition(Math.round(area.x + area.width - width - 20), Math.round(area.y + 90));
 }
 
 function placeCentered(win: BrowserWindow): void {

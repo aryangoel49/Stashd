@@ -1,10 +1,11 @@
 // Setting up Stashd's Chrome extension (tab groups on Unpack). Chrome only lets you add it by hand:
-// the extension is copied somewhere that stays put across updates, shown in Finder, and Chrome's
-// extensions page is opened next to it.
+// the extension is copied somewhere that stays put across updates, Chrome's extensions page opens, and
+// a small guide beside it (Route 'chromeguide') shows the steps, lets you drag the folder straight onto
+// the page, and ticks itself off once Chrome starts talking to Stashd.
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { app, shell } from 'electron';
+import { app, nativeImage } from 'electron';
 import { run } from './exec';
 import { CHROME_HELPER_ID } from './open';
 
@@ -46,9 +47,23 @@ async function registerChromeHost(): Promise<void> {
 /** Chrome's name for Stashd's helper (matches HOST in assets/chrome-extension/background.js). */
 const CHROME_HOST = 'com.aryangoel.stashd';
 
-export async function setupChromeHelper(): Promise<void> {
-  await copyChromeHelper();
-  shell.showItemInFolder(path.join(helperDir(), 'manifest.json'));
-  // chrome:// pages can't be opened with `open`; Chrome opens them when asked directly.
+/** Opens Chrome's extensions page (chrome:// pages can't be opened with `open`; Chrome opens them when asked). */
+export async function openChromeExtensions(): Promise<void> {
   await run('osascript', ['-e', 'tell application id "com.google.Chrome"\n  activate\n  if (count of windows) is 0 then make new window\n  tell front window to make new tab at end of tabs with properties {URL:"chrome://extensions"}\nend tell'], { timeoutMs: 15_000 }).catch(() => undefined);
+}
+
+/** When Chrome last handed Stashd anything through the helper (chrome.json), in ms, or 0. A freshly added
+ *  helper does so within a few seconds, so this going up means it's in. */
+export async function lastHeardFromChrome(): Promise<number> {
+  try {
+    return (await fs.stat(path.join(app.getPath('userData'), 'chrome.json'))).mtimeMs;
+  } catch {
+    return 0;
+  }
+}
+
+/** The folder's icon, to drag it from the guide onto Chrome. */
+export async function helperDragIcon(): Promise<Electron.NativeImage> {
+  const icon = await app.getFileIcon(helperDir(), { size: 'normal' }).catch(() => nativeImage.createEmpty());
+  return icon.isEmpty() ? nativeImage.createFromPath(path.join(source(), 'icon.png')).resize({ width: 32 }) : icon;
 }

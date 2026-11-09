@@ -6,6 +6,7 @@ import { Panel } from './Panel';
 import { Save } from './Save';
 import { Naming, Overlay, Toast } from './Tidy';
 import { Welcome } from './Welcome';
+import { ChromeGuide } from './ChromeGuide';
 import './tailwind.css';
 import './styles.css';
 
@@ -22,6 +23,7 @@ const views: Partial<Record<Route, ComponentType>> = {
   overlay: Overlay,
   toast: Toast,
   welcome: Welcome,
+  chromeguide: ChromeGuide,
 };
 const View = views[route] ?? Panel;
 

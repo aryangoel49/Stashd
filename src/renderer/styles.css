@@ -1164,3 +1164,25 @@ body.route-welcome { background: transparent; }
 .notback-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .notback-text b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notback-text span { opacity: 0.75; }
+
+/* The card beside Chrome while you add the Chrome helper (ChromeGuide.tsx). */
+body.route-chromeguide { background: transparent; }
+.cg { padding: 14px 16px 16px; font-size: 13px; }
+.cg-head { display: flex; align-items: center; gap: 8px; }
+.cg-head b { flex: 1; font-size: 14px; font-weight: 600; }
+.cg-close { border: 0; background: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+.cg-close:hover { background: rgba(127, 127, 127, 0.14); color: inherit; }
+.cg-steps { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+.cg-steps li { display: flex; gap: 10px; padding: 8px; border-radius: 10px; line-height: 1.35; }
+.cg-steps li.cg-now { background: var(--warn-bg); }
+.cg-n { flex: none; width: 20px; height: 20px; border-radius: 50%; background: rgba(127, 127, 127, 0.2); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+.cg-hint { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+.cg-hint kbd { font: 600 11px -apple-system, system-ui; padding: 0 4px; border: 1px solid rgba(127, 127, 127, 0.35); border-bottom-width: 2px; border-radius: 4px; margin-right: 2px; }
+.cg-folder { display: flex; width: max-content; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(127, 127, 127, 0.25); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); cursor: grab; font-weight: 600; user-select: none; }
+.cg-folder svg { width: 18px; height: 18px; color: #d9a521; }
+.cg-folder:active { cursor: grabbing; transform: scale(0.97); }
+.cg-arrow { color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .cg-arrow { display: inline-block; animation: cg-nudge 1.4s ease-in-out infinite; } }
+@keyframes cg-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-4px); } }
+@media (prefers-color-scheme: dark) { .cg-folder { background: rgba(255, 255, 255, 0.08); } }
+.cg-done { margin: 10px 0 0; color: var(--muted); }

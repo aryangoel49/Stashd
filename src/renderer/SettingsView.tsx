@@ -185,11 +185,11 @@ export function SettingsView() {
           <span>
             Chrome tab groups
             <span className="muted small" style={{ display: 'block' }}>
-              Unpack puts a folder's tabs in a group named after it. In Chrome: turn on Developer mode, click Load unpacked, pick the folder Stashd shows you.
+              Unpack puts a folder's tabs in a group named after it. Add to Chrome opens Chrome's extensions page with a small card that walks you through it.
             </span>
           </span>
           <Button size="small" onClick={() => void api.setupChromeGroups()}>
-            Set up
+            Add to Chrome
           </Button>
         </div>
       </Card>

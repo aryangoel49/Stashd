@@ -1,17 +1,17 @@
 // Every message the UI can send to the main process. Each handler checks who sent it
 // and validates its input before doing anything.
 
-import { app, BrowserWindow, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron';
 import { RELEASES_PAGE } from './updater';
 import { setupItems } from './setup';
 import type { AppInfo, AskAction, AskAnswer, BrowserName, SaveEntry, TidyKeep, UpdateState } from '../shared/types';
 import { timeAgo } from '../shared/time';
 import { askStashd, runAction } from './ask';
 import * as v from '../shared/validate';
-import { setupChromeHelper } from './chromehelper';
+import { copyChromeHelper, helperDir, helperDragIcon, lastHeardFromChrome, openChromeExtensions } from './chromehelper';
 import type { Core } from './core';
 import type { SecretStore } from './secrets';
-import { fitHeight, getWindow, holdWindow, isAppUrl, routeOf, showWindow } from './windows';
+import { broadcast, fitHeight, getWindow, holdWindow, isAppUrl, routeOf, showWindow } from './windows';
 
 const AUTOMATION_SETTINGS = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Automation';
 const ACCESSIBILITY_SETTINGS = 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility';
@@ -311,8 +311,41 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     await shell.openExternal(AUTOMATION_SETTINGS);
     return true;
   });
+  // Adding the Chrome helper: Chrome's extensions page, with the guide card beside it. The guide ticks
+  // itself off once Chrome starts talking to Stashd (a fresh chrome.json), then closes.
+  let guideWatch: NodeJS.Timeout | null = null;
+  let dragIcon: Electron.NativeImage | null = null;
   handle('system:setupChromeGroups', async () => {
-    await setupChromeHelper();
+    await copyChromeHelper();
+    dragIcon = await helperDragIcon();
+    const since = Date.now();
+    await openChromeExtensions();
+    showWindow('chromeguide');
+    if (guideWatch) clearInterval(guideWatch);
+    guideWatch = setInterval(() => {
+      void lastHeardFromChrome().then((at) => {
+        const open = !!getWindow('chromeguide');
+        if (!open || Date.now() - since > 20 * 60_000) {
+          if (guideWatch) clearInterval(guideWatch);
+          guideWatch = null;
+        } else if (at > since) {
+          if (guideWatch) clearInterval(guideWatch);
+          guideWatch = null;
+          broadcast('chrome:helperAdded');
+          setTimeout(() => getWindow('chromeguide')?.close(), 2800);
+        }
+      });
+    }, 1000);
+    return true;
+  });
+  // The guide's folder, dragged onto Chrome's extensions page: Chrome adds it, no file picker needed.
+  ipcMain.on('chromeguide:drag', (event) => {
+    if (!isAppUrl(event.senderFrame?.url ?? '') || !dragIcon) return;
+    event.sender.startDrag({ file: helperDir(), icon: dragIcon });
+  });
+  // For Chrome's own file picker instead: ⌘⇧G and paste this.
+  handle('chromeguide:copyPath', () => {
+    clipboard.writeText(helperDir());
     return true;
   });
   handle('ui:payload', (event) => hooks.payload(routeOf(BrowserWindow.fromWebContents(event.sender)) ?? ''));

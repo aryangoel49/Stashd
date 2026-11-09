@@ -2,7 +2,7 @@
 
 export type BrowserName = 'chrome' | 'brave' | 'edge' | 'vivaldi' | 'arc' | 'safari';
 export type Accent = 'indigo' | 'teal' | 'coral';
-export type Route = 'panel' | 'save' | 'main' | 'overlay' | 'naming' | 'toast' | 'welcome';
+export type Route = 'panel' | 'save' | 'main' | 'overlay' | 'naming' | 'toast' | 'welcome' | 'chromeguide';
 
 export interface Settings {
   browsers: Record<BrowserName, boolean>;

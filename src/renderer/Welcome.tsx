@@ -71,6 +71,9 @@ export function Welcome() {
     };
   }, [step]);
 
+  // The Chrome helper went in (the guide card saw it): on to the next step.
+  useEffect(() => api.onChromeHelperAdded(() => step === 'chrome' && next()), [step]);
+
   const mood: Mood = saved ? 'happy' : step === 'hello' ? 'wide' : step === 'try' ? 'curious' : 'awake';
   if (!settings) return <div ref={fit} className="welcome" />;
   return (
@@ -144,12 +147,8 @@ export function Welcome() {
             <>
               <h1 className="welcome-title">One more thing for Chrome</h1>
               <p className="welcome-sub">A small Chrome helper puts each folder’s tabs in a tab group when you unpack, and remembers where you were in videos.</p>
-              <ol className="welcome-list">
-                <li>Click <b>Show me</b>: Chrome opens its extensions page and I show you a folder.</li>
-                <li>Turn on <b>Developer mode</b> (top right).</li>
-                <li>Click <b>Load unpacked</b> and pick that folder.</li>
-              </ol>
-              <Actions primary="Show me" onPrimary={() => void api.setupChromeGroups()} secondary="Done" onSecondary={next} />
+              <p className="welcome-sub">Click <b>Add to Chrome</b>: Chrome opens its extensions page, and a small card beside it walks you through two clicks and a drag.</p>
+              <Actions primary="Add to Chrome" onPrimary={() => void api.setupChromeGroups()} secondary="Skip" onSecondary={next} />
             </>
           )}
 
