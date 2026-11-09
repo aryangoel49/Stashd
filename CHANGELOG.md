@@ -5,6 +5,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+## 1.10.0 (2026-11-09)
+
 ### Changed
 - **Adding the Chrome helper is much easier.** Add to Chrome (in the welcome or Settings) opens Chrome's extensions page with a small card beside it that keeps the steps on screen. You drag the helper's folder straight from the card onto the page, with no hunting through Chrome's file picker, and the card ticks itself off when Chrome has added it.
 
