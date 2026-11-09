@@ -61,7 +61,7 @@ export function AskBar({ jobs, busy, onAsk }: { jobs: JobSummary[]; busy: boolea
   const [value, setValue] = useState('');
   const [focused, setFocused] = useState(false);
   const [smile, setSmile] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
+  const ref = useRef<HTMLTextAreaElement>(null);
   const names = jobs.filter((j) => !j.done).slice(0, 2).map((j) => j.name).join('|');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const ideas = useMemo(() => pickIdeas(jobs, 10), [names]);
@@ -100,36 +100,50 @@ export function AskBar({ jobs, busy, onAsk }: { jobs: JobSummary[]; busy: boolea
   }, []);
 
   const mood: Mood = busy ? 'curious' : smile ? 'happy' : focused ? 'wide' : 'awake';
+  const send = () => {
+    const q = value.trim() || idea?.q || '';
+    if (!q || busy) return;
+    onAsk(q);
+    setValue('');
+    setN((x) => x + 1);
+  };
+  // A long question wraps onto a second (or third) line instead of scrolling out of sight.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = '0px';
+    el.style.height = `${Math.min(el.scrollHeight, 66)}px`;
+  }, [value]);
   return (
     <form
-      className={`ask-bar ${busy ? 'busy' : ''} ${focused ? 'on' : ''}`}
+      className={`ask-bar ${busy ? 'busy' : ''} ${focused ? 'on' : ''} ${value ? 'typed' : ''}`}
       onSubmit={(e) => {
         e.preventDefault();
-        const q = value.trim() || idea?.q || '';
-        if (!q || busy) return;
-        onAsk(q);
-        setValue('');
-        setN((x) => x + 1);
+        send();
       }}
       onClick={() => ref.current?.focus()}
     >
       <span className="ask-bar-mark">
-        <FolderMark size={26} alive mood={mood} lookAt={focused ? ref : null} />
+        <FolderMark size={22} alive mood={mood} lookAt={focused ? ref : null} />
       </span>
       <span className="ask-bar-field">
-        <input
+        <textarea
           ref={ref}
+          rows={1}
           value={value}
           disabled={busy}
           maxLength={500}
           aria-label={idea ? `Ask Stashd, for example: ${idea.q}` : 'Ask Stashd'}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => setValue(e.target.value.replace(/\n/g, ' '))}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           onKeyDown={(e) => {
             if (e.key === 'Tab' && !value && idea) {
               e.preventDefault();
               setValue(idea.q);
+            } else if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault();
+              send();
             }
           }}
         />
@@ -139,11 +153,17 @@ export function AskBar({ jobs, busy, onAsk }: { jobs: JobSummary[]; busy: boolea
           </span>
         )}
       </span>
-      {!busy && (
+      {busy ? null : value ? (
+        <button type="submit" className="ask-send" aria-label="Ask" title="Ask (Return)">
+          <svg viewBox="0 0 16 16" aria-hidden>
+            <path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" />
+          </svg>
+        </button>
+      ) : !focused ? (
         <span className="ask-key" aria-hidden="true">
-          {focused && !value ? '↵' : '/'}
+          /
         </span>
-      )}
+      ) : null}
     </form>
   );
 }
