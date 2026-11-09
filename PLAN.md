@@ -217,7 +217,7 @@ Each brief request carries the anonymous install ID, so the server can count how
   - you switch to another folder's work (the matching model already notices this).
   - Rules: it never closes or quits anything on its own, it says "Saved automatically" in the menu bar, and one switch in Settings turns it all on or off (Aryan, 7 Nov: one switch, and the saving happens on its own). Coming back shows the brief.
   - Later, it learns each person's habits (when their day ends, which moments they use) and tunes itself.
-- [ ] Installers: DMG (with the "Open Anyway" picture guide), the one-line command, and `npx stashd`
+- [ ] Installers: DMG (with the "Open Anyway" picture guide), the one-line command, and `npx stashd` (9 Nov: the npx package is built in `installer/npm` and tested; it waits for Aryan's npm account to publish)
 - [x] First-run permissions step: ask for every installed app at once, with a reason for each (the welcome, 8 Nov: macOS can only ask about open apps, so the rest are asked on first use; the helper's `automation` and `accessibility` commands check without prompting)
 - [x] **Brave, Edge and Vivaldi support.** They work like Chrome, so it's cheap, and many developers use Brave. Tested on the real browsers (Brave 1.99, Edge 157, Vivaldi 8.3) with `tests/browsers-live.test.ts`, and Edge and Vivaldi through the whole save, Pack up and Unpack flow. Still open: after Pack up closed a whole window, Unpack showed each Vivaldi tab twice; and Brave's whole flow hasn't been run.
   - Firefox and Zen can't share their tabs with other apps on a Mac; the website says so plainly.

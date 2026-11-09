@@ -1,0 +1,14 @@
+{
+  "name": "stashd",
+  "version": "1.0.0",
+  "description": "Install Stashd, the Mac menu bar app that saves where you left off: npx stashd",
+  "bin": { "stashd": "install.js" },
+  "files": ["install.js", "README.md"],
+  "engines": { "node": ">=18" },
+  "os": ["darwin"],
+  "license": "MIT",
+  "homepage": "https://getstashd.vercel.app",
+  "repository": { "type": "git", "url": "git+https://github.com/aryangoel49/Stashd.git", "directory": "installer/npm" },
+  "author": "Aryan Goel",
+  "keywords": ["mac", "macos", "menu bar", "tabs", "productivity", "stashd"]
+}
