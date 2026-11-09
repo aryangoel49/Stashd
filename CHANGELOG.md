@@ -5,6 +5,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+## 1.5.0 (2026-11-08)
+
 ### Added
 - **A welcome for new people.** The first time Stashd opens, five short steps: what it does, the permissions it needs (all at once, each with its reason and whether it's already allowed), Stashd AI (a plain yes or no, saying what it sends), the Chrome helper, and a first ⌃S. Any step can be skipped, and Settings → Startup shows it again.
 - **Stashd updates itself.** It quietly downloads new versions and installs them the next time it starts; when one is ready, the menu bar panel shows **Restart to update**. Settings has an Updates section with **Check now**. It only asks GitHub which version is the latest, and only installs a version signed by Stashd.
