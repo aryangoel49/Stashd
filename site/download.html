@@ -58,6 +58,11 @@ h1 em { display: block; font: italic 400 1.08em/1 "Instrument Serif", Georgia, s
 .top p { margin-top: 18px; font-size: 20px; color: var(--ink-soft); }
 .status { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; align-items: center; font-size: 16px; color: var(--ink-soft); }
 .top .need { margin-top: 12px; font-size: 14px; color: var(--ink-soft); }
+.oneline { margin: 22px auto 0; max-width: 460px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); text-align: left; font-size: 15px; color: var(--ink-soft); }
+.oneline b { color: var(--ink); }
+.oneline .cmd { margin-top: 8px; display: flex; align-items: center; gap: 10px; background: var(--ink); color: var(--paper); border-radius: 10px; padding: 10px 12px; font: 15px/1.2 ui-monospace, "SF Mono", Menlo, monospace; }
+.oneline .cmd code { flex: 1; }
+.oneline .copy { border: 0; border-radius: 8px; padding: 6px 10px; background: var(--butter); color: var(--ink); font: 600 13px var(--body); cursor: pointer; }
 
 .steps { list-style: none; margin: 48px auto 0; max-width: 1000px; padding: 0; display: grid; gap: 18px; counter-reset: s; }
 .step { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; background: var(--card); border: 1px solid rgba(236,227,199,0.9); border-radius: 28px; padding: 28px 32px; box-shadow: 0 24px 60px -40px rgba(28,29,34,0.35); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
@@ -141,6 +146,9 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
     <p>Five short steps, about a minute.</p>
     <div class="status"><a class="btn" id="dl" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd.dmg">Download Stashd</a><span id="status">Your download should start in a moment.</span></div>
     <p class="need">Free. For Macs with macOS 13 or later, Apple silicon or Intel. <span id="other">On an Intel Mac? <a id="dl-other" href="https://github.com/aryangoel49/Stashd/releases/latest/download/Stashd-Intel.dmg">Get the Intel version</a>.</span></p>
+    <div class="oneline"><b>Have Node?</b> Paste this in Terminal instead. It picks the right version for your Mac, puts Stashd in Applications and opens it, with no "Open Anyway" step:
+      <div class="cmd"><code>npx get-stashd</code><button class="copy" type="button" id="copy-cmd">Copy</button></div>
+    </div>
   </div>
 
   <ol class="steps">
@@ -221,6 +229,11 @@ footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; justify-content: space
   const setChip = (intel) => {
     dl.href = intel ? INTEL : SILICON;
     dl.textContent = intel ? 'Download for Intel Mac' : 'Download Stashd';
+    const copy = document.getElementById('copy-cmd');
+    copy?.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText('npx get-stashd'); copy.textContent = 'Copied'; } catch { copy.textContent = 'Select and copy'; }
+      setTimeout(() => (copy.textContent = 'Copy'), 1600);
+    });
     const other = document.getElementById('dl-other');
     other.href = intel ? SILICON : INTEL;
     other.textContent = intel ? 'Get the Apple silicon version' : 'Get the Intel version';
