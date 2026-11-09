@@ -11,7 +11,7 @@ import { playMerge } from './mergeFx';
 import { BreakView, ModeSwitch } from './Break';
 import { PanelAsk, useAsk } from './Ask';
 import { useRecentlyTidied } from './Recent';
-import { TidyChoice } from './TidyChoice';
+import { TidyDeskView } from './Desk';
 import { UpdateBar } from './Update';
 import { useSuggestions } from './Suggestions';
 import { folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
@@ -29,6 +29,8 @@ function PanelView() {
   const ref = useFitWindow<HTMLDivElement>();
   const [jobs, setJobs] = useState<JobSummary[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  // Tidy all's desk, in place of the folder list until you tidy up or go back.
+  const [desk, setDesk] = useState(false);
   const [view, setView] = useState<BriefView | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +72,7 @@ function PanelView() {
       // Reset while hidden, so the panel opens already showing the list: no swap or resize as you watch.
       api.onWindowHidden(() => {
         setSelected(null);
+        setDesk(false);
         setError(null);
         askerRef.current.clear();
         loadJobs();
@@ -117,8 +120,10 @@ function PanelView() {
 
   return (
     <div ref={ref} className="panel">
-      <Swap id={selected ?? 'list'} direction={selected ? 1 : -1}>
-        {selected ? (
+      <Swap id={desk ? 'desk' : (selected ?? 'list')} direction={selected || desk ? 1 : -1}>
+        {desk ? (
+          <TidyDeskView settings={settings} onClose={() => setDesk(false)} />
+        ) : selected ? (
           <div>
             <div className="panel-head" style={{ paddingBottom: 2 }}>
               <Button variant="ghost" size="small" onClick={() => setSelected(null)} style={{ paddingLeft: 2 }}>
@@ -136,7 +141,7 @@ function PanelView() {
           </div>
         ) : (
           <div>
-            <PanelHead settings={settings} />
+            <PanelHead settings={settings} onTidy={() => setDesk(true)} />
             <ModeSwitch mode={mode} onChange={setMode} />
             <Swap id={mode} direction={mode === 'break' ? 1 : -1}>
               {mode === 'break' ? (
@@ -156,10 +161,7 @@ function PanelView() {
 }
 
 /** The panel's top bar: the app, Tidy all, stash, the window and Settings. */
-function PanelHead({ settings }: { settings: Settings }) {
-  const [choosing, setChoosing] = useState(false);
-  // The panel hides when Tidy all starts; it opens fresh next time.
-  useEffect(() => api.onWindowShown(() => setChoosing(false)), []);
+function PanelHead({ settings, onTidy }: { settings: Settings; onTidy: () => void }) {
   return (
     <>
       <div className="panel-head">
@@ -171,9 +173,8 @@ function PanelHead({ settings }: { settings: Settings }) {
           <Button
             variant="ghost"
             size="small"
-            className={`tidy-all-btn ${choosing ? 'on' : ''}`}
-            onClick={() => setChoosing((c) => !c)}
-            aria-expanded={choosing}
+            className="tidy-all-btn"
+            onClick={onTidy}
             title={`Save your open folders and close the rest (${prettyShortcut(settings.shortcutTidy)})`}
           >
             <Icon name="spark" /> Tidy all
@@ -196,7 +197,6 @@ function PanelHead({ settings }: { settings: Settings }) {
           </Button>
         </span>
       </div>
-      {choosing && <TidyChoice last={settings.tidyKeep} shortcut={prettyShortcut(settings.shortcutTidy)} onClose={() => setChoosing(false)} />}
     </>
   );
 }

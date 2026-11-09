@@ -83,7 +83,7 @@ function AppTile({ path, size }: { path: string; size: number }) {
 }
 
 /** A place's tile: an app's icon, a site's real mark for the well-known ones, else its logo, else its first letter. */
-function SiteTile({ url, size = 30 }: { url: string; size?: number }) {
+export function SiteTile({ url, size = 30 }: { url: string; size?: number }) {
   const app = appPathOf(url);
   if (app) return <AppTile path={app} size={size} />;
   return <WebTile url={url} size={size} />;

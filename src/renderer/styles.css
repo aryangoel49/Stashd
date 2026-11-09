@@ -1026,3 +1026,77 @@ body.route-welcome { background: transparent; }
 .welcome-app-status { font-size: 11.5px; color: var(--faint); flex: none; }
 .welcome-app.allowed .welcome-app-status { color: #2f8a4c; font-weight: 600; }
 .welcome-app-text span.wrap { white-space: normal; }
+
+/* ---------- Tidy all: the desk ---------- */
+.desk { display: flex; flex-direction: column; gap: 10px; }
+.desk-head { display: flex; align-items: center; gap: 6px; padding: 2px 2px 0; }
+.desk-title { display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.desk-sub { display: block; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.desk-piles { display: flex; flex-direction: column; gap: 6px; }
+.desk-pile { border-radius: 14px; background: var(--well); box-shadow: inset 0 0 0 0.5px var(--hair), 0 1px 2px rgba(28, 29, 34, 0.04); overflow: hidden; }
+.desk-pile.folder { background: linear-gradient(90deg, var(--tone-soft, var(--well)), var(--well) 70%); }
+.desk-pile.stay { background: none; box-shadow: inset 0 0 0 1px var(--hair); }
+.desk-pile.skeleton { height: 58px; animation: deskPulse 1.2s ease-in-out infinite alternate; }
+@keyframes deskPulse { from { opacity: 0.45; } to { opacity: 0.9; } }
+.desk-pile-top { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 10px 12px; border: 0; background: none; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
+.desk-pile-top:disabled { cursor: default; }
+.desk-pile-text { min-width: 0; }
+.desk-pile-title { display: block; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-pile-note { display: block; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-mark { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 7px; background: var(--hair); color: var(--muted); }
+.desk-mark svg { width: 13px; height: 13px; }
+.desk-mark.break { background: rgba(229, 9, 20, 0.12); color: #c0262d; }
+.desk-mark.apps { background: rgba(90, 120, 255, 0.12); color: #4a5fd0; }
+.desk-mark.stay { background: var(--accent-soft); color: var(--accent-ink); }
+.desk-stack { display: flex; align-items: center; flex: none; }
+.desk-stack-card { display: grid; place-items: center; margin-left: -9px; border-radius: 8px; box-shadow: 0 0 0 2px var(--bg, #fffaf0), 0 1px 3px rgba(28, 29, 34, 0.14); transition: transform 200ms var(--ease-out); }
+.desk-stack-card:first-child { margin-left: 0; }
+.desk-stack-card .site-tile, .desk-stack-card img { border-radius: 7px; }
+.desk-pile-top:hover .desk-stack-card { transform: translateY(-1px); }
+.desk-pile-top:hover .desk-stack-card:nth-child(2) { transform: translate(2px, -1px) rotate(3deg); }
+.desk-pile-top:hover .desk-stack-card:nth-child(3) { transform: translate(4px, -1px) rotate(6deg); }
+.desk-stack-more { margin-left: 4px; font-size: 11px; font-weight: 600; color: var(--muted); }
+.desk-count { flex: none; min-width: 22px; padding: 2px 7px; border-radius: 999px; background: var(--hair); font-size: 12px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.desk-items { display: flex; flex-direction: column; padding: 0 8px 8px; }
+.desk-item { display: flex; align-items: center; gap: 9px; min-height: 32px; padding: 4px 6px; border-radius: 8px; font-size: 12.5px; }
+.desk-item:hover { background: var(--hair); }
+.desk-item.leaving { opacity: 0.45; text-decoration: line-through; }
+.desk-item .site-tile, .desk-item img { border-radius: 5px; }
+.desk-item-title { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-keep { flex: none; padding: 3px 9px; border: 0; border-radius: 999px; background: none; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--accent-ink); cursor: pointer; opacity: 0; transition: opacity 120ms ease, background 120ms ease; }
+.desk-item:hover .desk-keep, .desk-keep:focus-visible { opacity: 1; }
+.desk-keep:hover { background: var(--accent-soft); }
+.desk-foot { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding-top: 4px; text-align: center; }
+.desk-go { justify-content: center; height: 40px; font-size: 14px; font-weight: 600; border-radius: 12px; }
+.desk-clear { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 0 8px; text-align: center; }
+@media (prefers-color-scheme: dark) {
+  .desk-pile { box-shadow: inset 0 0 0 0.5px var(--hair); }
+  .desk-stack-card { box-shadow: 0 0 0 2px #26231d, 0 1px 3px rgba(0, 0, 0, 0.4); }
+  .desk-mark.break { color: #ff6b6b; }
+  .desk-mark.apps { color: #8fa0ff; }
+}
+@media (prefers-reduced-motion: reduce) { .desk-pile.skeleton { animation: none; } }
+
+/* Tidy all's Desk clear card */
+.desk-clear-card { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 2px; }
+.desk-freed { font-size: 13px; color: var(--text); }
+.desk-freed b { color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.desk-went { font-size: 12px; line-height: 1.35; color: var(--muted); }
+.desk-next { font-size: 12px; color: var(--muted); }
+
+/* The desk's summary (what it opens on) */
+.desk-hero { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 8px 10px; text-align: center; }
+.desk-hero-stack { display: flex; align-items: center; justify-content: center; height: 54px; margin-bottom: 8px; }
+.desk-hero-stack.skeleton { width: 160px; border-radius: 14px; background: var(--hair); animation: deskPulse 1.2s ease-in-out infinite alternate; }
+.desk-hero-card { display: grid; place-items: center; margin-left: -10px; border-radius: 10px; box-shadow: 0 0 0 2.5px var(--bg, #fffaf0), 0 4px 10px rgba(28, 29, 34, 0.14); }
+.desk-hero-card:first-child { margin-left: 0; }
+.desk-hero-card .site-tile, .desk-hero-card img { border-radius: 9px; }
+.desk-hero-count { font-size: 15px; color: var(--muted); }
+.desk-hero-count b { font-size: 22px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; margin-right: 2px; }
+.desk-hero-line { font-size: 12.5px; color: var(--muted); }
+.desk-hero-mem { font-size: 11.5px; color: var(--faint); }
+.desk-more, .desk-less { display: inline-flex; align-items: center; justify-content: center; gap: 3px; align-self: center; padding: 4px 10px; border: 0; border-radius: 999px; background: none; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--muted); cursor: pointer; transition: background 120ms ease, color 120ms ease; }
+.desk-more:hover, .desk-less:hover { background: var(--hair); color: var(--text); }
+.desk-more svg { width: 11px; height: 11px; }
+.desk-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+@media (prefers-color-scheme: dark) { .desk-hero-card { box-shadow: 0 0 0 2.5px #26231d, 0 4px 10px rgba(0, 0, 0, 0.4); } }

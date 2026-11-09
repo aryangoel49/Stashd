@@ -1,7 +1,7 @@
 // The app's actions, shared by the menu bar, keyboard shortcuts and the windows.
 
 import path from 'node:path';
-import { mostlyOpen, type BriefView, type Capture, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult, type TidyFront } from '../shared/types';
+import { mostlyOpen, type BriefView, type Capture, type DeskPile, type TidyDesk, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult, type TidyFront } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, CHAT_APPS, frontItemKey, frontThing } from './capture';
@@ -27,6 +27,7 @@ import { BreakStore, isBreakItem, videoKey } from './breaks';
 import { isListedApp, listApps, type MacApp } from './apps';
 import { appPathOf } from '../shared/places';
 import { run } from './exec';
+import { usedMemoryMB } from './ram';
 import type { SettingsStore } from './settings';
 import { readJsonSafely } from './safety';
 import { JobStore, writeFileKeepingLast } from './store';
@@ -83,7 +84,13 @@ export interface TidyAllPlan {
   breaks: number;
   /** "Keep this tab": the tab or window you were on, saved like the rest but left open. */
   kept: Item | null;
+  /** What you chose to keep open on the desk (loose keys), and apps you kept running. */
+  keptKeys: string[];
+  keptApps: string[];
 }
+
+/** How long the desk's look at what's open is used when you press Tidy up. */
+const DESK_FRESH_MS = 3 * 60_000;
 
 /** Tidy all quits every app except these: Claude (you work with it alongside everything), Finder and Stashd. */
 const KEEP_RUNNING = ['Claude', 'Finder', 'Stashd', 'Electron'];
@@ -111,6 +118,8 @@ export class Core {
   private state: State;
   private readonly stateFile: string;
   private pending: PendingSave | null = null;
+  /** What the Tidy all desk last looked at (Tidy up acts on it). */
+  private deskCapture: { at: number; cap: Capture } | null = null;
   private writing = new Set<string>();
   writers: BriefWriter[] = [];
   private openCache: { at: number; result: Promise<OpenLook> } | null = null;
@@ -390,15 +399,103 @@ export class Core {
    * nowhere (listed under "Recently closed" for 10 minutes). Everyday sites (mail, music) stay.
    * Returns the things to close; closing is up to the caller.
    */
-  async tidyAll(opts: { keepFront?: boolean } = {}): Promise<TidyAllPlan> {
+  /**
+   * The Tidy all desk: what Tidy all would do right now, sorted into piles (into a folder, onto the Break
+   * shelf, closed, apps that quit, staying open). Nothing is saved, closed or moved. What it saw is kept
+   * for a couple of minutes, so pressing Tidy up acts on exactly what you were shown.
+   */
+  async planTidy(opts: { keepFront?: boolean } = {}): Promise<TidyDesk> {
     const settings = this.settings.get();
-    const cap = this.fakeCapture ? await this.fakeCapture() : await capture(settings, this.helper, this.selfNames);
+    const [cap, win, memoryMB] = await Promise.all([
+      this.fakeCapture ? this.fakeCapture() : capture(settings, this.helper, this.selfNames),
+      this.fakeCapture ? Promise.resolve(null) : this.helper.windows().catch(() => null),
+      usedMemoryMB(),
+    ]);
+    this.deskCapture = { at: Date.now(), cap };
+    await this.sites?.look(cap.items);
+    const learned = learnedLifestyleApps(this.state.appUnticks);
+    const openKeys = new Set(cap.items.map(looseKey));
+    const front = frontThing(cap.items, cap.appOrder);
+    const isFront = (i: Item) => !!front && matchKeys(i).includes(looseKey(front));
+    const claimed = new Set<string>();
+    const claim = (items: Item[]) => items.forEach((i) => matchKeys(i).forEach((k) => claimed.add(k)));
+    const openItem = (i: Item) => cap.items.find((c) => matchKeys(i).includes(looseKey(c)));
+    const folders = new Map<string, DeskPile>();
+    const folderPile = (jobId: string, name: string, note: string) => {
+      const p = folders.get(jobId) ?? { id: `folder:${jobId}`, kind: 'folder' as const, title: name, note, items: [] };
+      folders.set(jobId, p);
+      return p;
+    };
+    // Apps quit in their own pile, so a folder's pile shows its tabs and documents.
+    const shown = (items: Item[]) => items.filter((i) => i.kind !== 'app' && !(opts.keepFront && isFront(i)));
+
+    for (const job of await this.store.list()) {
+      const latest = await this.store.latest(job.id);
+      if (!latest) continue;
+      const content = latest.items.filter((i) => i.kind !== 'app');
+      const openNow = content.filter((i) => matchKeys(i).some((k) => openKeys.has(k)));
+      if (!openNow.length) continue;
+      const isOpen = !job.done && (job.id === this.state.currentJobId || mostlyOpen({ open: openNow.length, total: content.length }));
+      if (!isOpen) {
+        claim(openNow);
+        folderPile(job.id, job.name, 'Already saved here').items.push(...shown(openNow.map(openItem).filter((i): i is Item => !!i)));
+        continue;
+      }
+      // What Pack up would save (the save box's own guess), without saving it.
+      const p = await this.preview({ jobId: job.id }, { capture: Promise.resolve(cap), target: job.id });
+      const keys = new Set([...p.sure, ...p.kept].filter((i) => !matchKeys(i).some((k) => claimed.has(k))).map((i) => i.key));
+      folderPile(job.id, job.name, 'Saved and put away').items.push(...shown(cap.items.filter((i) => keys.has(i.key))));
+      claim(p.sure);
+      claim(content);
+    }
+
+    const strays = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
+    const homes = await this.homesFor(strays, new Set([...folders.keys()].filter((id) => folders.get(id)!.note !== 'Already saved here')));
+    for (const [jobId, items] of homes) {
+      const name = (await this.store.get(jobId).catch(() => null))?.name ?? 'A folder';
+      const pile = folderPile(jobId, name, 'These belong here');
+      pile.items.push(...shown(items));
+    }
+    const homed = new Set([...homes.values()].flat().map((i) => i.key));
+    const left = strays.filter((i) => !homed.has(i.key) && !(opts.keepFront && isFront(i)));
+    const breaks = left.filter(isBreakItem);
+    const loose = left.filter((i) => !isBreakItem(i));
+
+    // Every app quits except a few (Claude, Finder), like Tidy all does.
+    const running = win ? win.apps.map((a) => a.name) : [...new Set(cap.items.map((i) => i.app))];
+    const quitting = appsToQuit(running).filter((n) => !(opts.keepFront && front?.kind === 'app' && front.app === n));
+    const appItem = (n: string): Item => ({ key: `app:${n}`, kind: 'app', label: n, detail: '', app: n });
+    const staying = [
+      ...(opts.keepFront && front ? [front] : []),
+      ...cap.items.filter((i) => i.kind === 'tab' && isLifestyle(i, settings, learned)),
+      ...running.filter((n) => !appsToQuit([n]).length && n !== 'Stashd' && n !== 'Electron').map(appItem),
+    ];
+
+    const piles: DeskPile[] = [
+      ...[...folders.values()].filter((p) => p.items.length),
+      { id: 'break', kind: 'break', title: 'Break shelf', note: 'Pick these up later', items: breaks },
+      { id: 'close', kind: 'close', title: 'Closing', note: 'You can reopen them for 10 min', items: loose },
+      { id: 'apps', kind: 'apps', title: 'Quitting', note: 'Unsaved work still asks first', items: quitting.map(appItem) },
+      { id: 'stay', kind: 'stay', title: 'Staying open', note: '', items: staying },
+    ];
+    return { piles: piles.filter((p) => p.items.length || p.kind === 'stay'), frontKey: front?.key ?? null, memoryMB };
+  }
+
+  async tidyAll(opts: { keepFront?: boolean; keep?: string[]; fromDesk?: boolean } = {}): Promise<TidyAllPlan> {
+    const settings = this.settings.get();
+    // After the desk: act on what you were shown (if it's recent), not on a fresh look.
+    const desk = opts.fromDesk && this.deskCapture && Date.now() - this.deskCapture.at < DESK_FRESH_MS ? this.deskCapture.cap : null;
+    this.deskCapture = null;
+    const cap = desk ?? (this.fakeCapture ? await this.fakeCapture() : await capture(settings, this.helper, this.selfNames));
     await this.sites?.look(cap.items);
     const learned = learnedLifestyleApps(this.state.appUnticks);
     const openKeys = new Set(cap.items.map(looseKey));
     const kept = opts.keepFront ? frontThing(cap.items, cap.appOrder) : null;
-    const isKept = (i: Item) => !!kept && matchKeys(i).includes(looseKey(kept));
-    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0, kept };
+    // What you chose to keep open on the desk (tap a tab or app there).
+    const keepKeys = new Set(opts.keep ?? []);
+    const keptLoose = new Set(cap.items.filter((i) => keepKeys.has(i.key)).map(looseKey));
+    const isKept = (i: Item) => (!!kept && matchKeys(i).includes(looseKey(kept))) || keepKeys.has(i.key) || matchKeys(i).some((k) => keptLoose.has(k));
+    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0, kept, keptKeys: [...keptLoose], keptApps: [...keepKeys].filter((k) => k.startsWith('app:')).map((k) => k.slice(4)) };
     const claimed = new Set<string>();
     const claim = (items: Item[]) => items.forEach((i) => matchKeys(i).forEach((k) => claimed.add(k)));
     const openItem = (i: Item) => cap.items.find((c) => matchKeys(i).includes(looseKey(c)));

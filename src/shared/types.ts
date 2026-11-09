@@ -43,6 +43,26 @@ export interface Settings {
 
 export type TidyKeep = 'front' | 'all';
 
+/** One pile on the Tidy all desk: where a group of open things is about to go. */
+export interface DeskPile {
+  id: string;
+  /** folder: saved into (or already in) a folder; break: the Break shelf; close: closed, nowhere to go;
+   *  apps: apps that quit; stay: left open. */
+  kind: 'folder' | 'break' | 'close' | 'apps' | 'stay';
+  title: string;
+  note: string;
+  items: Item[];
+}
+
+/** What Tidy all would do right now, before it does anything. */
+export interface TidyDesk {
+  piles: DeskPile[];
+  /** The tab, document or app in front (kept open when you keep what you're on). */
+  frontKey: string | null;
+  /** Memory your Mac is using now, in MB (null when it can't be read). */
+  memoryMB: number | null;
+}
+
 /** What Tidy all would leave open with "Keep this tab": the tab or window in front. */
 export interface TidyFront {
   label: string;
@@ -353,6 +373,8 @@ export interface ToastInfo {
   subtle?: boolean;
   /** How long it stays (ms), shown as a thin line that runs out; pointing at the card holds it. */
   ms?: number;
+  /** Tidy all's "Desk clear" card: where things went, memory freed, and what to pick up next. */
+  desk?: { went: { label: string; count: number }[]; freedMB: number | null; next: string | null };
 }
 
 /** A place on the Break shelf you go to often (YouTube, Netflix…). */

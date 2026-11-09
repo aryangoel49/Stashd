@@ -363,6 +363,23 @@ export function Overlay() {
 
 // ---------- the toast ----------
 
+/** Tidy all's payoff, kept quiet: the memory freed, one line on where things went, and what's next. */
+function DeskClear({ desk }: { desk: NonNullable<ToastInfo['desk']> }) {
+  const gb = desk.freedMB != null ? (desk.freedMB >= 1024 ? `${(desk.freedMB / 1024).toFixed(1)} GB` : `${Math.round(desk.freedMB / 10) * 10} MB`) : null;
+  const went = desk.went.map((w) => `${w.count} ${w.label}`).join(', ');
+  return (
+    <span className="desk-clear-card">
+      {gb && (
+        <motion.span className="desk-freed" initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.25 }}>
+          About <b>{gb}</b> of memory freed
+        </motion.span>
+      )}
+      {went && <span className="desk-went">{went.replace(/^./, (c) => c.toUpperCase())}.</span>}
+      {desk.next && <span className="desk-next">{desk.next}</span>}
+    </span>
+  );
+}
+
 /** Counts up from 0 to n in about half a second (fast at first, settling at the end), then pops once. */
 function CountUp({ n }: { n: number }) {
   const [shown, setShown] = useState(0);
@@ -447,7 +464,8 @@ export function Toast() {
                 {info.title}
                 {info.count ? <CountUp n={info.count} /> : null}
               </span>
-              <span className="muted small toast-detail">{info.detail}</span>
+              {info.desk ? <DeskClear desk={info.desk} /> : null}
+              {info.detail ? <span className="muted small toast-detail">{info.detail}</span> : null}
             </span>
             {info.action ? (
               <>

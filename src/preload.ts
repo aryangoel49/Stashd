@@ -2,7 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppInfo, AskAnswer, AskChat, AskProblem, BreakShelf, BrowserName, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion, TidyFront, TidyKeep, UpdateState, SetupItem } from './shared/types';
+import type { AppInfo, AskAnswer, AskChat, AskProblem, BreakShelf, BrowserName, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion, TidyDesk, TidyFront, TidyKeep, UpdateState, SetupItem } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -72,7 +72,8 @@ const api = {
   dismissToast: () => invoke<boolean>('toast:dismiss'),
   holdToast: (on: boolean) => invoke<boolean>('toast:hold', on),
   toastAction: () => invoke<void>('toast:action'),
-  tidyAll: (keep?: TidyKeep) => invoke<boolean>('tidy:all', keep),
+  tidyAll: (keep?: TidyKeep, desk?: { keep: string[] }) => invoke<boolean>('tidy:all', keep, desk),
+  tidyDesk: (keep: TidyKeep) => invoke<TidyDesk>('tidy:desk', keep),
   tidyFront: () => invoke<TidyFront | null>('tidy:front'),
   updateState: () => invoke<UpdateState | null>('update:state'),
   checkForUpdate: () => invoke<UpdateState | null>('update:check'),

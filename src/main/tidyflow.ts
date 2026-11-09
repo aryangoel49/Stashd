@@ -10,12 +10,15 @@ import { appsToQuit, type Core } from './core';
 import { matchKeys } from './urls';
 import { iconSource } from './icons';
 import { changeChromeGroup, openItems } from './open';
+import { usedMemoryMB } from './ram';
 import { canName, cleanFileName, closeItems, freePath, saveUntitled, suggestedFileName } from './tidy';
 import type { UrlOptions } from './urls';
 import { getWindow, prepareWindow, showWindow } from './windows';
 
 // Undo is offered briefly: long enough to catch a slip, short enough to stay out of the way.
 const UNDO_MS = 2_000;
+/** Tidy all's Desk clear card stays long enough to read where things went (Undo works all that time). */
+const DESK_MS = 6_000;
 /** An offer stays a little longer than Undo: it needs reading first. */
 const OFFER_MS = 8_000;
 /** Just longer than the toast's 150ms fade-out, so the window hides after it has gone. */
@@ -79,14 +82,16 @@ export class TidyFlow {
    * Tidy all: save open folders, keep loose tabs in a folder of their own, then close it all at once.
    * With "Keep this tab" (keepFront), the tab or window you're on stays open, and so does its app.
    */
-  tidyAll(keepFront = false): Promise<void> {
+  tidyAll(keepFront = false, desk?: { keep: string[] }): Promise<void> {
     if (this.tidyingAll) return this.tidyingAll;
     if (this.naming) this.finishNaming([]);
     this.queue = this.queue.then(async () => {
       try {
-        const plan = await this.core.tidyAll({ keepFront });
+        const before = usedMemoryMB();
+        const plan = await this.core.tidyAll({ keepFront, keep: desk?.keep, fromDesk: !!desk });
         const keptApp = plan.kept?.app.toLowerCase() ?? null;
-        const keptKeys = new Set(plan.kept ? matchKeys(plan.kept) : []);
+        const keptKeys = new Set([...(plan.kept ? matchKeys(plan.kept) : []), ...plan.keptKeys]);
+        const keptApps = new Set([...(keptApp ? [keptApp] : []), ...plan.keptApps.map((a) => a.toLowerCase())]);
         const stays = (i: Item) => keptKeys.size > 0 && matchKeys(i).some((k) => keptKeys.has(k));
         const saved = await Promise.all(plan.saved.map((s) => this.core.store.entry(s.jobId, s.entryId)));
         const items = [...saved.flatMap((e) => e.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen)), ...plan.close].filter(
@@ -96,10 +101,10 @@ export class TidyFlow {
         // The apps of the folders it packed go too, like Pack up: quit (asking about unsaved work),
         // Claude and ChatGPT only hidden. Then every other app except Claude (only Tidy all does this;
         // Pack up quits just the folder's apps). The app you're keeping stays.
-        const apps = saved.flatMap((e) => e.items.filter((i) => i.kind === 'app' && !i.notOpen && i.app.toLowerCase() !== keptApp));
+        const apps = saved.flatMap((e) => e.items.filter((i) => i.kind === 'app' && !i.notOpen && !keptApps.has(i.app.toLowerCase())));
         const win = await Promise.resolve().then(() => this.core.helper.windows()).catch(() => null);
         const mine = new Set(apps.map((a) => a.app.toLowerCase()));
-        const others = win ? appsToQuit(win.apps.map((a) => a.name).filter((n) => !mine.has(n.toLowerCase()) && n.toLowerCase() !== keptApp)) : [];
+        const others = win ? appsToQuit(win.apps.map((a) => a.name).filter((n) => !mine.has(n.toLowerCase()) && !keptApps.has(n.toLowerCase()))) : [];
         const otherItems = others.map((n): Item => ({ key: `app:${n}`, kind: 'app', label: n, detail: '', app: n }));
 
         // Everything that will go flies, the other apps too, so nothing just vanishes on its own.
@@ -126,8 +131,32 @@ export class TidyFlow {
           this.toast({ title: 'Already tidy', detail: plan.kept ? `Only ${shortName(plan.kept.label)} is open.` : 'Nothing to close.', canUndo: false, mood: 'awake' });
           return;
         }
-        this.setUndo(closed, null);
+        this.setUndo(closed, null, desk ? DESK_MS : UNDO_MS);
         await this.core.rememberTidied(closed);
+        if (desk) {
+          // The desk's payoff: where everything went, the memory it gave back, and what's next.
+          const [start, end] = await Promise.all([before, wait(600).then(usedMemoryMB)]);
+          const closedKeys = new Set(closed.map((i) => i.key));
+          const went = [
+            ...plan.saved.map((s) => ({ label: `into ${shortName(s.name)}`, count: saved.find((e) => e.jobId === s.jobId)?.items.filter((i) => i.kind !== 'app' && closedKeys.has(i.key)).length ?? 0 })),
+            ...plan.filed.map((f) => ({ label: `into ${shortName(f.name)}`, count: f.count })),
+            { label: 'on your Break shelf', count: plan.breaks },
+            { label: plan.loose === 1 ? 'tab closed' : 'tabs closed', count: plan.loose },
+            { label: 'apps quit', count: closed.filter((i) => i.kind === 'app').length },
+          ].filter((w) => w.count > 0);
+          const next = plan.saved[0]?.name ?? plan.filed[0]?.name ?? null;
+          this.toast({
+            title: 'Desk clear',
+            count: closed.length,
+            // Recently closed has them for 10 minutes; the card stays quiet about it (Undo is right there).
+            detail: '',
+            canUndo: true,
+            mood: 'sleep',
+            ms: DESK_MS,
+            desk: { went, freedMB: start != null && end != null && start - end >= 100 ? start - end : null, next: next ? `Next time, ${shortName(next)} is ready to pick up.` : null },
+          }, DESK_MS);
+          return;
+        }
         const filed = plan.filed.reduce((n, f) => n + f.count, 0);
         const parts = [
           plan.saved.length ? `${plan.saved.length} ${plan.saved.length === 1 ? 'folder' : 'folders'} packed` : '',
@@ -433,9 +462,9 @@ export class TidyFlow {
     this.toastTimer = setTimeout(() => getWindow('toast')?.hide(), TOAST_LEAVE_MS);
   }
 
-  private setUndo(items: Item[], frontKey: string | null): void {
+  private setUndo(items: Item[], frontKey: string | null, ms = UNDO_MS): void {
     if (this.undo) clearTimeout(this.undo.timer);
-    this.undo = items.length ? { items, frontKey, timer: setTimeout(() => (this.undo = null), UNDO_MS) } : null;
+    this.undo = items.length ? { items, frontKey, timer: setTimeout(() => (this.undo = null), ms) } : null;
   }
 
   async undoLast(): Promise<void> {
@@ -453,6 +482,22 @@ export class TidyFlow {
   }
 
   /** Development only: show the tidy screens with pretend data, without touching any real window. */
+  /** Development only (WWI_DEMO_DESK): the Desk clear card with sample numbers, to check how it looks. */
+  demoDesk(): void {
+    this.toast(
+      {
+        title: 'Desk clear',
+        count: 23,
+        detail: '',
+        canUndo: true,
+        mood: 'sleep',
+        ms: 60_000,
+        desk: { went: [{ label: 'into Climate essay', count: 7 }, { label: 'on your Break shelf', count: 2 }, { label: 'tabs closed', count: 7 }, { label: 'apps quit', count: 4 }], freedMB: 3174, next: 'Next time, Climate essay is ready to pick up.' },
+      },
+      60_000,
+    );
+  }
+
   demo(): void {
     this.payloads.set('naming', {
       jobName: 'Climate essay',

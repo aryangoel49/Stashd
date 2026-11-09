@@ -184,12 +184,12 @@ function start(): void {
     // Tidy all (the panel's button, ⌃⇧S or the toast): the panel steps aside at once so you can watch it
     // go, and the menu bar says it's working until it's done. A second press while it runs does nothing.
     // Which kind (keep the tab you're on, or close everything) is your last choice unless one is given.
-    tidyAllNow = (keep?: TidyKeep) => {
+    tidyAllNow = (keep?: TidyKeep, desk?: { keep: string[] }) => {
       getWindow('panel')?.hide();
       if (tidy.tidyingAll) return tidy.tidyingAll;
       if (keep && keep !== settings.get().tidyKeep) void settings.update({ tidyKeep: keep }).catch(() => undefined);
       tray.status('Tidying…');
-      return tidy.tidyAll((keep ?? settings.get().tidyKeep) === 'front').finally(() => tray.status(null));
+      return tidy.tidyAll((keep ?? settings.get().tidyKeep) === 'front', desk).finally(() => tray.status(null));
     };
     // Automatic saving: moving on from a folder, the Mac sleeping, locking or shutting down, walking away.
     const auto = new AutoSaver({
@@ -342,6 +342,7 @@ function start(): void {
     if (!app.isPackaged && process.env.WWI_SUGGEST_TEST) setTimeout(() => void runSuggestTest(core, process.env.WWI_SUGGEST_TEST!), 2000);
     if (!app.isPackaged && process.env.WWI_SCENARIOS) setTimeout(() => void runScenarios(core, tidy, process.env.WWI_SCENARIOS!, process.env.WWI_SCENARIO_FILES ?? ''), 3000);
     if (!app.isPackaged && process.env.WWI_LIVE_TEST) setTimeout(() => void runLiveTest(core, tidy, process.env.WWI_LIVE_TEST!), 3000);
+    if (!app.isPackaged && process.env.WWI_DEMO_DESK) setTimeout(() => tidy.demoDesk(), 4000);
     if (!app.isPackaged && process.env.WWI_CAPTURE_DIR) {
       togglePanel(tray.bounds());
       setTimeout(() => openSave(), 7500);

@@ -5,6 +5,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+### Changed
+- **Tidy all shows your desk first.** Pressing it opens a calm summary: what's going (as a fan of icons), how many things, where they go, and one **Tidy up** button (or Return). **See what's going** shows the piles (into each folder, the Break shelf, closing, apps quitting, staying open), and any pile opens to every tab, with **Keep open** on each. Afterwards a **Desk clear** card says how much memory it freed, where things went and what's ready next time, with Undo. The shortcut still tidies straight away.
+
 ## 1.6.0 (2026-11-08)
 
 ### Added
