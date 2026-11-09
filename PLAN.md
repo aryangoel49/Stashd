@@ -222,7 +222,7 @@ Each brief request carries the anonymous install ID, so the server can count how
 - [x] **Brave, Edge and Vivaldi support.** They work like Chrome, so it's cheap, and many developers use Brave. Tested on the real browsers (Brave 1.99, Edge 157, Vivaldi 8.3) with `tests/browsers-live.test.ts`, and Edge and Vivaldi through the whole save, Pack up and Unpack flow. Still open: after Pack up closed a whole window, Unpack showed each Vivaldi tab twice; and Brave's whole flow hasn't been run.
   - Firefox and Zen can't share their tabs with other apps on a Mac; the website says so plainly.
 - [x] Never lose a save: back up before any change to how saves are stored (`src/main/safety.ts`, last 5 kept), recover from a damaged file
-- [ ] Show what didn't reopen
+- [x] Show what didn't reopen (9 Nov: the card after Unpack, with Find it, Try again and Remove)
 - [ ] "Send feedback" button (email with the app and macOS version filled in)
 
 **Check:**
@@ -235,7 +235,7 @@ Each brief request carries the anonymous install ID, so the server can count how
 ### "Exactly where you left off" (planned 9 Nov, from comparing JustForContext)
 Goal: Unpack puts your desk back the way it was, not just the same things open somewhere. Three parts, in this order. Each one ships on its own.
 
-**Part A: for everyone**
+**Part A: for everyone** (built 9 Nov. Unpack uses your open browser window; exact places are a Settings switch, off by default.)
 1. **Window positions and sizes, and which screen.**
    - Save: browsers report each window's position through AppleScript (no new permission). Other apps go through the helper using Accessibility, which Stashd already asks for (the welcome's row becomes "Window positions and chats").
    - Unpack: each window goes back where it was. Tabs go back into the same windows they came from (each tab already knows its window), so two Chrome windows come back as two, not one.
