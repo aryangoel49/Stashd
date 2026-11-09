@@ -84,7 +84,7 @@ export function SettingsView() {
             ))}
           </span>
         </div>
-        <Toggle label="Sounds" hint="A soft whoosh when your windows fly into the menu bar." on={s.sounds} onChange={(v) => void update({ sounds: v })} />
+        <Toggle label="Sounds" hint="Short sounds when you stash, pack up, unpack and tidy, when Stashd names a folder, and when something doesn't come back." on={s.sounds} onChange={(v) => void update({ sounds: v })} />
       </Card>
       <Card title="Keyboard shortcuts" hint="These work from any app. Use names like Control, Alt (Option), Shift and Command, joined with +.">
         <TextRow label={`Save what I'm working on (${prettyShortcut(s.shortcutSave)})`} value={s.shortcutSave} onSave={(v) => void update({ shortcutSave: v })} />

@@ -376,7 +376,8 @@ export interface OverlayPlay {
   /** The screen size, so the layout never depends on a stale window size. */
   size: { width: number; height: number };
   reverse: boolean;
-  sound: boolean;
+  /** Which sound to play (null: Sounds are off). */
+  sound: 'pack' | 'unpack' | 'tidy' | null;
   /** How many things in all (the icons are grouped by app). */
   total?: number;
 }

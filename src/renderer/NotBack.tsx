@@ -2,10 +2,11 @@
 // found again by name (the folder then points at its new place); anything can be tried again or taken
 // out of the folder. Nothing is left to fail quietly.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { OpenResult } from '../shared/types';
 import { api } from './api';
 import { Icon } from './icons';
+import { sound } from './sounds';
 import { Button, motion } from './ui';
 
 type Problem = OpenResult['problems'][number];
@@ -25,6 +26,7 @@ export function NotBack({ jobId, problems }: { jobId: string; problems: Problem[
       else delete next[key];
       return next;
     });
+  useEffect(() => void sound('oops'), [problems]);
   const left = problems.filter((p) => state[p.key] !== 'done' && state[p.key] !== 'gone');
   if (!left.length) return null;
 

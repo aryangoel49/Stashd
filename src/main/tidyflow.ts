@@ -108,7 +108,7 @@ export class TidyFlow {
         const otherItems = others.map((n): Item => ({ key: `app:${n}`, kind: 'app', label: n, detail: '', app: n }));
 
         // Everything that will go flies, the other apps too, so nothing just vanishes on its own.
-        const animation = this.play([...items, ...apps, ...otherItems], false);
+        const animation = this.play([...items, ...apps, ...otherItems], false, 'tidy');
         await Promise.all([wait(CLOSE_AFTER_MS), releaseChromeGroups(items)]);
         // Documents aren't closed one by one: their apps quit below anyway (asking about unsaved work),
         // and some (Preview) are slow to answer a close. Tabs and Finder windows are closed, since
@@ -341,7 +341,7 @@ export class TidyFlow {
   }
 
   /** Plays the fly-in (or fly-out) animation. Resolves when it has finished. */
-  private async play(items: Item[], reverse: boolean): Promise<void> {
+  private async play(items: Item[], reverse: boolean, kind: 'pack' | 'tidy' = 'pack'): Promise<void> {
     const tray = this.trayBounds();
     const display = screen.getDisplayMatching(tray);
     const flies = await this.withIcons(items);
@@ -350,7 +350,7 @@ export class TidyFlow {
       target: { x: tray.x + tray.width / 2 - display.bounds.x, y: tray.y + tray.height / 2 - display.bounds.y },
       size: { width: display.bounds.width, height: display.bounds.height },
       reverse,
-      sound: this.core.settings.get().sounds,
+      sound: this.core.settings.get().sounds ? (reverse ? 'unpack' : kind) : null,
       total: items.length,
     };
     this.payloads.set('overlay', play);

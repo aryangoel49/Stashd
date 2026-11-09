@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { SetupItem } from '../shared/types';
 import { api, prettyShortcut, useFitWindow, useSettings } from './api';
+import { sound } from './sounds';
 import { AnimatePresence, Button, FolderMark, Kbd, motion, type Mood } from './ui';
 
 type Step = 'hello' | 'access' | 'ai' | 'chrome' | 'try';
@@ -60,6 +61,7 @@ export function Welcome() {
       void api.listJobs().then((jobs) => {
         if (before == null || jobs.length <= before || timer) return;
         setSaved(true);
+        void sound('first');
         timer = setTimeout(finish, 2200);
       }),
     );

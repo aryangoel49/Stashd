@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { CollectorError, Item, SavePreview } from '../shared/types';
 import { timeAgo } from '../shared/time';
 import { api, errorText, useFitWindow, useSettings } from './api';
+import { sound } from './sounds';
 import { Icon } from './icons';
 import { AnimatePresence, Button, countText, ease, FolderMark, motion, Motion, Pill, Reveal } from './ui';
 
@@ -61,6 +62,8 @@ function SaveBox() {
     try {
       await api.commitSave({ jobId: p.jobId, name: opts.name, note: opts.note, keys: opts.keys, tidy: opts.tidy });
       setState('saved');
+      // Pack up has its own sound as things land in the menu bar.
+      if (!opts.tidy) void sound('stash');
       // With Pack up, get out of the way at once: the same fly-in as Tidy all plays, with nothing in front of it.
       closeTimer.current = setTimeout(() => void api.closeWindow(), opts.tidy ? 60 : p.jobId ? 600 : 1200);
     } catch (e) {
@@ -99,7 +102,10 @@ function SaveBox() {
         void api
           .aiName(p.sure.map((i) => i.key))
           .then((n) => {
-            if (n && !nameTouched.current && id === loadId.current) setName(n);
+            if (n && !nameTouched.current && id === loadId.current) {
+              setName(n);
+              void sound('ding');
+            }
           })
           .catch(() => undefined)
           .finally(() => id === loadId.current && setAiNaming(false));

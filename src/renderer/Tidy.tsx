@@ -6,6 +6,7 @@ import { api, useFitWindow, useSettings } from './api';
 import { Button, FolderMark, motion, Motion, type Mood } from './ui';
 import { ItemBadge, useMacIcon } from './visuals';
 import { SiteTile } from './Break';
+import { sound, type SoundName } from './sounds';
 
 function usePayload<T>(): T | null {
   const [p, setP] = useState<T | null>(null);
@@ -107,66 +108,11 @@ async function ready(imgs: HTMLImageElement[]): Promise<void> {
 }
 
 // ---------- sound ----------
-// Made on the fly with Web Audio, so there are no sound files: a soft whoosh as things fly,
-// then a small two-note chime as they land in the menu bar.
-
-let audio: AudioContext | null = null;
-
-function whoosh(ctx: AudioContext, at: number, length: number, reverse: boolean): void {
-  const n = Math.floor(ctx.sampleRate * length);
-  const buf = ctx.createBuffer(1, n, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  const band = ctx.createBiquadFilter();
-  band.type = 'bandpass';
-  band.Q.value = 0.9;
-  band.frequency.setValueAtTime(reverse ? 2400 : 500, at);
-  band.frequency.exponentialRampToValueAtTime(reverse ? 500 : 2400, at + length);
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, at);
-  gain.gain.exponentialRampToValueAtTime(0.09, at + length * 0.45);
-  gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
-  src.connect(band).connect(gain).connect(ctx.destination);
-  src.start(at);
-  src.stop(at + length);
-}
-
-/** The landing: two soft bell notes a fifth apart, the second a touch later, like something clicking into place. */
-function chime(ctx: AudioContext, at: number): void {
-  const note = (freq: number, start: number, peak: number, length: number) => {
-    for (const [mult, level] of [[1, 1], [2, 0.18], [3, 0.06]] as const) {
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq * mult, start);
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(peak * level, start + 0.006);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + length / mult);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + length);
-    }
-  };
-  note(659.25, at, 0.11, 0.42);
-  note(987.77, at + 0.075, 0.09, 0.55);
-}
-
-function playSound(count: number, reverse: boolean): void {
-  try {
-    audio ??= new AudioContext();
-    const ctx = audio;
-    void ctx.resume();
-    const t = ctx.currentTime + 0.02;
-    const fly = (FLY_MS + STAGGER_MS * Math.max(0, count - 1)) / 1000;
-    const flyAt = (APPEAR_MS + HOLD_MS + GATHER_MS) / 1000;
-    // Packing: the whoosh rides the flight and the tock is the landing. Unpacking: the whoosh comes out first.
-    whoosh(ctx, t + (reverse ? 0 : flyAt), fly, reverse);
-    if (!reverse) chime(ctx, t + flyAt + fly - 0.03);
-  } catch {
-    // no sound, no problem
-  }
+/** The sound lands with the things: as they reach the menu bar, or as they leave it when unpacking. */
+function playSound(play: OverlayPlay, count: number): void {
+  if (!play.sound) return;
+  const landing = APPEAR_MS + HOLD_MS + GATHER_MS + FLY_MS + STAGGER_MS * Math.max(0, count - 1) - 60;
+  setTimeout(() => void sound(play.sound as SoundName, true), play.sound === 'unpack' ? 0 : landing);
 }
 
 const at = (ms: number) => ms / TOTAL_MS;
@@ -237,7 +183,7 @@ async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<
   });
   await ready(imgs);
   await new Promise((r) => requestAnimationFrame(r));
-  if (play.sound && !reduce) playSound(n, play.reverse);
+  if (!reduce) playSound(play, n);
 
   if (reduce) {
     // Reduce Motion: the tray simply appears and fades, no flying.
