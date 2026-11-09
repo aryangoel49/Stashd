@@ -1,5 +1,6 @@
 // The app's actions, shared by the menu bar, keyboard shortcuts and the windows.
 
+import os from 'node:os';
 import path from 'node:path';
 import { mostlyOpen, type BriefView, type Capture, type DeskPile, type TidyDesk, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult, type TidyFront } from '../shared/types';
 import { aiJobName, writeBrief, type BriefWriter } from './brief';
@@ -27,7 +28,7 @@ import { BreakStore, isBreakItem, videoKey } from './breaks';
 import { isListedApp, listApps, type MacApp } from './apps';
 import { appPathOf } from '../shared/places';
 import { run } from './exec';
-import { usedMemoryMB } from './ram';
+import { appsMemoryMB, usedMemoryMB } from './ram';
 import type { SettingsStore } from './settings';
 import { readJsonSafely } from './safety';
 import { JobStore, writeFileKeepingLast } from './store';
@@ -46,6 +47,8 @@ interface State {
   dismissed: Record<string, string>;
   /** macOS has been asked once for Accessibility (to see which Claude or ChatGPT chat is open). */
   askedChatAccess?: boolean;
+  /** Memory Tidy all has freed so far (MB), and how many times it has run from the desk. */
+  freed?: { mb: number; times: number };
 }
 
 interface PendingSave {
@@ -483,7 +486,11 @@ export class Core {
       { id: 'apps', kind: 'apps', title: 'Quitting', note: 'Unsaved work still asks first', items: quitting.map(appItem) },
       { id: 'stay', kind: 'stay', title: 'Staying open', note: '', items: staying },
     ];
-    return { piles: piles.filter((p) => p.items.length || p.kind === 'stay'), frontKey: front?.key ?? null, memoryMB };
+    // What the apps that quit are using now: what Tidy up should give back.
+    const quittingItems = quitting.map(appItem).filter((i) => i.path);
+    const byPath = await appsMemoryMB(quittingItems.map((i) => i.path!));
+    const appMB = Object.fromEntries(quittingItems.filter((i) => (byPath?.get(i.path!) ?? 0) > 0).map((i) => [i.key, byPath!.get(i.path!)!]));
+    return { piles: piles.filter((p) => p.items.length || p.kind === 'stay'), frontKey: front?.key ?? null, memoryMB, totalMB: Math.round(os.totalmem() / 1024 / 1024), appMB };
   }
 
   async tidyAll(opts: { keepFront?: boolean; keep?: string[]; fromDesk?: boolean } = {}): Promise<TidyAllPlan> {
@@ -703,6 +710,14 @@ export class Core {
     if (change.orderPlaces) await this.breaks.orderPlaces(change.orderPlaces);
     this.notify();
     return this.breaks.get();
+  }
+
+  /** Adds what one Tidy all freed to the running total; returns the new total. */
+  async addFreed(mb: number): Promise<{ mb: number; times: number }> {
+    const was = this.state.freed ?? { mb: 0, times: 0 };
+    this.state.freed = { mb: was.mb + Math.max(0, Math.round(mb)), times: was.times + 1 };
+    await this.saveState();
+    return this.state.freed;
   }
 
   /** What Tidy all just closed: kept for 10 minutes, then forgotten. */

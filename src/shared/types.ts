@@ -61,6 +61,10 @@ export interface TidyDesk {
   frontKey: string | null;
   /** Memory your Mac is using now, in MB (null when it can't be read). */
   memoryMB: number | null;
+  /** All the memory this Mac has, in MB. */
+  totalMB: number;
+  /** About how much memory each app that quits is using now (MB), by its item key. */
+  appMB: Record<string, number>;
 }
 
 /** What Tidy all would leave open with "Keep this tab": the tab or window in front. */
@@ -374,7 +378,18 @@ export interface ToastInfo {
   /** How long it stays (ms), shown as a thin line that runs out; pointing at the card holds it. */
   ms?: number;
   /** Tidy all's "Desk clear" card: where things went, memory freed, and what to pick up next. */
-  desk?: { went: { label: string; count: number }[]; freedMB: number | null; next: string | null };
+  desk?: {
+    went: { label: string; count: number }[];
+    freedMB: number | null;
+    next: string | null;
+    /** Memory in use before and after (MB) out of all of it, to show the drop. */
+    beforeMB?: number | null;
+    afterMB?: number | null;
+    totalMB?: number;
+    /** Everything Tidy all has freed so far, and how many times it has run. */
+    lifetimeMB?: number;
+    times?: number;
+  };
 }
 
 /** A place on the Break shelf you go to often (YouTube, Netflix…). */

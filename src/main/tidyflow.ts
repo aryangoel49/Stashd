@@ -17,8 +17,8 @@ import { getWindow, prepareWindow, showWindow } from './windows';
 
 // Undo is offered briefly: long enough to catch a slip, short enough to stay out of the way.
 const UNDO_MS = 2_000;
-/** Tidy all's Desk clear card stays long enough to read where things went (Undo works all that time). */
-const DESK_MS = 6_000;
+/** Tidy all's Desk clear card stays long enough to enjoy the memory coming back (Undo works all that time). */
+const DESK_MS = 8_000;
 /** An offer stays a little longer than Undo: it needs reading first. */
 const OFFER_MS = 8_000;
 /** Just longer than the toast's 150ms fade-out, so the window hides after it has gone. */
@@ -135,7 +135,10 @@ export class TidyFlow {
         await this.core.rememberTidied(closed);
         if (desk) {
           // The desk's payoff: where everything went, the memory it gave back, and what's next.
-          const [start, end] = await Promise.all([before, wait(600).then(usedMemoryMB)]);
+          // Apps take a moment to hand their memory back after quitting.
+          const [start, end] = await Promise.all([before, wait(1200).then(usedMemoryMB)]);
+          const freedMB = start != null && end != null && start - end >= 100 ? start - end : null;
+          const total = freedMB ? await this.core.addFreed(freedMB).catch(() => null) : null;
           const closedKeys = new Set(closed.map((i) => i.key));
           const went = [
             ...plan.saved.map((s) => ({ label: `into ${shortName(s.name)}`, count: saved.find((e) => e.jobId === s.jobId)?.items.filter((i) => i.kind !== 'app' && closedKeys.has(i.key)).length ?? 0 })),
@@ -153,7 +156,16 @@ export class TidyFlow {
             canUndo: true,
             mood: 'sleep',
             ms: DESK_MS,
-            desk: { went, freedMB: start != null && end != null && start - end >= 100 ? start - end : null, next: next ? `Next time, ${shortName(next)} is ready to pick up.` : null },
+            desk: {
+              went,
+              freedMB,
+              next: next ? `Next time, ${shortName(next)} is ready to pick up.` : null,
+              beforeMB: start,
+              afterMB: end,
+              totalMB: Math.round(os.totalmem() / 1024 / 1024),
+              lifetimeMB: total?.mb,
+              times: total?.times,
+            },
           }, DESK_MS);
           return;
         }
@@ -492,7 +504,16 @@ export class TidyFlow {
         canUndo: true,
         mood: 'sleep',
         ms: 60_000,
-        desk: { went: [{ label: 'into Climate essay', count: 7 }, { label: 'on your Break shelf', count: 2 }, { label: 'tabs closed', count: 7 }, { label: 'apps quit', count: 4 }], freedMB: 3174, next: 'Next time, Climate essay is ready to pick up.' },
+        desk: {
+          went: [{ label: 'into Climate essay', count: 7 }, { label: 'on your Break shelf', count: 2 }, { label: 'tabs closed', count: 7 }, { label: 'apps quit', count: 4 }],
+          freedMB: 3174,
+          next: 'Next time, Climate essay is ready to pick up.',
+          beforeMB: 28774,
+          afterMB: 25600,
+          totalMB: 49152,
+          lifetimeMB: 42700,
+          times: 12,
+        },
       },
       60_000,
     );

@@ -1078,11 +1078,23 @@ body.route-welcome { background: transparent; }
 @media (prefers-reduced-motion: reduce) { .desk-pile.skeleton { animation: none; } }
 
 /* Tidy all's Desk clear card */
-.desk-clear-card { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 2px; }
-.desk-freed { font-size: 13px; color: var(--text); }
-.desk-freed b { color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+.desk-clear-card { display: flex; flex-direction: column; gap: 3px; margin: 4px 0 2px; }
+.desk-freed { display: flex; align-items: baseline; gap: 6px; margin: 2px 0; }
+.mem-roll { position: relative; font-size: 26px; font-weight: 750; letter-spacing: -0.02em; color: var(--accent-ink); font-variant-numeric: tabular-nums; line-height: 1.1; transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mem-roll.landed { transform: scale(1.06); }
+.mem-sparks { position: absolute; left: calc(100% + 6px); top: 45%; z-index: -1; pointer-events: none; }
+.mem-sparks i { position: absolute; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: var(--accent); }
+.desk-freed-label { font-size: 13px; color: var(--muted); }
+.mem-drop { display: flex; flex-direction: column; gap: 4px; margin: 2px 0 4px; }
+.mem-bar { position: relative; height: 8px; border-radius: 999px; background: var(--hair); overflow: hidden; }
+.mem-used { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, rgba(28, 29, 34, 0.38), rgba(28, 29, 34, 0.5)); }
+.mem-freed { position: absolute; top: 0; bottom: 0; border-radius: 0 999px 999px 0; background: linear-gradient(90deg, var(--accent), #ffe58f); box-shadow: 0 0 10px var(--accent); }
+.mem-drop-text { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mem-drop-text b { color: var(--text); font-weight: 600; }
 .desk-went { font-size: 12px; line-height: 1.35; color: var(--muted); }
 .desk-next { font-size: 12px; color: var(--muted); }
+.desk-lifetime { margin-top: 2px; font-size: 11.5px; color: var(--accent-ink); font-weight: 500; }
+@media (prefers-color-scheme: dark) { .mem-used { background: linear-gradient(90deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.5)); } }
 
 /* The desk's summary (what it opens on) */
 .desk-hero { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 8px 10px; text-align: center; }
@@ -1102,3 +1114,11 @@ body.route-welcome { background: transparent; }
 @media (prefers-color-scheme: dark) { .desk-hero-card { box-shadow: 0 0 0 2.5px #26231d, 0 4px 10px rgba(0, 0, 0, 0.4); } }
 .desk-hero-hint { max-width: 100%; font-size: 11.5px; line-height: 1.4; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .desk-hero-line + .desk-hero-hint { margin-top: 2px; }
+
+/* The desk's memory bar: in use, with what the quitting apps hold marked (and what's left after). */
+.desk-mem { display: flex; flex-direction: column; align-items: stretch; gap: 5px; width: 100%; max-width: 280px; margin-top: 8px; }
+.mem-freeable { position: absolute; top: 0; bottom: 0; border-radius: 0 999px 999px 0; background: repeating-linear-gradient(-45deg, var(--accent) 0 4px, #ffe58f 4px 8px); box-shadow: 0 0 8px rgba(242, 205, 92, 0.6); }
+.desk-mem-text { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.desk-mem-text b { color: var(--accent-ink); font-weight: 650; }
+.desk-item-mem { flex: none; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.desk-item:hover .desk-item-mem { display: none; }

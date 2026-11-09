@@ -363,19 +363,72 @@ export function Overlay() {
 
 // ---------- the toast ----------
 
-/** Tidy all's payoff, kept quiet: the memory freed, one line on where things went, and what's next. */
+const gbText = (mb: number, digits = 1) => (mb >= 1024 ? `${(mb / 1024).toFixed(digits)} GB` : `${Math.round(mb)} MB`);
+
+/** The memory freed, rolling up from zero (fast, then settling) and popping when it lands. */
+function RollMemory({ mb }: { mb: number }) {
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return setShown(mb);
+    const start = performance.now();
+    const length = 1100;
+    let frame = requestAnimationFrame(function step(now) {
+      const t = Math.min(1, (now - start - 250) / length);
+      setShown(t <= 0 ? 0 : mb * (1 - Math.pow(1 - t, 4)));
+      if (t < 1) frame = requestAnimationFrame(step);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [mb]);
+  const landed = shown === mb;
+  return (
+    <span className={`mem-roll ${landed ? 'landed' : ''}`} aria-label={`${gbText(mb)} freed`}>
+      {gbText(shown)}
+      {landed && (
+        <span className="mem-sparks" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5].map((n) => (
+            <motion.i key={n} initial={{ opacity: 1, x: 0, y: 0, scale: 1 }} animate={{ opacity: 0, x: Math.cos((n / 6) * Math.PI * 2) * 26, y: Math.sin((n / 6) * Math.PI * 2) * 16, scale: 0.4 }} transition={{ duration: 0.6, ease: 'easeOut' }} />
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Your Mac's memory as a bar: the part Tidy all freed glows, then drains away. */
+function MemoryDrop({ before, after, total }: { before: number; after: number; total: number }) {
+  const pct = (mb: number) => `${Math.max(0, Math.min(100, (mb / total) * 100))}%`;
+  return (
+    <span className="mem-drop">
+      <span className="mem-bar" aria-hidden="true">
+        <span className="mem-used" style={{ width: pct(after) }} />
+        <motion.span className="mem-freed" style={{ left: pct(after) }} initial={{ width: pct(before - after), opacity: 1 }} animate={{ width: '0%', opacity: 0.4 }} transition={{ delay: 0.5, duration: 1.1, ease: [0.4, 0, 0.2, 1] }} />
+      </span>
+      <span className="mem-drop-text">
+        {gbText(before)} → <b>{gbText(after)}</b> in use, of {gbText(total, 0)}
+      </span>
+    </span>
+  );
+}
+
+/** Tidy all's payoff: the memory it gave back (rolling up, the bar draining), one line on where things went, what's next. */
 function DeskClear({ desk }: { desk: NonNullable<ToastInfo['desk']> }) {
-  const gb = desk.freedMB != null ? (desk.freedMB >= 1024 ? `${(desk.freedMB / 1024).toFixed(1)} GB` : `${Math.round(desk.freedMB / 10) * 10} MB`) : null;
   const went = desk.went.map((w) => `${w.count} ${w.label}`).join(', ');
+  const showDrop = desk.freedMB != null && desk.beforeMB != null && desk.afterMB != null && !!desk.totalMB;
   return (
     <span className="desk-clear-card">
-      {gb && (
-        <motion.span className="desk-freed" initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.25 }}>
-          About <b>{gb}</b> of memory freed
-        </motion.span>
+      {desk.freedMB != null && (
+        <span className="desk-freed">
+          <RollMemory mb={desk.freedMB} /> <span className="desk-freed-label">of memory freed</span>
+        </span>
       )}
+      {showDrop && <MemoryDrop before={desk.beforeMB!} after={desk.afterMB!} total={desk.totalMB!} />}
       {went && <span className="desk-went">{went.replace(/^./, (c) => c.toUpperCase())}.</span>}
       {desk.next && <span className="desk-next">{desk.next}</span>}
+      {desk.lifetimeMB != null && desk.times != null && desk.times > 1 && (
+        <span className="desk-lifetime">
+          {gbText(desk.lifetimeMB)} freed with Stashd so far · {desk.times} tidies
+        </span>
+      )}
     </span>
   );
 }

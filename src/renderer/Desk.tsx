@@ -116,7 +116,34 @@ function summary(piles: DeskPile[]): string {
   ].filter(Boolean).join(' · ');
 }
 
-const memoryLabel = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`);
+/**
+ * Your Mac's memory as a bar: what's in use, with the part the quitting apps hold marked at its end.
+ * The numbers are Activity Monitor's ("Memory Used", and each app's own memory).
+ */
+function MemoryBar({ used, free, total }: { used: number; free: number; total: number }) {
+  const pct = (mb: number) => `${Math.max(0, Math.min(100, (mb / total) * 100))}%`;
+  return (
+    <span className="desk-mem">
+      <span className="mem-bar" aria-hidden="true">
+        <span className="mem-used" style={{ width: pct(used - free) }} />
+        {free > 0 && <motion.span className="mem-freeable" style={{ left: pct(used - free), width: pct(free) }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} />}
+      </span>
+      <span className="desk-mem-text">
+        {free > 0 ? (
+          <>
+            About <b>{memoryLabel(free)}</b> to free · {memoryLabel(used)} of {memoryLabel(total, 0)} in use
+          </>
+        ) : (
+          <>
+            {memoryLabel(used)} of {memoryLabel(total, 0)} in use
+          </>
+        )}
+      </span>
+    </span>
+  );
+}
+
+const memoryLabel = (mb: number, digits = 1) => (mb >= 1024 ? `${(mb / 1024).toFixed(digits)} GB` : `${Math.round(mb)} MB`);
 
 export function TidyDeskView({ settings, onClose }: { settings: Settings; onClose: () => void }) {
   const [desk, setDesk] = useState<TidyDesk | null>(null);
@@ -150,6 +177,9 @@ export function TidyDeskView({ settings, onClose }: { settings: Settings; onClos
       .filter((p) => p.items.length || p.kind === 'stay');
   }, [desk, keep]);
   const goingCount = piles.filter((p) => p.kind !== 'stay').reduce((n, p) => n + p.items.length, 0) + (frontGoes ? 1 : 0);
+  // What the apps that quit use now (as Activity Monitor counts it): roughly what Tidy up gives back.
+  const freeable = desk ? piles.filter((p) => p.kind === 'apps').flatMap((p) => p.items).reduce((n, i) => n + (desk.appMB[i.key] ?? 0), 0) : 0;
+  const showFree = freeable >= 100;
 
   const go = () => {
     if (!desk || going || !goingCount) return;
@@ -228,7 +258,7 @@ export function TidyDeskView({ settings, onClose }: { settings: Settings; onClos
               {h}
             </span>
           ))}
-          {desk.memoryMB ? <span className="desk-hero-mem">Your Mac is using {memoryLabel(desk.memoryMB)}</span> : null}
+          {desk.memoryMB ? <MemoryBar used={desk.memoryMB} free={showFree ? freeable : 0} total={desk.totalMB} /> : null}
         </motion.div>
       )}
 
@@ -268,6 +298,7 @@ export function TidyDeskView({ settings, onClose }: { settings: Settings; onClos
                             <span className="grow desk-item-title" title={titleOf(i)}>
                               {titleOf(i)}
                             </span>
+                            {p.kind === 'apps' && (desk.appMB[i.key] ?? 0) >= 50 && <span className="desk-item-mem">{memoryLabel(desk.appMB[i.key])}</span>}
                             {canToggle(p, i) && (
                               <button type="button" className="desk-keep" onClick={() => toggle(p, i)}>
                                 {p.kind === 'stay' ? (frontLeaving(i) ? 'Keep open' : 'Put away') : 'Keep open'}
@@ -288,7 +319,7 @@ export function TidyDeskView({ settings, onClose }: { settings: Settings; onClos
       {desk && goingCount > 0 && (
         <div className="desk-foot">
           <Button variant="primary" className="desk-go" disabled={going} onClick={go}>
-            <Icon name="spark" /> Tidy up {goingCount} {goingCount === 1 ? 'thing' : 'things'}
+            <Icon name="spark" /> {showFree ? `Tidy up and free about ${memoryLabel(freeable)}` : `Tidy up ${goingCount} ${goingCount === 1 ? 'thing' : 'things'}`}
             <span className="enter">↵</span>
           </Button>
           {!details ? (
