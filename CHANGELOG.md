@@ -5,6 +5,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+## 1.6.0 (2026-11-08)
+
 ### Added
 - **Add any app or site to Your places.** On the Break page, Add now searches as you type: "spo" finds Spotify, the app on your Mac and the website. Pick one with a click or the arrow keys and Return, or type any web address. An app place opens the app.
 
