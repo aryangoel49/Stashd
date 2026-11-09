@@ -110,6 +110,17 @@ export function SettingsView() {
       <Card title="Updates" hint="Stashd updates itself: it downloads new versions quietly and installs them the next time it starts. It only asks GitHub which version is the latest.">
         <UpdateRow />
       </Card>
+      <Card title="Unpack">
+        <Toggle
+          label="Put windows back exactly where they were"
+          hint="Unpack moves and resizes your windows to the places they had when you saved, using the window you have open. Off: tabs go into your open window and nothing is moved. Needs Accessibility for apps other than browsers."
+          on={s.windowPlaces}
+          onChange={(v) => {
+            void update({ windowPlaces: v });
+            if (v) void api.setupAccessibility();
+          }}
+        />
+      </Card>
       <Card title="Startup">
         <Toggle label="Open Stashd when I log in" hint="Works in the installed app." on={s.launchAtLogin} onChange={(v) => void update({ launchAtLogin: v })} />
         <div className="srow">

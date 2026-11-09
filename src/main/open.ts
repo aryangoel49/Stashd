@@ -82,38 +82,71 @@ export function openedRecently(ms: number): boolean {
 }
 
 /**
- * A browser window's tabs open together in a new window of the browser they came from, a moment apart,
- * the one you were on last ending up in front. The script takes the window's place first
- * ("left,top,right,bottom", or "" to leave it where the browser puts it), then the addresses.
- * Arc has no windows to speak of, so it isn't grouped.
+ * A browser window's tabs open together, a moment apart, the one you were on last ending up in front.
+ * They go into the window you have open (its id as the second argument) when there is one, else a new
+ * window. The first argument is the place to put that window ("left,top,right,bottom", or "" to leave
+ * it be); the addresses follow. Arc has no windows to speak of, so it isn't grouped.
  */
 export function newWindowScript(browser: BrowserName): string | null {
   const id = BROWSER_APPS[browser].bundleId;
-  const rest = `${SET_BOUNDS}
-    repeat with wwiI from 2 to count of wwiUrls
-      delay ${GAP_MS / 1000}
+  if (!isChromium(browser) && browser !== 'safari') return null;
+  const fresh = isChromium(browser)
+    ? `      set wwiWin to make new window
+      set URL of active tab of wwiWin to (item 1 of wwiUrls)`
+    : `      make new document with properties {URL:(item 1 of wwiUrls)}
+      set wwiWin to front window`;
+  return `on run wwiArgs
+${readBounds(1)}
+  set wwiReuse to item 2 of wwiArgs
+  set wwiUrls to rest of rest of wwiArgs
+  tell application id "${id}"
+${REUSE}
+    set wwiFrom to 1
+    if wwiWin is missing value then
+${fresh}
+      set wwiFrom to 2
+    end if${SET_BOUNDS}
+    repeat with wwiI from wwiFrom to count of wwiUrls
+      if wwiI > 1 then delay ${GAP_MS / 1000}
       tell wwiWin to make new tab at end of tabs with properties {URL:(item wwiI of wwiUrls)}
-    end repeat
-    activate`;
-  if (isChromium(browser))
-    return `on run wwiArgs
-${readBounds(1)}
-  set wwiUrls to rest of wwiArgs
-  tell application id "${id}"
-    set wwiWin to make new window
-    set URL of active tab of wwiWin to (item 1 of wwiUrls)${rest}
+    end repeat${browser === 'safari' ? '\n    set current tab of wwiWin to last tab of wwiWin' : ''}
+    set index of wwiWin to 1
+    activate
   end tell
 end run`;
-  if (browser === 'safari')
-    return `on run wwiArgs
-${readBounds(1)}
-  set wwiUrls to rest of wwiArgs
-  tell application id "${id}"
-    make new document with properties {URL:(item 1 of wwiUrls)}
-    set wwiWin to front window${rest}
-  end tell
-end run`;
-  return null;
+}
+
+/** wwiWin: the window whose id is in wwiReuse, if it's still there, else missing value. */
+const REUSE = `    set wwiWin to missing value
+    if wwiReuse is not "" then
+      try
+        set wwiWin to window id (wwiReuse as integer)
+      end try
+    end if`;
+
+/** The id of the browser window you have open (the front one that's normal and not minimized), or "". */
+function openWindowScript(browser: BrowserName): string | null {
+  const id = BROWSER_APPS[browser].bundleId;
+  const ok = isChromium(browser) ? 'mode of w is "normal" and not (minimized of w)' : browser === 'safari' ? 'not (miniaturized of w) and (document of w) is not missing value' : null;
+  if (!ok) return null;
+  return `tell application id "${id}"
+  repeat with w in windows
+    try
+      if ${ok} then return (id of w) as text
+    end try
+  end repeat
+end tell
+return ""`;
+}
+
+async function openWindowId(browser: BrowserName): Promise<string> {
+  const script = openWindowScript(browser);
+  if (!script) return '';
+  try {
+    return (await run('osascript', ['-e', script], { timeoutMs: 10_000 })).stdout.trim();
+  } catch {
+    return '';
+  }
 }
 
 /** Reads argument n ("left,top,right,bottom" or "") into wwiBounds, a list of four numbers or {}. */
@@ -157,16 +190,24 @@ export function groupPageUrl(name: string, urls: string[], action?: 'ungroup' | 
 // Opens the extension's page and waits a moment: it either closes itself (it opened the group) or shows
 // "Stashd" while it works. Without the extension it's an error page, which is closed again.
 // (macOS doesn't let other apps read Chrome's settings, so trying is the only way to know it's there.)
-// 'new': in a new window, at the place given as the second argument, where the group's tabs then open.
+// 'open': in the window you have open (its id as the third argument) or else a new one, put at the place
+// given as the second argument, where the group's tabs then open.
 // 'front': in the front window, without bringing Chrome forward (to change a group quietly).
-const groupScript = (where: 'new' | 'front') => `on run wwiArgs
-${where === 'new' ? readBounds(2) : ''}
+const groupScript = (where: 'open' | 'front') => `on run wwiArgs
+${where === 'open' ? `${readBounds(2)}
+  set wwiReuse to item 3 of wwiArgs` : ''}
   tell application id "com.google.Chrome"
 ${
-  where === 'new'
-    ? `    set wwiWin to make new window${SET_BOUNDS}
-    set wwiId to id of active tab of wwiWin
-    set URL of active tab of wwiWin to (item 1 of wwiArgs)
+  where === 'open'
+    ? `${REUSE}
+    if wwiWin is missing value then
+      set wwiWin to make new window
+      set wwiId to id of active tab of wwiWin
+      set URL of active tab of wwiWin to (item 1 of wwiArgs)
+    else
+      set wwiId to id of (make new tab at end of tabs of wwiWin with properties {URL:(item 1 of wwiArgs)})
+    end if${SET_BOUNDS}
+    set index of wwiWin to 1
     activate`
     : `    if (count of windows) is 0 then make new window
     set wwiId to id of (make new tab at end of tabs of front window with properties {URL:(item 1 of wwiArgs)})`
@@ -270,9 +311,9 @@ export function finished(p: { t: number; d: number } | undefined): boolean {
   return !!p && p.d > 0 && (p.t / p.d >= 0.95 || p.d - p.t <= 20);
 }
 
-async function openChromeGroup(name: string, urls: string[], bounds: string): Promise<boolean> {
+async function openChromeGroup(name: string, urls: string[], bounds: string, reuse: string): Promise<boolean> {
   if (Date.now() - helperMissingAt < RETRY_HELPER_MS) return false;
-  const r = await run('osascript', ['-e', groupScript('new'), '--', groupPageUrl(name, urls), bounds], { timeoutMs: 30_000 });
+  const r = await run('osascript', ['-e', groupScript('open'), '--', groupPageUrl(name, urls), bounds, reuse], { timeoutMs: 30_000 });
   if (r.stdout.trim() === 'ok') return true;
   helperMissingAt = Date.now();
   return false;
@@ -340,9 +381,11 @@ async function openAll(
     result.failed.push(item.label);
     result.problems.push({ key: item.key, label: item.label, kind: item.kind, why: 'failed' });
   };
-  const here = screens();
+  // Exact window places only when you've turned them on; otherwise tabs go into your open window as they are.
+  const places = settings.windowPlaces;
+  const here = places ? screens() : [];
   const urlOptions = { keepQueryStrings: settings.keepQueryStrings, excludedDomains: settings.excludedDomains };
-  const fit = (f: Frame | undefined) => (f ? fitFrame(f, here) : undefined);
+  const fit = (f: Frame | undefined) => (places && f ? fitFrame(f, here) : undefined);
 
   // Tabs that are already open are not opened twice.
   let openUrls = new Set<string>();
@@ -379,9 +422,8 @@ async function openAll(
     ...items.filter((i) => i.key === frontKey),
   ];
 
-  // Each browser window's tabs open together in a window of their own, where that window was, one after
-  // another and a moment apart, so Unpack feels calm rather than everything at once. A big window goes
-  // in one go, so it doesn't take ages.
+  // Each browser's tabs open together (each saved window's, with exact places on), one after another
+  // and a moment apart, so Unpack feels calm rather than everything at once.
   const windows = new Map<string, { browser: string; window: number; items: Item[] }>();
   for (const item of ordered) {
     if (item.kind !== 'tab') continue;
@@ -391,7 +433,7 @@ async function openAll(
     }
     const b = item.browser ?? '';
     const w = item.window ?? 1;
-    const k = `${b}\n${w}`;
+    const k = places ? `${b}\n${w}` : b;
     if (!windows.has(k)) windows.set(k, { browser: b, window: w, items: [] });
     windows.get(k)!.items.push(item);
   }
@@ -402,7 +444,18 @@ async function openAll(
       (a, b) =>
         Number(a.items.some((i) => i.key === frontKey)) - Number(b.items.some((i) => i.key === frontKey)) || b.window - a.window,
     );
-    for (const { browser, items: group } of groups) {
+    // The window you have open in each browser takes the tabs of the saved window that goes last (the
+    // front one); any other saved windows get new windows. Noted before anything opens.
+    const reuseFor = new Map<(typeof groups)[number], string>();
+    for (const b of new Set(groups.map((g) => g.browser))) {
+      if (!b || !(await isRunning(b as BrowserName))) continue;
+      const id = await openWindowId(b as BrowserName);
+      const last = groups.filter((g) => g.browser === b).pop();
+      if (id && last) reuseFor.set(last, id);
+    }
+    for (const g of groups) {
+      const { browser, items: group } = g;
+      const reuse = reuseFor.get(g) ?? '';
       const app = browser ? BROWSER_APPS[browser as BrowserName].appName : '';
       const frame = fit(group.find((i) => i.frame)?.frame);
       const bounds = frame ? frameToBounds(frame) : '';
@@ -425,14 +478,13 @@ async function openAll(
       try {
         let urls = urlsOf(todo);
         if (!app || !urls.length) throw new Error('one by one');
-        // A window of its own when it had several tabs, or when it had its own place among other things.
-        const own = urls.length >= 2 || (!!frame && items.length > 1);
-        const together = own ? newWindowScript(browser as BrowserName) : null;
+        // Opening one thing on its own (clicking a tab) leaves windows as they are.
+        const together = urls.length >= 2 || items.length > 1 ? newWindowScript(browser as BrowserName) : null;
         const web = urls.filter((u) => /^https?:/i.test(u));
         let grouped = false;
         if (browser === 'chrome' && groupName && web.length === urls.length && (await isRunning('chrome'))) {
           try {
-            grouped = await openChromeGroup(groupName, urls, bounds);
+            grouped = await openChromeGroup(groupName, urls, bounds, reuse);
           } catch {
             grouped = false;
           }
@@ -445,7 +497,7 @@ async function openAll(
           // opened in a tab group (or the helper opened them all before giving up)
         } else if (together && (await isRunning(browser as BrowserName))) {
           // '--' so an address is never read as an option.
-          await run('osascript', ['-e', together, '--', bounds, ...urls], { timeoutMs: 60_000 });
+          await run('osascript', ['-e', together, '--', bounds, reuse, ...urls], { timeoutMs: 60_000 });
         } else if (urls.length <= GENTLE_MAX) {
           for (const [n, url] of urls.entries()) {
             if (n) await pause(GAP_MS);
@@ -518,6 +570,6 @@ async function openAll(
     await openOthers();
   }
   // In the background: apps still opening get a few seconds, and Unpack doesn't wait for them.
-  if (place && toPlace.length) void place(toPlace).catch(() => undefined);
+  if (places && place && toPlace.length) void place(toPlace).catch(() => undefined);
   return result;
 }

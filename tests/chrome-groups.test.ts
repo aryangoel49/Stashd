@@ -30,4 +30,12 @@ describe('opening a folder\'s tabs together', () => {
     }
     expect(newWindowScript('arc')).toBeNull();
   });
+
+  it('uses the window you have open when there is one, and only then makes a new one', () => {
+    for (const b of ['chrome', 'safari'] as const) {
+      const s = newWindowScript(b)!;
+      expect(s).toContain('set wwiWin to window id (wwiReuse as integer)');
+      expect(s.indexOf('window id (wwiReuse')).toBeLessThan(s.indexOf('if wwiWin is missing value then'));
+    }
+  });
 });

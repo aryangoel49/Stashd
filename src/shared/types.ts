@@ -41,6 +41,8 @@ export interface Settings {
   welcomed: boolean;
   /** Tidy all with a four-finger double tap on the trackpad. */
   tidyGesture: boolean;
+  /** Unpack puts windows back exactly where they were (place and size), using the window you have open. */
+  windowPlaces: boolean;
 }
 
 export type TidyKeep = 'front' | 'all';

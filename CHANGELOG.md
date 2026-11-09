@@ -6,7 +6,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
-- **Windows come back where they were.** Unpack puts each browser window's tabs back in a window of their own, at the same spot and size, and moves your documents' and apps' windows back too (full screen stays full screen). A screen that's no longer plugged in sends its windows to your main screen. Apps other than browsers need Accessibility, which the welcome now asks for.
+- **Unpack uses the window you have open.** A folder's tabs go into your open browser window instead of a new one each time.
+- **Put windows back exactly where they were** (Settings → Unpack, off unless you turn it on). Unpack then moves and resizes your windows to the places they had when you saved: your open browser window takes the shape of the saved one, a folder saved across several browser windows gets them back, and documents' and apps' windows return too (full screen stays full screen). A screen that's no longer plugged in sends its windows to your main screen. Apps other than browsers need Accessibility, which Stashd asks for when you turn it on.
 - **What didn't come back.** After Unpack, a card lists anything that couldn't reopen and why. A file that moved can be found again by name (the folder then remembers its new place), anything else can be tried again, and anything can be taken out of the folder.
 - **Tidy all with your trackpad.** Turn it on in Settings → Keyboard shortcuts, then tap the trackpad twice with four fingers to tidy, like the shortcut.
 
