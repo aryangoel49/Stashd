@@ -5,6 +5,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+## 1.9.0 (2026-11-09)
+
 ### Added
 - **New sounds.** Short recorded sounds when you stash, pack up, unpack and tidy all, when Stashd names a new folder, when something doesn't come back after Unpack, and for your very first save. Everything else stays quiet. Turn them off with Sounds in Settings.
 - **Unpack uses the window you have open.** A folder's tabs go into your open browser window instead of a new one each time.
