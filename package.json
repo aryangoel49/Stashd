@@ -18,6 +18,7 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "make:intel": "electron-forge make --arch=x64",
+    "postmake:intel": "npm run embedder",
     "package:intel": "electron-forge package --arch=x64",
     "check:chips": "node scripts/compare-chips.mjs",
     "install-local": "bash scripts/install-local.sh",
