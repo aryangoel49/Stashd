@@ -24,28 +24,39 @@ export function useAsk() {
   const [turns, setTurns] = useState<AskTurn[]>([]);
   const [chatId, setChatId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  // Bumped by New chat (or opening another one): an answer still on its way then belongs to nothing on screen.
+  const generation = useRef(0);
   const ask = async (question: string) => {
     const id = nextTurn++;
+    const gen = generation.current;
     setTurns((t) => [...t, { id, question }]);
     setBusy(true);
     let reply: AskAnswer | AskProblem;
+    let newChat: number | null = null;
     try {
       const r = await api.ask(question, chatId);
       reply = r.reply;
-      if (r.chatId != null) setChatId(r.chatId);
+      newChat = r.chatId;
     } catch (e) {
       reply = { problem: 'error', message: errorText(e) };
     }
+    if (gen !== generation.current) return;
+    if (newChat != null) setChatId(newChat);
     setTurns((t) => t.map((x) => (x.id === id ? { ...x, reply } : x)));
     setBusy(false);
   };
   /** Opens a past chat, to read it or carry on. */
   const open = async (id: number) => {
+    const gen = ++generation.current;
     const past = await api.askChat(id);
+    if (gen !== generation.current) return;
+    setBusy(false);
     setChatId(id);
     setTurns(past.map((p) => ({ id: nextTurn++, question: p.question, reply: p.reply })));
   };
   const clear = () => {
+    generation.current++;
+    setBusy(false);
     setTurns([]);
     setChatId(null);
   };
@@ -227,11 +238,12 @@ function Proposal({ reply }: { reply: AskAnswer }) {
   const a = reply.action!;
   // From a past chat: the change was offered then; it can't run from here any more.
   if (reply.past) return <p className="ask-note">Offered: {VERB[a.type] ?? 'a change'} {a.item ? `“${titleOf(a.item)}”` : ''} {a.type === 'move' ? `to ${a.to}` : `in ${a.folder}`}.</p>;
-  const [state, setState] = useState<'ask' | 'busy' | 'done' | 'undone' | 'cancelled'>('ask');
+  const [state, setState] = useState<'ask' | 'busy' | 'done' | 'undoing' | 'undone' | 'cancelled'>('ask');
   const [undoId, setUndoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const run = async () => {
     setState('busy');
+    setError(null);
     try {
       setUndoId(await api.askDo(a.id));
       setState('done');
@@ -241,22 +253,34 @@ function Proposal({ reply }: { reply: AskAnswer }) {
     }
   };
   if (state === 'cancelled') return <p className="ask-note">Nothing changed.</p>;
-  if (state === 'done' || state === 'undone') {
+  if (state === 'done' || state === 'undoing' || state === 'undone') {
     return (
-      <div className="ask-done">
-        <Icon name="check" />
-        <span className="grow">{state === 'undone' ? 'Undone.' : 'Done.'}</span>
-        {state === 'done' && undoId && (
-          <Button
-            size="small"
-            onClick={() => {
-              void api.askUndo(undoId).then(() => setState('undone'));
-            }}
-          >
-            Undo
-          </Button>
-        )}
-      </div>
+      <>
+        <div className="ask-done">
+          <Icon name="check" />
+          <span className="grow">{state === 'undone' ? 'Undone.' : 'Done.'}</span>
+          {state !== 'undone' && undoId && (
+            <Button
+              size="small"
+              disabled={state === 'undoing'}
+              onClick={() => {
+                setState('undoing');
+                setError(null);
+                void api.askUndo(undoId).then(
+                  () => setState('undone'),
+                  (e) => {
+                    setError(errorText(e));
+                    setState('done');
+                  },
+                );
+              }}
+            >
+              Undo
+            </Button>
+          )}
+        </div>
+        {error && <div className="banner">{error}</div>}
+      </>
     );
   }
   return (
@@ -272,7 +296,7 @@ function Proposal({ reply }: { reply: AskAnswer }) {
       )}
       {error && <div className="banner">{error}</div>}
       <div className="ask-actions">
-        <Button size="small" variant="ghost" onClick={() => setState('cancelled')}>
+        <Button size="small" variant="ghost" disabled={state === 'busy'} onClick={() => setState('cancelled')}>
           Cancel
         </Button>
         <Button size="small" variant="primary" disabled={state === 'busy'} onClick={() => void run()}>

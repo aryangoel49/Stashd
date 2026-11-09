@@ -9,6 +9,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - **Add any app or site to Your places.** On the Break page, Add now searches as you type: "spo" finds Spotify, the app on your Mac and the website. Pick one with a click or the arrow keys and Return, or type any web address. An app place opens the app.
 
 ### Fixed
+- Ask Stashd follow-ups remember the question before: "and what's next there?" now knows which folder you mean.
+- Ask Stashd changes: if one fails you can press it again (it no longer says it expired), Cancel waits while a change runs, and Undo shows when it's working or can't undo.
+- Starting a new chat while Ask Stashd is still thinking no longer adds the late answer to the old chat.
 - Ask Stashd's suggested questions no longer keep naming the same folder: they take turns across all your folders and never name one twice in a row.
 - Adding a 13th place no longer silently does nothing: Stashd says the limit is 12 and the Add button steps aside until you remove one.
 

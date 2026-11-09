@@ -22,6 +22,15 @@ describe('what Ask Stashd sends', () => {
     expect(b.content).not.toContain('/Users/aryan');
     expect(b.content).not.toContain('searchresults');
   });
+
+  it('a follow-up carries the question before it, and its folder comes first', () => {
+    const earlier = [{ question: 'What was I doing on the Toronto trip?', answer: 'You were comparing hotels near Queen West.' }];
+    const b = buildAsk({ question: 'and what is next there?', today: new Date('2026-11-07T12:00:00Z'), jobs: [essay, toronto], open, front: null, week: [], earlier });
+    const sent = JSON.parse(b.content);
+    expect(sent.earlier).toEqual(earlier);
+    expect(sent.folders[0].name).toBe('Toronto trip');
+    expect(JSON.parse(buildAsk({ question: 'x', today: new Date(), jobs: [], open: [], front: null, week: [] }).content).earlier).toBeUndefined();
+  });
 });
 
 describe('reading the answer', () => {

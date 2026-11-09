@@ -25,6 +25,8 @@ export interface AskData {
   week: { folder: string; moments: number; minutes: number }[];
   /** How close each folder is in meaning to the question (0 to 1), when the on-device model is ready. */
   closeness?: Map<string, number>;
+  /** The last few questions and answers in this chat, so a follow-up ("and what's next there?") makes sense. */
+  earlier?: { question: string; answer: string }[];
 }
 
 /** How much a folder seems to be what the question is about. */
@@ -51,7 +53,9 @@ export interface Built {
 /** What gets sent: the question, the folders that matter, what's open now and this week's time per folder. */
 export function buildAsk(d: AskData): Built {
   const live = d.jobs.filter((j) => j.latest);
-  const scored = live.map((j) => ({ ...j, score: relevance(d.question, j.job, j.latest, d.closeness?.get(j.job.id) ?? 0) }));
+  // A follow-up is about the same folders as the question before it, so that counts too.
+  const about = [...(d.earlier ?? []).slice(-1).map((e) => e.question), d.question].join(' ');
+  const scored = live.map((j) => ({ ...j, score: relevance(about, j.job, j.latest, d.closeness?.get(j.job.id) ?? 0) }));
   // The folders the question is about, then the most recent ones (for "what was I doing?" without a name).
   const picked = [
     ...scored.filter((j) => j.score > 0).sort((a, b) => b.score - a.score),
@@ -100,6 +104,7 @@ export function buildAsk(d: AskData): Built {
 
   const content = JSON.stringify({
     question: d.question.slice(0, 500),
+    ...(d.earlier?.length ? { earlier: d.earlier.slice(-3).map((e) => ({ question: e.question.slice(0, 300), answer: e.answer.slice(0, 300) })) } : {}),
     today: d.today.toISOString().slice(0, 10),
     weekday: d.today.toLocaleDateString('en', { weekday: 'long' }),
     folders: folderData,
@@ -159,6 +164,8 @@ export interface AskDeps {
   send: (content: string) => Promise<{ text: string; left?: number }>;
   savedLabel: (latest: SaveEntry | null) => string;
   now?: () => Date;
+  /** Earlier questions and answers in this chat. */
+  earlier?: () => { question: string; answer: string }[];
 }
 
 function cosine(a: number[], b: number[]): number {
@@ -185,7 +192,7 @@ export async function askStashd(question: string, d: AskDeps): Promise<AskAnswer
     const qv = got?.get(question);
     if (got && qv) closeness = new Map(jobs.map((j) => [j.job.id, Math.max(0, cosine(qv, got.get(text(j)) ?? []))]));
   }
-  const built = buildAsk({ question, today: d.now?.() ?? new Date(), jobs, open: look?.items ?? [], front: look?.front ?? null, week: d.week(), closeness });
+  const built = buildAsk({ question, today: d.now?.() ?? new Date(), jobs, open: look?.items ?? [], front: look?.front ?? null, week: d.week(), closeness, earlier: d.earlier?.() });
   let reply: { text: string; left?: number };
   try {
     reply = await d.send(built.content);

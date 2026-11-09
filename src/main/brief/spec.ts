@@ -86,6 +86,7 @@ Answer:
 Rules:
 - Use only the data you're given. Never invent folders, items, ids, times or progress. If it isn't there, say "I couldn't find that in your stash." and suggest what they could ask instead.
 - "This tab" or "this page" means the item open in front (marked inFront).
+- "earlier", when present, is what they asked just before in this chat, with your answers. Use it to understand a follow-up like "and what's next there?", but answer only the new question.
 - Week questions: use "week" (minutes and saves per folder). Round times like "about 3 hours".
 - If the question isn't about their work in Stashd, say briefly that you can only help with their saved work.`;
 

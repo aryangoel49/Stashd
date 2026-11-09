@@ -92,6 +92,13 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
       vectors: core.meaning ? async (texts) => (await core.meaning?.vectors(texts)) ?? undefined : undefined,
       send: hooks.askSend,
       savedLabel,
+      earlier: () =>
+        chatId == null
+          ? []
+          : (core.memory?.chat(chatId) ?? []).flatMap((t) => {
+              const answer = t.reply && typeof t.reply === 'object' ? (t.reply as { answer?: unknown }).answer : undefined;
+              return typeof answer === 'string' ? [{ question: t.question, answer }] : [];
+            }),
     });
     if ('answer' in answer && answer.action) {
       if (proposals.size > 20) proposals.clear();
@@ -119,6 +126,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('ask:do', async (_e, id) => {
     const action = proposals.get(v.str(id, 'id', 100));
     if (!action) throw new Error('That change has expired. Ask again.');
+    // Taken out while it runs (so it can't run twice), and put back if it fails, so you can try again.
     proposals.delete(action.id);
     const undo = await runAction(action, {
       addToFolder: (jobId, items) => core.addToFolder(jobId, items),
@@ -130,15 +138,25 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
       setPinned: (jobId, pinned) => core.setPinned(jobId, pinned),
       setDone: (jobId, done) => core.setDone(jobId, done),
       unpack: (jobId) => core.open(jobId, undefined, 'all', hooks.beforeOpen).then(() => undefined),
+    }).catch((e: unknown) => {
+      proposals.set(action.id, action);
+      throw e;
     });
     if (!undo) return null;
     undos.set(action.id, undo);
     return action.id;
   });
   handle('ask:undo', async (_e, id) => {
-    const undo = undos.get(v.str(id, 'id', 100));
-    undos.delete(String(id));
-    if (undo) await undo();
+    const key = v.str(id, 'id', 100);
+    const undo = undos.get(key);
+    if (!undo) throw new Error('That can’t be undone any more.');
+    undos.delete(key);
+    try {
+      await undo();
+    } catch (e) {
+      undos.set(key, undo);
+      throw e;
+    }
     return true;
   });
 
