@@ -5,6 +5,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+## 1.8.0 (2026-11-09)
+
 ### Added
 - **Tidy all shows the memory it gives back.** Before you tidy, the desk shows a bar of your Mac's memory with the part the quitting apps are using marked ("About 2.1 GB to free", each app's share listed when you look closer), and the button says how much. Afterwards the Desk clear card rolls up how much was actually freed (measured before and after, the same Memory Used figure as Activity Monitor), the bar drains to what's in use now, and it keeps a running total of everything Tidy all has freed.
 
