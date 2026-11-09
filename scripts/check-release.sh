@@ -4,6 +4,7 @@
 # permissions again. Run after `npm run make` and `npm run make:intel`: npm run check:release
 set -euo pipefail
 cd "$(dirname "$0")/.."
+want=$(node -p "require('./package.json').version")
 found=0
 for app in out/Stashd-darwin-*/Stashd.app; do
   [ -d "$app" ] || continue
@@ -15,6 +16,11 @@ for app in out/Stashd-darwin-*/Stashd.app; do
     echo "  (Is \"Stashd Local Signing\" in this Mac's Keychain?)"
     exit 1
   fi
-  echo "✓ $app: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist"), signed with the Stashd certificate"
+  have=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
+  if [ "$have" != "$want" ]; then
+    echo "✗ $app is version $have, not $want. The build didn't finish; build again before publishing."
+    exit 1
+  fi
+  echo "✓ $app: $have, signed with the Stashd certificate"
 done
 [ "$found" = 1 ] || { echo "No builds in out/. Run npm run make and npm run make:intel first."; exit 1; }
