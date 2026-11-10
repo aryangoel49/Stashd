@@ -397,9 +397,9 @@ export class Core {
   }
 
   /**
-   * Tidy all. Plain, it closes everything: every tab and Finder window (apps quit after, in TidyFlow),
-   * nothing saved. Smart (settings.tidySort), the work goes into folders first: every folder you have open
-   * is saved (like Pack up), what clearly belongs to another folder is added to it, the rest of the real
+   * Tidy all. Every folder you have open is saved first (like Pack up). Plain, everything else then just
+   * closes: every other tab and Finder window (apps quit after, in TidyFlow). Smart (settings.tidySort), the
+   * rest of the work goes into folders too: what clearly belongs to another folder is added to it, the rest of the real
    * work becomes new folders (sorted by Claude when AI is on), videos go on the Break shelf, and the clutter
    * just closes. Either way what closes is listed under "Recently closed" for 10 minutes, and with
    * "Keep this tab" (keepFront) the thing you're on stays. Returns the things to close; closing is up to the caller.
@@ -410,11 +410,6 @@ export class Core {
     const kept = opts.keepFront ? frontThing(cap.items, cap.appOrder) : null;
     const isKept = (i: Item) => !!kept && matchKeys(i).includes(looseKey(kept));
     const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0, kept, made: [] };
-    if (!settings.tidySort) {
-      plan.close = cap.items.filter((i) => isLoose(i) && !isKept(i));
-      plan.loose = plan.close.length;
-      return plan;
-    }
     await this.sites?.look(cap.items);
     const learned = learnedLifestyleApps(this.state.appUnticks);
     const openKeys = new Set(cap.items.map(looseKey));
@@ -444,6 +439,15 @@ export class Core {
       claim(p.sure);
       claim(content);
       plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
+    }
+    if (!settings.tidySort) {
+      // Plain: the rest just closes, everyday sites too. Nothing else is saved, filed or shelved.
+      const rest = cap.items.filter((i) => isLoose(i) && !claimed.has(looseKey(i)) && !isKept(i));
+      plan.close.push(...rest);
+      plan.loose = rest.length;
+      this.pending = null;
+      this.notify();
+      return plan;
     }
 
     // Tabs and Finder windows left over: one that clearly belongs to one of your other folders is added

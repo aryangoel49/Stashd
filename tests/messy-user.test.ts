@@ -319,22 +319,28 @@ describe('Tidy all', () => {
     expect((await core.store.latest(first.jobId))!.items.map((i) => i.key).sort()).toEqual(trip.map((i) => i.key).sort());
   });
 
-  it('with Smart off, just closes everything: nothing saved, filed or shelved, everyday sites too', async () => {
+  it('with Smart off, saves the folder you have open, then just closes everything else (everyday sites too)', async () => {
     const core = makeCore();
     await core.settings.update({ tidySort: false });
     const trip = [tab(1, 'Flights to Tokyo'), tab(2, 'Ryokans in Kyoto')];
     open = trip;
     core.beginSave();
     await core.preview({ asNew: true });
-    const first = await core.commitSave({ jobId: null, name: 'Japan trip', note: '', keys: [trip[0].key], tidy: false });
+    const first = await core.commitSave({ jobId: null, name: 'Japan trip', note: '', keys: trip.map((i) => i.key), tidy: false });
+    // Still on the trip, with a new hotel tab, a game and mail open too.
+    const hotel = tab(3, 'Ryokans in Kyoto with onsen');
     const game: Item = { ...tab(9, 'Warriors vs Lakers'), key: 'tab:https://www.espn.com/nba/game', url: 'https://www.espn.com/nba/game', detail: 'espn.com' };
     const mail: Item = { ...tab(10, 'Inbox'), key: 'tab:https://mail.google.com/mail/u/0/', url: 'https://mail.google.com/mail/u/0/', detail: 'mail.google.com' };
-    open = [...trip, game, mail];
+    open = [...trip, hotel, game, mail];
     const plan = await core.tidyAll();
-    expect(plan.close.map((i) => i.key)).toEqual(open.map((i) => i.key));
-    expect([plan.saved, plan.filed, plan.made, plan.breaks]).toEqual([[], [], [], 0]);
+    expect(plan.saved.map((s) => s.name)).toEqual(['Japan trip']);
+    const savedKeys = (await core.store.latest(first.jobId))!.items.map((i) => i.key);
+    expect(savedKeys).toEqual(expect.arrayContaining(trip.map((i) => i.key)));
+    // Everything not saved into the folder closes; nothing new is made, filed or shelved.
+    expect([...plan.close.map((i) => i.key), ...savedKeys]).toEqual(expect.arrayContaining(open.map((i) => i.key)));
+    expect(plan.close.map((i) => i.key)).toEqual(expect.arrayContaining([game.key, mail.key]));
+    expect([plan.filed, plan.made, plan.breaks]).toEqual([[], [], 0]);
     expect((await core.listJobs()).map((j) => j.name)).toEqual(['Japan trip']);
-    expect((await core.store.latest(first.jobId))!.items.map((i) => i.key)).toEqual([trip[0].key]);
   });
 
   it('"Keep this tab" leaves the tab you are on open (saved with its folder), and closes the rest', async () => {

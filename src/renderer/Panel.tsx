@@ -176,7 +176,7 @@ function PanelHead({ settings }: { settings: Settings }) {
             type="button"
             className="tidy-go"
             onClick={() => void api.tidyAll()}
-            title={`${smart ? 'Put the work you have open into folders, then close everything' : 'Close everything'} (${prettyShortcut(settings.shortcutTidy)})`}
+            title={`${smart ? 'Put the work you have open into folders, then close everything' : 'Save your open folders, then close everything else'} (${prettyShortcut(settings.shortcutTidy)})`}
           >
             Tidy all
           </button>
@@ -189,7 +189,7 @@ function PanelHead({ settings }: { settings: Settings }) {
             onClick={() => void api.updateSettings({ tidySort: !smart })}
             title={
               !smart
-                ? 'Smart is off: Tidy all just closes everything. Turn on to put your work into folders first.'
+                ? 'Smart is off: Tidy all saves your open folders, then closes everything else. Turn on to put the rest of your work into folders too.'
                 : ai
                   ? 'Smart is on: Claude puts the work you have open into folders before everything closes'
                   : 'Smart is on: this Mac puts the work you have open into folders before everything closes (turn on Stashd AI for better sorting)'

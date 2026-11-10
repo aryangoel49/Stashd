@@ -9,7 +9,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Smart Tidy all. Before closing, each piece of work you have open is saved: into its folder, or a new folder of its own, which a small card then lets you rename. Stray tabs, error pages and front pages just close. With Stashd AI on, Claude does the sorting and naming (a sparkle on the switch shows it); otherwise your Mac does. Turn it on or off with the Smart switch on the Tidy all button.
 
 ### Changed
-- With Smart off, Tidy all simply closes everything: every tab and window, and your apps quit (unsaved work still asks first). Nothing is saved. What it closed is in Recently closed for 10 minutes.
+- With Smart off, Tidy all saves the folders you have open (like Pack up), then simply closes everything else: every other tab and window, and your apps quit (unsaved work still asks first). Nothing new is saved. What it closed is in Recently closed for 10 minutes.
 - Tidy all acts as soon as you press it, without the preview screen first, and ends with the Desk clear card.
 - A cleaner top bar in the menu bar panel: Tidy all and its Smart switch share one capsule (Smart lights up yellow when on), and the second "Open Stashd" button is gone (click the Stashd name).
 - Unpack has a new, calmer animation. With window places on, see-through shapes of your windows glide out to where each one opens; otherwise your apps' icons glide into the tray. Either way they stay until everything has opened.
