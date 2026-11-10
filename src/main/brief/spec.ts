@@ -59,6 +59,30 @@ export const NAME_SCHEMA = {
   additionalProperties: false,
 } as const;
 
+/** Smart Tidy all with Claude: what's open, sorted into pieces of work. Ids only come back. */
+export const SORT_INSTRUCTIONS = `You sort what someone has open on their Mac into pieces of work, so each piece can be saved in a folder of its own.
+A piece of work is two or more open things that serve one task or project: a trip being planned, an essay with its sources, one client's documents, a bug being fixed, a purchase being researched. Things belong together when they serve the same task, even with no words in common: a flight search, a rental and a restaurant list for the same city are one trip.
+Documents in the same project folder belong together. Documents in two different project folders are two pieces, even with the same file names.
+Leave out anything that isn't part of a piece of work: entertainment, social feeds, sports, news, shopping unrelated to the others, a site's home page, error and sign-in pages, and anything that fits with nothing else. Leaving a thing out only means it closes; putting two different tasks in one piece is worse than leaving something out.
+Each thing goes in at most one piece. Name each piece with a short folder name of 1 to 3 words, like "Lisbon trip", "Climate essay" or "Acme". Sentence case, no quotes, no emoji.`;
+
+export const SORT_SCHEMA = {
+  type: 'object',
+  properties: {
+    pieces: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { name: { type: 'string' }, items: { type: 'array', items: { type: 'string' } } },
+        required: ['name', 'items'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['pieces'],
+  additionalProperties: false,
+} as const;
+
 /** Titles only (scrubbed), for naming. */
 export const ASK_INSTRUCTIONS = `You are Ask Stashd. You answer questions about the user's own saved work on their Mac, and change their Stashd folders when they ask you to.
 You get their question, today's date, the folders that seem relevant (each with an id like f1, its name, when it was last saved, their note, the last brief, and what's inside: items with ids like i1), what is open on their Mac right now (ids like o1), and how much each folder was worked on this week.
@@ -141,7 +165,7 @@ export const SITES_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-export type AskKind = 'brief' | 'name' | 'ask' | 'sites';
+export type AskKind = 'brief' | 'name' | 'ask' | 'sites' | 'sort';
 
 export function isAskKind(kind: unknown): kind is AskKind {
   return typeof kind === 'string' && Object.hasOwn(KINDS, kind);
@@ -152,6 +176,7 @@ const KINDS = {
   name: { system: NAME_INSTRUCTIONS, schema: NAME_SCHEMA, maxTokens: 1000 },
   ask: { system: ASK_INSTRUCTIONS, schema: ASK_SCHEMA, maxTokens: 1500 },
   sites: { system: SITES_INSTRUCTIONS, schema: SITES_SCHEMA, maxTokens: 2000 },
+  sort: { system: SORT_INSTRUCTIONS, schema: SORT_SCHEMA, maxTokens: 3000 },
 } as const;
 
 /** The request for one brief or one folder name. Bigger models think for longer, so they get more room. */
