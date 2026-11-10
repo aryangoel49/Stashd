@@ -98,3 +98,12 @@ describe('Noticer', () => {
     expect(lookFn).not.toHaveBeenCalled();
   });
 });
+
+describe('how often Stashd looks at what you have open', () => {
+  it('every 20 s on a quick Mac, less often where looking is slow (an older Intel Mac), at most every 2 min', async () => {
+    const { nextLookIn } = await import('../src/main/noticer');
+    expect(nextLookIn(300)).toBe(20_000);
+    expect(nextLookIn(2000)).toBe(100_000);
+    expect(nextLookIn(10_000)).toBe(120_000);
+  });
+});

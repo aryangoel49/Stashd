@@ -10,6 +10,13 @@ import { looseKey, matchKeys } from './urls';
 
 /** How often to look, and how long after Stashd opened something to wait before looking again. */
 const EVERY_MS = 20_000;
+/** Looking asks every browser and document app what it has open, which takes far longer on an older (Intel)
+ *  Mac and briefly holds up the browser it asks. So looking never takes more than about 2% of the time: a
+ *  look that took 2 s waits 100 s before the next, never more than LONGEST_WAIT_MS. */
+const LONGEST_WAIT_MS = 2 * 60_000;
+export function nextLookIn(lookMs: number): number {
+  return Math.min(LONGEST_WAIT_MS, Math.max(EVERY_MS, lookMs * 50));
+}
 const AFTER_OPENING_MS = 20_000;
 /** Once a folder has been offered, it isn't offered again for a while. */
 const ASK_AGAIN_MS = 4 * 60 * 60_000;
@@ -70,6 +77,8 @@ export class Noticer {
   private askedAt = new Map<string, number>();
   private timer: NodeJS.Timeout | null = null;
   private busy = false;
+  /** How long the last look took. */
+  private lookMs = 0;
 
   constructor(
     private readonly look: () => Promise<{ open: Set<string>; state: Record<string, OpenState>; jobs: Job[]; latest: (SaveEntry | null)[]; items?: Item[] }>,
@@ -81,7 +90,11 @@ export class Noticer {
   ) {}
 
   start(): void {
-    this.timer ??= setInterval(() => void this.tick(), EVERY_MS);
+    if (this.timer) return;
+    const next = () => {
+      this.timer = setTimeout(() => void this.tick().finally(next), nextLookIn(this.lookMs));
+    };
+    next();
   }
 
   /** You said no (or yes): don't bring this folder up again for a while. */
@@ -94,7 +107,9 @@ export class Noticer {
     if (this.busy || powerMonitor.getSystemIdleTime() > 120) return;
     this.busy = true;
     try {
+      const started = Date.now();
       const look = await this.look();
+      this.lookMs = Date.now() - started;
       // A video that was open and now isn't: you closed it (or Tidy all did). Either way it goes to
       // Continue watching, at the top; you remove it there when you're done with it.
       if (look.items) {

@@ -14,6 +14,10 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - A cleaner top bar in the menu bar panel: Tidy all and its Smart switch share one capsule (Smart lights up yellow when on), and the second "Open Stashd" button is gone (click the Stashd name).
 - Unpack has a new, calmer animation. With window places on, see-through shapes of your windows glide out to where each one opens; otherwise your apps' icons glide into the tray. Either way they stay until everything has opened.
 
+### Fixed
+- On slower Macs (older Intel ones especially), the welcome could show no apps and skip the Chrome step: it now gives the Mac more time, and lists your installed apps if it still can't tell.
+- Stashd is lighter on slower Macs: in the background it checks what you have open less often when checking is slow there (older Intel Macs), and it waits longer for the Mac to answer before giving up.
+
 ## 1.11.1 (2026-11-09)
 
 ### Fixed

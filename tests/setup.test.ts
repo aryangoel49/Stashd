@@ -29,6 +29,17 @@ describe('the welcome checklist', () => {
     expect(items.find((i) => i.kind === 'accessibility')?.status).toBe('allowed');
   });
 
+  it("lists the apps in Applications when the helper can't answer in time (a slow Mac's first start)", async () => {
+    const slow = { automation: vi.fn(async () => Promise.reject(new Error('timed out'))), accessibility: vi.fn(async () => false) } as unknown as Helper;
+    const items = await setupItems(slow, DEFAULT_SETTINGS);
+    // Whatever this Mac has: every one is "later" (asked when it's open), and the list is never made up.
+    expect(items.every((i) => i.status === 'later' || i.kind === 'accessibility')).toBe(true);
+    const { listApps } = await import('../src/main/apps');
+    const installed = new Set((await listApps()).map((a) => a.name));
+    if (installed.has('Google Chrome')) expect(items.some((i) => i.id === 'com.google.Chrome')).toBe(true);
+    if (installed.has('Safari')) expect(items.some((i) => i.id === 'com.apple.Safari')).toBe(true);
+  });
+
   it('skips browsers you turned off', async () => {
     const items = await setupItems(helper({ 'com.google.Chrome': 'allowed' }), { ...DEFAULT_SETTINGS, browsers: { ...DEFAULT_SETTINGS.browsers, chrome: false } });
     expect(items.some((i) => i.name === 'Chrome')).toBe(false);
