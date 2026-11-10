@@ -323,15 +323,7 @@ export class TidyFlow {
   /** One card per new folder: a name (its guess filled in) and what you were doing. Skip leaves it as it is. */
   private async askSorted(made: { jobId: string; name: string; items: Item[] }[]): Promise<void> {
     for (const [i, m] of made.entries()) {
-      const shown = m.items.slice(0, 5);
-      this.payloads.set('sorting', {
-        jobId: m.jobId,
-        name: m.name,
-        index: i + 1,
-        total: made.length,
-        items: shown,
-        more: m.items.length - shown.length,
-      } satisfies SortingRequest);
+      this.payloads.set('sorting', { jobId: m.jobId, name: m.name, index: i + 1, total: made.length, summary: whatsIn(m.items) } satisfies SortingRequest);
       showWindow('sorting', { onReady: (w) => w.webContents.send('payload:updated') });
       const answer = await new Promise<SortingAnswer>((resolve) => (this.sorting = resolve));
       this.sorting = null;
@@ -719,4 +711,21 @@ function wait(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-
+/** "3 tabs", "2 tabs and a document", "a document, a folder and a chat". */
+export function whatsIn(items: Item[]): string {
+  const kinds: [Item['kind'] | 'chat', string, string][] = [
+    ['tab', 'a tab', 'tabs'],
+    ['doc', 'a document', 'documents'],
+    ['folder', 'a folder', 'folders'],
+    ['chat', 'a chat', 'chats'],
+  ];
+  const kindOf = (i: Item) => (i.kind === 'app' ? 'chat' : i.kind);
+  const parts = kinds
+    .map(([k, one, many]) => {
+      const n = items.filter((i) => kindOf(i) === k).length;
+      return n === 0 ? '' : n === 1 ? one : `${n} ${many}`;
+    })
+    .filter(Boolean);
+  const text = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : (parts[0] ?? '');
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}

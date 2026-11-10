@@ -89,8 +89,9 @@ export function Naming() {
 }
 
 // ---------- sorting ----------
-// Tidy all made a folder for each piece of work it found open. One card per folder: its guessed name, ready to
-// change, and a line for what you were doing. Return saves, Escape keeps it as it is.
+// Smart Tidy all saved each piece of work it found in a new folder. One small card per folder: the name it
+// guessed (type over it), what's in it in a few words, and an optional line about what you were doing.
+// Return goes on to the next; Escape leaves the rest as they are.
 
 export function Sorting() {
   useSettings();
@@ -109,7 +110,7 @@ export function Sorting() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') void api.finishSorting(null);
+      if (e.key === 'Escape') void api.finishSorting('rest');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -126,45 +127,17 @@ export function Sorting() {
         void api.finishSorting({ name: name.trim() || req.name, note: note.trim() });
       }}
     >
-      <div style={{ padding: '0 4px' }}>
-        <div className="faint tiny">{req.total > 1 ? `New folder ${req.index} of ${req.total}` : 'New folder'}</div>
-        <div className="muted small" style={{ marginTop: 2 }}>
-          Tidy all saved this work in a folder of its own.
-        </div>
+      <div className="sort-head">
+        <span className="faint small">New folder · {req.summary}</span>
+        {req.total > 1 && <span className="faint small">{req.index} of {req.total}</span>}
       </div>
-      <ul className="sort-items">
-        {req.items.map((it) => (
-          <li key={it.key}>
-            <ItemBadge item={it} size={18} />
-            <span>{it.label}</span>
-          </li>
-        ))}
-        {req.more > 0 && <li className="faint">and {req.more} more</li>}
-      </ul>
-      <label className="no-drag sort-field">
-        <span className="faint tiny">Name</span>
-        <input ref={first} className="field" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
-      </label>
-      <label className="no-drag sort-field">
-        <span className="faint tiny">What were you doing? (optional)</span>
-        <input className="field" value={note} maxLength={500} placeholder="So you know where to pick up" onChange={(e) => setNote(e.target.value)} />
-      </label>
+      <input ref={first} className="title-input no-drag" value={name} maxLength={120} aria-label="Folder name" onChange={(e) => setName(e.target.value)} />
+      <input className="field no-drag" value={note} maxLength={500} placeholder="What were you doing? (optional)" onChange={(e) => setNote(e.target.value)} />
       <div className="row no-drag">
-        {!last ? (
-          <Button onClick={() => void api.finishSorting('rest')} title="Keep the rest as they are">
-            Skip the rest
-          </Button>
-        ) : (
-          <span />
-        )}
-        <span style={{ display: 'inline-flex', gap: 8 }}>
-          <Button onClick={() => void api.finishSorting(null)} title="Keep this name">
-            Skip
-          </Button>
-          <Button variant="primary" type="submit">
-            {last ? 'Done' : 'Next'} <span style={{ opacity: 0.7 }}>↵</span>
-          </Button>
-        </span>
+        <span className="faint tiny">Esc to skip</span>
+        <Button variant="primary" type="submit">
+          {last ? 'Done' : 'Next'} <span style={{ opacity: 0.7 }}>↵</span>
+        </Button>
       </div>
     </form>
   );

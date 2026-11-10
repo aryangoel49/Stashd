@@ -6,7 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
-- Tidy all sorts your work. Work that fits none of your folders gets a folder of its own (one per piece of work), and stray tabs that fit nothing just close. Afterwards a small card for each new folder lets you rename it and say what you were doing. Turn it off in the Tidy all menu.
+- Smart Tidy all. Before closing, each piece of work you have open is saved: into its folder, or a new folder of its own, which a small card then lets you rename. Stray tabs, error pages and front pages just close. Switch it off in the Tidy all menu or Settings for the plain Tidy all.
 
 ### Changed
 - Unpack has a new, calmer animation. With window places on, see-through shapes of your windows glide out to where each one opens; otherwise your apps' icons glide into the tray. Either way they stay until everything has opened.

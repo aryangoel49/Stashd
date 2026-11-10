@@ -91,6 +91,7 @@ export function SettingsView() {
         <TextRow label={`Show my brief (${prettyShortcut(s.shortcutRecap)})`} value={s.shortcutRecap} onSave={(v) => void update({ shortcutRecap: v })} />
         <TextRow label={`Open my pinned folder, or the last one (${prettyShortcut(s.shortcutOpen)})`} value={s.shortcutOpen} onSave={(v) => void update({ shortcutOpen: v })} />
         <TextRow label={`Tidy all (${prettyShortcut(s.shortcutTidy)})`} value={s.shortcutTidy} onSave={(v) => void update({ shortcutTidy: v })} />
+        <Toggle label="Smart Tidy all" hint="Before closing, each piece of work you have open is saved: into its folder, or a new one you name afterwards. Stray tabs just close. Off: Tidy all only saves your open folders and closes the rest, like before." on={s.tidySort} onChange={(v) => void update({ tidySort: v })} />
         <Toggle label="Tidy all with a four-finger double tap" hint="Tap the trackpad twice with four fingers to tidy, like the shortcut. Uses your last choice: keep what you're on, or close everything." on={s.tidyGesture} onChange={(v) => void update({ tidyGesture: v })} />
         {info.shortcutErrors.map((e) => (
           <div key={e} className="banner" style={{ marginTop: 6 }}>

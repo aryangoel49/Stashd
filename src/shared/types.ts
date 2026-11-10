@@ -393,12 +393,11 @@ export interface SortingRequest {
   /** Which folder this is (1 based), of how many. */
   index: number;
   total: number;
-  /** What's in it, the first few. */
-  items: Item[];
-  more: number;
+  /** What's in it, in words: "3 tabs", "2 tabs and a document". */
+  summary: string;
 }
 
-/** Your answer on a sorting card: a name and a note, or null to leave it as it is ('rest' for every card left). */
+/** Your answer on a sorting card: a name and a note, or 'rest' to leave this one and the rest as they are. */
 export type SortingAnswer = { name: string; note: string } | null | 'rest';
 
 export interface ToastInfo {

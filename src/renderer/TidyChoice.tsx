@@ -1,12 +1,13 @@
 // Tidy all's one question, asked where you press it: keep what you're on, or close everything.
 // Two rows, like a menu: the first shows the real tab (or app) that stays, with its icon. Your last
-// choice is marked (Return picks it), and the shortcut uses it without asking. Below them, one switch: save
-// work that fits none of your folders in new folders (you name them afterwards), or let it close.
+// choice is marked (Return picks it), and the shortcut uses it without asking. Below them, one switch: Smart
+// Tidy all (each piece of work open is saved in a folder first) or the plain one.
 
 import { useEffect, useRef, useState } from 'react';
 import type { TidyFront, TidyKeep } from '../shared/types';
 import { api, useSettings } from './api';
 import { Icon } from './icons';
+import { Switch } from './components/ui/switch';
 
 /** The tab or window in front (what "Keep this tab" leaves open), looked up when the choice opens. */
 function useFront(open: boolean): TidyFront | null | undefined {
@@ -90,10 +91,13 @@ export function TidyChoice(props: { last: TidyKeep; shortcut: string; onClose?: 
         noFront,
       )}
       {row('all', <Icon name="spark" />, 'Close everything', 'Every tab and app')}
-      <label className="tc-sort" title="Work that fits none of your folders gets a folder of its own; stray tabs just close">
-        <input type="checkbox" checked={settings?.tidySort ?? true} onChange={(e) => void api.updateSettings({ tidySort: e.target.checked })} />
-        <span>Save other work in new folders</span>
-      </label>
+      <div className="tc-smart">
+        <span className="tc-text">
+          <span className="tc-title">Smart Tidy all</span>
+          <span className="tc-sub">{(settings?.tidySort ?? true) ? 'Saves each piece of work in a folder first' : 'Just closes, like before'}</span>
+        </span>
+        <Switch checked={settings?.tidySort ?? true} onCheckedChange={(v) => void api.updateSettings({ tidySort: v })} aria-label="Smart Tidy all" />
+      </div>
       {!inline && <div className="tc-foot">{shortcut} does your last choice</div>}
     </div>
   );

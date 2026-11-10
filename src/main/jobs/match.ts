@@ -303,10 +303,13 @@ export function topicName(items: Item[]): string | null {
   let phrase = best.words.slice(idx[0], idx[idx.length - 1] + 1);
   if (phrase.length > 5) phrase = phrase.filter(isHit).slice(0, 4);
   phrase = phrase.map((w) => w.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '')).filter(Boolean);
+  // A user name ("aryangoel49") isn't part of a topic's name.
+  if (phrase.length > 1) phrase = phrase.filter((w) => !/[a-z].*\d|\d.*[a-z]/i.test(w));
   // Folder names stay short: three words at most, never ending on a filler word.
   phrase = trimFiller(trimFiller(phrase).slice(0, 3));
-  // A single word is only a good name when most things mention it.
-  if (phrase.length === 1 && (df.get(textTokens(phrase[0])[0] ?? '') ?? 0) < 3) return null;
+  // A single word is only a good name when most things (or all of them) mention it.
+  const seen = df.get(textTokens(phrase[0] ?? '')[0] ?? '') ?? 0;
+  if (phrase.length === 1 && seen < 3 && seen < content.length) return null;
   const text = phrase.join(' ');
   if (!text) return null;
   return (text === text.toLowerCase() ? titleCase(text) : text).slice(0, 60);

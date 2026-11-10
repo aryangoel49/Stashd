@@ -19,7 +19,7 @@ import {
 } from './jobs/match';
 import { documentFrequency, FIT_SUGGEST, hasProof, jobFit, jobProfile, meaningText, profileTexts, scoreItem, SURE, type MeaningLookup, type Profile } from './jobs/relevance';
 import { suggest, type FolderData } from './jobs/suggest';
-import { sortIntoWorks } from './jobs/sort';
+import { sortIntoWorks, sortText } from './jobs/sort';
 import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
 import type { SiteSorter } from './sites';
@@ -571,10 +571,11 @@ export class Core {
     const sorted = new Set<string>();
     if (settings.tidySort) {
       const work = [...strays, ...otherWork].filter((i) => !homed.has(i.key) && !isBreakItem(i));
-      const texts = work.map(meaningText).filter((t): t is string => !!t);
+      const texts = work.map(sortText).filter((t): t is string => !!t);
       const vectors = texts.length ? await this.meaning?.vectors(texts, 4000).catch(() => null) : null;
       for (const items of sortIntoWorks(work, vectors ? (t) => vectors.get(t) : undefined)) {
-        this.pending = { capture: Promise.resolve(cap) };
+        // Offered exactly what it saves, so the new folder learns nothing about what to leave out.
+        this.pending = { capture: Promise.resolve(cap), offered: { sure: items, likely: [], maybe: [], hidden: [], breaks: [], why: {} } };
         // Claude (or Stashd AI) names it, when one is set up and answers quickly; otherwise the words it shares.
         const ai = await Promise.race([aiJobName(this.writers, items).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 3000))]);
         const r = await this.commitSave({ jobId: null, name: ai ?? suggestName(items, null), note: '', keys: items.map((i) => i.key), tidy: true });
