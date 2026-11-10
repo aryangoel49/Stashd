@@ -5,6 +5,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+## 1.11.0 (2026-11-09)
+
 ### Added
 - **⌃S has its own swoop.** When you save, what you picked arcs into the folder in the save box, a beat apart, and the folder bounces as it lands. Pack up, Tidy all and Unpack keep their fly-in to the menu bar. Reduce Motion skips it.
 
