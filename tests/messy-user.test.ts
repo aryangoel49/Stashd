@@ -342,6 +342,15 @@ describe('Tidy all', () => {
     expect(again.breaks).toBe(0);
   });
 
+  it('closes a Finder window that belongs to no folder, like a stray tab (Finder itself stays)', async () => {
+    const core = makeCore();
+    const finder: Item = { key: 'folder:/Library/Application Support', kind: 'folder', label: 'Application Support', detail: '/Library', app: 'Finder', path: '/Library/Application Support' };
+    const terminal: Item = { key: 'app:Terminal', kind: 'app', label: 'Terminal', detail: 'App', app: 'Terminal' };
+    open = [finder, terminal];
+    const plan = await core.tidyAll({ keepFront: true });
+    expect(plan.close.map((i) => i.key)).toContain(finder.key);
+  });
+
   it('"Keep" means the app in front when Stashd can\'t see inside it (Claude), not a tab in the app behind', async () => {
     const { frontThing } = await import('../src/main/capture');
     const video: Item = { ...tab(3, 'A video'), active: true };

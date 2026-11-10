@@ -118,6 +118,10 @@ export const RECENT_TIDY_MS = 10 * 60_000;
 /** How long one look at what's open is reused. */
 const OPEN_CHECK_MS = 6_000;
 
+/** What Tidy all closes when it's in no folder: tabs, and Finder windows (Finder itself never quits, so
+ *  its windows would otherwise stay open). Documents close when their apps quit. */
+const isLoose = (i: Item): boolean => i.kind === 'tab' || i.kind === 'folder';
+
 export class Core {
   private listeners: (() => void)[] = [];
   private state: State;
@@ -454,7 +458,7 @@ export class Core {
       claim(content);
     }
 
-    const strays = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
+    const strays = cap.items.filter((i) => isLoose(i) && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
     const homes = await this.homesFor(strays, new Set([...folders.keys()].filter((id) => folders.get(id)!.note !== 'Already saved here')));
     for (const [jobId, items] of homes) {
       const name = (await this.store.get(jobId).catch(() => null))?.name ?? 'A folder';
@@ -538,10 +542,10 @@ export class Core {
       plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
     }
 
-    // Tabs left over: one that clearly belongs to one of your other folders is added to it. The rest
-    // belong nowhere and just close (they stay in "Recently closed" for a while, in case one mattered).
+    // Tabs and Finder windows left over: one that clearly belongs to one of your other folders is added
+    // to it. The rest belong nowhere and just close (they stay in "Recently closed" for a while, in case one mattered).
     // (The one you're keeping open stays where it is: not filed, not on the Break shelf.)
-    const strays = cap.items.filter((i) => i.kind === 'tab' && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned) && !isKept(i));
+    const strays = cap.items.filter((i) => isLoose(i) && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned) && !isKept(i));
     const homes = await this.homesFor(strays, new Set(plan.saved.map((s) => s.jobId)));
     for (const [jobId, items] of homes) {
       const name = await this.addToFolder(jobId, items);

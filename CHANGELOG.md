@@ -5,6 +5,11 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+## 1.11.1 (2026-11-09)
+
+### Fixed
+- Tidy all closes Finder windows too. A Finder window that belonged to no folder was left open, so Tidy all could say "Already tidy" with a folder window still on your desk.
+
 ## 1.11.0 (2026-11-09)
 
 ### Added
