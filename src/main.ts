@@ -17,14 +17,15 @@ import { Memory } from './main/memory';
 import { AutoSaver } from './main/autosave';
 import { RULES } from './main/rules';
 import { Helper } from './main/helper';
-import { registerIpc } from './main/ipc';
+import { registerIpc, setupChromeGroups } from './main/ipc';
 import { SecretStore } from './main/secrets';
 import { SettingsStore } from './main/settings';
 import { LEGACY_NAME, migrateLegacyData } from './main/legacy';
 import { JobStore } from './main/store';
 import { TidyFlow } from './main/tidyflow';
 import { DormantWatcher, Noticer } from './main/noticer';
-import { copyChromeHelper } from './main/chromehelper';
+import { copyChromeHelper, lastHeardFromChrome } from './main/chromehelper';
+import { listApps } from './main/apps';
 import { runLiveTest } from './main/livetest';
 import { runScenarios } from './main/scenarios';
 import { runSuggestTest } from './main/suggesttest';
@@ -274,9 +275,22 @@ function start(): void {
           appPath: path.resolve(process.execPath, '..', '..', '..'),
           dir,
           arch: process.arch,
-          onChange: (s) => broadcast('update:changed', s),
+          onChange: (s) => {
+            broadcast('update:changed', s);
+            if (s.status === 'ready' && s.canInstall && s.available) announceUpdate(s.available);
+          },
         })
       : null;
+    // A new version, downloaded and checked: a card says so (once per version), and Restart to update
+    // closes Stashd, swaps in the new version and opens it again. Ignored, it installs when Stashd next quits.
+    let announced: string | null = null;
+    function announceUpdate(version: string): void {
+      if (announced === version) return;
+      announced = version;
+      void tidy.ask({ title: `Stashd ${version} is ready`, detail: 'Restart to update. Your folders stay as they are.', action: 'Restart to update', seconds: 30 }).then((answer) => {
+        if (answer === 'act' && updater?.installOnExit(true)) app.quit();
+      });
+    }
     updater?.start();
 
     // First run: the welcome. Someone who already has folders (they used Stashd before the welcome existed) skips it.
@@ -287,6 +301,17 @@ function start(): void {
       });
     }
     app.on('will-quit', () => void updater?.installOnExit(false));
+
+    // Someone who uses Chrome but never added Stashd's helper (they had Stashd before the welcome asked, or
+    // skipped it there) is offered it once, a minute after Stashd starts. Never again after that.
+    const offerChrome = async () => {
+      if (!settings.get().browsers.chrome || getWindow('welcome') || getWindow('save')?.isVisible()) return;
+      if ((await lastHeardFromChrome()) > 0 || !(await listApps()).some((a) => a.name === 'Google Chrome')) return;
+      if (!(await core.firstChromeOffer())) return;
+      const answer = await tidy.ask({ title: 'Add Stashd to Chrome?', detail: "Then Unpack puts each folder's tabs in a tab group of its own.", action: 'Add to Chrome', seconds: 20 });
+      if (answer === 'act') await setupChromeGroups();
+    };
+    if (settings.get().welcomed && (app.isPackaged || !process.env.WWI_FAKE_CAPTURE)) setTimeout(() => void offerChrome().catch(() => undefined), 60_000);
 
     registerIpc(core, secrets, {
       update: {

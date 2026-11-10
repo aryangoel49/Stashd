@@ -66,6 +66,34 @@ async function confirm(event: IpcMainInvokeEvent, message: string, detail: strin
   }
 }
 
+// Adding the Chrome helper: Chrome's extensions page, with the guide card beside it. The guide ticks
+// itself off once Chrome starts talking to Stashd (a fresh chrome.json), then closes.
+let guideWatch: NodeJS.Timeout | null = null;
+let dragIcon: Electron.NativeImage | null = null;
+export async function setupChromeGroups(): Promise<true> {
+  await copyChromeHelper();
+  dragIcon = await helperDragIcon();
+  const since = Date.now();
+  await openChromeExtensions();
+  showWindow('chromeguide');
+  if (guideWatch) clearInterval(guideWatch);
+  guideWatch = setInterval(() => {
+    void lastHeardFromChrome().then((at) => {
+      const open = !!getWindow('chromeguide');
+      if (!open || Date.now() - since > 20 * 60_000) {
+        if (guideWatch) clearInterval(guideWatch);
+        guideWatch = null;
+      } else if (at > since) {
+        if (guideWatch) clearInterval(guideWatch);
+        guideWatch = null;
+        broadcast('chrome:helperAdded');
+        setTimeout(() => getWindow('chromeguide')?.close(), 2800);
+      }
+    });
+  }, 1000);
+  return true;
+}
+
 export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): void {
   handle('app:info', async (): Promise<AppInfo> => ({
     version: app.getVersion(),
@@ -312,33 +340,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     await shell.openExternal(AUTOMATION_SETTINGS);
     return true;
   });
-  // Adding the Chrome helper: Chrome's extensions page, with the guide card beside it. The guide ticks
-  // itself off once Chrome starts talking to Stashd (a fresh chrome.json), then closes.
-  let guideWatch: NodeJS.Timeout | null = null;
-  let dragIcon: Electron.NativeImage | null = null;
-  handle('system:setupChromeGroups', async () => {
-    await copyChromeHelper();
-    dragIcon = await helperDragIcon();
-    const since = Date.now();
-    await openChromeExtensions();
-    showWindow('chromeguide');
-    if (guideWatch) clearInterval(guideWatch);
-    guideWatch = setInterval(() => {
-      void lastHeardFromChrome().then((at) => {
-        const open = !!getWindow('chromeguide');
-        if (!open || Date.now() - since > 20 * 60_000) {
-          if (guideWatch) clearInterval(guideWatch);
-          guideWatch = null;
-        } else if (at > since) {
-          if (guideWatch) clearInterval(guideWatch);
-          guideWatch = null;
-          broadcast('chrome:helperAdded');
-          setTimeout(() => getWindow('chromeguide')?.close(), 2800);
-        }
-      });
-    }, 1000);
-    return true;
-  });
+  handle('system:setupChromeGroups', () => setupChromeGroups());
   // The guide's folder, dragged onto Chrome's extensions page: Chrome adds it, no file picker needed.
   ipcMain.on('chromeguide:drag', (event) => {
     if (!isAppUrl(event.senderFrame?.url ?? '') || !dragIcon) return;

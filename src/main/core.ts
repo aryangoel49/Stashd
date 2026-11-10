@@ -48,6 +48,8 @@ interface State {
   dismissed: Record<string, string>;
   /** macOS has been asked once for Accessibility (to see which Claude or ChatGPT chat is open). */
   askedChatAccess?: boolean;
+  /** Stashd has offered to add its Chrome helper (once, to someone who uses Chrome without it). */
+  offeredChrome?: boolean;
   /** Memory Tidy all has freed so far (MB), and how many times it has run from the desk. */
   freed?: { mb: number; times: number };
 }
@@ -164,6 +166,7 @@ export class Core {
           : null,
       dismissed: raw.dismissed && typeof raw.dismissed === 'object' ? raw.dismissed : {},
       askedChatAccess: raw.askedChatAccess === true,
+      offeredChrome: raw.offeredChrome === true,
       recentTidy: raw.recentTidy && typeof raw.recentTidy.at === 'string' && Array.isArray(raw.recentTidy.items) ? raw.recentTidy : null,
     };
   }
@@ -176,6 +179,14 @@ export class Core {
     this.openCache = null;
     this.suggestCache = null;
     for (const l of this.listeners) l();
+  }
+
+  /** True the first time only: whether to offer the Chrome helper now (it's then never offered again). */
+  async firstChromeOffer(): Promise<boolean> {
+    if (this.state.offeredChrome) return false;
+    this.state.offeredChrome = true;
+    await this.saveState();
+    return true;
   }
 
   private async saveState(): Promise<void> {

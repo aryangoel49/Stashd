@@ -7,6 +7,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ### Added
 - Smart Tidy all. Before closing, each piece of work you have open is saved: into its folder, or a new folder of its own, which a small card then lets you rename. Stray tabs, error pages and front pages just close. With Stashd AI on, Claude does the sorting and naming (a sparkle on the switch shows it); otherwise your Mac does. Turn it on or off with the Smart switch on the Tidy all button.
+- When a new version of Stashd is ready, a card says so: click Restart to update and Stashd closes, updates and opens again by itself.
+- If you use Chrome but never added Stashd's Chrome helper, Stashd offers it once (Unpack can then put each folder's tabs in a tab group).
 
 ### Changed
 - With Smart off, Tidy all saves the folders you have open (like Pack up), then simply closes everything else: every other tab and window, and your apps quit (unsaved work still asks first). Nothing new is saved. What it closed is in Recently closed for 10 minutes.
