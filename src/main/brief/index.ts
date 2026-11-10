@@ -9,6 +9,26 @@ export interface BriefWriter {
   write(entry: SaveEntry, previous: SaveEntry | null, feedback: string | null): Promise<Brief | null>;
   /** A short name for a new job from its items, or null when this writer is not set up. */
   suggestName(items: Item[]): Promise<string | null>;
+  /** Smart Tidy all: what's open, sorted into named pieces of work, or null when this writer is not set up. Throws on failure. */
+  sortWork(items: Item[]): Promise<AiPiece[] | null>;
+}
+
+export interface AiPiece {
+  name: string;
+  items: Item[];
+}
+
+/** Ask the writers to sort what's open into pieces of work; null if none is set up or they all fail. */
+export async function aiSortWork(writers: BriefWriter[], items: Item[]): Promise<AiPiece[] | null> {
+  for (const w of writers) {
+    try {
+      const pieces = await w.sortWork(items);
+      if (pieces) return pieces;
+    } catch {
+      // try the next one
+    }
+  }
+  return null;
 }
 
 /** Ask the writers for a job name; null if none is set up or they all fail. */

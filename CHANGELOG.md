@@ -6,7 +6,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ## Unreleased
 
 ### Added
-- Smart Tidy all. Before closing, each piece of work you have open is saved: into its folder, or a new folder of its own, which a small card then lets you rename. Stray tabs, error pages and front pages just close. Turn it on or off with the Smart switch on the Tidy all button.
+- Smart Tidy all. Before closing, each piece of work you have open is saved: into its folder, or a new folder of its own, which a small card then lets you rename. Stray tabs, error pages and front pages just close. With Stashd AI on, Claude does the sorting and naming (a sparkle on the switch shows it); otherwise your Mac does. Turn it on or off with the Smart switch on the Tidy all button.
 
 ### Changed
 - The Tidy all button looks like a button now, with its Smart switch attached.

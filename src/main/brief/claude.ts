@@ -9,6 +9,7 @@ import { modelInfo } from '../../shared/models';
 import { acceptAiBrief } from './basic';
 import { buildPromptData, cleanAiName, namePayload } from './prompt';
 import { briefParams, responseText, type AskKind } from './spec';
+import { acceptAiSort, sortPayload } from '../jobs/sortai';
 
 function friendlyError(e: unknown): string {
   if (e instanceof Anthropic.AuthenticationError) return 'The API key was not accepted.';
@@ -23,7 +24,7 @@ function friendlyError(e: unknown): string {
 async function ask(apiKey: string, model: string, kind: AskKind, content: string) {
   // Bigger models think for longer, so they get more time.
   const slow = modelInfo(model)?.slow ?? true;
-  const timeout = kind === 'name' ? (slow ? 20_000 : 8_000) : slow ? 60_000 : 30_000;
+  const timeout = kind === 'name' || kind === 'sort' ? (slow ? 20_000 : 12_000) : slow ? 60_000 : 30_000;
   const client = new Anthropic({ apiKey, timeout, maxRetries: 1 });
   try {
     return await client.beta.messages.create({
@@ -69,6 +70,19 @@ export function claudeWriter(opts: { getKey: () => Promise<string | null>; getMo
         return cleanAiName((JSON.parse(text) as { name?: unknown }).name);
       } catch {
         return null;
+      }
+    },
+    async sortWork(items) {
+      if (!opts.allowed()) return null;
+      const key = await opts.getKey();
+      if (!key) return null;
+      const { payload, byId } = sortPayload(items);
+      const response = await ask(key, opts.getModel(), 'sort', JSON.stringify(payload));
+      if (response.stop_reason === 'refusal') throw new Error('Claude declined to sort this.');
+      try {
+        return acceptAiSort(JSON.parse(responseText(response)), byId);
+      } catch {
+        throw new Error('Claude sent back something unexpected.');
       }
     },
   };

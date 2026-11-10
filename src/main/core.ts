@@ -3,7 +3,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import { mostlyOpen, type BriefView, type Capture, type DeskPile, type TidyDesk, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult, type TidyFront } from '../shared/types';
-import { aiJobName, writeBrief, type BriefWriter } from './brief';
+import { aiJobName, aiSortWork, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, CHAT_APPS, frontItemKey, frontThing } from './capture';
 import type { Helper, WindowsInfo } from './helper';
@@ -571,14 +571,21 @@ export class Core {
     const sorted = new Set<string>();
     if (settings.tidySort) {
       const work = [...strays, ...otherWork].filter((i) => !homed.has(i.key) && !isBreakItem(i));
-      const texts = work.map(sortText).filter((t): t is string => !!t);
-      const vectors = texts.length ? await this.meaning?.vectors(texts, 4000).catch(() => null) : null;
-      for (const items of sortIntoWorks(work, vectors ? (t) => vectors.get(t) : undefined)) {
+      // Claude sorts it when AI is on (Stashd AI or your own key): it sees how things connect ("Alfama loft" is
+      // part of the Lisbon trip), and names each piece. Otherwise, or if it doesn't answer in time, the on-device
+      // model sorts and the shared words name it.
+      const ai = work.length >= 2 ? await Promise.race([aiSortWork(this.writers, work).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 13_000))]) : null;
+      let pieces: { name: string | null; items: Item[] }[];
+      if (ai) pieces = ai;
+      else {
+        const texts = work.map(sortText).filter((t): t is string => !!t);
+        const vectors = texts.length ? await this.meaning?.vectors(texts, 4000).catch(() => null) : null;
+        pieces = sortIntoWorks(work, vectors ? (t) => vectors.get(t) : undefined).map((items) => ({ name: null, items }));
+      }
+      for (const { name: aiName, items } of pieces) {
         // Offered exactly what it saves, so the new folder learns nothing about what to leave out.
         this.pending = { capture: Promise.resolve(cap), offered: { sure: items, likely: [], maybe: [], hidden: [], breaks: [], why: {} } };
-        // Claude (or Stashd AI) names it, when one is set up and answers quickly; otherwise the words it shares.
-        const ai = await Promise.race([aiJobName(this.writers, items).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 3000))]);
-        const r = await this.commitSave({ jobId: null, name: ai ?? suggestName(items, null), note: '', keys: items.map((i) => i.key), tidy: true });
+        const r = await this.commitSave({ jobId: null, name: aiName ?? suggestName(items, null), note: '', keys: items.map((i) => i.key), tidy: true });
         const job = await this.store.get(r.jobId);
         plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
         plan.made.push({ jobId: r.jobId, entryId: r.entryId, name: job.name, items });

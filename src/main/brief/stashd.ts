@@ -8,6 +8,7 @@
 
 import type { Brief, SaveEntry } from '../../shared/types';
 import type { BriefWriter } from './index';
+import { acceptAiSort, sortPayload } from '../jobs/sortai';
 import { acceptAiBrief } from './basic';
 import { buildPromptData, cleanAiName, namePayload } from './prompt';
 import type { AskKind } from './spec';
@@ -70,6 +71,16 @@ export function stashdWriter(opts: { installId: () => Promise<string>; allowed: 
         return cleanAiName((JSON.parse(await ask('name', namePayload(items), 8_000)) as { name?: unknown }).name);
       } catch {
         return null;
+      }
+    },
+    async sortWork(items) {
+      if (!opts.allowed()) return null;
+      const { payload, byId } = sortPayload(items);
+      const text = await ask('sort', JSON.stringify(payload), 12_000);
+      try {
+        return acceptAiSort(JSON.parse(text), byId);
+      } catch {
+        throw new Error('Stashd AI sent back something unexpected.');
       }
     },
   };

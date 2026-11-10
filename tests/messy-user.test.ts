@@ -186,7 +186,7 @@ describe('going offline with Claude connected', () => {
   it('still writes a basic brief and says why', async () => {
     open = [tab(1, 'Climate essay notes')];
     const core = makeCore();
-    core.writers = [{ name: 'claude', write: async () => { throw new Error('Connection error.'); }, suggestName: async () => { throw new Error('Connection error.'); } }];
+    core.writers = [{ name: 'claude', write: async () => { throw new Error('Connection error.'); }, suggestName: async () => { throw new Error('Connection error.'); }, sortWork: async () => { throw new Error('Connection error.'); } }];
     core.beginSave();
     await core.preview();
     const { jobId, entryId } = await core.commitSave({ jobId: null, name: 'Climate essay', note: 'para 3', keys: [open[0].key], tidy: false });

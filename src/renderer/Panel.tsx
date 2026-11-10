@@ -162,6 +162,8 @@ function PanelView() {
 
 /** The panel's top bar: the app, Tidy all, stash, the window and Settings. */
 function PanelHead({ settings, onTidy }: { settings: Settings; onTidy: () => void }) {
+  // Smart Tidy all sorts with Claude when AI is on (Stashd AI, or your own key); otherwise on this Mac.
+  const ai = settings.stashdAi || settings.aiDisclosureAccepted;
   return (
     <>
       <div className="panel-head">
@@ -184,11 +186,21 @@ function PanelHead({ settings, onTidy }: { settings: Settings; onTidy: () => voi
               type="button"
               role="switch"
               aria-checked={settings.tidySort}
+              aria-label="Smart Tidy all"
               className="tidy-smart"
               onClick={() => void api.updateSettings({ tidySort: !settings.tidySort })}
-              title={settings.tidySort ? 'Smart is on: work you have open is saved in folders before closing' : 'Smart is off: Tidy all just closes, like before'}
+              title={
+                !settings.tidySort
+                  ? 'Smart is off: Tidy all saves your open folders and closes the rest, like before'
+                  : ai
+                    ? 'Smart is on: Claude sorts the work you have open into folders before closing'
+                    : 'Smart is on: this Mac sorts the work you have open into folders before closing (turn on Stashd AI for better sorting)'
+              }
             >
-              <span className="tidy-dot" aria-hidden="true" /> Smart
+              Smart
+              <span className={`tidy-switch ${ai ? 'ai' : ''}`} aria-hidden="true">
+                <span className="tidy-knob" />
+              </span>
             </button>
           </span>
           <Button

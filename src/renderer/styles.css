@@ -621,17 +621,22 @@ details summary { cursor: default; }
 @media (prefers-color-scheme: dark) { .name-edit { background: rgba(255, 255, 255, 0.08); } }
 /* Tidy all: a real pill button, with its Smart switch attached on the right. */
 .tidy-pill { display: inline-flex; align-items: stretch; height: 28px; border-radius: 99px; background: var(--well); box-shadow: inset 0 0 0 0.5px var(--hair), 0 1px 2px rgba(28, 29, 34, 0.08); overflow: hidden; }
-.tidy-pill button { display: inline-flex; align-items: center; gap: 5px; border: none; background: none; color: var(--text); font: 600 12px -apple-system, sans-serif; cursor: pointer; transition: background-color var(--dur-quick, 120ms) ease, transform var(--dur-press, 120ms) var(--ease-out, ease-out); }
-.tidy-pill .tidy-go { padding: 0 10px 0 9px; }
+.tidy-pill button { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; border: none; background: none; color: var(--text); font: 600 12px -apple-system, sans-serif; cursor: pointer; transition: background-color var(--dur-quick, 120ms) ease, transform var(--dur-press, 120ms) var(--ease-out, ease-out); }
+.tidy-pill .tidy-go { padding: 0 9px 0 8px; }
 .tidy-pill .tidy-go svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.tidy-pill .tidy-smart { padding: 0 9px 0 8px; font-weight: 500; font-size: 11px; color: var(--muted); border-left: 0.5px solid var(--hair); }
-.tidy-pill .tidy-dot { width: 7px; height: 7px; border-radius: 50%; box-shadow: inset 0 0 0 1.2px currentColor; transition: background-color 160ms ease, box-shadow 160ms ease; }
-.tidy-pill.smart .tidy-smart { color: var(--accent-ink); background: var(--accent-soft); }
-.tidy-pill.smart .tidy-dot { background: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.tidy-pill .tidy-smart { gap: 5px; padding: 0 6px 0 8px; font-weight: 600; font-size: 11px; color: var(--muted); border-left: 0.5px solid var(--hair); }
+.tidy-pill.smart .tidy-smart { color: var(--accent-ink); }
+/* A small switch, so it reads as on/off at a glance. The knob slides; only transform moves. */
+.tidy-switch { position: relative; width: 22px; height: 13px; border-radius: 99px; background: color-mix(in srgb, var(--text) 18%, transparent); transition: background-color 180ms ease; }
+.tidy-knob { position: absolute; top: 1.5px; left: 1.5px; width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 200ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)); }
+.tidy-pill.smart .tidy-switch { background: var(--accent); }
+.tidy-pill.smart .tidy-knob { transform: translateX(9px); }
+/* With AI on (Claude sorts), the knob carries a small sparkle. */
+.tidy-switch.ai .tidy-knob::after { content: '✦'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 7px; line-height: 1; color: var(--accent-ink); }
 .tidy-pill button:active { transform: scale(0.96); }
 .tidy-pill button:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent-line); }
-@media (hover: hover) and (pointer: fine) { .tidy-pill button:hover { background: var(--tint); } .tidy-pill.smart .tidy-smart:hover { background: color-mix(in srgb, var(--accent) 30%, transparent); } }
-@media (prefers-reduced-motion: reduce) { .tidy-pill button, .tidy-pill .tidy-dot { transition: none; } }
+@media (hover: hover) and (pointer: fine) { .tidy-pill button:hover { background: var(--tint); } }
+@media (prefers-reduced-motion: reduce) { .tidy-pill button, .tidy-switch, .tidy-knob { transition: none; } }
 
 /* Hovering a folder's name marks it like a highlighter pen (the row's own hover only tints the row),
    to show the name itself can be changed. Double-click to rename. */
