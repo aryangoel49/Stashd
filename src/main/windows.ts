@@ -125,7 +125,9 @@ export function showWindow(
     return existing;
   }
 
-  const win = new BrowserWindow({ ...OPTIONS[route], webPreferences: { ...WEB, preload: preloadPath(), devTools: !app.isPackaged } });
+  // A window made ahead of time doesn't draw until it's first shown: by default Electron keeps drawing a
+  // window that starts hidden, so its little animations (the folder blinking) would run unseen, all the time.
+  const win = new BrowserWindow({ ...OPTIONS[route], paintWhenInitiallyHidden: !opts.background, webPreferences: { ...WEB, preload: preloadPath(), devTools: !app.isPackaged } });
   windows.set(route, win);
   win.on('closed', () => windows.delete(route));
 

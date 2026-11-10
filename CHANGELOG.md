@@ -16,6 +16,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ### Fixed
 - On slower Macs (older Intel ones especially), the welcome could show no apps and skip the Chrome step: it now gives the Mac more time, and lists your installed apps if it still can't tell.
+- Stashd uses about a tenth of the CPU it did while sitting in the menu bar: the hidden menu bar panel kept drawing its little animations even when nobody could see it.
 - Stashd is lighter on slower Macs: in the background it checks what you have open less often when checking is slow there (older Intel Macs), and it waits longer for the Mac to answer before giving up.
 
 ## 1.11.1 (2026-11-09)
