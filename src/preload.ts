@@ -102,6 +102,7 @@ const api = {
   onWindowBlur: (cb: () => void) => on('window:blur', cb),
   onPayload: (cb: () => void) => on('payload:updated', cb),
   onOverlayPlay: (cb: (play: OverlayPlay) => void) => on('overlay:play', (p) => cb(p as OverlayPlay)),
+  onOverlayRelease: (cb: () => void) => on('overlay:release', cb),
   onToastShow: (cb: (info: ToastInfo) => void) => on('toast:show', (p) => cb(p as ToastInfo)),
   onToastLeave: (cb: () => void) => on('toast:leave', cb),
   onMainShow: (cb: (view: 'main' | 'settings' | 'recent') => void) => on('main:show', (v) => cb(v === 'settings' || v === 'recent' ? v : 'main')),

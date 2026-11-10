@@ -367,6 +367,8 @@ export interface FlyItem {
   icon: string | null;
   /** How many things this icon stands for (8 Chrome tabs are one Chrome icon with 8). */
   count?: number;
+  /** Unpack with window places on: where its window opens, inside the overlay window. */
+  frame?: { x: number; y: number; w: number; h: number };
 }
 
 export interface OverlayPlay {

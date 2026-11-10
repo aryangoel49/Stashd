@@ -1084,15 +1084,24 @@ export class Core {
   }
 
   /** `keys`: open only these items (picked by type or one by one in the folder). */
-  async open(jobId: string, entryId: string | undefined, mode: 'needed' | 'all', before?: (items: Item[]) => void, keys?: string[]): Promise<OpenResult> {
+  async open(
+    jobId: string,
+    entryId: string | undefined,
+    mode: 'needed' | 'all',
+    /** Called just before things open; what it returns (if anything) is called once they have. */
+    before?: (items: Item[]) => void | (() => void),
+    keys?: string[],
+  ): Promise<OpenResult> {
     const picked = await this.itemsToOpen(jobId, entryId, mode);
     const entry = picked.entry;
     const items = keys ? picked.items.filter((i) => keys.includes(i.key)) : picked.items;
     if (!items.length) return { opened: 0, alreadyOpen: 0, missing: [], failed: [], problems: [] };
-    before?.(items);
+    const afterOpen = before?.(items);
     let openBefore = new Set<string>();
     const name = (await this.store.get(jobId).catch(() => null))?.name;
-    const result = await openItems(items, entry.frontKey, this.settings.get(), (b) => (openBefore = b), name, (t) => this.helper.place(t));
+    const result = await openItems(items, entry.frontKey, this.settings.get(), (b) => (openBefore = b), name, (t) => this.helper.place(t)).finally(
+      () => afterOpen?.(),
+    );
     // Nothing came back: the folder isn't open, so it isn't the one you're on.
     if (!result.opened && !result.alreadyOpen) return result;
     await this.setCurrent(jobId);

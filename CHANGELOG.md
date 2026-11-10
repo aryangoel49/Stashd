@@ -5,6 +5,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+### Changed
+- Unpack has a new, calmer animation. With window places on, see-through shapes of your windows glide out to where each one opens; otherwise your apps' icons glide into the tray. Either way they stay until everything has opened.
+
 ## 1.11.1 (2026-11-09)
 
 ### Fixed

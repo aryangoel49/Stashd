@@ -48,7 +48,7 @@ export interface IpcHooks {
   overlayDone: () => void;
   testClaude: (key: string) => Promise<void>;
   openSave: (mode: 'save' | 'pack', jobId?: string) => void;
-  beforeOpen: (items: import('../shared/types').Item[]) => void;
+  beforeOpen: (items: import('../shared/types').Item[]) => void | (() => void);
   update: { state: () => UpdateState | null; check: () => Promise<UpdateState | null>; restart: () => void };
 }
 

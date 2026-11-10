@@ -55,7 +55,7 @@ function start(): void {
   let core: Core;
   let tray: AppTray;
   /** Hides the panel and plays the Unpack animation (set once the app is ready). */
-  let beforeOpen: (items: Item[]) => void = () => undefined;
+  let beforeOpen: (items: Item[]) => void | (() => void) = () => undefined;
   let shortcutErrors: string[] = [];
   let tidyAllNow: (keep?: TidyKeep) => Promise<void> = async () => undefined;
 
@@ -264,7 +264,7 @@ function start(): void {
     );
     beforeOpen = (items: Item[]) => {
       getWindow('panel')?.hide();
-      tidy.unpackAnimation(items);
+      return tidy.unpackAnimation(items);
     };
 
     // Keeping itself up to date: only the real app (a test copy has nothing to replace).
@@ -349,6 +349,7 @@ function start(): void {
     if (!app.isPackaged && process.env.WWI_SCENARIOS) setTimeout(() => void runScenarios(core, tidy, process.env.WWI_SCENARIOS!, process.env.WWI_SCENARIO_FILES ?? ''), 3000);
     if (!app.isPackaged && process.env.WWI_LIVE_TEST) setTimeout(() => void runLiveTest(core, tidy, process.env.WWI_LIVE_TEST!), 3000);
     if (!app.isPackaged && process.env.WWI_DEMO_DESK) setTimeout(() => tidy.demoDesk(), 4000);
+    if (!app.isPackaged && process.env.WWI_DEMO_UNPACK) setTimeout(() => void tidy.demoUnpack(process.env.WWI_DEMO_UNPACK!), 4000);
     if (!app.isPackaged && process.env.WWI_CAPTURE_DIR) {
       togglePanel(tray.bounds());
       setTimeout(() => openSave(), 7500);

@@ -7,6 +7,7 @@ import { Button, FolderMark, motion, Motion, type Mood } from './ui';
 import { ItemBadge, useMacIcon } from './visuals';
 import { SiteTile } from './Break';
 import { sound, type SoundName } from './sounds';
+import stashdMark from '../../assets/brand/stashd-mark.svg';
 
 function usePayload<T>(): T | null {
   const [p, setP] = useState<T | null>(null);
@@ -89,8 +90,8 @@ export function Naming() {
 
 // ---------- the fly-in animation ----------
 // One gesture, in four beats: your apps settle into a frosted tray (one icon per app, with a count), gather
-// into a stack, sweep in a curve into the menu bar icon, and land with a soft ripple. Unpacking plays it
-// backwards. Only transform and opacity move, so it stays smooth while windows close behind it.
+// into a stack, sweep in a curve into the menu bar icon, and land with a soft ripple. Unpacking has its own,
+// calmer animation (below). Only transform and opacity move, so it stays smooth while windows close behind it.
 
 const APPEAR_MS = 220;
 const HOLD_MS = 140;
@@ -108,11 +109,11 @@ async function ready(imgs: HTMLImageElement[]): Promise<void> {
 }
 
 // ---------- sound ----------
-/** The sound lands with the things: as they reach the menu bar, or as they leave it when unpacking. */
+/** The sound lands with the things, as they reach the menu bar. */
 function playSound(play: OverlayPlay, count: number): void {
   if (!play.sound) return;
   const landing = APPEAR_MS + HOLD_MS + GATHER_MS + FLY_MS + STAGGER_MS * Math.max(0, count - 1) - 60;
-  setTimeout(() => void sound(play.sound as SoundName, true), play.sound === 'unpack' ? 0 : landing);
+  setTimeout(() => void sound(play.sound as SoundName, true), landing);
 }
 
 const at = (ms: number) => ms / TOTAL_MS;
@@ -165,7 +166,7 @@ async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<
   const caption = document.createElement('span');
   caption.className = 'fly-caption';
   const total = play.total ?? play.items.reduce((s, i) => s + (i.count ?? 1), 0);
-  caption.textContent = `${play.reverse ? 'Bringing back' : 'Tidying'} ${total} ${total === 1 ? 'thing' : 'things'}`;
+  caption.textContent = `Tidying ${total} ${total === 1 ? 'thing' : 'things'}`;
   tray.appendChild(caption);
   layer.appendChild(tray);
 
@@ -232,18 +233,12 @@ async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<
       { opacity: 1, transform: `scale(0.3) rotate(${nd.tilt * 2}deg)`, offset: 0.93 },
       { opacity: 0, transform: `scale(0.18) rotate(${nd.tilt * 2}deg)` },
     ];
-    // Unpacking runs the same path backwards.
-    const dir: PlaybackDirection = play.reverse ? 'reverse' : 'normal';
-    finished.push(
-      nd.x.animate(xs, { ...timing, direction: dir }).finished,
-      nd.y.animate(ys, { ...timing, direction: dir }).finished,
-      nd.tile.animate(looks, { ...timing, direction: dir }).finished,
-    );
+    finished.push(nd.x.animate(xs, timing).finished, nd.y.animate(ys, timing).finished, nd.tile.animate(looks, timing).finished);
     // The count badge steps aside before the flight, so the stack reads as one bundle.
-    nd.tile.querySelector('.fly-count')?.animate([{ opacity: 1 }, { opacity: 1, offset: gatherAt }, { opacity: 0, offset: flyAt }, { opacity: 0 }], { ...timing, direction: dir });
+    nd.tile.querySelector('.fly-count')?.animate([{ opacity: 1 }, { opacity: 1, offset: gatherAt }, { opacity: 0, offset: flyAt }, { opacity: 0 }], timing);
   });
 
-  // The tray comes in with the icons and melts away as they gather (it reappears last when unpacking).
+  // The tray comes in with the icons and melts away as they gather.
   const trayFrames: Keyframe[] = [
     { opacity: 0, transform: 'scale(0.96)', easing: EASE_OUT },
     { opacity: 1, transform: 'scale(1)', offset: at(APPEAR_MS) },
@@ -251,9 +246,9 @@ async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<
     { opacity: 0, transform: 'scale(0.97)', offset: flyAt },
     { opacity: 0, transform: 'scale(0.97)' },
   ];
-  finished.push(tray.animate(trayFrames, { duration: TOTAL_MS, fill: 'both', direction: play.reverse ? 'reverse' : 'normal' }).finished);
+  finished.push(tray.animate(trayFrames, { duration: TOTAL_MS, fill: 'both' }).finished);
 
-  // A soft ripple where it all lands (or leaves from, when unpacking).
+  // A soft ripple where it all lands.
   const ripple = document.createElement('div');
   ripple.className = 'fly-ripple';
   Object.assign(ripple.style, { left: `${play.target.x - 20}px`, top: `${play.target.y - 20}px` });
@@ -261,50 +256,204 @@ async function playAnimation(layer: HTMLDivElement, play: OverlayPlay): Promise<
   finished.push(
     ripple.animate([{ opacity: 0.55, transform: 'scale(0.3)' }, { opacity: 0, transform: 'scale(1.6)' }], {
       duration: 420,
-      delay: play.reverse ? 0 : flyEnd - 60,
+      delay: flyEnd - 60,
       easing: EASE_OUT,
       fill: 'both',
     }).finished,
   );
   // Packing lands with a small burst of sparks: the "done" moment.
-  if (!play.reverse) {
-    const SPARKS = 10;
-    for (let i = 0; i < SPARKS; i++) {
-      const spark = document.createElement('div');
-      spark.className = 'fly-spark';
-      Object.assign(spark.style, { left: `${play.target.x - 3}px`, top: `${play.target.y - 3}px` });
-      layer.appendChild(spark);
-      // Mostly downwards and to the sides: up is off the top of the screen.
-      const angle = Math.PI * (0.05 + (0.9 * i) / (SPARKS - 1)) + (i % 2 ? 0.08 : -0.08);
-      const dist = 26 + (i % 3) * 9;
-      const dx = Math.cos(angle) * dist;
-      const dy = Math.sin(angle) * dist;
-      finished.push(
-        spark.animate(
-          [
-            { opacity: 0, transform: 'translate3d(0,0,0) scale(0.6)' },
-            { opacity: 1, transform: `translate3d(${dx * 0.35}px,${dy * 0.35}px,0) scale(1)`, offset: 0.2 },
-            { opacity: 0, transform: `translate3d(${dx}px,${dy}px,0) scale(0.4)` },
-          ],
-          { duration: 460, delay: flyEnd - 40 + (i % 3) * 18, easing: EASE_OUT, fill: 'both' },
-        ).finished,
-      );
-    }
+  const SPARKS = 10;
+  for (let i = 0; i < SPARKS; i++) {
+    const spark = document.createElement('div');
+    spark.className = 'fly-spark';
+    Object.assign(spark.style, { left: `${play.target.x - 3}px`, top: `${play.target.y - 3}px` });
+    layer.appendChild(spark);
+    // Mostly downwards and to the sides: up is off the top of the screen.
+    const angle = Math.PI * (0.05 + (0.9 * i) / (SPARKS - 1)) + (i % 2 ? 0.08 : -0.08);
+    const dist = 26 + (i % 3) * 9;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+    finished.push(
+      spark.animate(
+        [
+          { opacity: 0, transform: 'translate3d(0,0,0) scale(0.6)' },
+          { opacity: 1, transform: `translate3d(${dx * 0.35}px,${dy * 0.35}px,0) scale(1)`, offset: 0.2 },
+          { opacity: 0, transform: `translate3d(${dx}px,${dy}px,0) scale(0.4)` },
+        ],
+        { duration: 460, delay: flyEnd - 40 + (i % 3) * 18, easing: EASE_OUT, fill: 'both' },
+      ).finished,
+    );
   }
   await Promise.all(finished).catch(() => undefined);
+}
+
+// ---------- the unpack animation ----------
+// Calm, the way macOS does it: one curve, no bounce, no spin. With window places on, a small glass Stashd tile
+// fades in mid-screen and see-through shapes of your windows glide out of it to where they'll open; with them
+// off (where windows open is up to each app), your apps' icons glide out of the middle into the tray. Either
+// way they stay until everything has been asked to open, then give way to the real windows.
+
+const GLIDE = 'cubic-bezier(0.32, 0.72, 0, 1)';
+const GLIDE_MS = 520;
+const GLIDE_STAGGER_MS = 50;
+const SOURCE = 72;
+/** Never hold the shapes longer than this, however slow the apps are. */
+const HOLD_MAX_MS = 6000;
+
+async function playUnpack(layer: HTMLDivElement, play: OverlayPlay, released: Promise<void>): Promise<void> {
+  layer.innerHTML = '';
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const imgs: HTMLImageElement[] = [];
+  const { width: W, height: H } = play.size;
+  const n = Math.max(1, play.items.length);
+  const placed = play.items.length > 0 && play.items.every((i) => i.frame);
+  const total = play.total ?? play.items.reduce((s, i) => s + (i.count ?? 1), 0);
+  const ease = { fill: 'both' as const, easing: EASE_OUT };
+  const entering: Promise<unknown>[] = [];
+  const leaving: Array<() => Animation> = [];
+  const icon = (src: string | null, label: string) => {
+    if (!src) {
+      const plain = document.createElement('span');
+      plain.className = 'un-plain';
+      plain.textContent = (label[0] ?? '•').toUpperCase();
+      return plain;
+    }
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = '';
+    imgs.push(img);
+    return img;
+  };
+  /** Moves and scales an element laid out at `to` so it covers `from` (its top left corner is the origin). */
+  const cover = (from: { x: number; y: number; w: number; h: number }, to: { x: number; y: number; w: number; h: number }) =>
+    `translate3d(${from.x - to.x}px, ${from.y - to.y}px, 0) scale(${from.w / to.w}, ${from.h / to.h})`;
+
+  if (placed) {
+    const src = document.createElement('div');
+    src.className = 'un-src';
+    Object.assign(src.style, { left: `${W / 2 - SOURCE / 2}px`, top: `${H / 2 - SOURCE / 2}px` });
+    src.appendChild(icon(stashdMark, 'S'));
+    layer.appendChild(src);
+    const shapes = play.items.map((it) => {
+      const f = it.frame!;
+      const el = document.createElement('div');
+      el.className = 'un-shape';
+      Object.assign(el.style, { left: `${f.x}px`, top: `${f.y}px`, width: `${f.w}px`, height: `${f.h}px` });
+      const mark = icon(it.icon, it.label);
+      el.appendChild(mark);
+      layer.appendChild(el);
+      return { el, mark, f };
+    });
+    await ready(imgs);
+    await new Promise((r) => requestAnimationFrame(r));
+    if (play.sound) void sound('unpack', true);
+    const from = { x: W / 2 - 30, y: H / 2 - 20, w: 60, h: 40 };
+    if (reduce) {
+      for (const s of shapes) {
+        s.mark.style.opacity = '1';
+        entering.push(s.el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, ...ease }).finished);
+      }
+    } else {
+      src.animate([{ opacity: 0, transform: 'scale(0.94)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 220, delay: 40, ...ease });
+      src.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.96)' }], { duration: 220, delay: 360, fill: 'forwards', easing: EASE_OUT });
+      shapes.forEach((s, i) => {
+        const delay = 200 + i * GLIDE_STAGGER_MS;
+        entering.push(
+          s.el.animate(
+            [
+              { opacity: 0, transform: cover(from, s.f) },
+              { opacity: 1, transform: cover(from, s.f), offset: 0.12 },
+              { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1, 1)' },
+            ],
+            { duration: GLIDE_MS, delay, fill: 'both', easing: GLIDE },
+          ).finished,
+        );
+        // The icon shows once its shape has landed, so it's never seen stretched.
+        s.mark.animate([{ opacity: 0, transform: 'scale(0.9)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 200, delay: delay + GLIDE_MS - 80, ...ease });
+      });
+    }
+    shapes.forEach((s) => leaving.push(() => s.el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards', easing: EASE_OUT })));
+  } else {
+    // The tray, as wide as its icons, where packing's tray sits.
+    const trayW = n * ICON + (n - 1) * GAP + PAD * 2;
+    const trayH = ICON + PAD * 2 + 26;
+    const left = W / 2 - trayW / 2;
+    const top = H * 0.36 - trayH / 2;
+    const tray = document.createElement('div');
+    tray.className = 'fly-tray';
+    Object.assign(tray.style, { left: `${left}px`, top: `${top}px`, width: `${trayW}px`, height: `${trayH}px` });
+    const caption = document.createElement('span');
+    caption.className = 'fly-caption';
+    caption.textContent = `Bringing back ${total} ${total === 1 ? 'thing' : 'things'}`;
+    tray.appendChild(caption);
+    layer.appendChild(tray);
+    const tiles = play.items.map((it, i) => {
+      const el = document.createElement('div');
+      el.className = 'un-icon';
+      el.appendChild(icon(it.icon, it.label));
+      if ((it.count ?? 1) > 1) {
+        const badge = document.createElement('span');
+        badge.className = 'fly-count';
+        badge.textContent = String(it.count);
+        el.appendChild(badge);
+      }
+      Object.assign(el.style, { left: `${left + PAD + i * (ICON + GAP)}px`, top: `${top + PAD}px` });
+      layer.appendChild(el);
+      return { el, dx: W / 2 - ICON / 2 - (left + PAD + i * (ICON + GAP)) };
+    });
+    await ready(imgs);
+    await new Promise((r) => requestAnimationFrame(r));
+    if (play.sound) void sound('unpack', true);
+    entering.push(
+      tray.animate([{ opacity: 0, transform: 'scale(0.97)' }, { opacity: 1, transform: 'scale(1)' }], { duration: reduce ? 200 : 260, ...ease }).finished,
+    );
+    tiles.forEach((t, i) => {
+      const frames: Keyframe[] = reduce
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [
+            { opacity: 0, transform: `translate3d(${t.dx}px, 0, 0) scale(0.6)` },
+            { opacity: 1, transform: `translate3d(${t.dx * 0.8}px, 0, 0) scale(0.7)`, offset: 0.15 },
+            { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' },
+          ];
+      entering.push(t.el.animate(frames, { duration: reduce ? 200 : GLIDE_MS, delay: reduce ? 0 : 120 + i * GLIDE_STAGGER_MS, fill: 'both', easing: GLIDE }).finished);
+    });
+    leaving.push(() => tray.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.98)' }], { duration: 240, fill: 'forwards', easing: EASE_OUT }));
+    tiles.forEach((t) => leaving.push(() => t.el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: 'forwards', easing: EASE_OUT })));
+  }
+
+  // Hold until everything has been asked to open (and the glide has finished), then make way.
+  await Promise.all([Promise.all(entering).catch(() => undefined), Promise.race([released, new Promise((r) => setTimeout(r, HOLD_MAX_MS))])]);
+  const out = leaving.map((go, i) => {
+    const a = go();
+    if (placed && !reduce) a.effect?.updateTiming({ delay: i * GLIDE_STAGGER_MS });
+    return a.finished;
+  });
+  await Promise.all(out).catch(() => undefined);
 }
 
 export function Overlay() {
   const layer = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    return api.onOverlayPlay((play) => {
+    let release = () => {};
+    let latest = 0;
+    const offRelease = api.onOverlayRelease(() => release());
+    const offPlay = api.onOverlayPlay((play) => {
       const el = layer.current;
       if (!el) return;
-      void playAnimation(el, play).then(() => {
+      const me = ++latest;
+      release();
+      const released = new Promise<void>((r) => (release = r));
+      void (play.reverse ? playUnpack(el, play, released) : playAnimation(el, play)).then(() => {
+        // A newer animation took over the window: leave it alone.
+        if (me !== latest) return;
         el.innerHTML = '';
         void api.overlayDone();
       });
     });
+    return () => {
+      offPlay();
+      offRelease();
+    };
   }, []);
   return <div ref={layer} className="fly-layer" />;
 }

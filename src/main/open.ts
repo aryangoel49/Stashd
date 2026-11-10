@@ -168,7 +168,7 @@ const SET_BOUNDS = `
     end if`;
 
 /** Today's screens (their usable areas, main screen first), for fitting saved window places. */
-function screens(): Rect[] {
+export function screens(): Rect[] {
   try {
     const main = screen.getPrimaryDisplay();
     return [main, ...screen.getAllDisplays().filter((d) => d.id !== main.id)].map((d) => ({ x: d.workArea.x, y: d.workArea.y, w: d.workArea.width, h: d.workArea.height }));

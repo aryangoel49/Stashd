@@ -9,7 +9,8 @@ import { CHAT_APPS } from './capture';
 import { appsToQuit, type Core } from './core';
 import { matchKeys, siteOf } from './urls';
 import { iconSource } from './icons';
-import { changeChromeGroup, openItems } from './open';
+import { changeChromeGroup, openItems, screens } from './open';
+import { fitFrame } from './frames';
 import { usedMemoryMB } from './ram';
 import { canName, cleanFileName, closeItems, freePath, saveUntitled, suggestedFileName } from './tidy';
 import type { UrlOptions } from './urls';
@@ -325,26 +326,42 @@ export class TidyFlow {
   // ---------- animation ----------
 
   /** One icon per app (8 Chrome tabs are one Chrome icon marked 8), the busiest first, at most 6. */
-  private async withIcons(items: Item[]): Promise<FlyItem[]> {
-    const groups = new Map<string, { label: string; source: string; count: number }>();
+  private async withIcons(items: Item[], placesOn?: Rectangle): Promise<FlyItem[]> {
+    const groups = new Map<string, { label: string; source: string; count: number; frame?: Item['frame'] }>();
     for (const it of items) {
       const source = iconSource(it);
       const g = groups.get(source);
-      if (g) g.count++;
-      else groups.set(source, { label: it.kind === 'doc' && !it.app ? it.label : it.app, source, count: 1 });
+      if (g) {
+        g.count++;
+        g.frame ??= it.frame;
+      } else groups.set(source, { label: it.kind === 'doc' && !it.app ? it.label : it.app, source, count: 1, frame: it.frame });
     }
     const shown = [...groups.values()].sort((a, b) => b.count - a.count).slice(0, 6);
     const sources = shown.map((g) => g.source);
     // Don't hold the animation up for long: whatever isn't back in time flies as a plain card.
     await Promise.race([this.core.icons.get(sources), wait(120)]);
-    return shown.map((g) => ({ label: g.label, icon: this.core.icons.peek(g.source), count: g.count }));
+    // Where each window will open (window places on), as Unpack fits it to today's screens; only the ones
+    // on the overlay's screen can be shown.
+    const here = placesOn ? screens() : [];
+    const place = (f: Item['frame']): FlyItem['frame'] => {
+      if (!placesOn || !f) return undefined;
+      const r = fitFrame(f, here);
+      const d = placesOn;
+      const box = r.full ? { x: d.x, y: d.y, w: d.width, h: d.height } : r;
+      const inside = box.x >= d.x && box.y >= d.y && box.x + box.w <= d.x + d.width && box.y + box.h <= d.y + d.height;
+      return inside ? { x: box.x - d.x, y: box.y - d.y, w: box.w, h: box.h } : undefined;
+    };
+    return shown.map((g) => ({ label: g.label, icon: this.core.icons.peek(g.source), count: g.count, frame: place(g.frame) }));
   }
 
-  /** Plays the fly-in (or fly-out) animation. Resolves when it has finished. */
-  private async play(items: Item[], reverse: boolean, kind: 'pack' | 'tidy' = 'pack'): Promise<void> {
+  /**
+   * Plays the fly-in animation, or the unpack one (reverse). Unpacking holds its window shapes until
+   * `opened` settles (everything has been asked to open). Resolves when it has finished.
+   */
+  private async play(items: Item[], reverse: boolean, kind: 'pack' | 'tidy' = 'pack', opened?: Promise<void>): Promise<void> {
     const tray = this.trayBounds();
     const display = screen.getDisplayMatching(tray);
-    const flies = await this.withIcons(items);
+    const flies = await this.withIcons(items, reverse && this.core.settings.get().windowPlaces ? display.bounds : undefined);
     const play: OverlayPlay = {
       items: flies,
       target: { x: tray.x + tray.width / 2 - display.bounds.x, y: tray.y + tray.height / 2 - display.bounds.y },
@@ -358,20 +375,27 @@ export class TidyFlow {
     win.setBounds(display.bounds);
     const finished = new Promise<void>((resolve) => {
       this.overlayDone = resolve;
-      // Safety net in case the window never reports back.
-      setTimeout(resolve, 2200);
+      // Safety net in case the window never reports back (Unpack waits for things to open, up to 6 s).
+      setTimeout(resolve, reverse ? 7000 : 2200);
     });
     win.webContents.send('overlay:play', play);
     win.showInactive();
+    const release = () => {
+      if (this.payloads.get('overlay') === play) win.webContents.send('overlay:release');
+    };
+    if (reverse) void (opened ?? Promise.resolve()).then(release, release);
     await finished;
     this.overlayDone = null;
     if (!reverse) this.landed();
     if (this.payloads.get('overlay') === play) win.hide();
   }
 
-  /** Unpacking: icons fly out of the menu bar icon while things reopen. */
-  unpackAnimation(items: Item[]): void {
-    void this.play(items.filter((i) => i.kind !== 'app' || items.length <= 3), true);
+  /** Unpacking: things come out of Stashd while they reopen. Call what it returns once they've been opened. */
+  unpackAnimation(items: Item[]): () => void {
+    let opened!: () => void;
+    const done = new Promise<void>((r) => (opened = r));
+    void this.play(items.filter((i) => i.kind !== 'app' || items.length <= 3), true, 'pack', done);
+    return opened;
   }
 
   /** The animation window says it's done. */
@@ -498,8 +522,9 @@ export class TidyFlow {
     clearTimeout(u.timer);
     this.undo = null;
     this.hideToast();
-    const animation = this.play(u.items, true);
-    await openItems(u.items, u.frontKey, this.core.settings.get());
+    let opened!: () => void;
+    const animation = this.play(u.items, true, 'pack', new Promise<void>((r) => (opened = r)));
+    await openItems(u.items, u.frontKey, this.core.settings.get()).finally(opened);
     await this.core.dropTidied(u.items);
     this.core.notify();
     await animation;
@@ -539,6 +564,32 @@ export class TidyFlow {
       },
       ms,
     );
+  }
+
+  /**
+   * Development only (WWI_DEMO_UNPACK=places or tray): the unpack animation with pretend things, opening
+   * "finishing" after 1.5 s, and a few frames saved to WWI_CAPTURE_DIR. Opens nothing.
+   */
+  async demoUnpack(mode: string): Promise<void> {
+    await this.core.settings.update({ windowPlaces: mode === 'places' });
+    const d = screen.getPrimaryDisplay().workArea;
+    const at = (x: number, y: number, w: number, h: number) => ({ x: Math.round(d.x + d.width * x), y: Math.round(d.y + d.height * y), w: Math.round(d.width * w), h: Math.round(d.height * h) });
+    const items: Item[] = [
+      { key: 'tab:a', kind: 'tab', label: 'Sea level rise', detail: '', app: 'Google Chrome', frame: at(0.04, 0.04, 0.48, 0.5) },
+      { key: 'tab:b', kind: 'tab', label: 'Google Scholar', detail: '', app: 'Google Chrome', frame: at(0.04, 0.04, 0.48, 0.5) },
+      { key: 'doc:/Applications/Pages.app', kind: 'doc', label: 'Climate essay', detail: '', app: 'Pages', path: '/Applications/Pages.app', frame: at(0.55, 0.06, 0.4, 0.45) },
+      { key: 'app:Notes', kind: 'app', label: 'Notes', detail: '', app: 'Notes', path: '/System/Applications/Notes.app', frame: at(0.08, 0.58, 0.36, 0.38) },
+    ];
+    const opened = this.unpackAnimation(items);
+    setTimeout(opened, 1500);
+    if (!process.env.WWI_CAPTURE_DIR) return;
+    for (const ms of [250, 450, 650, 900, 1500, 1800, 2100]) {
+      setTimeout(() => {
+        void getWindow('overlay')?.webContents.capturePage().then((img) =>
+          import('node:fs/promises').then((fs) => fs.writeFile(path.join(process.env.WWI_CAPTURE_DIR!, `unpack-${mode}-${ms}.png`), img.resize({ width: 1000 }).toPNG())),
+        );
+      }, ms);
+    }
   }
 
   demo(): void {
