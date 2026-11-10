@@ -4,7 +4,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import { screen, type Rectangle } from 'electron';
-import type { FlyItem, Item, NamingRequest, OverlayPlay, Route, ToastInfo } from '../shared/types';
+import type { FlyItem, Item, NamingRequest, OverlayPlay, Route, SortingAnswer, SortingRequest, ToastInfo } from '../shared/types';
 import { CHAT_APPS } from './capture';
 import { appsToQuit, type Core } from './core';
 import { matchKeys, siteOf } from './urls';
@@ -38,6 +38,8 @@ export class TidyFlow {
   /** A card waiting for your answer (automatic saving), resolved by its button, its close, or time running out. */
   private asked: ((a: 'act' | 'dismiss' | 'timeout' | 'replaced') => void) | null = null;
   private overlayDone: (() => void) | null = null;
+  /** The sorting card waiting for your answer. */
+  private sorting: ((a: SortingAnswer) => void) | null = null;
   /** Tidies run one after another, so a second Pack up never takes over the first one's naming box. */
   private queue: Promise<void> = Promise.resolve();
 
@@ -134,6 +136,8 @@ export class TidyFlow {
         }
         this.setUndo(closed, null, desk ? DESK_MS : UNDO_MS);
         await this.core.rememberTidied(closed);
+        // The new folders "Sort into folders" made: name them one by one, without holding anything up.
+        if (plan.made.length) void this.askSorted(plan.made);
         if (desk) {
           // The desk's payoff: where everything went, the memory it gave back, and what's next.
           // Apps take a moment to hand their memory back after quitting.
@@ -314,6 +318,31 @@ export class TidyFlow {
         if (this.naming === pending) this.finishNaming([]);
       });
     });
+  }
+
+  /** One card per new folder: a name (its guess filled in) and what you were doing. Skip leaves it as it is. */
+  private async askSorted(made: { jobId: string; name: string; items: Item[] }[]): Promise<void> {
+    for (const [i, m] of made.entries()) {
+      const shown = m.items.slice(0, 5);
+      this.payloads.set('sorting', {
+        jobId: m.jobId,
+        name: m.name,
+        index: i + 1,
+        total: made.length,
+        items: shown,
+        more: m.items.length - shown.length,
+      } satisfies SortingRequest);
+      showWindow('sorting', { onReady: (w) => w.webContents.send('payload:updated') });
+      const answer = await new Promise<SortingAnswer>((resolve) => (this.sorting = resolve));
+      this.sorting = null;
+      if (answer === 'rest') break;
+      if (answer) await this.core.describeFolder(m.jobId, answer.name, answer.note).catch(() => undefined);
+    }
+    getWindow('sorting')?.hide();
+  }
+
+  finishSorting(answer: SortingAnswer): void {
+    this.sorting?.(answer);
   }
 
   finishNaming(names: (string | null)[]): void {
@@ -590,6 +619,27 @@ export class TidyFlow {
         );
       }, ms);
     }
+  }
+
+  /**
+   * Development only (WWI_DEMO_SORT, with WWI_FAKE_CAPTURE): Tidy all's sorting on the pretend desk, without
+   * closing anything, then each naming card in turn (saved to WWI_CAPTURE_DIR, then answered).
+   */
+  async demoSort(): Promise<void> {
+    const plan = await this.core.tidyAll({});
+    console.log('[demo-sort] new folders:', JSON.stringify(plan.made.map((m) => ({ name: m.name, items: m.items.map((i) => i.label) }))));
+    console.log('[demo-sort] closed, not saved:', JSON.stringify(plan.close.map((i) => i.label)));
+    const answers = plan.made.map((m, i) => setTimeout(() => {
+      const win = getWindow('sorting');
+      void win?.webContents.capturePage().then(async (img) => {
+        if (process.env.WWI_CAPTURE_DIR) await import('node:fs/promises').then((fs) => fs.writeFile(path.join(process.env.WWI_CAPTURE_DIR!, `sort-${i + 1}.png`), img.toPNG()));
+        this.finishSorting(i === 0 ? { name: `${m.name} (renamed)`, note: 'Checking the sorting cards' } : null);
+      });
+    }, 2500 * (i + 1)));
+    await this.askSorted(plan.made);
+    answers.forEach(clearTimeout);
+    const jobs = await this.core.store.list();
+    console.log('[demo-sort] folders now:', JSON.stringify(jobs.map((j) => j.name)));
   }
 
   demo(): void {

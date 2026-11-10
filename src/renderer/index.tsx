@@ -4,7 +4,7 @@ import type { Route } from '../shared/types';
 import { Main } from './Main';
 import { Panel } from './Panel';
 import { Save } from './Save';
-import { Naming, Overlay, Toast } from './Tidy';
+import { Naming, Overlay, Sorting, Toast } from './Tidy';
 import { Welcome } from './Welcome';
 import { ChromeGuide } from './ChromeGuide';
 import './tailwind.css';
@@ -20,6 +20,7 @@ const views: Partial<Record<Route, ComponentType>> = {
   save: Save,
   main: Main,
   naming: Naming,
+  sorting: Sorting,
   overlay: Overlay,
   toast: Toast,
   welcome: Welcome,

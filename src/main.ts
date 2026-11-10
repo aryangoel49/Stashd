@@ -307,6 +307,7 @@ function start(): void {
       },
       payload: (route) => tidy.payload(route as Route),
       finishNaming: (names) => tidy.finishNaming(names),
+      finishSorting: (answer) => tidy.finishSorting(answer),
       undoTidy: () => tidy.undoLast(),
       dismissToast: () => tidy.dismissToast(),
       holdToast: (on) => tidy.holdToast(on),
@@ -349,6 +350,7 @@ function start(): void {
     if (!app.isPackaged && process.env.WWI_SCENARIOS) setTimeout(() => void runScenarios(core, tidy, process.env.WWI_SCENARIOS!, process.env.WWI_SCENARIO_FILES ?? ''), 3000);
     if (!app.isPackaged && process.env.WWI_LIVE_TEST) setTimeout(() => void runLiveTest(core, tidy, process.env.WWI_LIVE_TEST!), 3000);
     if (!app.isPackaged && process.env.WWI_DEMO_DESK) setTimeout(() => tidy.demoDesk(), 4000);
+    if (!app.isPackaged && process.env.WWI_DEMO_SORT && process.env.WWI_FAKE_CAPTURE) setTimeout(() => void tidy.demoSort(), 6000);
     if (!app.isPackaged && process.env.WWI_DEMO_UNPACK) setTimeout(() => void tidy.demoUnpack(process.env.WWI_DEMO_UNPACK!), 4000);
     if (!app.isPackaged && process.env.WWI_CAPTURE_DIR) {
       togglePanel(tray.bounds());

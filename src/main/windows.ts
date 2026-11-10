@@ -60,6 +60,7 @@ const OPTIONS: Record<Route, Electron.BrowserWindowConstructorOptions> = {
   panel: { ...GLASS, width: 360, height: 440, alwaysOnTop: true },
   save: { ...GLASS, width: 540, height: 200, alwaysOnTop: true },
   naming: { ...GLASS, width: 460, height: 220, alwaysOnTop: true },
+  sorting: { ...GLASS, width: 440, height: 300, alwaysOnTop: true },
   toast: { ...GLASS, width: 400, height: 68, alwaysOnTop: true },
   welcome: { ...GLASS, width: 480, height: 520, skipTaskbar: false },
   // Adding the Chrome helper: a small card that stays beside Chrome while you follow its steps.
@@ -115,7 +116,7 @@ export function showWindow(
   const existing = getWindow(route);
   if (existing) {
     if (opts.near) placeUnder(existing, opts.near);
-    else if (route === 'save' || route === 'naming' || route === 'welcome') placeCentered(existing);
+    else if (route === 'save' || route === 'naming' || route === 'sorting' || route === 'welcome') placeCentered(existing);
     existing.webContents.send('window:shown');
     reveal(existing, route);
     opts.onReady?.(existing);
@@ -134,7 +135,7 @@ export function showWindow(
     win.setAlwaysOnTop(true, 'floating');
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   }
-  if (route === 'panel' || route === 'save' || route === 'naming') {
+  if (route === 'panel' || route === 'save' || route === 'naming' || route === 'sorting') {
     win.setAlwaysOnTop(true, route === 'panel' ? 'pop-up-menu' : 'floating');
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     // However it was hidden, let the page reset itself while nobody is looking.
@@ -155,7 +156,7 @@ export function showWindow(
   }
 
   if (opts.near) placeUnder(win, opts.near);
-  else if (route === 'save' || route === 'naming') placeCentered(win);
+  else if (route === 'save' || route === 'naming' || route === 'sorting') placeCentered(win);
   else if (route === 'welcome') win.center();
   else if (route === 'chromeguide') placeTopRight(win);
 

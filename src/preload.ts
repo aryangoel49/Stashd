@@ -2,7 +2,7 @@
 // object and nothing else: no Node, no Electron, no file access.
 
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AppInfo, AskAnswer, AskChat, AskProblem, BreakShelf, BrowserName, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion, TidyDesk, TidyFront, TidyKeep, UpdateState, SetupItem } from './shared/types';
+import type { AppInfo, AskAnswer, AskChat, AskProblem, BreakShelf, BrowserName, BriefView, Item, Job, ProjectCard, JobSummary, OpenResult, OverlayPlay, SavePreview, SortingAnswer, SaveRequest, SaveResult, Settings, ToastInfo, OpenState, Suggestion, TidyDesk, TidyFront, TidyKeep, UpdateState, SetupItem } from './shared/types';
 
 const invoke = <T>(channel: string, ...args: unknown[]): Promise<T> => ipcRenderer.invoke(channel, ...args) as Promise<T>;
 
@@ -72,6 +72,7 @@ const api = {
   quit: () => invoke<boolean>('app:quit'),
   getPayload: <T>() => invoke<T | null>('ui:payload'),
   finishNaming: (names: (string | null)[]) => invoke<boolean>('naming:done', names),
+  finishSorting: (answer: SortingAnswer) => invoke<boolean>('sorting:done', answer),
   undoTidy: () => invoke<void>('tidy:undo'),
   dismissToast: () => invoke<boolean>('toast:dismiss'),
   holdToast: (on: boolean) => invoke<boolean>('toast:hold', on),

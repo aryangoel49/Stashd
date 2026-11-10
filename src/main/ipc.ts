@@ -39,6 +39,7 @@ export interface IpcHooks {
   afterSave: (result: { jobId: string; entryId: string; tidy: boolean }) => void;
   payload: (route: string) => unknown;
   finishNaming: (names: (string | null)[]) => void;
+  finishSorting: (answer: import('../shared/types').SortingAnswer) => void;
   undoTidy: () => Promise<void>;
   dismissToast: () => void;
   holdToast: (on: boolean) => void;
@@ -352,6 +353,15 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('naming:done', (_e, names) => {
     if (!Array.isArray(names) || names.length > 50) throw new Error('bad names');
     hooks.finishNaming(names.map((n) => (n == null ? null : v.str(n, 'file name', 200).trim() || null)));
+    return true;
+  });
+  handle('sorting:done', (_e, a) => {
+    if (a === null || a === 'rest') hooks.finishSorting(a);
+    else if (typeof a === 'object') {
+      const { name, note } = a as { name?: unknown; note?: unknown };
+      hooks.finishSorting({ name: v.str(name, 'folder name', 120).trim(), note: v.str(note ?? '', 'note', 2000).trim() });
+    }
+    else throw new Error('bad answer');
     return true;
   });
   handle('tidy:undo', () => hooks.undoTidy());

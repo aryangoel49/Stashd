@@ -38,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   welcomed: false,
   tidyGesture: false,
   windowPlaces: false,
+  tidySort: true,
 };
 
 const OLD_SHORTCUT_SAVE = 'CommandOrControl+Shift+S';
@@ -146,6 +147,7 @@ export function settingsPatch(v: unknown, current: Settings): Settings {
       case 'welcomed': next.welcomed = bool(val, k); break;
       case 'tidyGesture': next.tidyGesture = bool(val, k); break;
       case 'windowPlaces': next.windowPlaces = bool(val, k); break;
+      case 'tidySort': next.tidySort = bool(val, k); break;
       case 'tidyKeep':
         if (val !== 'front' && val !== 'all') fail('tidyKeep must be front or all');
         next.tidyKeep = val;

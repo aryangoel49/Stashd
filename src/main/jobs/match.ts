@@ -285,7 +285,8 @@ export function topicName(items: Item[]): string | null {
     let label = it.label.replace(/^\(\d+\)\s*/, '');
     if (it.kind !== 'tab') label = label.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/_+/g, ' ');
     for (const part of label.split(/\s[-–—|·•:]\s|:\s/)) {
-      const words = part.split(/\s+/).filter(Boolean);
+      // "aryangoel49/Stashd" is two words.
+      const words = part.split(/[\s/]+/).filter(Boolean);
       const toks = new Set(words.flatMap((w) => textTokens(w)));
       const hit = [...toks].filter((t) => shared.has(t));
       if (!hit.length) continue;

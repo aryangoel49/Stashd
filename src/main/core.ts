@@ -19,6 +19,7 @@ import {
 } from './jobs/match';
 import { documentFrequency, FIT_SUGGEST, hasProof, jobFit, jobProfile, meaningText, profileTexts, scoreItem, SURE, type MeaningLookup, type Profile } from './jobs/relevance';
 import { suggest, type FolderData } from './jobs/suggest';
+import { sortIntoWorks } from './jobs/sort';
 import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
 import type { SiteSorter } from './sites';
@@ -92,6 +93,8 @@ export interface TidyAllPlan {
   /** What you chose to keep open on the desk (loose keys), and apps you kept running. */
   keptKeys: string[];
   keptApps: string[];
+  /** "Sort into folders": new folders made just now from open work that belonged to no folder. */
+  made: { jobId: string; entryId: string; name: string; items: Item[] }[];
 }
 
 /** How long the desk's look at what's open is used when you press Tidy up. */
@@ -513,7 +516,7 @@ export class Core {
     const keepKeys = new Set(opts.keep ?? []);
     const keptLoose = new Set(cap.items.filter((i) => keepKeys.has(i.key)).map(looseKey));
     const isKept = (i: Item) => (!!kept && matchKeys(i).includes(looseKey(kept))) || keepKeys.has(i.key) || matchKeys(i).some((k) => keptLoose.has(k));
-    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0, kept, keptKeys: [...keptLoose], keptApps: [...keepKeys].filter((k) => k.startsWith('app:')).map((k) => k.slice(4)) };
+    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0, kept, keptKeys: [...keptLoose], keptApps: [...keepKeys].filter((k) => k.startsWith('app:')).map((k) => k.slice(4)), made: [] };
     const claimed = new Set<string>();
     const claim = (items: Item[]) => items.forEach((i) => matchKeys(i).forEach((k) => claimed.add(k)));
     const openItem = (i: Item) => cap.items.find((c) => matchKeys(i).includes(looseKey(c)));
@@ -546,13 +549,42 @@ export class Core {
     // to it. The rest belong nowhere and just close (they stay in "Recently closed" for a while, in case one mattered).
     // (The one you're keeping open stays where it is: not filed, not on the Break shelf.)
     const strays = cap.items.filter((i) => isLoose(i) && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned) && !isKept(i));
-    const homes = await this.homesFor(strays, new Set(plan.saved.map((s) => s.jobId)));
+    // "Sort into folders" looks after open documents and AI chats that belong to no folder too.
+    const otherWork = settings.tidySort
+      ? cap.items.filter(
+          (i) =>
+            ((i.kind === 'doc' && !i.untitled) || (i.kind === 'app' && !!i.chat)) &&
+            !matchKeys(i).some((k) => claimed.has(k)) &&
+            !isLifestyle(i, settings, learned) &&
+            !isKept(i),
+        )
+      : [];
+    const homes = await this.homesFor([...strays, ...otherWork], new Set(plan.saved.map((s) => s.jobId)));
     for (const [jobId, items] of homes) {
       const name = await this.addToFolder(jobId, items);
       plan.filed.push({ jobId, name, count: items.length });
     }
     const homed = new Set([...homes.values()].flat().map((i) => i.key));
-    plan.close.push(...strays);
+    // "Sort into folders": what's left that is real work (two or more things that belong together; not
+    // videos, not what you keep) becomes new folders, one per piece of work, saved now so nothing is lost;
+    // you name them afterwards. Things that fit with nothing else close, as always.
+    const sorted = new Set<string>();
+    if (settings.tidySort) {
+      const work = [...strays, ...otherWork].filter((i) => !homed.has(i.key) && !isBreakItem(i));
+      const texts = work.map(meaningText).filter((t): t is string => !!t);
+      const vectors = texts.length ? await this.meaning?.vectors(texts, 4000).catch(() => null) : null;
+      for (const items of sortIntoWorks(work, vectors ? (t) => vectors.get(t) : undefined)) {
+        this.pending = { capture: Promise.resolve(cap) };
+        // Claude (or Stashd AI) names it, when one is set up and answers quickly; otherwise the words it shares.
+        const ai = await Promise.race([aiJobName(this.writers, items).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 3000))]);
+        const r = await this.commitSave({ jobId: null, name: ai ?? suggestName(items, null), note: '', keys: items.map((i) => i.key), tidy: true });
+        const job = await this.store.get(r.jobId);
+        plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
+        plan.made.push({ jobId: r.jobId, entryId: r.entryId, name: job.name, items });
+        for (const i of items) sorted.add(i.key);
+      }
+    }
+    plan.close.push(...strays.filter((i) => !sorted.has(i.key)));
     // What you were watching or listening to goes on the Break shelf, to pick up later.
     const breakItems = strays.filter((i) => !homed.has(i.key) && isBreakItem(i));
     // A site's home page (youtube.com) isn't something to pick up: it's already one of your places.
@@ -570,7 +602,7 @@ export class Core {
       if (rest.length) await this.breaks.add(rest);
     }
     plan.breaks = breakItems.length;
-    plan.loose = strays.filter((i) => !homed.has(i.key)).length - breakItems.length;
+    plan.loose = strays.filter((i) => !homed.has(i.key) && !sorted.has(i.key)).length - breakItems.length;
     this.pending = null;
     this.notify();
     return plan;
@@ -1303,6 +1335,19 @@ export class Core {
     job.renamed = true;
     await this.store.put(job);
     await this.refreshCard(jobId).catch(() => undefined);
+    this.notify();
+  }
+
+  /** A folder Tidy all just made: your name for it, and what you were doing (rewrites its brief). */
+  async describeFolder(jobId: string, name: string, note: string): Promise<void> {
+    const job = await this.store.get(jobId);
+    if (name && name !== job.name) await this.rename(jobId, name);
+    const latest = note ? await this.store.latest(jobId) : null;
+    if (latest) {
+      await this.store.saveEntry({ ...latest, note, brief: undefined });
+      await this.refreshCard(jobId).catch(() => undefined);
+      void this.ensureBrief(jobId, latest.id).catch(() => undefined);
+    }
     this.notify();
   }
 

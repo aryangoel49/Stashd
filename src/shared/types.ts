@@ -2,7 +2,7 @@
 
 export type BrowserName = 'chrome' | 'brave' | 'edge' | 'vivaldi' | 'arc' | 'safari';
 export type Accent = 'indigo' | 'teal' | 'coral';
-export type Route = 'panel' | 'save' | 'main' | 'overlay' | 'naming' | 'toast' | 'welcome' | 'chromeguide';
+export type Route = 'panel' | 'save' | 'main' | 'overlay' | 'naming' | 'sorting' | 'toast' | 'welcome' | 'chromeguide';
 
 export interface Settings {
   browsers: Record<BrowserName, boolean>;
@@ -43,6 +43,8 @@ export interface Settings {
   tidyGesture: boolean;
   /** Unpack puts windows back exactly where they were (place and size), using the window you have open. */
   windowPlaces: boolean;
+  /** Tidy all sorts open work that belongs to no folder into new folders (one per piece of work), then asks you to name them. */
+  tidySort: boolean;
 }
 
 export type TidyKeep = 'front' | 'all';
@@ -383,6 +385,21 @@ export interface OverlayPlay {
   /** How many things in all (the icons are grouped by app). */
   total?: number;
 }
+
+/** Tidy all made a new folder from open work: name it, and say what you were doing (one card per folder). */
+export interface SortingRequest {
+  jobId: string;
+  name: string;
+  /** Which folder this is (1 based), of how many. */
+  index: number;
+  total: number;
+  /** What's in it, the first few. */
+  items: Item[];
+  more: number;
+}
+
+/** Your answer on a sorting card: a name and a note, or null to leave it as it is ('rest' for every card left). */
+export type SortingAnswer = { name: string; note: string } | null | 'rest';
 
 export interface ToastInfo {
   title: string;

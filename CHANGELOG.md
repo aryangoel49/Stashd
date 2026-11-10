@@ -5,6 +5,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+### Added
+- Tidy all sorts your work. Work that fits none of your folders gets a folder of its own (one per piece of work), and stray tabs that fit nothing just close. Afterwards a small card for each new folder lets you rename it and say what you were doing. Turn it off in the Tidy all menu.
+
 ### Changed
 - Unpack has a new, calmer animation. With window places on, see-through shapes of your windows glide out to where each one opens; otherwise your apps' icons glide into the tray. Either way they stay until everything has opened.
 

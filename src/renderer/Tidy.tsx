@@ -1,7 +1,7 @@
 // The tidy-up screens: naming untitled files, the fly-into-the-menu-bar animation, and the toast.
 
 import { useEffect, useRef, useState } from 'react';
-import type { Item, NamingRequest, OverlayPlay, ToastInfo } from '../shared/types';
+import type { Item, NamingRequest, OverlayPlay, SortingRequest, ToastInfo } from '../shared/types';
 import { api, useFitWindow, useSettings } from './api';
 import { Button, FolderMark, motion, Motion, type Mood } from './ui';
 import { ItemBadge, useMacIcon } from './visuals';
@@ -81,6 +81,88 @@ export function Naming() {
           </Button>
           <Button variant="primary" type="submit">
             Save and pack <span style={{ opacity: 0.7 }}>↵</span>
+          </Button>
+        </span>
+      </div>
+    </form>
+  );
+}
+
+// ---------- sorting ----------
+// Tidy all made a folder for each piece of work it found open. One card per folder: its guessed name, ready to
+// change, and a line for what you were doing. Return saves, Escape keeps it as it is.
+
+export function Sorting() {
+  useSettings();
+  const ref = useFitWindow<HTMLFormElement>();
+  const req = usePayload<SortingRequest>();
+  const [name, setName] = useState('');
+  const [note, setNote] = useState('');
+  const first = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!req) return;
+    setName(req.name);
+    setNote('');
+    setTimeout(() => first.current?.select(), 0);
+  }, [req]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') void api.finishSorting(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  if (!req) return <form ref={ref} className="save" />;
+  const last = req.index >= req.total;
+  return (
+    <form
+      ref={ref}
+      className="save drag"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void api.finishSorting({ name: name.trim() || req.name, note: note.trim() });
+      }}
+    >
+      <div style={{ padding: '0 4px' }}>
+        <div className="faint tiny">{req.total > 1 ? `New folder ${req.index} of ${req.total}` : 'New folder'}</div>
+        <div className="muted small" style={{ marginTop: 2 }}>
+          Tidy all saved this work in a folder of its own.
+        </div>
+      </div>
+      <ul className="sort-items">
+        {req.items.map((it) => (
+          <li key={it.key}>
+            <ItemBadge item={it} size={18} />
+            <span>{it.label}</span>
+          </li>
+        ))}
+        {req.more > 0 && <li className="faint">and {req.more} more</li>}
+      </ul>
+      <label className="no-drag sort-field">
+        <span className="faint tiny">Name</span>
+        <input ref={first} className="field" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
+      </label>
+      <label className="no-drag sort-field">
+        <span className="faint tiny">What were you doing? (optional)</span>
+        <input className="field" value={note} maxLength={500} placeholder="So you know where to pick up" onChange={(e) => setNote(e.target.value)} />
+      </label>
+      <div className="row no-drag">
+        {!last ? (
+          <Button onClick={() => void api.finishSorting('rest')} title="Keep the rest as they are">
+            Skip the rest
+          </Button>
+        ) : (
+          <span />
+        )}
+        <span style={{ display: 'inline-flex', gap: 8 }}>
+          <Button onClick={() => void api.finishSorting(null)} title="Keep this name">
+            Skip
+          </Button>
+          <Button variant="primary" type="submit">
+            {last ? 'Done' : 'Next'} <span style={{ opacity: 0.7 }}>↵</span>
           </Button>
         </span>
       </div>
