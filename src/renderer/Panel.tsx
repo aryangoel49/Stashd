@@ -170,15 +170,27 @@ function PanelHead({ settings, onTidy }: { settings: Settings; onTidy: () => voi
           <span className="display" style={{ fontSize: 15 }}>Stashd</span>
         </button>
         <span className="head-tools">
-          <Button
-            variant="ghost"
-            size="small"
-            className="tidy-all-btn"
-            onClick={onTidy}
-            title={`Save your open folders and close the rest (${prettyShortcut(settings.shortcutTidy)})`}
-          >
-            <Icon name="spark" /> Tidy all
-          </Button>
+          {/* Tidy all, with its Smart switch attached: on, each piece of work open is saved in a folder first. */}
+          <span className={`tidy-pill ${settings.tidySort ? 'smart' : ''}`}>
+            <button
+              type="button"
+              className="tidy-go"
+              onClick={onTidy}
+              title={`${settings.tidySort ? 'Save each piece of work in a folder, then close everything' : 'Save your open folders and close the rest'} (${prettyShortcut(settings.shortcutTidy)})`}
+            >
+              <Icon name="spark" /> Tidy all
+            </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={settings.tidySort}
+              className="tidy-smart"
+              onClick={() => void api.updateSettings({ tidySort: !settings.tidySort })}
+              title={settings.tidySort ? 'Smart is on: work you have open is saved in folders before closing' : 'Smart is off: Tidy all just closes, like before'}
+            >
+              <span className="tidy-dot" aria-hidden="true" /> Smart
+            </button>
+          </span>
           <Button
             variant="ghost"
             size="small"

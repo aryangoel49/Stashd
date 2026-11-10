@@ -24,8 +24,8 @@ function place(i: Item): string | null {
   return GENERAL_DIRS.has(dir) || dir === '/' ? null : dir;
 }
 
-/** Social, shopping and streaming sites: their page titles are vague ("Jobs | LinkedIn"), so meaning alone counts for less. */
-const CASUAL = /(^|\.)(linkedin|reddit|facebook|instagram|tiktok|pinterest|netflix|twitch|x|twitter|threads)\.com$|(^|\.)(amazon|ebay)\.[a-z.]+$/;
+/** Social, shopping, sports and streaming sites: their page titles are vague ("Jobs | LinkedIn"), so meaning alone counts for less. */
+const CASUAL = /(^|\.)(linkedin|reddit|facebook|instagram|tiktok|pinterest|netflix|twitch|x|twitter|threads|espn)\.com$|(^|\.)(amazon|ebay)\.[a-z.]+$/;
 
 /** Error and robot-check pages: what's on them isn't the work. */
 const DEAD = /\b(page not found|404|not found|access denied|forbidden|just a moment|attention required|are you a robot|captcha)\b/i;
@@ -41,6 +41,12 @@ export function isNoWork(i: Item): boolean {
   } catch {
     return true;
   }
+}
+
+/** The words of the folder a file is in (none for Documents, Downloads and the like). */
+function folderWords(i: Item): string[] {
+  const dir = place(i);
+  return dir ? textTokens(path.basename(dir)).filter((w) => !/^\d+$/.test(w)) : [];
 }
 
 /** The words of a tab's site (en.wikipedia.org: en, wikipedia, org). */
@@ -71,7 +77,11 @@ export function likeness(a: Item, b: Item, meaning?: MeaningLookup): number {
   if (ga && ga === b.group?.trim() && a.browser === b.browser) return 1;
   const pa = place(a);
   const pb = place(b);
-  if (pa && pb && (pa === pb || pa.startsWith(pb + path.sep) || pb.startsWith(pa + path.sep))) return 0.8;
+  if (pa && pb) {
+    // Files in one project folder are one piece of work; files in two different ones are two, whatever
+    // they're called (Acme/Proposal.docx and Globex/Proposal.docx).
+    return pa === pb || pa.startsWith(pb + path.sep) || pb.startsWith(pa + path.sep) ? 0.8 : 0;
+  }
 
   let score = 0;
   const ta = sortText(a);
@@ -91,6 +101,12 @@ export function likeness(a: Item, b: Item, meaning?: MeaningLookup): number {
   const fewer = Math.min(wa.size, wb.length);
   if (shared >= 2) score = Math.max(score, 0.75 * (shared / fewer));
   else if (shared === 1) score = Math.max(score, 0.2);
+  // A file's folder is a name you chose for the work ("Acme", "Taxes 2026"): a tab that says it belongs.
+  const named = (x: Item, y: Item) => {
+    const words = folderWords(x).filter((w) => !site.has(w));
+    return words.length > 0 && itemTokens(y).some((w) => words.includes(w));
+  };
+  if (named(a, b) || named(b, a)) score = Math.max(score, 0.45);
   return Math.min(1, score);
 }
 

@@ -1,13 +1,11 @@
 // Tidy all's one question, asked where you press it: keep what you're on, or close everything.
 // Two rows, like a menu: the first shows the real tab (or app) that stays, with its icon. Your last
-// choice is marked (Return picks it), and the shortcut uses it without asking. Below them, one switch: Smart
-// Tidy all (each piece of work open is saved in a folder first) or the plain one.
+// choice is marked (Return picks it), and the shortcut uses it without asking.
 
 import { useEffect, useRef, useState } from 'react';
 import type { TidyFront, TidyKeep } from '../shared/types';
-import { api, useSettings } from './api';
+import { api } from './api';
 import { Icon } from './icons';
-import { Switch } from './components/ui/switch';
 
 /** The tab or window in front (what "Keep this tab" leaves open), looked up when the choice opens. */
 function useFront(open: boolean): TidyFront | null | undefined {
@@ -30,7 +28,6 @@ function useFront(open: boolean): TidyFront | null | undefined {
 export function TidyChoice(props: { last: TidyKeep; shortcut: string; onClose?: () => void; inline?: boolean }) {
   const { last, shortcut, onClose, inline } = props;
   const front = useFront(true);
-  const settings = useSettings();
   const [chosen, setChosen] = useState<TidyKeep | null>(null);
   const first = useRef<HTMLButtonElement>(null);
   const noFront = front === null;
@@ -91,13 +88,6 @@ export function TidyChoice(props: { last: TidyKeep; shortcut: string; onClose?: 
         noFront,
       )}
       {row('all', <Icon name="spark" />, 'Close everything', 'Every tab and app')}
-      <div className="tc-smart">
-        <span className="tc-text">
-          <span className="tc-title">Smart Tidy all</span>
-          <span className="tc-sub">{(settings?.tidySort ?? true) ? 'Saves each piece of work in a folder first' : 'Just closes, like before'}</span>
-        </span>
-        <Switch checked={settings?.tidySort ?? true} onCheckedChange={(v) => void api.updateSettings({ tidySort: v })} aria-label="Smart Tidy all" />
-      </div>
       {!inline && <div className="tc-foot">{shortcut} does your last choice</div>}
     </div>
   );

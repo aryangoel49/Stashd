@@ -120,6 +120,8 @@ export function showWindow(
     existing.webContents.send('window:shown');
     reveal(existing, route);
     opts.onReady?.(existing);
+    // Test runs: a window made ahead of time (the panel) is pictured the first time it's shown.
+    if (!app.isPackaged && process.env.WWI_CAPTURE_DIR && !pictured.has(route)) void captureForTests(existing, route);
     return existing;
   }
 
@@ -229,7 +231,10 @@ export function broadcast(channel: string, ...args: unknown[]): void {
   for (const w of windows.values()) if (!w.isDestroyed()) w.webContents.send(channel, ...args);
 }
 
+const pictured = new Set<Route>();
+
 async function captureForTests(win: BrowserWindow, route: Route): Promise<void> {
+  pictured.add(route);
   const { writeFile } = await import('node:fs/promises');
   await new Promise((r) => setTimeout(r, route === 'overlay' ? 700 : 2500));
   if (win.isDestroyed()) return;
