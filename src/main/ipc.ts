@@ -44,7 +44,7 @@ export interface IpcHooks {
   dismissToast: () => void;
   holdToast: (on: boolean) => void;
   toastAction: () => Promise<void>;
-  tidyAll: (keep?: TidyKeep, desk?: { keep: string[] }) => Promise<void>;
+  tidyAll: (keep?: TidyKeep) => Promise<void>;
   afterShelve: (items: import('../shared/types').Item[]) => void;
   overlayDone: () => void;
   testClaude: (key: string) => Promise<void>;
@@ -372,14 +372,11 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   handle('toast:action', () => hooks.toastAction());
   handle('tidy:recent', () => core.recentlyTidied());
   handle('tidy:reopen', (_e, key) => core.reopenTidied(key == null ? undefined : v.itemKey(key)));
-  handle('tidy:all', (_e, keep, desk) => {
+  handle('tidy:all', (_e, keep) => {
     getWindow('panel')?.hide();
-    // From the desk: what you tapped to keep open (item keys it showed you).
-    const kept = desk && typeof desk === 'object' && Array.isArray((desk as { keep?: unknown }).keep) ? (desk as { keep: unknown[] }).keep.slice(0, 500).map((k) => v.str(k, 'key', 4000)) : null;
-    void hooks.tidyAll(keep === 'front' || keep === 'all' ? keep : undefined, kept ? { keep: kept } : undefined);
+    void hooks.tidyAll(keep === 'front' || keep === 'all' ? keep : undefined);
     return true;
   });
-  handle('tidy:desk', (_e, keep) => core.planTidy({ keepFront: keep === 'front' }));
   handle('tidy:front', () => core.tidyFront());
   // The welcome (first run).
   handle('setup:status', () => setupItems(core.helper, core.settings.get()));

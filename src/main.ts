@@ -188,12 +188,12 @@ function start(): void {
     const gestures = new GestureWatcher(helperPath(), () => void tidyAllNow());
     app.on('will-quit', () => gestures.stop());
     // Which kind (keep the tab you're on, or close everything) is your last choice unless one is given.
-    tidyAllNow = (keep?: TidyKeep, desk?: { keep: string[] }) => {
+    tidyAllNow = (keep?: TidyKeep) => {
       getWindow('panel')?.hide();
       if (tidy.tidyingAll) return tidy.tidyingAll;
       if (keep && keep !== settings.get().tidyKeep) void settings.update({ tidyKeep: keep }).catch(() => undefined);
       tray.status('Tidying…');
-      return tidy.tidyAll((keep ?? settings.get().tidyKeep) === 'front', desk).finally(() => tray.status(null));
+      return tidy.tidyAll((keep ?? settings.get().tidyKeep) === 'front').finally(() => tray.status(null));
     };
     // Automatic saving: moving on from a folder, the Mac sleeping, locking or shutting down, walking away.
     const auto = new AutoSaver({

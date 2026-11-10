@@ -43,35 +43,11 @@ export interface Settings {
   tidyGesture: boolean;
   /** Unpack puts windows back exactly where they were (place and size), using the window you have open. */
   windowPlaces: boolean;
-  /** Tidy all sorts open work that belongs to no folder into new folders (one per piece of work), then asks you to name them. */
+  /** Smart Tidy all: the work you have open goes into folders (new ones named afterwards) before everything closes. Off, Tidy all just closes everything. */
   tidySort: boolean;
 }
 
 export type TidyKeep = 'front' | 'all';
-
-/** One pile on the Tidy all desk: where a group of open things is about to go. */
-export interface DeskPile {
-  id: string;
-  /** folder: saved into (or already in) a folder; break: the Break shelf; close: closed, nowhere to go;
-   *  apps: apps that quit; stay: left open. */
-  kind: 'folder' | 'break' | 'close' | 'apps' | 'stay';
-  title: string;
-  note: string;
-  items: Item[];
-}
-
-/** What Tidy all would do right now, before it does anything. */
-export interface TidyDesk {
-  piles: DeskPile[];
-  /** The tab, document or app in front (kept open when you keep what you're on). */
-  frontKey: string | null;
-  /** Memory your Mac is using now, in MB (null when it can't be read). */
-  memoryMB: number | null;
-  /** All the memory this Mac has, in MB. */
-  totalMB: number;
-  /** About how much memory each app that quits is using now (MB), by its item key. */
-  appMB: Record<string, number>;
-}
 
 /** What Tidy all would leave open with "Keep this tab": the tab or window in front. */
 export interface TidyFront {

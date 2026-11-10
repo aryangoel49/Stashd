@@ -1,8 +1,7 @@
 // The app's actions, shared by the menu bar, keyboard shortcuts and the windows.
 
-import os from 'node:os';
 import path from 'node:path';
-import { mostlyOpen, type BriefView, type Capture, type DeskPile, type TidyDesk, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult, type TidyFront } from '../shared/types';
+import { mostlyOpen, type BriefView, type Capture, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult, type TidyFront } from '../shared/types';
 import { aiJobName, aiSortWork, writeBrief, type BriefWriter } from './brief';
 import { basicBrief } from './brief/basic';
 import { capture, CHAT_APPS, frontItemKey, frontThing } from './capture';
@@ -31,7 +30,6 @@ import { appPathOf } from '../shared/places';
 import { run } from './exec';
 import { findDocument } from './capture/spotlight';
 import { shortDir } from './capture/docs';
-import { appsMemoryMB, usedMemoryMB } from './ram';
 import type { SettingsStore } from './settings';
 import { readJsonSafely } from './safety';
 import { JobStore, writeFileKeepingLast } from './store';
@@ -90,15 +88,9 @@ export interface TidyAllPlan {
   breaks: number;
   /** "Keep this tab": the tab or window you were on, saved like the rest but left open. */
   kept: Item | null;
-  /** What you chose to keep open on the desk (loose keys), and apps you kept running. */
-  keptKeys: string[];
-  keptApps: string[];
   /** "Sort into folders": new folders made just now from open work that belonged to no folder. */
   made: { jobId: string; entryId: string; name: string; items: Item[] }[];
 }
-
-/** How long the desk's look at what's open is used when you press Tidy up. */
-const DESK_FRESH_MS = 3 * 60_000;
 
 /** Tidy all quits every app except these: Claude (you work with it alongside everything), Finder and Stashd. */
 const KEEP_RUNNING = ['Claude', 'Finder', 'Stashd', 'Electron'];
@@ -131,7 +123,6 @@ export class Core {
   private readonly stateFile: string;
   private pending: PendingSave | null = null;
   /** What the Tidy all desk last looked at (Tidy up acts on it). */
-  private deskCapture: { at: number; cap: Capture } | null = null;
   private writing = new Set<string>();
   writers: BriefWriter[] = [];
   private openCache: { at: number; result: Promise<OpenLook> } | null = null;
@@ -406,117 +397,27 @@ export class Core {
   }
 
   /**
-   * Tidy all. Every folder you have open is saved (what clearly belongs to it, like Pack up), anything
-   * open that's already in another folder is just closed, and so are the tabs left over that belong
-   * nowhere (listed under "Recently closed" for 10 minutes). Everyday sites (mail, music) stay.
-   * Returns the things to close; closing is up to the caller.
+   * Tidy all. Plain, it closes everything: every tab and Finder window (apps quit after, in TidyFlow),
+   * nothing saved. Smart (settings.tidySort), the work goes into folders first: every folder you have open
+   * is saved (like Pack up), what clearly belongs to another folder is added to it, the rest of the real
+   * work becomes new folders (sorted by Claude when AI is on), videos go on the Break shelf, and the clutter
+   * just closes. Either way what closes is listed under "Recently closed" for 10 minutes, and with
+   * "Keep this tab" (keepFront) the thing you're on stays. Returns the things to close; closing is up to the caller.
    */
-  /**
-   * The Tidy all desk: what Tidy all would do right now, sorted into piles (into a folder, onto the Break
-   * shelf, closed, apps that quit, staying open). Nothing is saved, closed or moved. What it saw is kept
-   * for a couple of minutes, so pressing Tidy up acts on exactly what you were shown.
-   */
-  async planTidy(opts: { keepFront?: boolean } = {}): Promise<TidyDesk> {
+  async tidyAll(opts: { keepFront?: boolean } = {}): Promise<TidyAllPlan> {
     const settings = this.settings.get();
-    const [cap, win, memoryMB] = await Promise.all([
-      this.fakeCapture ? this.fakeCapture() : capture(settings, this.helper, this.selfNames),
-      this.fakeCapture ? Promise.resolve(null) : this.helper.windows().catch(() => null),
-      usedMemoryMB(),
-    ]);
-    this.deskCapture = { at: Date.now(), cap };
-    await this.sites?.look(cap.items);
-    const learned = learnedLifestyleApps(this.state.appUnticks);
-    const openKeys = new Set(cap.items.map(looseKey));
-    const front = frontThing(cap.items, cap.appOrder);
-    const isFront = (i: Item) => !!front && matchKeys(i).includes(looseKey(front));
-    const claimed = new Set<string>();
-    const claim = (items: Item[]) => items.forEach((i) => matchKeys(i).forEach((k) => claimed.add(k)));
-    const openItem = (i: Item) => cap.items.find((c) => matchKeys(i).includes(looseKey(c)));
-    const folders = new Map<string, DeskPile>();
-    const folderPile = (jobId: string, name: string, note: string) => {
-      const p = folders.get(jobId) ?? { id: `folder:${jobId}`, kind: 'folder' as const, title: name, note, items: [] };
-      folders.set(jobId, p);
-      return p;
-    };
-    // Apps quit in their own pile, so a folder's pile shows its tabs and documents.
-    const shown = (items: Item[]) => items.filter((i) => i.kind !== 'app' && !(opts.keepFront && isFront(i)));
-
-    for (const job of await this.store.list()) {
-      const latest = await this.store.latest(job.id);
-      if (!latest) continue;
-      const content = latest.items.filter((i) => i.kind !== 'app');
-      const openNow = content.filter((i) => matchKeys(i).some((k) => openKeys.has(k)));
-      if (!openNow.length) continue;
-      const isOpen = !job.done && (job.id === this.state.currentJobId || mostlyOpen({ open: openNow.length, total: content.length }));
-      if (!isOpen) {
-        claim(openNow);
-        folderPile(job.id, job.name, 'Already saved here').items.push(...shown(openNow.map(openItem).filter((i): i is Item => !!i)));
-        continue;
-      }
-      // What Pack up would save (the save box's own guess), without saving it.
-      const p = await this.preview({ jobId: job.id }, { capture: Promise.resolve(cap), target: job.id });
-      const keys = new Set([...p.sure, ...p.kept].filter((i) => !matchKeys(i).some((k) => claimed.has(k))).map((i) => i.key));
-      folderPile(job.id, job.name, 'Saved and put away').items.push(...shown(cap.items.filter((i) => keys.has(i.key))));
-      claim(p.sure);
-      claim(content);
-    }
-
-    const strays = cap.items.filter((i) => isLoose(i) && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned));
-    const homes = await this.homesFor(strays, new Set([...folders.keys()].filter((id) => folders.get(id)!.note !== 'Already saved here')));
-    for (const [jobId, items] of homes) {
-      const name = (await this.store.get(jobId).catch(() => null))?.name ?? 'A folder';
-      const pile = folderPile(jobId, name, 'These belong here');
-      pile.items.push(...shown(items));
-    }
-    const homed = new Set([...homes.values()].flat().map((i) => i.key));
-    const left = strays.filter((i) => !homed.has(i.key) && !(opts.keepFront && isFront(i)));
-    const breaks = left.filter(isBreakItem);
-    const loose = left.filter((i) => !isBreakItem(i));
-
-    // Every app quits except a few (Claude, Finder), like Tidy all does.
-    const running = win ? win.apps.map((a) => a.name) : [...new Set(cap.items.map((i) => i.app))];
-    const quitting = appsToQuit(running).filter((n) => !(opts.keepFront && front?.kind === 'app' && front.app === n));
-    // With the app's own location, so its real icon shows (looking an app up by name misses some, like Spotify).
-    const appPath = new Map([
-      ...cap.items.filter((i) => i.kind === 'app' && i.path).map((i): [string, string] => [i.app, i.path!]),
-      ...(win?.apps ?? []).filter((a) => a.path).map((a): [string, string] => [a.name, a.path]),
-    ]);
-    const appItem = (n: string): Item => ({ key: `app:${n}`, kind: 'app', label: n, detail: '', app: n, ...(appPath.has(n) ? { path: appPath.get(n) } : {}) });
-    const staying = [
-      ...(opts.keepFront && front ? [front] : []),
-      ...cap.items.filter((i) => i.kind === 'tab' && isLifestyle(i, settings, learned)),
-      ...running.filter((n) => !appsToQuit([n]).length && n !== 'Stashd' && n !== 'Electron').map(appItem),
-    ];
-
-    const piles: DeskPile[] = [
-      ...[...folders.values()].filter((p) => p.items.length),
-      { id: 'break', kind: 'break', title: 'Break shelf', note: 'Pick these up later', items: breaks },
-      { id: 'close', kind: 'close', title: 'Closing', note: 'You can reopen them for 10 min', items: loose },
-      { id: 'apps', kind: 'apps', title: 'Quitting', note: 'Unsaved work still asks first', items: quitting.map(appItem) },
-      { id: 'stay', kind: 'stay', title: 'Staying open', note: '', items: staying },
-    ];
-    // What the apps that quit are using now: what Tidy up should give back.
-    const quittingItems = quitting.map(appItem).filter((i) => i.path);
-    const byPath = await appsMemoryMB(quittingItems.map((i) => i.path!));
-    const appMB = Object.fromEntries(quittingItems.filter((i) => (byPath?.get(i.path!) ?? 0) > 0).map((i) => [i.key, byPath!.get(i.path!)!]));
-    return { piles: piles.filter((p) => p.items.length || p.kind === 'stay'), frontKey: front?.key ?? null, memoryMB, totalMB: Math.round(os.totalmem() / 1024 / 1024), appMB };
-  }
-
-  async tidyAll(opts: { keepFront?: boolean; keep?: string[]; fromDesk?: boolean } = {}): Promise<TidyAllPlan> {
-    const settings = this.settings.get();
-    // After the desk: act on what you were shown (if it's recent), not on a fresh look.
-    const desk = opts.fromDesk && this.deskCapture && Date.now() - this.deskCapture.at < DESK_FRESH_MS ? this.deskCapture.cap : null;
-    this.deskCapture = null;
-    const cap = desk ?? (this.fakeCapture ? await this.fakeCapture() : await capture(settings, this.helper, this.selfNames));
-    await this.sites?.look(cap.items);
-    const learned = learnedLifestyleApps(this.state.appUnticks);
-    const openKeys = new Set(cap.items.map(looseKey));
+    const cap = this.fakeCapture ? await this.fakeCapture() : await capture(settings, this.helper, this.selfNames);
     const kept = opts.keepFront ? frontThing(cap.items, cap.appOrder) : null;
-    // What you chose to keep open on the desk (tap a tab or app there).
-    const keepKeys = new Set(opts.keep ?? []);
-    const keptLoose = new Set(cap.items.filter((i) => keepKeys.has(i.key)).map(looseKey));
-    const isKept = (i: Item) => (!!kept && matchKeys(i).includes(looseKey(kept))) || keepKeys.has(i.key) || matchKeys(i).some((k) => keptLoose.has(k));
-    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0, kept, keptKeys: [...keptLoose], keptApps: [...keepKeys].filter((k) => k.startsWith('app:')).map((k) => k.slice(4)), made: [] };
+    const isKept = (i: Item) => !!kept && matchKeys(i).includes(looseKey(kept));
+    const plan: TidyAllPlan = { saved: [], close: [], filed: [], loose: 0, breaks: 0, kept, made: [] };
+    if (!settings.tidySort) {
+      plan.close = cap.items.filter((i) => isLoose(i) && !isKept(i));
+      plan.loose = plan.close.length;
+      return plan;
+    }
+    await this.sites?.look(cap.items);
+    const learned = learnedLifestyleApps(this.state.appUnticks);
+    const openKeys = new Set(cap.items.map(looseKey));
     const claimed = new Set<string>();
     const claim = (items: Item[]) => items.forEach((i) => matchKeys(i).forEach((k) => claimed.add(k)));
     const openItem = (i: Item) => cap.items.find((c) => matchKeys(i).includes(looseKey(c)));
@@ -549,16 +450,14 @@ export class Core {
     // to it. The rest belong nowhere and just close (they stay in "Recently closed" for a while, in case one mattered).
     // (The one you're keeping open stays where it is: not filed, not on the Break shelf.)
     const strays = cap.items.filter((i) => isLoose(i) && !claimed.has(looseKey(i)) && !isLifestyle(i, settings, learned) && !isKept(i));
-    // "Sort into folders" looks after open documents and AI chats that belong to no folder too.
-    const otherWork = settings.tidySort
-      ? cap.items.filter(
-          (i) =>
-            ((i.kind === 'doc' && !i.untitled) || (i.kind === 'app' && !!i.chat)) &&
-            !matchKeys(i).some((k) => claimed.has(k)) &&
-            !isLifestyle(i, settings, learned) &&
-            !isKept(i),
-        )
-      : [];
+    // Open documents and AI chats that belong to no folder are sorted too.
+    const otherWork = cap.items.filter(
+      (i) =>
+        ((i.kind === 'doc' && !i.untitled) || (i.kind === 'app' && !!i.chat)) &&
+        !matchKeys(i).some((k) => claimed.has(k)) &&
+        !isLifestyle(i, settings, learned) &&
+        !isKept(i),
+    );
     const homes = await this.homesFor([...strays, ...otherWork], new Set(plan.saved.map((s) => s.jobId)));
     for (const [jobId, items] of homes) {
       const name = await this.addToFolder(jobId, items);
@@ -569,28 +468,26 @@ export class Core {
     // videos, not what you keep) becomes new folders, one per piece of work, saved now so nothing is lost;
     // you name them afterwards. Things that fit with nothing else close, as always.
     const sorted = new Set<string>();
-    if (settings.tidySort) {
-      const work = [...strays, ...otherWork].filter((i) => !homed.has(i.key) && !isBreakItem(i));
-      // Claude sorts it when AI is on (Stashd AI or your own key): it sees how things connect ("Alfama loft" is
-      // part of the Lisbon trip), and names each piece. Otherwise, or if it doesn't answer in time, the on-device
-      // model sorts and the shared words name it.
-      const ai = work.length >= 2 ? await Promise.race([aiSortWork(this.writers, work).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 13_000))]) : null;
-      let pieces: { name: string | null; items: Item[] }[];
-      if (ai) pieces = ai;
-      else {
-        const texts = work.map(sortText).filter((t): t is string => !!t);
-        const vectors = texts.length ? await this.meaning?.vectors(texts, 4000).catch(() => null) : null;
-        pieces = sortIntoWorks(work, vectors ? (t) => vectors.get(t) : undefined).map((items) => ({ name: null, items }));
-      }
-      for (const { name: aiName, items } of pieces) {
-        // Offered exactly what it saves, so the new folder learns nothing about what to leave out.
-        this.pending = { capture: Promise.resolve(cap), offered: { sure: items, likely: [], maybe: [], hidden: [], breaks: [], why: {} } };
-        const r = await this.commitSave({ jobId: null, name: aiName ?? suggestName(items, null), note: '', keys: items.map((i) => i.key), tidy: true });
-        const job = await this.store.get(r.jobId);
-        plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
-        plan.made.push({ jobId: r.jobId, entryId: r.entryId, name: job.name, items });
-        for (const i of items) sorted.add(i.key);
-      }
+    const work = [...strays, ...otherWork].filter((i) => !homed.has(i.key) && !isBreakItem(i));
+    // Claude sorts it when AI is on (Stashd AI or your own key): it sees how things connect ("Alfama loft" is
+    // part of the Lisbon trip), and names each piece. Otherwise, or if it doesn't answer in time, the on-device
+    // model sorts and the shared words name it.
+    const ai = work.length >= 2 ? await Promise.race([aiSortWork(this.writers, work).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 13_000))]) : null;
+    let pieces: { name: string | null; items: Item[] }[];
+    if (ai) pieces = ai;
+    else {
+      const texts = work.map(sortText).filter((t): t is string => !!t);
+      const vectors = texts.length ? await this.meaning?.vectors(texts, 4000).catch(() => null) : null;
+      pieces = sortIntoWorks(work, vectors ? (t) => vectors.get(t) : undefined).map((items) => ({ name: null, items }));
+    }
+    for (const { name: aiName, items } of pieces) {
+      // Offered exactly what it saves, so the new folder learns nothing about what to leave out.
+      this.pending = { capture: Promise.resolve(cap), offered: { sure: items, likely: [], maybe: [], hidden: [], breaks: [], why: {} } };
+      const r = await this.commitSave({ jobId: null, name: aiName ?? suggestName(items, null), note: '', keys: items.map((i) => i.key), tidy: true });
+      const job = await this.store.get(r.jobId);
+      plan.saved.push({ jobId: r.jobId, entryId: r.entryId, name: job.name });
+      plan.made.push({ jobId: r.jobId, entryId: r.entryId, name: job.name, items });
+      for (const i of items) sorted.add(i.key);
     }
     plan.close.push(...strays.filter((i) => !sorted.has(i.key)));
     // What you were watching or listening to goes on the Break shelf, to pick up later.

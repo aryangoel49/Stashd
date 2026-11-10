@@ -82,20 +82,20 @@ export class TidyFlow {
   tidyingAll: Promise<void> | null = null;
 
   /**
-   * Tidy all: save open folders, keep loose tabs in a folder of their own, then close it all at once.
-   * With "Keep this tab" (keepFront), the tab or window you're on stays open, and so does its app.
+   * Tidy all: closes everything at once (Smart: once the work is in folders, see Core.tidyAll), then shows
+   * the Desk clear card. With "Keep this tab" (keepFront), the tab or window you're on stays open, and so does its app.
    */
-  tidyAll(keepFront = false, desk?: { keep: string[] }): Promise<void> {
+  tidyAll(keepFront = false): Promise<void> {
     if (this.tidyingAll) return this.tidyingAll;
     if (this.naming) this.finishNaming([]);
     this.queue = this.queue.then(async () => {
       try {
         const before = usedMemoryMB();
-        const plan = await this.core.tidyAll({ keepFront, keep: desk?.keep, fromDesk: !!desk });
+        const plan = await this.core.tidyAll({ keepFront });
         const keptApp = plan.kept?.app.toLowerCase() ?? null;
-        const keptKeys = new Set([...(plan.kept ? matchKeys(plan.kept) : []), ...plan.keptKeys]);
-        const keptApps = new Set([...(keptApp ? [keptApp] : []), ...plan.keptApps.map((a) => a.toLowerCase())]);
-        const stays = (i: Item) => keptKeys.size > 0 && matchKeys(i).some((k) => keptKeys.has(k));
+        const keptKeys = new Set(plan.kept ? matchKeys(plan.kept) : []);
+        const keptApps = new Set(keptApp ? [keptApp] : []);
+        const stays = (i: Item) => matchKeys(i).some((k) => keptKeys.has(k));
         const saved = await Promise.all(plan.saved.map((s) => this.core.store.entry(s.jobId, s.entryId)));
         const items = [...saved.flatMap((e) => e.items.filter((i) => i.kind !== 'app' && !i.untitled && !i.notOpen)), ...plan.close].filter(
           // A document's app stays open with it, so its other documents stay too (they close only when their app quits).
@@ -134,73 +134,56 @@ export class TidyFlow {
           this.toast({ title: 'Already tidy', detail: plan.kept ? `Only ${shortName(plan.kept.label)} is open.` : 'Nothing to close.', canUndo: false, mood: 'awake' });
           return;
         }
-        this.setUndo(closed, null, desk ? DESK_MS : UNDO_MS);
+        this.setUndo(closed, null, DESK_MS);
         await this.core.rememberTidied(closed);
         // The new folders "Sort into folders" made: name them one by one, without holding anything up.
         if (plan.made.length) void this.askSorted(plan.made);
-        if (desk) {
-          // The desk's payoff: where everything went, the memory it gave back, and what's next.
-          // Apps take a moment to hand their memory back after quitting.
-          const [start, end] = await Promise.all([before, wait(1200).then(usedMemoryMB)]);
-          const freedMB = start != null && end != null && start - end >= 100 ? start - end : null;
-          const total = freedMB ? await this.core.addFreed(freedMB).catch(() => null) : null;
-          const closedKeys = new Set(closed.map((i) => i.key));
-          const went = [
-            ...plan.saved.map((s) => ({ label: `into ${shortName(s.name)}`, count: saved.find((e) => e.jobId === s.jobId)?.items.filter((i) => i.kind !== 'app' && closedKeys.has(i.key)).length ?? 0 })),
-            ...plan.filed.map((f) => ({ label: `into ${shortName(f.name)}`, count: f.count })),
-            { label: 'on your Break shelf', count: plan.breaks },
-            { label: plan.loose === 1 ? 'tab closed' : 'tabs closed', count: plan.loose },
-            { label: 'apps quit', count: closed.filter((i) => i.kind === 'app').length },
-          ].filter((w) => w.count > 0);
-          const next = plan.saved[0]?.name ?? plan.filed[0]?.name ?? null;
-          // What flies into the folder: the apps that quit (with their real icons), then documents and tabs, one per app or site.
-          const appPath = new Map((win?.apps ?? []).filter((a) => a.path).map((a) => [a.name.toLowerCase(), a.path]));
-          const seen = new Set<string>();
-          const flying = [...closed.filter((i) => i.kind === 'app'), ...closed.filter((i) => i.kind === 'doc'), ...closed.filter((i) => i.kind === 'tab')]
-            .filter((i) => {
-              const id = (i.kind === 'tab' && i.url ? siteOf(i.url) : null) ?? i.app.toLowerCase();
-              if (seen.has(id)) return false;
-              seen.add(id);
-              return true;
-            })
-            .slice(0, 6)
-            .map((i): Item => (i.kind === 'app' && appPath.has(i.app.toLowerCase()) ? { ...i, path: appPath.get(i.app.toLowerCase()) } : i));
-          this.toast({
-            title: 'Desk clear',
-            count: closed.length,
-            // Recently closed has them for 10 minutes; the card stays quiet about it (Undo is right there).
-            detail: '',
-            canUndo: true,
-            mood: 'sleep',
-            ms: DESK_MS,
-            desk: {
-              went,
-              freedMB,
-              next: next ? `Next time, ${shortName(next)} is ready to pick up.` : null,
-              beforeMB: start,
-              afterMB: end,
-              totalMB: Math.round(os.totalmem() / 1024 / 1024),
-              lifetimeMB: total?.mb,
-              times: total?.times,
-              items: flying,
-            },
-          }, DESK_MS);
-          return;
-        }
-        const filed = plan.filed.reduce((n, f) => n + f.count, 0);
-        const parts = [
-          plan.saved.length ? `${plan.saved.length} ${plan.saved.length === 1 ? 'folder' : 'folders'} packed` : '',
-          filed ? `${filed} ${filed === 1 ? 'tab' : 'tabs'} added to ${plan.filed.length === 1 ? shortName(plan.filed[0].name) : `${plan.filed.length} folders`}` : '',
-          plan.breaks ? `${plan.breaks} on your Break shelf` : '',
-        ].filter(Boolean);
-        if (plan.kept) parts.unshift(`kept ${shortName(plan.kept.label)} open`);
+        // The desk's payoff: where everything went, the memory it gave back, and what's next.
+        // Apps take a moment to hand their memory back after quitting.
+        const [start, end] = await Promise.all([before, wait(1200).then(usedMemoryMB)]);
+        const freedMB = start != null && end != null && start - end >= 100 ? start - end : null;
+        const total = freedMB ? await this.core.addFreed(freedMB).catch(() => null) : null;
+        const closedKeys = new Set(closed.map((i) => i.key));
+        const went = [
+          ...plan.saved.map((s) => ({ label: `into ${shortName(s.name)}`, count: saved.find((e) => e.jobId === s.jobId)?.items.filter((i) => i.kind !== 'app' && closedKeys.has(i.key)).length ?? 0 })),
+          ...plan.filed.map((f) => ({ label: `into ${shortName(f.name)}`, count: f.count })),
+          { label: 'on your Break shelf', count: plan.breaks },
+          { label: plan.loose === 1 ? 'tab closed' : 'tabs closed', count: plan.loose },
+          { label: 'apps quit', count: closed.filter((i) => i.kind === 'app').length },
+        ].filter((w) => w.count > 0);
+        const next = plan.saved[0]?.name ?? plan.filed[0]?.name ?? null;
+        // What flies into the folder: the apps that quit (with their real icons), then documents and tabs, one per app or site.
+        const appPath = new Map((win?.apps ?? []).filter((a) => a.path).map((a) => [a.name.toLowerCase(), a.path]));
+        const seen = new Set<string>();
+        const flying = [...closed.filter((i) => i.kind === 'app'), ...closed.filter((i) => i.kind === 'doc'), ...closed.filter((i) => i.kind === 'tab')]
+          .filter((i) => {
+            const id = (i.kind === 'tab' && i.url ? siteOf(i.url) : null) ?? i.app.toLowerCase();
+            if (seen.has(id)) return false;
+            seen.add(id);
+            return true;
+          })
+          .slice(0, 6)
+          .map((i): Item => (i.kind === 'app' && appPath.has(i.app.toLowerCase()) ? { ...i, path: appPath.get(i.app.toLowerCase()) } : i));
         this.toast({
-          title: 'Tidied up',
+          title: 'Desk clear',
           count: closed.length,
-          detail: parts.length ? `${capitalise(parts.join(', '))}. All in Recently closed for 10 min.` : 'In Recently closed for 10 min, in case.',
-          canUndo: closed.length > 0,
+          // Recently closed has them for 10 minutes; the card stays quiet about it (Undo is right there).
+          detail: '',
+          canUndo: true,
           mood: 'sleep',
-        });
+          ms: DESK_MS,
+          desk: {
+            went,
+            freedMB,
+            next: next ? `Next time, ${shortName(next)} is ready to pick up.` : null,
+            beforeMB: start,
+            afterMB: end,
+            totalMB: Math.round(os.totalmem() / 1024 / 1024),
+            lifetimeMB: total?.mb,
+            times: total?.times,
+            items: flying,
+          },
+        }, DESK_MS);
       } catch {
         this.toast({ title: "Couldn't tidy up", detail: 'Nothing was closed.', canUndo: false, mood: 'curious' });
       } finally {
@@ -701,10 +684,6 @@ async function releaseChromeGroups(items: Item[]): Promise<void> {
     for (const [name, urls] of byGroup) await changeChromeGroup('ungroup', name, urls);
   })();
   await Promise.race([all, wait(3000)]);
-}
-
-function capitalise(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function wait(ms: number): Promise<void> {

@@ -11,7 +11,6 @@ import { playMerge } from './mergeFx';
 import { BreakView, ModeSwitch } from './Break';
 import { PanelAsk, useAsk } from './Ask';
 import { useRecentlyTidied } from './Recent';
-import { TidyDeskView } from './Desk';
 import { UpdateBar } from './Update';
 import { useSuggestions } from './Suggestions';
 import { folderTone, ItemBadge, titleOf, toneStyle } from './visuals';
@@ -29,8 +28,6 @@ function PanelView() {
   const ref = useFitWindow<HTMLDivElement>();
   const [jobs, setJobs] = useState<JobSummary[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  // Tidy all's desk, in place of the folder list until you tidy up or go back.
-  const [desk, setDesk] = useState(false);
   const [view, setView] = useState<BriefView | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,12 +69,15 @@ function PanelView() {
       // Reset while hidden, so the panel opens already showing the list: no swap or resize as you watch.
       api.onWindowHidden(() => {
         setSelected(null);
-        setDesk(false);
         setError(null);
         askerRef.current.clear();
         loadJobs();
       }),
-      api.onWindowShown(loadJobs),
+      api.onWindowShown(() => {
+        // Opened from the menu bar, nothing in it should look picked (no focus ring on the first button).
+        (document.activeElement as HTMLElement | null)?.blur();
+        loadJobs();
+      }),
     ];
     const onKey = (e: KeyboardEvent) => {
       // A box that used Escape itself (like the place search closing) keeps the panel open.
@@ -120,10 +120,8 @@ function PanelView() {
 
   return (
     <div ref={ref} className="panel">
-      <Swap id={desk ? 'desk' : (selected ?? 'list')} direction={selected || desk ? 1 : -1}>
-        {desk ? (
-          <TidyDeskView settings={settings} onClose={() => setDesk(false)} />
-        ) : selected ? (
+      <Swap id={selected ?? 'list'} direction={selected ? 1 : -1}>
+        {selected ? (
           <div>
             <div className="panel-head" style={{ paddingBottom: 2 }}>
               <Button variant="ghost" size="small" onClick={() => setSelected(null)} style={{ paddingLeft: 2 }}>
@@ -141,7 +139,7 @@ function PanelView() {
           </div>
         ) : (
           <div>
-            <PanelHead settings={settings} onTidy={() => setDesk(true)} />
+            <PanelHead settings={settings} />
             <ModeSwitch mode={mode} onChange={setMode} />
             <Swap id={mode} direction={mode === 'break' ? 1 : -1}>
               {mode === 'break' ? (
@@ -160,68 +158,61 @@ function PanelView() {
   );
 }
 
-/** The panel's top bar: the app, Tidy all, stash, the window and Settings. */
-function PanelHead({ settings, onTidy }: { settings: Settings; onTidy: () => void }) {
+/** The panel's top bar: the app, Tidy all (with its Smart switch), stash and Settings. */
+function PanelHead({ settings }: { settings: Settings }) {
+  const smart = settings.tidySort;
   // Smart Tidy all sorts with Claude when AI is on (Stashd AI, or your own key); otherwise on this Mac.
   const ai = settings.stashdAi || settings.aiDisclosureAccepted;
   return (
-    <>
-      <div className="panel-head">
-        <button className="brand brand-btn" onClick={() => void api.openWindow('main')} title="Open Stashd">
-          <FolderMark size={24} awake alive />
-          <span className="display" style={{ fontSize: 15 }}>Stashd</span>
-        </button>
-        <span className="head-tools">
-          {/* Tidy all, with its Smart switch attached: on, each piece of work open is saved in a folder first. */}
-          <span className={`tidy-pill ${settings.tidySort ? 'smart' : ''}`}>
-            <button
-              type="button"
-              className="tidy-go"
-              onClick={onTidy}
-              title={`${settings.tidySort ? 'Save each piece of work in a folder, then close everything' : 'Save your open folders and close the rest'} (${prettyShortcut(settings.shortcutTidy)})`}
-            >
-              <Icon name="spark" /> Tidy all
-            </button>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={settings.tidySort}
-              aria-label="Smart Tidy all"
-              className="tidy-smart"
-              onClick={() => void api.updateSettings({ tidySort: !settings.tidySort })}
-              title={
-                !settings.tidySort
-                  ? 'Smart is off: Tidy all saves your open folders and closes the rest, like before'
-                  : ai
-                    ? 'Smart is on: Claude sorts the work you have open into folders before closing'
-                    : 'Smart is on: this Mac sorts the work you have open into folders before closing (turn on Stashd AI for better sorting)'
-              }
-            >
-              Smart
-              <span className={`tidy-switch ${ai ? 'ai' : ''}`} aria-hidden="true">
-                <span className="tidy-knob" />
-              </span>
-            </button>
-          </span>
-          <Button
-            variant="ghost"
-            size="small"
-            className="icon-btn stash-plus-btn"
-            onClick={() => void api.openWindow('save')}
-            title={`Stash what's open (${prettyShortcut(settings.shortcutSave)})`}
-            aria-label="Stash what's open"
+    <div className="panel-head">
+      <button className="brand brand-btn" onClick={() => void api.openWindow('main')} title="Open Stashd">
+        <FolderMark size={24} awake alive />
+        <span className="display" style={{ fontSize: 15 }}>Stashd</span>
+      </button>
+      <span className="head-tools">
+        {/* One capsule: Tidy all, and the Smart switch inside it (lit when on). */}
+        <span className={`tidy-pill ${smart ? 'smart' : ''}`}>
+          <button
+            type="button"
+            className="tidy-go"
+            onClick={() => void api.tidyAll()}
+            title={`${smart ? 'Put the work you have open into folders, then close everything' : 'Close everything'} (${prettyShortcut(settings.shortcutTidy)})`}
           >
-            <Icon name="plus" />
-          </Button>
-          <Button variant="ghost" size="small" className="icon-btn" onClick={() => void api.openWindow('main')} title="Open Stashd" aria-label="Open Stashd">
-            <Icon name="open" />
-          </Button>
-          <Button variant="ghost" size="small" className="icon-btn" onClick={() => void api.openWindow('settings')} title="Settings" aria-label="Settings">
-            <Icon name="gear" />
-          </Button>
+            Tidy all
+          </button>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={smart}
+            aria-label="Smart Tidy all"
+            className="tidy-smart"
+            onClick={() => void api.updateSettings({ tidySort: !smart })}
+            title={
+              !smart
+                ? 'Smart is off: Tidy all just closes everything. Turn on to put your work into folders first.'
+                : ai
+                  ? 'Smart is on: Claude puts the work you have open into folders before everything closes'
+                  : 'Smart is on: this Mac puts the work you have open into folders before everything closes (turn on Stashd AI for better sorting)'
+            }
+          >
+            <Icon name="spark" /> Smart
+          </button>
         </span>
-      </div>
-    </>
+        <Button
+          variant="ghost"
+          size="small"
+          className="icon-btn stash-plus-btn"
+          onClick={() => void api.openWindow('save')}
+          title={`Stash what's open (${prettyShortcut(settings.shortcutSave)})`}
+          aria-label="Stash what's open"
+        >
+          <Icon name="plus" />
+        </Button>
+        <Button variant="ghost" size="small" className="icon-btn" onClick={() => void api.openWindow('settings')} title="Settings" aria-label="Settings">
+          <Icon name="gear" />
+        </Button>
+      </span>
+    </div>
   );
 }
 

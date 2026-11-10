@@ -423,7 +423,7 @@ function SaveBox() {
                   )}
                   {preview.breakCount > 0 && (
                     <div className="faint tiny" style={{ padding: '0 4px' }}>
-                      {preview.breakCount} break {preview.breakCount === 1 ? 'tab stays' : 'tabs stay'} open. Tidy all puts {preview.breakCount === 1 ? 'it' : 'them'} on your Break shelf.
+                      {preview.breakCount} break {preview.breakCount === 1 ? 'tab stays' : 'tabs stay'} open. Smart Tidy all puts {preview.breakCount === 1 ? 'it' : 'them'} on your Break shelf.
                     </div>
                   )}
                   {preview.hiddenCount > 0 && (
