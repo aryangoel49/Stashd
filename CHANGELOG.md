@@ -5,6 +5,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+## 1.12.0 (2026-11-10)
+
 ### Added
 - Smart Tidy all. Before closing, each piece of work you have open is saved: into its folder, or a new folder of its own, which a small card then lets you rename. Stray tabs, error pages and front pages just close. With Stashd AI on, Claude does the sorting and naming (a sparkle on the switch shows it); otherwise your Mac does. Turn it on or off with the Smart switch on the Tidy all button.
 - When a new version of Stashd is ready, a card says so: click Restart to update and Stashd closes, updates and opens again by itself.
