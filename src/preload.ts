@@ -66,6 +66,7 @@ const api = {
   fitWindow: (height: number) => invoke<boolean>('window:fit', height),
   openAutomationSettings: () => invoke<boolean>('system:openAutomationSettings'),
   setupChromeGroups: () => invoke<boolean>('system:setupChromeGroups'),
+  chromeHelperAdded: () => invoke<boolean>('system:chromeHelperAdded'),
   dragChromeHelper: () => ipcRenderer.send('chromeguide:drag'),
   copyChromeHelperPath: () => invoke<boolean>('chromeguide:copyPath'),
   onChromeHelperAdded: (cb: () => void) => on('chrome:helperAdded', cb),

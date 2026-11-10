@@ -341,6 +341,8 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     return true;
   });
   handle('system:setupChromeGroups', () => setupChromeGroups());
+  // Whether Chrome has ever talked to Stashd's helper: then it's added.
+  handle('system:chromeHelperAdded', async () => (await lastHeardFromChrome()) > 0);
   // The guide's folder, dragged onto Chrome's extensions page: Chrome adds it, no file picker needed.
   ipcMain.on('chromeguide:drag', (event) => {
     if (!isAppUrl(event.senderFrame?.url ?? '') || !dragIcon) return;

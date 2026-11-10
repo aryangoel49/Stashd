@@ -122,6 +122,7 @@ export function SettingsView() {
           }}
         />
       </Card>
+      <ChromeHelperCard />
       <Card title="Startup">
         <Toggle label="Open Stashd when I log in" hint="Works in the installed app." on={s.launchAtLogin} onChange={(v) => void update({ launchAtLogin: v })} />
         <div className="srow">
@@ -180,17 +181,6 @@ export function SettingsView() {
           <span>Permission to see your tabs and files</span>
           <Button size="small" onClick={() => void api.openAutomationSettings()}>
             Open System Settings
-          </Button>
-        </div>
-        <div className="srow">
-          <span>
-            Chrome tab groups
-            <span className="muted small" style={{ display: 'block' }}>
-              Unpack puts a folder's tabs in a group named after it. Add to Chrome opens Chrome's extensions page with a small card that walks you through it.
-            </span>
-          </span>
-          <Button size="small" onClick={() => void api.setupChromeGroups()}>
-            Add to Chrome
           </Button>
         </div>
       </Card>
@@ -398,5 +388,32 @@ function MemoryRow() {
         {sure ? 'Forget all of it' : 'Forget my history'}
       </Button>
     </div>
+  );
+}
+
+/** Stashd's Chrome extension: added (Chrome has talked to Stashd), or a button to add it, with the same
+ *  guide as the welcome. For anyone who skipped it there. */
+function ChromeHelperCard() {
+  const [added, setAdded] = useState<boolean | null>(null);
+  useEffect(() => {
+    void api.chromeHelperAdded().then(setAdded, () => setAdded(false));
+    return api.onChromeHelperAdded(() => setAdded(true));
+  }, []);
+  return (
+    <Card title="Chrome extension" hint="Unpack puts each folder's tabs in a Chrome tab group named after it, and Stashd remembers how far into a video you were.">
+      <div className="srow">
+        <span>
+          {added ? 'Added to Chrome' : 'Not added yet'}
+          <span className="muted small" style={{ display: 'block' }}>
+            {added
+              ? 'Add it again if you removed it from Chrome or it stopped working.'
+              : "Add to Chrome opens Chrome's extensions page, with a small card beside it that walks you through it."}
+          </span>
+        </span>
+        <Button size="small" variant={added ? undefined : 'primary'} onClick={() => void api.setupChromeGroups()}>
+          {added ? 'Add again' : 'Add to Chrome'}
+        </Button>
+      </div>
+    </Card>
   );
 }

@@ -5,6 +5,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+### Changed
+- Settings has its own Chrome extension section (in General, under Unpack) that says whether the extension is added, with Add to Chrome and the same step-by-step guide as the welcome. Skipped it at the start? Add it there any time.
+
 ## 1.12.0 (2026-11-10)
 
 ### Added
