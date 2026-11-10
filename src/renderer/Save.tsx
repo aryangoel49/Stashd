@@ -58,9 +58,14 @@ function SaveBox() {
 
   const commit = async (p: SavePreview, opts: { name: string; note: string; keys: string[]; tidy: boolean }) => {
     setPacking(opts.tidy);
+    // The save starts at once; a plain save first swoops what you picked into the folder (Pack up has the
+    // big fly-in to the menu bar instead).
+    const saving = api.commitSave({ jobId: p.jobId, name: opts.name, note: opts.note, keys: opts.keys, tidy: opts.tidy });
+    saving.catch(() => undefined);
+    if (!opts.tidy && ref.current) await swoopIntoFolder(ref.current, opts.keys.length);
     setState('saving');
     try {
-      await api.commitSave({ jobId: p.jobId, name: opts.name, note: opts.note, keys: opts.keys, tidy: opts.tidy });
+      await saving;
       setState('saved');
       // Pack up has its own sound as things land in the menu bar.
       if (!opts.tidy) void sound('stash');
@@ -534,3 +539,71 @@ function PermissionNote({ errors }: { errors: CollectorError[] }) {
     </div>
   );
 }
+
+const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';
+
+/**
+ * ⌃S's own little moment: what you picked swoops in an arc into the box's folder, a few at a time and a
+ * beat apart, and the folder squashes as they land. The real icons when the list is open; otherwise
+ * small cards rise from the "3 tabs · 1 file" line. About half a second; Reduce Motion skips it.
+ */
+async function swoopIntoFolder(box: HTMLElement, count: number): Promise<void> {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const folder = box.querySelector<SVGElement>('.save-head .folder-mark');
+  if (!folder) return;
+  const to = folder.getBoundingClientRect();
+  const icons = [...box.querySelectorAll<HTMLElement>('.pill.in .badge, .pill.in .badge-icon')].filter((el) => el.getBoundingClientRect().width > 0).slice(0, 6);
+  const from = box.querySelector('.summary')?.getBoundingClientRect();
+  const flyers: { el: HTMLElement; x: number; y: number }[] = icons.length
+    ? icons.map((el) => {
+        const r = el.getBoundingClientRect();
+        const c = el.cloneNode(true) as HTMLElement;
+        Object.assign(c.style, { width: `${r.width}px`, height: `${r.height}px` });
+        return { el: c, x: r.left, y: r.top };
+      })
+    : from
+      ? Array.from({ length: Math.min(Math.max(count, 1), 4) }, (_, i) => {
+          const c = document.createElement('span');
+          c.className = 'swoop-card';
+          return { el: c, x: from.left + 8 + i * 10, y: from.top };
+        })
+      : [];
+  if (!flyers.length) return;
+  const tx = to.left + to.width / 2;
+  const ty = to.top + to.height / 2;
+  const STAGGER = 45;
+  const FLY = 420;
+  const runs = flyers.map(({ el, x, y }, i) => {
+    el.classList.add('swoop');
+    Object.assign(el.style, { left: `${x}px`, top: `${y}px` });
+    document.body.appendChild(el);
+    const w = el.getBoundingClientRect().width || 16;
+    const dx = tx - (x + w / 2);
+    const dy = ty - (y + w / 2);
+    // Up and over: the middle of the path lifts above the straight line, so it reads as a toss.
+    const lift = Math.min(-36, dy * 0.5 - 40);
+    return el
+      .animate(
+        [
+          { transform: 'translate3d(0,0,0) scale(1) rotate(0deg)', opacity: 1 },
+          { transform: `translate3d(${dx * 0.45}px,${lift}px,0) scale(0.95) rotate(${i % 2 ? 8 : -8}deg)`, opacity: 1, offset: 0.45 },
+          { transform: `translate3d(${dx}px,${dy}px,0) scale(0.35) rotate(0deg)`, opacity: 0.2 },
+        ],
+        { duration: FLY, delay: i * STAGGER, easing: 'cubic-bezier(0.45, 0, 0.25, 1)', fill: 'forwards' },
+      )
+      .finished.finally(() => el.remove());
+  });
+  const landed = FLY + (flyers.length - 1) * STAGGER - 80;
+  folder.animate(
+    [
+      { transform: 'scale(1, 1)' },
+      { transform: 'scale(1.14, 0.86)', offset: 0.35 },
+      { transform: 'scale(0.96, 1.05)', offset: 0.7 },
+      { transform: 'scale(1, 1)' },
+    ],
+    { duration: 380, delay: landed, easing: EASE_OUT },
+  );
+  await Promise.all(runs).catch(() => undefined);
+  await new Promise((r) => setTimeout(r, 160));
+}
+

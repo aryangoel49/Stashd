@@ -1186,3 +1186,8 @@ body.route-chromeguide { background: transparent; }
 @keyframes cg-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-4px); } }
 @media (prefers-color-scheme: dark) { .cg-folder { background: rgba(255, 255, 255, 0.08); } }
 .cg-done { margin: 10px 0 0; color: var(--muted); }
+
+/* ⌃S: what you picked swoops into the save box's folder (Save.tsx swoopIntoFolder). */
+.swoop { position: fixed; z-index: 50; pointer-events: none; will-change: transform, opacity; }
+.swoop-card { width: 18px; height: 14px; border-radius: 4px; background: #fffaf0; border: 1px solid rgba(0, 0, 0, 0.12); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); }
+.save-head .folder-mark { transform-origin: 50% 100%; }
