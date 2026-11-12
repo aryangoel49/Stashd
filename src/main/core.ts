@@ -117,6 +117,11 @@ export const HOME_MARGIN = 1.5;
 /** What Tidy all closed stays listed this long, so a tab closed by mistake can come back. */
 export const RECENT_TIDY_MS = 10 * 60_000;
 
+/** Saved for you: how long an unused one is kept, how many there can be, and how many one moment can make. */
+export const FOR_YOU_DAYS = 14;
+const FOR_YOU_MAX = 8;
+const FOR_YOU_AT_ONCE = 3;
+
 /** How long one look at what's open is reused. */
 const OPEN_CHECK_MS = 6_000;
 
@@ -463,6 +468,9 @@ export class Core {
     }
     // What you tick and untick teaches a folder; an automatic save made no choices, so it teaches nothing.
     if (!req.auto) job.prefs = learn(job.prefs, offered, req.keys);
+    // A folder Stashd made for you is yours once you save into it yourself.
+    if (!req.auto) job.forYou = undefined;
+    else if (!req.jobId && req.forYou) job.forYou = true;
     job.updatedAt = now.toISOString();
     job.done = false;
     await this.store.put(job);
@@ -884,6 +892,7 @@ export class Core {
         name: j.name,
         renamed: !!j.renamed,
         pinned: !!j.pinned,
+        forYou: !!j.forYou,
         updatedAt: j.updatedAt,
         done: j.done,
         hint: latest ? hintFrom(latest) : '',
@@ -986,6 +995,60 @@ export class Core {
       out.push({ jobId: r.jobId, entryId: r.entryId, name: plan.job.name });
     }
     return out;
+  }
+
+  /**
+   * Saved for you: work that's open but in no folder (two or more things that belong together) is saved into
+   * new folders of its own, quietly, when you step away, close the lid or shut down. Nothing is closed and
+   * nothing is asked. The folders are listed apart (Job.forYou) until you use one; unused, they go after
+   * FOR_YOU_DAYS. `quick`: the Mac is going to sleep, so only what the last look saw, sorted on this Mac;
+   * otherwise a full look (documents too) and Claude's sorting when AI is on.
+   */
+  async autoSaveNew(cap: Capture, quick: boolean): Promise<{ jobId: string; name: string }[]> {
+    const settings = this.settings.get();
+    if (!settings.autoSaveNew || this.pending) return [];
+    await this.pruneForYou();
+    const jobs = await this.store.list();
+    const room = FOR_YOU_MAX - jobs.filter((j) => j.forYou).length;
+    if (room <= 0) return [];
+    if (!quick && !this.fakeCapture) cap = await capture(settings, this.helper, this.selfNames).catch(() => cap);
+    await this.sites?.look(cap.items);
+    const learned = learnedLifestyleApps(this.state.appUnticks);
+    const held = new Set<string>();
+    for (const j of jobs) for (const i of (await this.store.latest(j.id))?.items ?? []) for (const k of matchKeys(i)) held.add(k);
+    const work = cap.items.filter(
+      (i) =>
+        (isLoose(i) || (i.kind === 'doc' && !i.untitled) || (i.kind === 'app' && !!i.chat)) &&
+        !matchKeys(i).some((k) => held.has(k)) &&
+        !isLifestyle(i, settings, learned) &&
+        !isBreakItem(i),
+    );
+    if (work.length < 2) return [];
+    const made: { jobId: string; name: string }[] = [];
+    // (A piece that belongs to a folder you have is left to that folder's own automatic save.)
+    for (const piece of (await this.sortWork(work, quick)).filter((p) => !p.jobId).slice(0, Math.min(room, FOR_YOU_AT_ONCE))) {
+      if (this.pending) break;
+      const own: PendingSave = { capture: Promise.resolve(cap), offered: { sure: piece.items, likely: [], maybe: [], hidden: [], breaks: [], why: {} } };
+      const r = await this.commitSave({ jobId: null, name: piece.name ?? suggestName(piece.items, null), note: '', keys: piece.items.map((i) => i.key), tidy: false, auto: true, forYou: true }, own);
+      made.push({ jobId: r.jobId, name: (await this.store.get(r.jobId)).name });
+    }
+    return made;
+  }
+
+  /** Keep: a folder Stashd made for you becomes one of your folders. */
+  async keepForYou(jobId: string): Promise<void> {
+    const job = await this.store.get(jobId);
+    if (!job.forYou) return;
+    job.forYou = undefined;
+    await this.store.put(job);
+    this.notify();
+  }
+
+  /** Folders Stashd made for you that you never used go after FOR_YOU_DAYS. */
+  private async pruneForYou(now = Date.now()): Promise<void> {
+    for (const j of await this.store.list()) {
+      if (j.forYou && now - Date.parse(j.updatedAt) > FOR_YOU_DAYS * 86_400_000) await this.deleteJob(j.id).catch(() => undefined);
+    }
   }
 
   /** Would an automatic save of this folder change anything right now? */
@@ -1189,6 +1252,7 @@ export class Core {
     const opened = await this.store.get(jobId).catch(() => null);
     if (opened) {
       opened.openedAt = new Date().toISOString();
+      opened.forYou = undefined;
       await this.store.put(opened);
     }
     this.notify();
@@ -1364,6 +1428,7 @@ export class Core {
       const want = pinned && j.id === jobId;
       if (!!j.pinned === want) continue;
       j.pinned = want;
+      if (want) j.forYou = undefined;
       await this.store.put(j);
     }
     this.notify();
@@ -1382,6 +1447,7 @@ export class Core {
     const job = await this.store.get(jobId);
     job.name = name;
     job.renamed = true;
+    job.forYou = undefined;
     await this.store.put(job);
     await this.refreshCard(jobId).catch(() => undefined);
     this.notify();

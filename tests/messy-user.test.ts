@@ -665,3 +665,69 @@ describe("⌃S with Claude's second look", () => {
     expect(await core.refineSave()).toBeNull();
   });
 });
+
+describe('Saved for you: work you never saved', () => {
+  const t = (url: string, label: string): Item => ({ key: `tab:${url}`, kind: 'tab', label, detail: new URL(url).hostname, app: 'Google Chrome', url, browser: 'chrome', window: 1 });
+  const trip = [
+    t('https://en.wikipedia.org/wiki/Toronto', 'Toronto - Wikipedia'),
+    t('https://www.booking.com/city/ca/toronto.html', 'Toronto hotels - Booking.com'),
+    t('https://www.tripadvisor.ca/Attractions-Toronto', 'Things to do in Toronto - Tripadvisor'),
+  ];
+  const clutter = [t('https://www.reddit.com/r/aww/', 'Aww: cute animals'), t('https://www.amazon.ca/s?k=earbuds', 'Amazon.ca : wireless earbuds')];
+  const cap = (): Capture => ({ at: new Date().toISOString(), appOrder: ['Google Chrome'], frontApp: 'Google Chrome', items: open, errors: [] });
+  /** Stands in for the sorter (the on-device model isn't loaded in these tests): one piece per topic word. */
+  const sorter = (...topics: string[]) => ({
+    name: 'claude' as const,
+    write: async () => null,
+    suggestName: async () => null,
+    place: async () => null,
+    sortWork: async (items: Item[]) => topics.map((w) => ({ name: `${w} work`, items: items.filter((i) => i.label.includes(w)) })).filter((p) => p.items.length >= 2),
+  });
+
+  it('is kept in a folder of its own when you step away: nothing closes, clutter is not saved, and it is listed apart', async () => {
+    const core = makeCore();
+    core.writers = [sorter('Toronto')];
+    open = [...trip, ...clutter];
+    const made = await core.autoSaveNew(cap(), false);
+    expect(made).toHaveLength(1);
+    const jobs = await core.listJobs();
+    expect(jobs.map((j) => [j.forYou, j.itemCount])).toEqual([[true, 3]]);
+    expect((await core.store.latest(made[0].jobId))!.items.map((i) => i.key).sort()).toEqual(trip.map((i) => i.key).sort());
+    // The same work isn't saved twice, and it isn't the folder ⌃S thinks you're in.
+    expect(await core.autoSaveNew(cap(), false)).toEqual([]);
+    expect(jobs[0].current).toBe(false);
+  });
+
+  it('becomes one of your folders when you keep it, rename it or save into it; unused, it goes after two weeks', async () => {
+    const core = makeCore();
+    core.writers = [sorter('Toronto', 'Acme')];
+    open = trip;
+    const [made] = await core.autoSaveNew(cap(), false);
+    await core.keepForYou(made.jobId);
+    expect((await core.listJobs())[0].forYou).toBe(false);
+
+    const { FOR_YOU_DAYS } = await import('../src/main/core');
+    const other = [t('https://example.com/acme/proposal', 'Acme proposal draft'), t('https://example.com/acme/budget', 'Acme budget draft')];
+    open = [...trip, ...other];
+    const [second] = await core.autoSaveNew(cap(), false);
+    const job = await core.store.get(second.jobId);
+    job.updatedAt = new Date(Date.now() - (FOR_YOU_DAYS + 1) * 86_400_000).toISOString();
+    await core.store.put(job);
+    open = trip;
+    await core.autoSaveNew(cap(), false);
+    expect((await core.listJobs()).map((j) => j.id)).toEqual([made.jobId]);
+  });
+
+  it('is off when you turn it off, and never runs while the save box is open', async () => {
+    const core = makeCore();
+    core.writers = [sorter('Toronto')];
+    open = trip;
+    core.beginSave();
+    expect(await core.autoSaveNew(cap(), false)).toEqual([]);
+    await core.preview({ asNew: true });
+    await core.commitSave({ jobId: null, name: 'Mine', note: '', keys: [trip[0].key], tidy: false });
+    await core.settings.update({ autoSaveNew: false });
+    open = [...trip.slice(1), ...clutter];
+    expect(await core.autoSaveNew(cap(), false)).toEqual([]);
+  });
+});

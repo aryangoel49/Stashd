@@ -98,6 +98,8 @@ export interface AutoDeps {
   wouldSave: (cap: Capture, jobId: string) => Promise<boolean>;
   foldersInUse: (look: OpenLook) => string[];
   save: (cap: Capture, jobIds: string[]) => Promise<{ jobId: string; entryId: string; name: string }[]>;
+  /** Saved for you: keeps open work that's in no folder (see Core.autoSaveNew). `quick`: the Mac is going to sleep. */
+  saveNew?: (cap: Capture, quick: boolean) => Promise<unknown>;
   remove: (jobId: string, entryId: string) => Promise<void>;
   unpack: (jobId: string) => Promise<void>;
   /** Pack up a folder from one of its saves: close its things (with Undo), as the panel's Pack up does. */
@@ -209,6 +211,8 @@ export class AutoSaver {
     // Nothing new since your last save is still worth bringing back after the restart.
     if (kind === 'shutdown') for (const id of folders) if (!saved.some((s) => s.jobId === id)) this.note((memory) => memory.autoSaved(momentId, id, 'unchanged'));
     left.saved = saved;
+    // Work you never saved is kept too, apart from your folders. Quietly: no card for these.
+    await this.d.saveNew?.(look.cap, kind !== 'away').catch(() => undefined);
   }
 
   /** A recent look, or a quick new one; null when neither can be had (nothing is saved then). */

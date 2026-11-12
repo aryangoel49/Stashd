@@ -211,6 +211,7 @@ function start(): void {
         if (saved.length) tray.flash('Saved automatically');
         return saved;
       },
+      saveNew: (cap, quick) => core.autoSaveNew(cap, quick),
       remove: (jobId, entryId) => core.removeAutoSave(jobId, entryId),
       packUp: (jobId, entryId) => tidy.run(jobId, entryId).then(() => tray.wink()),
       unpack: (jobId) => core.open(jobId, undefined, 'all', beforeOpen).then(() => undefined),

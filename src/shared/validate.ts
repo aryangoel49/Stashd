@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sounds: true,
   autoSave: true,
   autoSaveTalk: 'helpful',
+  autoSaveNew: true,
   tidyKeep: 'front',
   welcomed: false,
   tidyGesture: false,
@@ -140,6 +141,7 @@ export function settingsPatch(v: unknown, current: Settings): Settings {
       case 'tidyUp': next.tidyUp = bool(val, k); break;
       case 'sounds': next.sounds = bool(val, k); break;
       case 'autoSave': next.autoSave = bool(val, k); break;
+      case 'autoSaveNew': next.autoSaveNew = bool(val, k); break;
       case 'autoSaveTalk':
         if (val !== 'helpful' && val !== 'quiet') fail('autoSaveTalk must be helpful or quiet');
         next.autoSaveTalk = val;

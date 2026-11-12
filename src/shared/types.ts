@@ -35,6 +35,8 @@ export interface Settings {
   autoSave: boolean;
   /** Helpful: short cards ("Save it?", "Saved before your Mac slept"). Quiet: save, never speak. */
   autoSaveTalk: 'helpful' | 'quiet';
+  /** Work you never saved is kept under "Saved for you" when you step away, close the lid or shut down. */
+  autoSaveNew: boolean;
   /** Tidy all: keep the tab (or window) you're on open, or close everything. The last choice is kept. */
   tidyKeep: TidyKeep;
   /** The welcome (first run) has been seen, or skipped. */
@@ -208,6 +210,9 @@ export interface Job {
   renamed?: boolean;
   /** Pinned: the folder ⌃O opens (only one at a time). */
   pinned?: boolean;
+  /** Saved for you: Stashd made this folder itself, from work you never saved, when you stepped away. It's
+   *  listed apart from your folders until you use it (open, save into, rename or pin it) or press Keep. */
+  forYou?: boolean;
   /** When you last opened it (Unpack), for ⌃O when nothing is pinned. */
   openedAt?: string;
   /** What the project is about, rebuilt after each save (see jobs/card.ts). */
@@ -232,6 +237,8 @@ export interface JobSummary {
   name: string;
   renamed: boolean;
   pinned: boolean;
+  /** Saved for you (see Job.forYou). */
+  forYou: boolean;
   updatedAt: string;
   done: boolean;
   /** First words of the latest brief, for the menu. */
@@ -309,6 +316,8 @@ export interface SaveRequest {
   tidy: boolean;
   /** Stashd saving by itself: it leaves your current folder, Tidy up choice and learning alone. */
   auto?: boolean;
+  /** With `auto` and no jobId: the new folder is one Stashd made for you (Job.forYou). Never set from a window. */
+  forYou?: boolean;
 }
 
 export interface SaveResult {

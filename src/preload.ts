@@ -46,6 +46,8 @@ const api = {
   renameJob: (jobId: string, name: string) => invoke<void>('jobs:rename', jobId, name),
   setDone: (jobId: string, done: boolean) => invoke<void>('jobs:done', jobId, done),
   setPinned: (jobId: string, pinned: boolean) => invoke<void>('jobs:pin', jobId, pinned),
+  /** Keep a folder Stashd saved for you: it becomes one of your folders. */
+  keepJob: (jobId: string) => invoke<void>('jobs:keep', jobId),
   projectCard: (jobId: string) => invoke<ProjectCard>('jobs:card', jobId),
   breakShelf: () => invoke<BreakShelf>('break:shelf'),
   breakApps: () => invoke<{ name: string; path: string }[]>('break:apps'),
