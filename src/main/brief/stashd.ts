@@ -73,12 +73,16 @@ export function stashdWriter(opts: { installId: () => Promise<string>; allowed: 
         return null;
       }
     },
-    async sortWork(items) {
+    async place(content) {
       if (!opts.allowed()) return null;
-      const { payload, byId } = sortPayload(items);
+      return JSON.parse(await ask('place', content, 8_000)) as unknown;
+    },
+    async sortWork(items, folders) {
+      if (!opts.allowed()) return null;
+      const { payload, byId, folderById } = sortPayload(items, folders);
       const text = await ask('sort', JSON.stringify(payload), 12_000);
       try {
-        return acceptAiSort(JSON.parse(text), byId);
+        return acceptAiSort(JSON.parse(text), byId, folderById);
       } catch {
         throw new Error('Stashd AI sent back something unexpected.');
       }

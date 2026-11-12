@@ -8,8 +8,9 @@
 import { createHash } from 'node:crypto';
 
 export const LIMITS = {
-  /** Briefs and folder names per install per day. A busy day is about 30 saves, each asking for both. */
-  perInstall: 60,
+  /** Requests per install per day. A busy day is about 30 saves, each asking for a brief, a name and
+   *  (since ⌃S asks Claude which work it is) a placement, plus a few Tidy alls and questions. */
+  perInstall: 150,
   /** Per internet address per day: a classroom or office shares one. */
   perAddress: 300,
 };

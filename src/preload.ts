@@ -20,6 +20,8 @@ const api = {
   openClaudeKeysPage: () => invoke<boolean>('claude:openKeysPage'),
 
   previewSave: (opts: { asNew?: boolean; asFolder?: boolean; jobId?: string } = {}) => invoke<SavePreview>('save:preview', opts),
+  /** Claude's second look at the box that's showing (null: AI off, too slow, or nothing to change). */
+  refineSave: () => invoke<SavePreview | null>('save:refine'),
   commitSave: (req: SaveRequest) => invoke<SaveResult>('save:commit', req),
   cancelSave: () => invoke<boolean>('save:cancel'),
   shelveBreaks: (keys: string[]) => invoke<boolean>('save:shelve', keys),

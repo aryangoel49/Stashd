@@ -52,6 +52,8 @@ function SaveBox() {
   const modeRef = useRef<Mode>('last');
   // Once you type in the name, an AI suggestion never replaces it.
   const nameTouched = useRef(false);
+  // You ticked or unticked something yourself: Claude's second look then leaves the ticks alone.
+  const ticksTouched = useRef(false);
   // Each preview gets a number, so an AI name that arrives late (after you switch "Save to") is ignored.
   const loadId = useRef(0);
   const [aiNaming, setAiNaming] = useState(false);
@@ -91,6 +93,7 @@ function SaveBox() {
       const pack = modeRef.current === 'pack' ? true : modeRef.current === 'save' ? false : p.tidyUp;
       setPackFirst(pack);
       nameTouched.current = false;
+      ticksTouched.current = false;
 
       // Pack up on a folder you already have, with nothing to decide: just do it.
       if (modeRef.current === 'pack' && p.jobId && keys.length && !p.likely.length && !opts.asNew && !opts.jobId) {
@@ -101,20 +104,36 @@ function SaveBox() {
       // A new folder always shows what will go in it. An existing one when something new goes in, or there's something to decide.
       setExpanded(!p.jobId || p.newCount > 0 || p.likely.length > 0 || p.kept.length > 0);
       setState('ready');
-      if (!p.jobId && p.sure.length) {
-        // Ask Claude or Apple Intelligence (if set up) for a short folder name, in the background.
-        setAiNaming(true);
-        void api
-          .aiName(p.sure.map((i) => i.key))
-          .then((n) => {
-            if (n && !nameTouched.current && id === loadId.current) {
-              setName(n);
-              void sound('ding');
+      // The box is up with this Mac's own guess. With AI on, Claude takes a second look (which work this is,
+      // what's part of it, a name for a new folder) and the box is corrected, unless you got there first.
+      const wantsName = !p.jobId && p.sure.length > 0;
+      if (wantsName) setAiNaming(true);
+      void api
+        .refineSave()
+        .catch(() => null)
+        .then(async (r) => {
+          if (id !== loadId.current) return;
+          if (r) {
+            if (!ticksTouched.current) {
+              setPreview(r);
+              setPicked(new Set([...r.sure, ...r.kept].map((i) => i.key)));
+              setExpanded(!r.jobId || r.newCount > 0 || r.likely.length > 0 || r.kept.length > 0);
             }
-          })
-          .catch(() => undefined)
-          .finally(() => id === loadId.current && setAiNaming(false));
-      }
+            if (!nameTouched.current && r.suggestedName !== p.suggestedName && (!ticksTouched.current || !r.jobId === !p.jobId)) {
+              setName(r.suggestedName);
+              if (!r.jobId) void sound('ding');
+            }
+            return;
+          }
+          // No second look (AI off, or too slow): a new folder still gets its name asked for, as before.
+          if (!wantsName) return;
+          const n = await api.aiName(p.sure.map((i) => i.key)).catch(() => null);
+          if (n && !nameTouched.current && id === loadId.current) {
+            setName(n);
+            void sound('ding');
+          }
+        })
+        .finally(() => id === loadId.current && setAiNaming(false));
       setTimeout(() => (p.jobId ? noteRef.current : nameRef.current)?.focus(), 0);
     } catch (e) {
       setError(errorText(e));
@@ -229,15 +248,20 @@ function SaveBox() {
   };
 
   // "Add all" ticks the pills one after another, so you can see each one join.
-  const addOneByOne = (keys: string[]) => keys.forEach((key, i) => setTimeout(() => setPicked((prev) => new Set(prev).add(key)), i * 40));
+  const addOneByOne = (keys: string[]) => {
+    ticksTouched.current = true;
+    keys.forEach((key, i) => setTimeout(() => setPicked((prev) => new Set(prev).add(key)), i * 40));
+  };
 
-  const toggle = (key: string) =>
+  const toggle = (key: string) => {
+    ticksTouched.current = true;
     setPicked((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
+  };
 
   return (
     <form

@@ -64,7 +64,8 @@ export const SORT_INSTRUCTIONS = `You sort what someone has open on their Mac in
 A piece of work is two or more open things that serve one task or project: a trip being planned, an essay with its sources, one client's documents, a bug being fixed, a purchase being researched. Things belong together when they serve the same task, even with no words in common: a flight search, a rental and a restaurant list for the same city are one trip.
 Documents in the same project folder belong together. Documents in two different project folders are two pieces, even with the same file names.
 Leave out anything that isn't part of a piece of work: entertainment, social feeds, sports, news, shopping unrelated to the others, a site's home page, error and sign-in pages, and anything that fits with nothing else. Leaving a thing out only means it closes; putting two different tasks in one piece is worse than leaving something out.
-Each thing goes in at most one piece. Name each piece with a short folder name of 1 to 3 words, like "Lisbon trip", "Climate essay" or "Acme". Sentence case, no quotes, no emoji.`;
+Each thing goes in at most one piece. Name each piece with a short folder name of 1 to 3 words, like "Lisbon trip", "Climate essay" or "Acme". Sentence case, no quotes, no emoji.
+You may also get "folders": folders they already have (ids like f1, with the name and some of what's inside). When a piece is the same work as one of those folders, put that folder's id in the piece's "folder": its things are then added to that folder, and one thing is enough to make such a piece. A shared website or one shared word is not enough: a second trip is not the first trip. For a piece that is new work, "folder" is "".`;
 
 export const SORT_SCHEMA = {
   type: 'object',
@@ -73,13 +74,30 @@ export const SORT_SCHEMA = {
       type: 'array',
       items: {
         type: 'object',
-        properties: { name: { type: 'string' }, items: { type: 'array', items: { type: 'string' } } },
-        required: ['name', 'items'],
+        properties: { name: { type: 'string' }, folder: { type: 'string' }, items: { type: 'array', items: { type: 'string' } } },
+        required: ['name', 'folder', 'items'],
         additionalProperties: false,
       },
     },
   },
   required: ['pieces'],
+  additionalProperties: false,
+} as const;
+
+/** ⌃S with Claude: which piece of work is being saved, and which open things are part of it. */
+export const PLACE_INSTRUCTIONS = `Someone pressed Save on their Mac. Decide which piece of work they are saving, and which of the things they have open are part of it.
+You get "open": everything open (ids like o1; "in" is the folder a thing is already saved in), "front": the id of the thing they were looking at when they pressed Save, and "folders": the folders they already have (ids like f1, with the name, their note, some of what's inside, and "open": true when most of it is open right now). Sometimes "target": the folder they chose themselves ("new" means a new folder).
+
+Answer:
+- "folder": the id of the folder this work belongs to, or "new" when none of their folders holds this piece of work. If "target" is given, return it. Otherwise the thing in front decides: the work is the task the thing in front is part of. Choose a folder when the thing in front serves that folder's task, or is already "in" it. A shared website or one shared word is not enough: a second trip is not the first trip, another client is not this client.
+- "items": the ids of every open thing that is part of that same piece of work. Things belong together when they serve the same task, even with no words in common: a flight search, a rental and a restaurant list for the same city are one trip; an essay, its sources and a chat about it are one essay. Documents in the same project folder belong together. Always include the thing in front, and every open thing that is already "in" the chosen folder.
+  Leave out other pieces of work, entertainment, social feeds, sports, news, shopping that has nothing to do with the task, a site's home page, and error and sign-in pages. Including something from a different task is worse than leaving something out.
+- "name": for "new", a short folder name of 1 to 3 words that says what the work is, like "Lisbon trip", "Climate essay" or "Acme". Sentence case, no quotes, no emoji. Otherwise "".`;
+
+export const PLACE_SCHEMA = {
+  type: 'object',
+  properties: { folder: { type: 'string' }, items: { type: 'array', items: { type: 'string' } }, name: { type: 'string' } },
+  required: ['folder', 'items', 'name'],
   additionalProperties: false,
 } as const;
 
@@ -165,7 +183,7 @@ export const SITES_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-export type AskKind = 'brief' | 'name' | 'ask' | 'sites' | 'sort';
+export type AskKind = 'brief' | 'name' | 'ask' | 'sites' | 'sort' | 'place';
 
 export function isAskKind(kind: unknown): kind is AskKind {
   return typeof kind === 'string' && Object.hasOwn(KINDS, kind);
@@ -177,6 +195,7 @@ const KINDS = {
   ask: { system: ASK_INSTRUCTIONS, schema: ASK_SCHEMA, maxTokens: 1500 },
   sites: { system: SITES_INSTRUCTIONS, schema: SITES_SCHEMA, maxTokens: 2000 },
   sort: { system: SORT_INSTRUCTIONS, schema: SORT_SCHEMA, maxTokens: 3000 },
+  place: { system: PLACE_INSTRUCTIONS, schema: PLACE_SCHEMA, maxTokens: 2000 },
 } as const;
 
 /** The request for one brief or one folder name. Bigger models think for longer, so they get more room. */

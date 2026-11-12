@@ -67,9 +67,9 @@ describe('what the AI is sent', () => {
   });
 });
 
-const ok: BriefWriter = { name: 'claude', write: async () => ({ source: 'claude', sentence: 'From Claude.', highlights: [], needed: [], createdAt: '' }), suggestName: async () => 'From Claude', sortWork: async () => null };
-const off: BriefWriter = { name: 'claude', write: async () => null, suggestName: async () => null, sortWork: async () => null };
-const broken: BriefWriter = { name: 'stashd', write: async () => { throw new Error('model not ready'); }, suggestName: async () => { throw new Error('model not ready'); }, sortWork: async () => { throw new Error('model not ready'); } };
+const ok: BriefWriter = { name: 'claude', write: async () => ({ source: 'claude', sentence: 'From Claude.', highlights: [], needed: [], createdAt: '' }), suggestName: async () => 'From Claude', sortWork: async () => null, place: async () => null };
+const off: BriefWriter = { name: 'claude', write: async () => null, suggestName: async () => null, sortWork: async () => null, place: async () => null };
+const broken: BriefWriter = { name: 'stashd', write: async () => { throw new Error('model not ready'); }, suggestName: async () => { throw new Error('model not ready'); }, sortWork: async () => { throw new Error('model not ready'); }, place: async () => { throw new Error('model not ready'); } };
 
 describe('choosing a writer', () => {
 

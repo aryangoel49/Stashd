@@ -20,7 +20,7 @@ describe('Stashd AI server', () => {
     const d = deps();
     const res = await makeHandler(d)(post({ install, kind: 'brief', content: '{"items":[]}' }));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ text: '{"name":"Climate essay"}', left: 59 });
+    expect(await res.json()).toEqual({ text: '{"name":"Climate essay"}', left: LIMITS.perInstall - 1 });
     expect(d.calls[0]).toEqual(briefParams('brief', STASHD_MODEL, '{"items":[]}'));
     expect(d.calls[0].output_config?.format).toEqual({ type: 'json_schema', schema: OUTPUT_SCHEMA });
   });

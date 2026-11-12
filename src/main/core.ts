@@ -2,7 +2,8 @@
 
 import path from 'node:path';
 import { mostlyOpen, type BriefView, type Capture, type BreakItem, type BreakPlace, type BreakShelf, type BrowserName, type Item, type Job, type JobSummary, type ProjectCard, type OpenResult, type OpenState, type Suggestion, type SaveEntry, type SavePreview, type SaveRequest, type SaveResult, type TidyFront } from '../shared/types';
-import { aiJobName, aiSortWork, writeBrief, type BriefWriter } from './brief';
+import { aiJobName, aiPlace, aiSortWork, writeBrief, type BriefWriter } from './brief';
+import { acceptPlacement, placePayload, type PlaceFolder } from './jobs/placeai';
 import { basicBrief } from './brief/basic';
 import { capture, CHAT_APPS, frontItemKey, frontThing } from './capture';
 import type { Helper, WindowsInfo } from './helper';
@@ -19,6 +20,7 @@ import {
 import { documentFrequency, FIT_SUGGEST, hasProof, jobFit, jobProfile, meaningText, profileTexts, scoreItem, SURE, type MeaningLookup, type Profile } from './jobs/relevance';
 import { suggest, type FolderData } from './jobs/suggest';
 import { sortIntoWorks, sortText } from './jobs/sort';
+import type { SortFolder } from './jobs/sortai';
 import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
 import type { SiteSorter } from './sites';
@@ -62,6 +64,8 @@ interface PendingSave {
   kept?: Item[];
   /** The folder you pressed Pack up on, so the box doesn't have to guess. */
   target?: string;
+  /** What the save box is showing now (⌃S only), and how it was asked for: what Claude's second look starts from. */
+  shown?: { preview: SavePreview; opts: { asNew?: boolean; jobId?: string } };
 }
 
 export interface OpenLook {
@@ -314,7 +318,7 @@ export class Core {
     const visibleItems = [...offered.sure, ...offered.likely, ...offered.maybe];
     const front = frontItemKey(visibleItems, cap.appOrder);
     const before = new Set(previous.flatMap(matchKeys));
-    return {
+    const result: SavePreview = {
       jobId: job?.id ?? null,
       jobName: job?.name ?? null,
       isSuggestion,
@@ -339,6 +343,75 @@ export class Core {
         current: f.job.id === this.state.currentJobId,
       })),
     };
+    // (Not after "Save as a folder instead": you just said what goes in.)
+    if (opts.byHand) pending.shown = opts.asFolder ? undefined : { preview: result, opts: { asNew: opts.asNew, jobId: opts.jobId } };
+    return result;
+  }
+
+  /**
+   * ⌃S, the second look. The box opens at once with this Mac's own guess (preview); when AI is on, Claude
+   * then says which piece of work this is and what's part of it, and the box is corrected: the folder (unless
+   * you chose it yourself), the ticks and, for a new folder, its name. What was in the folder before, the
+   * thing you're on and what you've added or left out by hand are never overruled. Null when AI is off,
+   * doesn't answer in time, or agrees with what the box already shows.
+   */
+  async refineSave(): Promise<SavePreview | null> {
+    const pending = this.pending;
+    const shown = pending?.shown;
+    if (!pending || !shown || !pending.offered) return null;
+    const { preview: p, opts } = shown;
+    const cap = await pending.capture;
+    const visible = [...p.sure, ...p.likely, ...p.maybe].filter((i) => i.kind !== 'app' || i.chat);
+    if (!visible.length || p.onlyBreaks.length) return null;
+    const target = opts.jobId ?? (opts.asNew ? 'new' : (pending.target ?? null));
+    const openKeys = new Set(cap.items.map(looseKey));
+    const folders: PlaceFolder[] = [];
+    for (const id of [...new Set([...(p.jobId ? [p.jobId] : []), ...p.jobOptions.map((o) => o.id)])].slice(0, 9)) {
+      const job = await this.store.get(id).catch(() => null);
+      const latest = job ? await this.store.latest(id) : null;
+      if (!job || !latest) continue;
+      const content = latest.items.filter((i) => i.kind !== 'app');
+      const open = content.filter((i) => matchKeys(i).some((k) => openKeys.has(k))).length;
+      folders.push({ id, name: job.name, note: latest.note ?? '', items: latest.items, open: id === this.state.currentJobId || mostlyOpen({ open, total: content.length }) });
+    }
+    const req = placePayload(visible, p.frontKey, folders, target);
+    const answer = await Promise.race([aiPlace(this.writers, JSON.stringify(req.payload)), new Promise<null>((r) => setTimeout(() => r(null), 9_000))]);
+    const placed = answer ? acceptPlacement(answer, req) : null;
+    // You moved on meanwhile (Escape, another folder picked, a new ⌃S): this answer is for a box that's gone.
+    if (!placed || this.pending !== pending || pending.shown !== shown) return null;
+
+    let base = p;
+    if (target === null && placed.jobId !== p.jobId) {
+      base = await this.preview(placed.jobId ? { jobId: placed.jobId, byHand: true } : { asNew: true, byHand: true });
+      if (placed.jobId) base.isSuggestion = true;
+    }
+    const offered = pending.offered;
+    const job = base.jobId ? await this.store.get(base.jobId).catch(() => null) : null;
+    const why = { ...offered.why };
+    const stays = (i: Item) => i.key === base.frontKey || i.untitled === true || /was in this job/.test(why[i.key] ?? '') || (job?.prefs.add[i.key] ?? 0) >= 2;
+    const sure: Item[] = [];
+    const likely: Item[] = [];
+    const maybe: Item[] = [];
+    for (const i of [...offered.sure, ...offered.likely, ...offered.maybe]) {
+      const wasSure = offered.sure.includes(i);
+      const bare = i.kind === 'app' && !i.chat;
+      if (wasSure && (stays(i) || bare)) sure.push(i);
+      else if (placed.keys.has(i.key) && !bare && !/you left this out before/.test(why[i.key] ?? '')) {
+        sure.push(i);
+        if (!wasSure) why[i.key] = 'Stashd AI: part of this work';
+      } else if (wasSure) {
+        likely.push(i);
+        why[i.key] = 'Stashd AI: looks like different work';
+      } else (offered.likely.includes(i) ? likely : maybe).push(i);
+    }
+    const name = job ? job.name : (placed.name ?? base.suggestedName);
+    const same = base === p && name === p.suggestedName && sure.length === p.sure.length && sure.every((i) => p.sure.includes(i));
+    if (same) return null;
+    const before = new Set(((job ? await this.store.latest(job.id) : null)?.items ?? []).flatMap(matchKeys));
+    const result: SavePreview = { ...base, sure, likely, maybe, why, suggestedName: name, newCount: job ? sure.filter((i) => !before.has(looseKey(i))).length : 0 };
+    pending.offered = { ...offered, sure, likely, maybe, why };
+    pending.shown = { preview: result, opts: pending.shown?.opts ?? opts };
+    return result;
   }
 
   /** The folder whose tabs (two or more) share the window of the tab you're on, if any. */
@@ -356,6 +429,8 @@ export class Core {
   async commitSave(req: SaveRequest, own?: PendingSave): Promise<SaveResult> {
     const pending = own ?? this.pending;
     if (!pending) throw new Error('Nothing to save. Press the shortcut again.');
+    // Saving now: a second look from Claude that arrives later is for a box that's gone.
+    pending.shown = undefined;
     const cap = await pending.capture;
     const offered = pending.offered ?? { sure: cap.items, likely: [], maybe: [], hidden: [], breaks: [], why: {} };
     const wanted = new Set(req.keys);
@@ -509,18 +584,14 @@ export class Core {
     // you name them afterwards. Things that fit with nothing else close, as always.
     const sorted = new Set<string>();
     const work = [...strays, ...otherWork].filter((i) => !homed.has(i.key) && !isBreakItem(i));
-    // Claude sorts it when AI is on (Stashd AI or your own key): it sees how things connect ("Alfama loft" is
-    // part of the Lisbon trip), and names each piece. Otherwise, or if it doesn't answer in time, the on-device
-    // model sorts and the shared words name it.
-    const ai = work.length >= 2 ? await Promise.race([aiSortWork(this.writers, work).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 13_000))]) : null;
-    let pieces: { name: string | null; items: Item[] }[];
-    if (ai) pieces = ai;
-    else {
-      const texts = work.map(sortText).filter((t): t is string => !!t);
-      const vectors = texts.length ? await this.meaning?.vectors(texts, 4000).catch(() => null) : null;
-      pieces = sortIntoWorks(work, vectors ? (t) => vectors.get(t) : undefined).map((items) => ({ name: null, items }));
-    }
-    for (const { name: aiName, items } of pieces) {
+    for (const { name: aiName, items, jobId } of await this.sortWork(work)) {
+      if (jobId) {
+        // The same work as a folder you have: its things join that folder (and close with the rest).
+        const name = await this.addToFolder(jobId, items);
+        plan.filed.push({ jobId, name, count: items.length });
+        for (const i of items) homed.add(i.key);
+        continue;
+      }
       // Offered exactly what it saves, so the new folder learns nothing about what to leave out.
       this.pending = { capture: Promise.resolve(cap), offered: { sure: items, likely: [], maybe: [], hidden: [], breaks: [], why: {} } };
       const r = await this.commitSave({ jobId: null, name: aiName ?? suggestName(items, null), note: '', keys: items.map((i) => i.key), tidy: true });
@@ -551,6 +622,30 @@ export class Core {
     this.pending = null;
     this.notify();
     return plan;
+  }
+
+  /**
+   * Open work that's in no folder, sorted into pieces. Claude sorts it when AI is on (Stashd AI or your own
+   * key): it sees how things connect ("Alfama loft" is part of the Lisbon trip), names each piece, and knows
+   * your folders, so a piece can join one. Otherwise, or if it doesn't answer in time, the on-device model
+   * sorts and the shared words name it. `quick`: no time to wait for Claude (the Mac is going to sleep).
+   */
+  private async sortWork(work: Item[], quick = false): Promise<{ name: string | null; items: Item[]; jobId?: string }[]> {
+    if (!work.length) return [];
+    if (!quick) {
+      const folders: SortFolder[] = [];
+      for (const j of (await this.store.list()).filter((x) => !x.done).slice(0, 12)) {
+        const latest = await this.store.latest(j.id);
+        if (latest) folders.push({ id: j.id, name: j.name, items: latest.items });
+      }
+      if (work.length >= 2 || folders.length) {
+        const ai = await Promise.race([aiSortWork(this.writers, work, folders).catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), 13_000))]);
+        if (ai) return ai;
+      }
+    }
+    const texts = work.map(sortText).filter((t): t is string => !!t);
+    const vectors = texts.length ? await this.meaning?.vectors(texts, quick ? 2000 : 4000).catch(() => null) : null;
+    return sortIntoWorks(work, vectors ? (t) => vectors.get(t) : undefined).map((items) => ({ name: null, items }));
   }
 
   /** What "Keep this tab" would leave open: the tab or window you're on, with its app's icon. */

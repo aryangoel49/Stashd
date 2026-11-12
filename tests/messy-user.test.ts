@@ -186,7 +186,7 @@ describe('going offline with Claude connected', () => {
   it('still writes a basic brief and says why', async () => {
     open = [tab(1, 'Climate essay notes')];
     const core = makeCore();
-    core.writers = [{ name: 'claude', write: async () => { throw new Error('Connection error.'); }, suggestName: async () => { throw new Error('Connection error.'); }, sortWork: async () => { throw new Error('Connection error.'); } }];
+    core.writers = [{ name: 'claude', write: async () => { throw new Error('Connection error.'); }, suggestName: async () => { throw new Error('Connection error.'); }, sortWork: async () => { throw new Error('Connection error.'); }, place: async () => { throw new Error('Connection error.'); } }];
     core.beginSave();
     await core.preview();
     const { jobId, entryId } = await core.commitSave({ jobId: null, name: 'Climate essay', note: 'para 3', keys: [open[0].key], tidy: false });
@@ -595,5 +595,73 @@ describe('adding one tab to a folder you have open (a friend found this)', () =>
     core.beginSave();
     const p = await core.preview({ jobId: search.jobId });
     expect(p.sure.map((i) => i.key)).not.toContain(profile.key);
+  });
+});
+
+describe("⌃S with Claude's second look", () => {
+  const t = (url: string, label: string, active = false): Item => ({ key: `tab:${url}`, kind: 'tab', label, detail: new URL(url).hostname, app: 'Google Chrome', url, browser: 'chrome', window: 1, active });
+  const flights = t('https://www.google.com/travel/flights?q=lisbon', 'Flights to Lisbon');
+  const loft = t('https://www.airbnb.com/rooms/42', 'Alfama loft with river view', true);
+  const pasteis = t('https://www.timeout.com/lisbon/restaurants/best-pasteis-de-nata', 'Where to eat pastéis de nata');
+  const bug = t('https://github.com/me/app/issues/40', 'Stripe webhook returns 400 · Issue #40');
+  /** A writer that answers the place request with these titles ticked, in this folder (by name) or a new one. */
+  const claude = (folder: string | null, titles: string[], name = '') => ({
+    name: 'claude' as const,
+    write: async () => null,
+    suggestName: async () => null,
+    sortWork: async () => null,
+    place: async (content: string) => {
+      const p = JSON.parse(content) as { open: { id: string; title: string }[]; folders: { id: string; name: string }[] };
+      return { folder: folder ? p.folders.find((f) => f.name === folder)!.id : 'new', items: p.open.filter((o) => titles.includes(o.title)).map((o) => o.id), name };
+    },
+  });
+
+  it('a new folder: Claude ticks what belongs with no words in common, unticks other work, and names it', async () => {
+    const core = makeCore();
+    open = [flights, loft, pasteis, bug];
+    core.writers = [claude(null, [flights.label, loft.label, pasteis.label], 'Lisbon trip')];
+    core.beginSave();
+    const first = await core.preview({ byHand: true });
+    expect(first.jobId).toBeNull();
+    const r = (await core.refineSave())!;
+    expect(r.suggestedName).toBe('Lisbon trip');
+    expect(r.sure.map((i) => i.label).sort()).toEqual([loft.label, flights.label, pasteis.label].sort());
+    expect([...r.likely, ...r.maybe].map((i) => i.label)).toContain(bug.label);
+  });
+
+  it('an existing folder Claude recognises is picked, and what was in it stays ticked whatever Claude says', async () => {
+    const core = makeCore();
+    open = [flights];
+    core.beginSave();
+    await core.preview({ asNew: true });
+    const trip = await core.commitSave({ jobId: null, name: 'Portugal', note: '', keys: [flights.key], tidy: false });
+    (core as unknown as { state: { currentJobId: string | null } }).state.currentJobId = null;
+    open = [{ ...flights, active: false }, loft, bug];
+    // Claude forgets the flights tab; it was in the folder, so it stays.
+    core.writers = [claude('Portugal', [loft.label])];
+    core.beginSave();
+    await core.preview({ byHand: true });
+    const r = (await core.refineSave())!;
+    expect(r.jobId).toBe(trip.jobId);
+    expect(r.sure.map((i) => i.label).sort()).toEqual([loft.label, flights.label].sort());
+    expect(r.newCount).toBe(1);
+  });
+
+  it('the folder you chose yourself is never changed, and with AI off the box stays as it is', async () => {
+    const core = makeCore();
+    open = [flights];
+    core.beginSave();
+    await core.preview({ asNew: true });
+    await core.commitSave({ jobId: null, name: 'Portugal', note: '', keys: [flights.key], tidy: false });
+    open = [{ ...flights, active: false }, loft];
+    core.writers = [claude('Portugal', [loft.label])];
+    core.beginSave();
+    const mine = await core.preview({ asNew: true, byHand: true });
+    const r = await core.refineSave();
+    expect(r?.jobId ?? mine.jobId).toBeNull();
+    core.writers = [];
+    core.beginSave();
+    await core.preview({ byHand: true });
+    expect(await core.refineSave()).toBeNull();
   });
 });

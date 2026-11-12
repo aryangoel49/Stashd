@@ -215,6 +215,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     const o = v.isPlainObject(opts) ? opts : {};
     return core.preview({ asNew: o.asNew === true, asFolder: o.asFolder === true, jobId: o.jobId == null ? undefined : v.jobId(o.jobId), byHand: true });
   });
+  handle('save:refine', () => core.refineSave());
   handle('save:commit', async (_e, req) => {
     const r = v.saveRequest(req);
     const result = await core.commitSave(r);

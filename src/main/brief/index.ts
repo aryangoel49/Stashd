@@ -2,6 +2,7 @@
 
 import type { Brief, Item, SaveEntry } from '../../shared/types';
 import { basicBrief } from './basic';
+import type { SortFolder } from '../jobs/sortai';
 
 export interface BriefWriter {
   name: 'claude' | 'stashd';
@@ -10,20 +11,37 @@ export interface BriefWriter {
   /** A short name for a new job from its items, or null when this writer is not set up. */
   suggestName(items: Item[]): Promise<string | null>;
   /** Smart Tidy all: what's open, sorted into named pieces of work, or null when this writer is not set up. Throws on failure. */
-  sortWork(items: Item[]): Promise<AiPiece[] | null>;
+  sortWork(items: Item[], folders?: SortFolder[]): Promise<AiPiece[] | null>;
+  /** ⌃S: the answer to a place request (see jobs/placeai.ts) as parsed JSON, or null when this writer is not set up. Throws on failure. */
+  place(content: string): Promise<unknown | null>;
 }
 
 export interface AiPiece {
   name: string;
   items: Item[];
+  /** The folder you already have that this piece belongs to; a new folder when absent. */
+  jobId?: string;
 }
 
 /** Ask the writers to sort what's open into pieces of work; null if none is set up or they all fail. */
-export async function aiSortWork(writers: BriefWriter[], items: Item[]): Promise<AiPiece[] | null> {
+export async function aiSortWork(writers: BriefWriter[], items: Item[], folders: SortFolder[] = []): Promise<AiPiece[] | null> {
   for (const w of writers) {
     try {
-      const pieces = await w.sortWork(items);
+      const pieces = await w.sortWork(items, folders);
       if (pieces) return pieces;
+    } catch {
+      // try the next one
+    }
+  }
+  return null;
+}
+
+/** Ask the writers which work a save is and what's part of it; null if none is set up or they all fail. */
+export async function aiPlace(writers: BriefWriter[], content: string): Promise<unknown | null> {
+  for (const w of writers) {
+    try {
+      const answer = await w.place(content);
+      if (answer) return answer;
     } catch {
       // try the next one
     }
