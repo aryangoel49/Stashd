@@ -35,6 +35,12 @@ export function neededItems(entry: Pick<SaveEntry, 'items' | 'frontKey' | 'note'
   return out;
 }
 
+/** ", for about 25 minutes": how long the thing you were last on was in front, when the save's trail says. */
+function lastOnFor(entry: SaveEntry, front: Item): string {
+  const minutes = entry.trail?.find((t) => t.key === front.key)?.minutes ?? 0;
+  return minutes >= 5 ? `, for about ${minutes >= 60 ? `${Math.round(minutes / 30) / 2} hours` : `${Math.round(minutes / 5) * 5} minutes`}` : '';
+}
+
 export function basicBrief(entry: SaveEntry, now = new Date()): Brief {
   const front = entry.items.find((i) => i.key === entry.frontKey) ?? entry.items[0];
   const tabs = entry.items.filter((i) => i.kind === 'tab').length;
@@ -59,7 +65,7 @@ export function basicBrief(entry: SaveEntry, now = new Date()): Brief {
   }
   const sections = front
     ? {
-        lastOn: trim(an(front), 90),
+        lastOn: trim(an(front), 90) + lastOnFor(entry, front),
         ...(tabs + docs > 1 ? { soFar: `${[docs && plural(docs, 'file'), tabs && plural(tabs, 'tab')].filter(Boolean).join(' and ')} saved.` } : {}),
         ...(entry.note ? { next: trim(entry.note.replace(/\s+/g, ' '), 140) } : {}),
       }

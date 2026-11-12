@@ -170,7 +170,7 @@ export function SettingsView() {
           )}
           {tab === 'privacy' && (
             <>
-      <Card title="Privacy" hint="Stashd looks at what's open when you press the shortcut, and now and then to spot work you've packed. It never reads page contents, document text, passwords, cookies or private windows.">
+      <Card title="Privacy" hint="Stashd looks at what's open when you press the shortcut, and now and then to spot work you've packed and to know roughly how long each thing was in front (for better briefs; that's kept on this Mac for a few hours). It never reads page contents, document text, passwords, cookies or private windows.">
         <ListRow label="Never save tabs from" value={s.excludedDomains} onSave={(v) => void update({ excludedDomains: v })} />
         {(['chrome', 'brave', 'edge', 'vivaldi', 'arc', 'safari'] as const).map((b) => (
           <Toggle key={b} label={`Read tabs from ${{ chrome: 'Google Chrome', brave: 'Brave', edge: 'Microsoft Edge', vivaldi: 'Vivaldi', arc: 'Arc', safari: 'Safari' }[b]}`} on={s.browsers[b]} onChange={(v) => void update({ browsers: { ...s.browsers, [b]: v } })} />

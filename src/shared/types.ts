@@ -175,6 +175,15 @@ export interface SaveEntry {
   errors: CollectorError[];
   brief?: Brief;
   feedback?: Feedback;
+  /** Where your time went before this save: its things that were in front, most recent first. */
+  trail?: TrailStep[];
+}
+
+/** One of a save's things: about how many minutes it was in front in the last few hours, and how long ago. */
+export interface TrailStep {
+  key: string;
+  minutes: number;
+  minutesAgo: number;
 }
 
 export interface LearnedPrefs {

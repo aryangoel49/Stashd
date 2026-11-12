@@ -15,8 +15,9 @@ The brief must be precise and very simple to read. Someone glancing at it for tw
 Return four short parts:
 - "sentence": what this work is, in plain words. At most 10 words. Example: "Writing your climate essay on carbon taxes."
 - "lastOn": the thing they were on last, by its plain name, and what they were doing. At most 12 words. Example: "The essay draft, at the counterargument section."
+  Some items have "minutesInFront" (about how long each was on screen in front in the hours before the save) and "lastInFrontMinutesAgo" (how long before the save it was last in front). When they do, say what they were going between: the item with the most minutes is the main thing, and the others they looked at in the last 15 minutes are what they were checking beside it. Name those by their topic. Example: "The essay draft, checking the carbon tax and IPCC pages." Never state the minutes."
 - "soFar": what's done so far. At most 12 words. Use "" if the data doesn't say.
-- "next": one concrete next step. If their note says what's next, use it. At most 12 words. Example: "Find two more sources for the counterargument."
+- "next": one concrete next step. If their note says what's next, use it. Otherwise, when the minutes show what they had just turned to, the next step is to carry on with that. At most 12 words. Example: "Find two more sources for the counterargument."
 
 How to write:
 - Short, common words. One idea per part. Write like a clear instruction, not a story.

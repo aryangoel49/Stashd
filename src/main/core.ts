@@ -21,6 +21,7 @@ import { documentFrequency, FIT_SUGGEST, hasProof, jobFit, jobProfile, meaningTe
 import { suggest, type FolderData } from './jobs/suggest';
 import { sortIntoWorks, sortText } from './jobs/sort';
 import type { SortFolder } from './jobs/sortai';
+import { addLook, trailOf, type Look } from './trail';
 import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
 import type { SiteSorter } from './sites';
@@ -128,6 +129,8 @@ export class Core {
   private state: State;
   private readonly stateFile: string;
   private pending: PendingSave | null = null;
+  /** What was in front at each look, for the last few hours: where your time went (see trail.ts). Memory only. */
+  private looks: Look[] = [];
   /** What the Tidy all desk last looked at (Tidy up acts on it). */
   private writing = new Set<string>();
   writers: BriefWriter[] = [];
@@ -480,6 +483,8 @@ export class Core {
       errors: cap.errors,
       ...(req.auto ? { auto: true } : {}),
     };
+    const trail = trailOf(this.looks, items, now.getTime());
+    if (trail.length) entry.trail = trail;
     const previousAuto = req.auto ? await this.store.latest(job.id).catch(() => null) : null;
     await this.store.saveEntry(entry);
     // Each folder keeps only its latest automatic save, so they never pile up. Your own saves always stay.
@@ -934,7 +939,11 @@ export class Core {
         out[j.id] = { open: items.filter(isOpen).length, total: items.length };
       }
       void this.sites?.look(cap.items);
-      return { state: out, open, jobs, latest, items: cap.items, cap, front: frontItemKey(cap.items, cap.appOrder) };
+      const front = frontItemKey(cap.items, cap.appOrder);
+      // The trail: what was in front at this look.
+      const inFront = cap.items.find((i) => i.key === front);
+      if (inFront) this.looks = addLook(this.looks, looseKey(inFront), Date.now());
+      return { state: out, open, jobs, latest, items: cap.items, cap, front };
     })();
     this.openCache = { at: Date.now(), result };
     result.catch(() => (this.openCache = null));
