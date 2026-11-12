@@ -213,7 +213,7 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
 
   handle('save:preview', (_e, opts) => {
     const o = v.isPlainObject(opts) ? opts : {};
-    return core.preview({ asNew: o.asNew === true, asFolder: o.asFolder === true, jobId: o.jobId == null ? undefined : v.jobId(o.jobId) });
+    return core.preview({ asNew: o.asNew === true, asFolder: o.asFolder === true, jobId: o.jobId == null ? undefined : v.jobId(o.jobId), byHand: true });
   });
   handle('save:commit', async (_e, req) => {
     const r = v.saveRequest(req);

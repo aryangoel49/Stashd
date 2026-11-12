@@ -543,3 +543,57 @@ describe('Ctrl+S with only a chat and a video open', () => {
     expect((await core.breakShelf()).items.map((i) => i.url)).toContain(video.url);
   });
 });
+
+describe('adding one tab to a folder you have open (a friend found this)', () => {
+  const t = (url: string, label: string, window: number, active = false): Item => ({ key: `tab:${url}`, kind: 'tab', label, detail: new URL(url).hostname, app: 'Google Chrome', url, browser: 'chrome', window, active });
+  // Job search: company career pages, in the front window (Chrome's window 1). Then a LinkedIn profile, which looks
+  // nothing like them, opened in that window.
+  const jobs = [
+    t('https://www.shopify.com/careers/search', 'Careers at Shopify', 1),
+    t('https://jobs.lever.co/wealthsimple', 'Wealthsimple jobs', 1),
+    t('https://boards.greenhouse.io/cohere', 'Jobs at Cohere', 1),
+  ];
+  const profile = t('https://www.linkedin.com/in/someone-123/', 'Someone | LinkedIn', 1, true);
+
+  async function setUp() {
+    const core = makeCore();
+    open = jobs;
+    core.beginSave();
+    await core.preview({ asNew: true });
+    const search = await core.commitSave({ jobId: null, name: 'Job search', note: '', keys: jobs.map((i) => i.key), tidy: false });
+    // Something else saved since, so Stashd's "last folder" isn't Job search.
+    const other = [t('https://example.com/recipes/1', 'Lasagna recipe', 2), t('https://example.com/recipes/2', 'Tiramisu recipe', 2)];
+    open = other;
+    core.beginSave();
+    await core.preview({ asNew: true });
+    await core.commitSave({ jobId: null, name: 'Recipes', note: '', keys: other.map((i) => i.key), tidy: false });
+    open = [...other, ...jobs, profile];
+    return { core, search };
+  }
+
+  it('⌃S picks the folder in your window and ticks the tab you are on; saving adds it', async () => {
+    const { core, search } = await setUp();
+    core.beginSave();
+    const p = await core.preview({ byHand: true });
+    expect(p.jobName).toBe('Job search');
+    expect(p.sure.map((i) => i.key)).toContain(profile.key);
+    expect(p.newCount).toBe(1);
+    await core.commitSave({ jobId: p.jobId, name: 'Job search', note: '', keys: [...p.sure, ...p.kept].map((i) => i.key), tidy: false });
+    expect((await core.store.latest(search.jobId))!.items.map((i) => i.key)).toEqual(expect.arrayContaining([...jobs, profile].map((i) => i.key)));
+  });
+
+  it('switching "Save to" to the folder ticks the tab you are on too', async () => {
+    const { core, search } = await setUp();
+    core.beginSave();
+    await core.preview({ asNew: true, byHand: true });
+    const p = await core.preview({ jobId: search.jobId, byHand: true });
+    expect(p.sure.map((i) => i.key)).toContain(profile.key);
+  });
+
+  it('an automatic save never sweeps in the tab you are on', async () => {
+    const { core, search } = await setUp();
+    core.beginSave();
+    const p = await core.preview({ jobId: search.jobId });
+    expect(p.sure.map((i) => i.key)).not.toContain(profile.key);
+  });
+});

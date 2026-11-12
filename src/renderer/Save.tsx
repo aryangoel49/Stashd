@@ -98,8 +98,8 @@ function SaveBox() {
         return;
       }
 
-      // A new folder always shows what will go in it. An existing one only when there's something to decide.
-      setExpanded(!p.jobId || p.likely.length > 0 || p.kept.length > 0);
+      // A new folder always shows what will go in it. An existing one when something new goes in, or there's something to decide.
+      setExpanded(!p.jobId || p.newCount > 0 || p.likely.length > 0 || p.kept.length > 0);
       setState('ready');
       if (!p.jobId && p.sure.length) {
         // Ask Claude or Apple Intelligence (if set up) for a short folder name, in the background.

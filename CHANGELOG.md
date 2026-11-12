@@ -8,6 +8,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ### Changed
 - Settings has its own Chrome extension section (in General, under Unpack) that says whether the extension is added, with Add to Chrome and the same step-by-step guide as the welcome. Skipped it at the start? Add it there any time.
 
+### Fixed
+- Adding one tab to a folder you already have works: with the folder open, open the tab and press ⌃S. Stashd picks the folder whose tabs are in that window and ticks the tab you're on, even when it looks nothing like the rest (your LinkedIn profile into Job search). Picking the folder under Save to does the same, and the save box shows what's being added.
+
 ## 1.12.0 (2026-11-10)
 
 ### Added

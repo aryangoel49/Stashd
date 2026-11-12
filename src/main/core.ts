@@ -218,7 +218,9 @@ export class Core {
   }
 
   /** `asFolder`: you said "Save as a folder instead" to the Break offer, so the videos go in a folder. */
-  async preview(opts: { asNew?: boolean; asFolder?: boolean; jobId?: string } = {}, own?: PendingSave): Promise<SavePreview> {
+  /** `byHand`: you pressed ⌃S (the save box), not an automatic save or Tidy all: the folder whose tabs share
+   *  your window is the one you're adding to, and the tab you're on is ticked. */
+  async preview(opts: { asNew?: boolean; asFolder?: boolean; jobId?: string; byHand?: boolean } = {}, own?: PendingSave): Promise<SavePreview> {
     if (!own && !this.pending) this.beginSave();
     // Hold on to this save: Escape or a new shortcut press may replace this.pending while we work.
     const pending = own ?? this.pending!;
@@ -262,7 +264,7 @@ export class Core {
     let job: Job | null = null;
     let isSuggestion = false;
     if (!opts.asNew) {
-      const wanted = opts.jobId ?? pending.target ?? this.state.currentJobId;
+      const wanted = opts.jobId ?? pending.target ?? (opts.byHand ? this.windowFolder(candidates, frontKey, jobs) : null) ?? this.state.currentJobId;
       if (wanted && (await this.store.exists(wanted))) job = await this.store.get(wanted);
       if (job?.done && !opts.jobId) job = null;
       if (!job && workThere && fits[0] && fits[0].fit >= FIT_SUGGEST) {
@@ -288,6 +290,17 @@ export class Core {
       meaning: vectors.size ? lookup : undefined,
     });
     const offered = opts.asFolder ? { ...classified, sure: [...classified.sure, ...classified.breaks], breaks: [] } : classified;
+    // ⌃S into a folder you have: the tab you're on is what you're adding (your LinkedIn profile into Job
+    // search), even when it doesn't look like the rest. Not if you left it out of this folder before.
+    if (opts.byHand && job) {
+      const front = [...offered.likely, ...offered.maybe].find((i) => i.key === frontKey && (i.kind !== 'app' || i.chat));
+      if (front && !/you left this out before/.test(offered.why[front.key] ?? '')) {
+        offered.likely = offered.likely.filter((i) => i !== front);
+        offered.maybe = offered.maybe.filter((i) => i !== front);
+        offered.sure = [...offered.sure, front];
+        offered.why[front.key] = "the one you're on";
+      }
+    }
     // Things that belong to this job but aren't open right now (closed by accident, say) are kept.
     const openKeys = new Set(cap.items.map(looseKey));
     const kept = previous
@@ -326,6 +339,18 @@ export class Core {
         current: f.job.id === this.state.currentJobId,
       })),
     };
+  }
+
+  /** The folder whose tabs (two or more) share the window of the tab you're on, if any. */
+  private windowFolder(candidates: Item[], frontKey: string | null, jobs: { job: Job; latest: SaveEntry | null }[]): string | null {
+    const front = candidates.find((i) => i.key === frontKey);
+    if (front?.kind !== 'tab' || front.window == null) return null;
+    const here = new Set(candidates.filter((i) => i.kind === 'tab' && i.app === front.app && i.window === front.window && i.key !== front.key).flatMap(matchKeys));
+    const best = jobs
+      .map((j) => ({ id: j.job.id, n: (j.latest?.items ?? []).filter((i) => matchKeys(i).some((k) => here.has(k))).length }))
+      .filter((x) => x.n >= 2)
+      .sort((a, b) => b.n - a.n)[0];
+    return best?.id ?? null;
   }
 
   async commitSave(req: SaveRequest, own?: PendingSave): Promise<SaveResult> {
