@@ -472,6 +472,11 @@ export class TidyFlow {
     done?.(a);
   }
 
+  /** A short card with nothing to do: something worth knowing, gone in a few seconds. */
+  say(title: string, detail: string): void {
+    this.toast({ title, detail, canUndo: false, mood: 'awake' });
+  }
+
   private toast(info: ToastInfo, ms?: number): void {
     this.settle('replaced');
     this.payloads.set('toast', info);

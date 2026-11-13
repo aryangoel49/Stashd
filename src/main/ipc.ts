@@ -8,7 +8,7 @@ import type { AppInfo, AskAction, AskAnswer, BrowserName, SaveEntry, TidyKeep, U
 import { timeAgo } from '../shared/time';
 import { askStashd, runAction } from './ask';
 import * as v from '../shared/validate';
-import { copyChromeHelper, helperDir, helperDragIcon, lastHeardFromChrome, openChromeExtensions } from './chromehelper';
+import { chromeHelperNeedsRestart, copyChromeHelper, helperDir, helperDragIcon, lastHeardFromChrome, openChromeExtensions } from './chromehelper';
 import type { Core } from './core';
 import type { SecretStore } from './secrets';
 import { broadcast, fitHeight, getWindow, holdWindow, isAppUrl, routeOf, showWindow } from './windows';
@@ -345,8 +345,9 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
     return true;
   });
   handle('system:setupChromeGroups', () => setupChromeGroups());
-  // Whether Chrome has ever talked to Stashd's helper: then it's added.
-  handle('system:chromeHelperAdded', async () => (await lastHeardFromChrome()) > 0);
+  // Whether Chrome has ever talked to Stashd's helper (then it's added), and whether the copy Chrome has
+  // is from before they loaded their own updates (then it catches up when Chrome next starts).
+  handle('system:chromeHelperAdded', async () => ({ added: (await lastHeardFromChrome()) > 0, needsRestart: await chromeHelperNeedsRestart() }));
   // The guide's folder, dragged onto Chrome's extensions page: Chrome adds it, no file picker needed.
   ipcMain.on('chromeguide:drag', (event) => {
     if (!isAppUrl(event.senderFrame?.url ?? '') || !dragIcon) return;

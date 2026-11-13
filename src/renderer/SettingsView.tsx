@@ -400,20 +400,24 @@ function MemoryRow() {
 /** Stashd's Chrome extension: added (Chrome has talked to Stashd), or a button to add it, with the same
  *  guide as the welcome. For anyone who skipped it there. */
 function ChromeHelperCard() {
-  const [added, setAdded] = useState<boolean | null>(null);
+  const [state, setState] = useState<{ added: boolean; needsRestart: boolean } | null>(null);
   useEffect(() => {
-    void api.chromeHelperAdded().then(setAdded, () => setAdded(false));
-    return api.onChromeHelperAdded(() => setAdded(true));
+    const look = () => void api.chromeHelperAdded().then(setState, () => setState({ added: false, needsRestart: false }));
+    look();
+    return api.onChromeHelperAdded(look);
   }, []);
+  const added = state?.added ?? null;
   return (
     <Card title="Chrome extension" hint="Each folder's tabs sit in a Chrome tab group named after it, when you save them and when you unpack. Stashd also remembers how far into a video you were.">
       <div className="srow">
         <span>
-          {added ? 'Added to Chrome' : 'Not added yet'}
+          {added ? (state?.needsRestart ? 'Added · an update is waiting' : 'Added to Chrome') : 'Not added yet'}
           <span className="muted small" style={{ display: 'block' }}>
-            {added
-              ? 'Add it again if you removed it from Chrome or it stopped working.'
-              : "Add to Chrome opens Chrome's extensions page, with a small card beside it that walks you through it."}
+            {!added
+              ? "Add to Chrome opens Chrome's extensions page, with a small card beside it that walks you through it."
+              : state?.needsRestart
+                ? 'Chrome picks up the newer version the next time you open it. After that, updates happen on their own.'
+                : 'Add it again if you removed it from Chrome or it stopped working.'}
           </span>
         </span>
         <Button size="small" variant={added ? undefined : 'primary'} onClick={() => void api.setupChromeGroups()}>

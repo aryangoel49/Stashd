@@ -24,7 +24,7 @@ import { LEGACY_NAME, migrateLegacyData } from './main/legacy';
 import { JobStore } from './main/store';
 import { TidyFlow } from './main/tidyflow';
 import { DormantWatcher, Noticer } from './main/noticer';
-import { copyChromeHelper, lastHeardFromChrome } from './main/chromehelper';
+import { chromeHelperNeedsRestart, copyChromeHelper, lastHeardFromChrome } from './main/chromehelper';
 import { listApps } from './main/apps';
 import { runLiveTest } from './main/livetest';
 import { runScenarios } from './main/scenarios';
@@ -313,6 +313,15 @@ function start(): void {
       if (answer === 'act') await setupChromeGroups();
     };
     if (settings.get().welcomed && (app.isPackaged || !process.env.WWI_FAKE_CAPTURE)) setTimeout(() => void offerChrome().catch(() => undefined), 60_000);
+
+    // Just updated, and Chrome still has a copy of the helper from before they loaded their own updates:
+    // say so once. Newer ones load the new copy themselves, so nobody sees this twice.
+    const afterUpdate = async () => {
+      const before = await core.versionChanged(app.getVersion());
+      if (!before || !(await chromeHelperNeedsRestart())) return;
+      tidy.say('Chrome helper updated', 'It starts working the next time you open Chrome.');
+    };
+    if (app.isPackaged) setTimeout(() => void afterUpdate().catch(() => undefined), 25_000);
 
     registerIpc(core, secrets, {
       update: {

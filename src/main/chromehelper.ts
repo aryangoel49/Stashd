@@ -52,6 +52,21 @@ export async function openChromeExtensions(): Promise<void> {
   await run('osascript', ['-e', 'tell application id "com.google.Chrome"\n  activate\n  if (count of windows) is 0 then make new window\n  tell front window to make new tab at end of tabs with properties {URL:"chrome://extensions"}\nend tell'], { timeoutMs: 15_000 }).catch(() => undefined);
 }
 
+/**
+ * Chrome has a copy of Stashd's extension from before extensions loaded their own updates (1.8), so a newer
+ * one only reaches it when Chrome next starts. False when the extension isn't in use at all, and false once
+ * Chrome has one that updates itself (it says which version it has).
+ */
+export async function chromeHelperNeedsRestart(): Promise<boolean> {
+  if (!(await lastHeardFromChrome())) return false;
+  try {
+    const raw = JSON.parse(await fs.readFile(path.join(app.getPath('userData'), 'chrome.json'), 'utf8')) as { v?: unknown };
+    return typeof raw.v !== 'string';
+  } catch {
+    return false;
+  }
+}
+
 /** When Chrome last handed Stashd anything through the helper (chrome.json), in ms, or 0. A freshly added
  *  helper does so within a few seconds, so this going up means it's in. */
 export async function lastHeardFromChrome(): Promise<number> {

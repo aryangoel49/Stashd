@@ -4,6 +4,8 @@
 //   { action: 'ungroup', name, urls }  take these tabs out of the folder's group (they stay open)
 //   { action: 'regroup', name, urls }  put open tabs with these addresses back in the folder's group
 //                        (with create: true, make the group when the window hasn't got one)
+// Every request also carries `want`: the version Stashd ships. If Chrome has an older one loaded, this
+// page loads the new one (Stashd has already put it on disk), so an update needs no restart of Chrome.
 
 const COLORS = ['yellow', 'blue', 'green', 'pink', 'purple', 'cyan', 'orange', 'red', 'grey'];
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -65,9 +67,27 @@ async function run() {
   await intoGroup(ids, self.windowId, name);
 }
 
+/** Is the version Stashd ships newer than the one Chrome has loaded? ("1.8" against "1.7".) */
+function older(have, want) {
+  const parts = (v) => String(v ?? '').split('.').map((n) => Number(n) || 0);
+  const [a, b] = [parts(have), parts(want)];
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    if ((a[i] ?? 0) !== (b[i] ?? 0)) return (a[i] ?? 0) < (b[i] ?? 0);
+  }
+  return false;
+}
+
 run()
   .catch(() => undefined)
   .finally(async () => {
     const self = await chrome.tabs.getCurrent();
     if (self) chrome.tabs.remove(self.id);
+    let want;
+    try {
+      want = JSON.parse(decodeURIComponent(location.hash.slice(1))).want;
+    } catch {
+      want = undefined;
+    }
+    // Loads the copy Stashd has already put on disk; Chrome closes this page as it goes.
+    if (want && older(chrome.runtime.getManifest().version, want)) chrome.runtime.reload();
   });

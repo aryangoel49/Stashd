@@ -182,11 +182,15 @@ export function screens(): Rect[] {
 // that does. Its id is fixed by the key in its manifest.
 export const CHROME_HELPER_ID = 'ledhbdmigicjkhlpchllagcmkpmldjfb';
 
+/** The version of the extension this Stashd ships (assets/chrome-extension/manifest.json; a test keeps the
+ *  two equal). Every request carries it, so an extension older than this loads the new copy itself. */
+export const CHROME_HELPER_VERSION = '1.8';
+
 /** The extension's page that opens these tabs in a group of this name, then closes itself.
  *  `create` (with 'regroup'): make the group when there isn't one. An older extension ignores it, so it
  *  does what it always did (nothing) instead of opening the tabs again. */
 export function groupPageUrl(name: string, urls: string[], action?: 'ungroup' | 'regroup', create = false): string {
-  const req = action ? { action, name, urls, ...(create ? { create: true } : {}) } : { name, urls };
+  const req = { ...(action ? { action } : {}), name, urls, ...(create ? { create: true } : {}), want: CHROME_HELPER_VERSION };
   return `chrome-extension://${CHROME_HELPER_ID}/open.html#${encodeURIComponent(JSON.stringify(req))}`;
 }
 

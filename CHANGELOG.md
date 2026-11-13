@@ -5,6 +5,9 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+### Changed
+- Stashd's Chrome extension keeps itself up to date. When Stashd ships a newer one, Chrome loads it the next time Stashd touches your tab groups, so you never have to restart Chrome for it again. Coming from an older version, a short card says once that the new helper starts working the next time you open Chrome, and Settings says the same under Chrome extension.
+
 ## 1.13.0 (2026-11-13)
 
 ### Added

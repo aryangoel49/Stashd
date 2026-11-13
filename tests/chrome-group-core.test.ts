@@ -95,3 +95,14 @@ describe('asking Chrome for the folder’s tab group', () => {
     expect(asked).toEqual([]);
   });
 });
+
+describe('knowing Stashd has just been updated', () => {
+  it('says which version ran last time, once, then remembers the new one', async () => {
+    const core = makeCore();
+    // The first run has nothing to compare with.
+    expect(await core.versionChanged('1.13.0')).toBeNull();
+    expect(await core.versionChanged('1.13.0')).toBeNull();
+    expect(await core.versionChanged('1.14.0')).toBe('1.13.0');
+    expect(await core.versionChanged('1.14.0')).toBeNull();
+  });
+});

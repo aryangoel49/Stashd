@@ -53,6 +53,8 @@ interface State {
   askedChatAccess?: boolean;
   /** Stashd has offered to add its Chrome helper (once, to someone who uses Chrome without it). */
   offeredChrome?: boolean;
+  /** The version that ran last time, so Stashd knows when it has just been updated. */
+  lastVersion?: string;
   /** Memory Tidy all has freed so far (MB), and how many times it has run from the desk. */
   freed?: { mb: number; times: number };
 }
@@ -179,6 +181,7 @@ export class Core {
       dismissed: raw.dismissed && typeof raw.dismissed === 'object' ? raw.dismissed : {},
       askedChatAccess: raw.askedChatAccess === true,
       offeredChrome: raw.offeredChrome === true,
+      lastVersion: typeof raw.lastVersion === 'string' ? raw.lastVersion : undefined,
       recentTidy: raw.recentTidy && typeof raw.recentTidy.at === 'string' && Array.isArray(raw.recentTidy.items) ? raw.recentTidy : null,
     };
   }
@@ -199,6 +202,15 @@ export class Core {
     this.state.offeredChrome = true;
     await this.saveState();
     return true;
+  }
+
+  /** The version that ran last time when this one is different (Stashd has just been updated), else null. */
+  async versionChanged(current: string): Promise<string | null> {
+    const before = this.state.lastVersion ?? null;
+    if (before === current) return null;
+    this.state.lastVersion = current;
+    await this.saveState();
+    return before;
   }
 
   private async saveState(): Promise<void> {

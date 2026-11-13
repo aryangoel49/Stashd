@@ -8,13 +8,15 @@ import { describe, expect, it } from 'vitest';
 interface FakeTab { id: number; url: string; windowId: number; groupId: number }
 interface FakeGroup { id: number; windowId: number; title?: string; color?: string }
 
-/** Runs open.html with this request against these open tabs and groups, and says how Chrome ended up. */
-async function openPage(req: unknown, tabs: FakeTab[], groups: FakeGroup[] = []) {
+/** Runs open.html with this request against these open tabs and groups, and says how Chrome ended up.
+ *  `have`: the version of the extension Chrome has loaded. */
+async function openPage(req: unknown, tabs: FakeTab[], groups: FakeGroup[] = [], have = '1.8') {
   const all = [...tabs];
   // The page itself: Stashd opens it as a tab in the front window.
   const self: FakeTab = { id: 999, url: 'chrome-extension://x/open.html', windowId: 1, groupId: -1 };
   all.push(self);
   let nextId = 1000;
+  let reloaded = false;
   let closed: (() => void) | undefined;
   const done = new Promise<void>((r) => (closed = r));
   const chrome = {
@@ -40,6 +42,12 @@ async function openPage(req: unknown, tabs: FakeTab[], groups: FakeGroup[] = [])
         closed?.();
       },
     },
+    runtime: {
+      getManifest: () => ({ version: have }),
+      reload: () => {
+        reloaded = true;
+      },
+    },
     tabGroups: {
       query: async (q: { windowId?: number; title?: string }) =>
         groups.filter((g) => (q.windowId === undefined || g.windowId === q.windowId) && (q.title === undefined || g.title === q.title)),
@@ -50,7 +58,7 @@ async function openPage(req: unknown, tabs: FakeTab[], groups: FakeGroup[] = [])
   runInNewContext(code, { chrome, location: { hash: `#${encodeURIComponent(JSON.stringify(req))}` }, URL, setTimeout, console });
   await Promise.race([done, new Promise((r) => setTimeout(r, 2000))]);
   const groupOf = (url: string) => groups.find((g) => g.id === all.find((t) => t.url === url)?.groupId);
-  return { tabs: all.filter((t) => t.id !== self.id), groups, groupOf };
+  return { tabs: all.filter((t) => t.id !== self.id), groups, groupOf, reloaded: () => reloaded };
 }
 
 const cn = 'https://www.cntower.ca/visit';
@@ -90,6 +98,20 @@ describe("a folder's Chrome tab group", () => {
   it('Pack up: the tabs leave the group before they close', async () => {
     const r = await openPage({ action: 'ungroup', name: 'Toronto trip', urls: [cn] }, [{ id: 1, url: cn, windowId: 1, groupId: 7 }], [{ id: 7, windowId: 1, title: 'Toronto trip' }]);
     expect(r.tabs[0].groupId).toBe(-1);
+  });
+
+  it('loads the version Stashd ships when Chrome has an older one, so nobody has to restart Chrome', async () => {
+    const r = await openPage({ action: 'regroup', name: 'Toronto trip', urls: [cn], create: true, want: '1.9' }, [{ id: 1, url: cn, windowId: 1, groupId: -1 }], [], '1.8');
+    // It did its job first, then loaded the new copy.
+    expect(r.groupOf(cn)?.title).toBe('Toronto trip');
+    expect(r.reloaded()).toBe(true);
+  });
+
+  it('stays as it is when it already has that version, or a newer one', async () => {
+    for (const have of ['1.8', '1.10']) {
+      const r = await openPage({ action: 'regroup', name: 'T', urls: [cn], create: true, want: '1.8' }, [{ id: 1, url: cn, windowId: 1, groupId: -1 }], [], have);
+      expect(r.reloaded()).toBe(false);
+    }
   });
 
   it('a tab is matched by its page, not its tracking bits, and other tabs are left alone', async () => {

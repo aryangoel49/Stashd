@@ -28,7 +28,8 @@ async function send() {
       .slice(0, 300)
       .map((t) => [t.url, titles.get(t.groupId)]);
     const videos = Object.entries(progress).map(([url, p]) => [url, p.t, p.d, p.at]);
-    await chrome.runtime.sendNativeMessage(HOST, { videos, groups, at: Date.now() });
+    // `v`: which version of this extension Chrome has loaded, so Stashd knows when Chrome still has an old one.
+    await chrome.runtime.sendNativeMessage(HOST, { videos, groups, at: Date.now(), v: chrome.runtime.getManifest().version });
   } catch {
     // Stashd isn't installed (or is too old): nothing to tell.
   }
