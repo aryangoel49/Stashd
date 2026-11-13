@@ -17,6 +17,7 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 - Settings has its own Chrome extension section (in General, under Unpack) that says whether the extension is added, with Add to Chrome and the same step-by-step guide as the welcome. Skipped it at the start? Add it there any time.
 
 ### Fixed
+- A folder's Chrome tabs are kept in its tab group whichever way the folder came about, not only the tabs Unpack opens. Saving with ⌃S (without packing up), keeping a folder Stashd saved for you, and unpacking a folder whose tabs are already open now all put them in the group, so a folder always looks like one folder in Chrome. Needs Stashd's Chrome extension; restart Chrome once after this update so it picks up the new version.
 - Adding one tab to a folder you already have works: with the folder open, open the tab and press ⌃S. Stashd picks the folder whose tabs are in that window and ticks the tab you're on, even when it looks nothing like the rest (your LinkedIn profile into Job search). Picking the folder under Save to does the same, and the save box shows what's being added.
 
 ## 1.12.0 (2026-11-10)

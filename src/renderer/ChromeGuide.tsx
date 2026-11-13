@@ -25,7 +25,7 @@ export function ChromeGuide() {
 
       {added ? (
         <motion.p className="cg-done" initial={{ opacity: 0, transform: 'translateY(4px)' }} animate={{ opacity: 1, transform: 'translateY(0px)' }}>
-          All set. Unpack now puts each folder's tabs in their own tab group.
+          All set. Each folder's tabs now sit in their own tab group, named after it.
         </motion.p>
       ) : (
         <ol className="cg-steps no-drag">

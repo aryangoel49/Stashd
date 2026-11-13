@@ -182,9 +182,12 @@ export function screens(): Rect[] {
 // that does. Its id is fixed by the key in its manifest.
 export const CHROME_HELPER_ID = 'ledhbdmigicjkhlpchllagcmkpmldjfb';
 
-/** The extension's page that opens these tabs in a group of this name, then closes itself. */
-export function groupPageUrl(name: string, urls: string[], action?: 'ungroup' | 'regroup'): string {
-  return `chrome-extension://${CHROME_HELPER_ID}/open.html#${encodeURIComponent(JSON.stringify(action ? { action, name, urls } : { name, urls }))}`;
+/** The extension's page that opens these tabs in a group of this name, then closes itself.
+ *  `create` (with 'regroup'): make the group when there isn't one. An older extension ignores it, so it
+ *  does what it always did (nothing) instead of opening the tabs again. */
+export function groupPageUrl(name: string, urls: string[], action?: 'ungroup' | 'regroup', create = false): string {
+  const req = action ? { action, name, urls, ...(create ? { create: true } : {}) } : { name, urls };
+  return `chrome-extension://${CHROME_HELPER_ID}/open.html#${encodeURIComponent(JSON.stringify(req))}`;
 }
 
 // Opens the extension's page and waits a moment: it either closes itself (it opened the group) or shows
@@ -248,12 +251,21 @@ let helperMissingAt = 0;
 /** Opens the tabs in a Chrome tab group through Stashd's extension. False if it isn't installed. */
 /**
  * A tab taken out of a folder leaves the folder's Chrome tab group (it stays open); Undo puts it back.
+ * `create`: make the group if there isn't one, so a folder whose tabs were already open gets one too.
  * Quietly does nothing without Chrome or Stashd's extension, and never brings Chrome to the front.
  */
-export async function changeChromeGroup(action: 'ungroup' | 'regroup', name: string, urls: string[]): Promise<void> {
+export async function changeChromeGroup(action: 'ungroup' | 'regroup', name: string, urls: string[], create = false): Promise<void> {
   const web = urls.filter((u) => /^https?:/i.test(u));
   if (!web.length || Date.now() - helperMissingAt < RETRY_HELPER_MS || !(await isRunning('chrome'))) return;
-  await run('osascript', ['-e', groupScript('front'), '--', groupPageUrl(name, web, action)], { timeoutMs: 20_000 }).catch(() => undefined);
+  const r = await run('osascript', ['-e', groupScript('front'), '--', groupPageUrl(name, web, action, create)], { timeoutMs: 20_000 }).catch(() => null);
+  // Without the extension this is an error page, closed again: don't try for a while, so saving can't
+  // flash a tab in Chrome every time.
+  if (r?.stdout.trim() === 'missing') helperMissingAt = Date.now();
+}
+
+/** A folder's tabs that Chrome can put in a tab group (web pages open in Chrome). */
+export function chromeTabUrls(items: Item[]): string[] {
+  return items.filter((i) => i.kind === 'tab' && i.browser === 'chrome' && i.url && /^https?:/i.test(i.url)).map((i) => i.url!);
 }
 
 /**

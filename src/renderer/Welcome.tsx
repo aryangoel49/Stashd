@@ -159,7 +159,7 @@ export function Welcome() {
           {step === 'chrome' && (
             <>
               <h1 className="welcome-title">One more thing for Chrome</h1>
-              <p className="welcome-sub">A small Chrome helper puts each folder’s tabs in a tab group when you unpack, and remembers where you were in videos.</p>
+              <p className="welcome-sub">A small Chrome helper keeps each folder’s tabs together in a tab group named after it, and remembers where you were in videos.</p>
               <p className="welcome-sub">Click <b>Add to Chrome</b>: Chrome opens its extensions page, and a small card beside it walks you through two clicks and a drag. Skip it and you can add it any time in Settings.</p>
               <Actions primary="Add to Chrome" onPrimary={() => void api.setupChromeGroups()} secondary="Skip" onSecondary={next} />
             </>

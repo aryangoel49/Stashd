@@ -2,7 +2,20 @@
 
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('electron', () => ({ shell: {} }));
-import { CHROME_HELPER_ID, groupPageUrl, newWindowScript } from '../src/main/open';
+// Nothing here runs AppleScript: every command is recorded, and Chrome counts as running.
+const ran: { cmd: string; args: string[] }[] = [];
+// Set for the one test that pretends Stashd's extension isn't installed.
+let missing = false;
+vi.mock('../src/main/exec', async (orig) => ({
+  ...(await orig<typeof import('../src/main/exec')>()),
+  run: vi.fn(async (cmd: string, args: string[]) => {
+    ran.push({ cmd, args });
+    const running = args.some((a) => a.includes('is running'));
+    return { stdout: running ? 'true' : missing ? 'missing' : 'ok', stderr: '', code: 0 };
+  }),
+}));
+import type { Item } from '../src/shared/types';
+import { changeChromeGroup, chromeTabUrls, CHROME_HELPER_ID, groupPageUrl, newWindowScript } from '../src/main/open';
 
 describe('Chrome tab groups', () => {
   it('passes the folder name and tabs to the extension page', () => {
@@ -17,6 +30,43 @@ describe('Chrome tab groups', () => {
     const key = JSON.parse(readFileSync('assets/chrome-extension/manifest.json', 'utf8')).key;
     const hex = createHash('sha256').update(Buffer.from(key, 'base64')).digest('hex').slice(0, 32);
     expect([...hex].map((c) => String.fromCharCode(97 + parseInt(c, 16))).join('')).toBe(CHROME_HELPER_ID);
+  });
+});
+
+describe("a folder's tabs that are already open", () => {
+  const tab = (url: string, browser = 'chrome'): Item => ({ key: `tab:${url}`, kind: 'tab', label: '', detail: '', app: 'Google Chrome', url, browser } as Item);
+
+  it('only Chrome web pages can go in a tab group', () => {
+    const items = [tab('https://a.example.com/x'), tab('https://b.example.com/y', 'safari'), tab('file:///Users/me/a.pdf'), { ...tab('https://c.example.com/z'), kind: 'doc' } as Item];
+    expect(chromeTabUrls(items)).toEqual(['https://a.example.com/x']);
+  });
+
+  it('asks the extension to put them in the folder\'s group, making it when the window has none', async () => {
+    ran.length = 0;
+    missing = false;
+    await changeChromeGroup('regroup', 'Toronto trip', ['https://www.cntower.ca/visit', 'file:///tmp/x.pdf'], true);
+    const page = ran.at(-1)!.args.find((a) => a.startsWith('chrome-extension://'))!;
+    expect(JSON.parse(decodeURIComponent(page.split('#')[1]))).toEqual({
+      action: 'regroup',
+      name: 'Toronto trip',
+      urls: ['https://www.cntower.ca/visit'],
+      create: true,
+    });
+  });
+
+  it("without Stashd's extension, it stops trying for a while instead of flashing a tab in Chrome", async () => {
+    missing = true;
+    ran.length = 0;
+    await changeChromeGroup('regroup', 'Toronto trip', ['https://www.cntower.ca/visit'], true);
+    const tried = ran.length;
+    await changeChromeGroup('regroup', 'Toronto trip', ['https://www.cntower.ca/visit'], true);
+    expect(ran.length).toBe(tried);
+    missing = false;
+  });
+
+  it("an older extension sees the regroup it already knows: Undo's never says create, so it never makes a group", () => {
+    const req = JSON.parse(decodeURIComponent(groupPageUrl('Toronto trip', ['https://www.cntower.ca/visit'], 'regroup').split('#')[1]));
+    expect(req).toEqual({ action: 'regroup', name: 'Toronto trip', urls: ['https://www.cntower.ca/visit'] });
   });
 });
 

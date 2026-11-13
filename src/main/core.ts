@@ -26,7 +26,7 @@ import { buildCard } from './jobs/card';
 import type { Meaning } from './meaning';
 import type { SiteSorter } from './sites';
 import { BROWSER_APPS } from './collectors/browsers';
-import { changeChromeGroup, finished, openForBreak, openItems, videoProgress } from './open';
+import { changeChromeGroup, chromeTabUrls, finished, openForBreak, openItems, videoProgress } from './open';
 import { BreakStore, isBreakItem, videoKey } from './breaks';
 import { isListedApp, listApps, type MacApp } from './apps';
 import { appPathOf } from '../shared/places';
@@ -505,6 +505,9 @@ export class Core {
         // The memory is a helper; a save never fails because of it.
       }
       await this.settings.update({ tidyUp: req.tidy });
+      // A save that leaves your tabs open: they become the folder's tab group in Chrome. (Pack up closes
+      // them, and takes them out of the group first.)
+      if (!req.tidy) void this.groupInChrome(job.id).catch(() => undefined);
       await this.setCurrent(req.tidy ? null : job.id);
       // After a save, "new since you unpacked" starts again from what's open now.
       this.state.baseline = req.tidy ? null : { jobId: job.id, keys: cap.items.map((i) => i.key) };
@@ -1041,7 +1044,21 @@ export class Core {
     if (!job.forYou) return;
     job.forYou = undefined;
     await this.store.put(job);
+    void this.groupInChrome(jobId).catch(() => undefined);
     this.notify();
+  }
+
+  /**
+   * The folder's tabs that are open in Chrome go into its tab group, named after it (made if there isn't
+   * one). Unpack already groups the tabs it opens; this covers the ones that were open anyway, so the
+   * folder looks like one folder in Chrome however it came to be. Only when you make or open the folder
+   * yourself (⌃S, Unpack, Keep): never behind your back. Quiet without Chrome or Stashd's extension.
+   */
+  private async groupInChrome(jobId: string): Promise<void> {
+    const job = await this.store.get(jobId).catch(() => null);
+    const latest = job ? await this.store.latest(jobId) : null;
+    const urls = latest ? chromeTabUrls(latest.items) : [];
+    if (job && urls.length) await changeChromeGroup('regroup', job.name, urls, true);
   }
 
   /** Folders Stashd made for you that you never used go after FOR_YOU_DAYS. */
@@ -1255,6 +1272,7 @@ export class Core {
       opened.forYou = undefined;
       await this.store.put(opened);
     }
+    if (result.alreadyOpen) void this.groupInChrome(jobId).catch(() => undefined);
     this.notify();
     // A moment later, note what's open, so anything opened after this can be suggested for the job,
     // and where tabs ended up (a sign-in page, say), so they still count as this folder's.

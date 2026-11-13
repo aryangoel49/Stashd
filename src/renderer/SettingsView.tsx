@@ -406,7 +406,7 @@ function ChromeHelperCard() {
     return api.onChromeHelperAdded(() => setAdded(true));
   }, []);
   return (
-    <Card title="Chrome extension" hint="Unpack puts each folder's tabs in a Chrome tab group named after it, and Stashd remembers how far into a video you were.">
+    <Card title="Chrome extension" hint="Each folder's tabs sit in a Chrome tab group named after it, when you save them and when you unpack. Stashd also remembers how far into a video you were.">
       <div className="srow">
         <span>
           {added ? 'Added to Chrome' : 'Not added yet'}

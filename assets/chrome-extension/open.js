@@ -3,6 +3,7 @@
 //   { name, urls }                     open these tabs in a group named after the folder
 //   { action: 'ungroup', name, urls }  take these tabs out of the folder's group (they stay open)
 //   { action: 'regroup', name, urls }  put open tabs with these addresses back in the folder's group
+//                        (with create: true, make the group when the window hasn't got one)
 
 const COLORS = ['yellow', 'blue', 'green', 'pink', 'purple', 'cyan', 'orange', 'red', 'grey'];
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -51,7 +52,7 @@ async function run() {
       // Into the folder's group in the window that has it, else the window the tab is in.
       const byWindow = new Map();
       for (const t of tabs) byWindow.set(t.windowId, [...(byWindow.get(t.windowId) ?? []), t.id]);
-      for (const [windowId, ids] of byWindow) if (await groupNamed(windowId, name)) await intoGroup(ids, windowId, name);
+      for (const [windowId, ids] of byWindow) if (req.create || (await groupNamed(windowId, name))) await intoGroup(ids, windowId, name);
     }
     return;
   }
