@@ -125,11 +125,24 @@ export function Welcome() {
 
           {step === 'ai' && (
             <>
-              <h1 className="welcome-title">Want smarter notes?</h1>
-              <p className="welcome-sub">When you stash, I write a short note on where you left off. Stashd AI makes those notes and your folder names much better. It’s free, with a daily limit.</p>
+              <h1 className="welcome-title">Want a smarter Stashd?</h1>
+              <p className="welcome-sub">Stashd AI names your folders, writes the note on where you left off, and works out which tabs and files belong together. It’s free, with a daily limit.</p>
+              {/* The same save, without and with: the difference is easier to see than to describe. */}
+              <div className="welcome-compare" aria-label="The same save without and with Stashd AI">
+                <div className="welcome-case">
+                  <span className="welcome-case-tag">Without</span>
+                  <b>Sea level rise</b>
+                  <span>You were last on “Sea level rise - Wikipedia” in Chrome, with 4 other tabs open.</span>
+                </div>
+                <div className="welcome-case on">
+                  <span className="welcome-case-tag">With Stashd AI</span>
+                  <b>Climate essay</b>
+                  <span>Writing your climate essay. You were on the draft, checking the carbon tax pages. Next: the carbon tax section.</span>
+                </div>
+              </div>
               <div className="welcome-box">
                 <b>What it sends</b>
-                <span>The names and titles of what you stash, web addresses with secrets removed, and your own note. Never what’s inside your files. It goes to Stashd’s server and on to Claude, made by Anthropic, and nothing is kept.</span>
+                <span>The names and titles of what you have open and of your folders, web addresses with secrets removed, your own note, and roughly how long each thing was in front. Never what’s inside your files or pages. It goes to Stashd’s server and on to Claude, made by Anthropic, and nothing is kept.</span>
               </div>
               <Actions
                 primary="Turn on Stashd AI"

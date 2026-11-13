@@ -1121,3 +1121,36 @@ body.route-chromeguide { background: transparent; }
 .swoop { position: fixed; z-index: 50; pointer-events: none; will-change: transform, opacity; }
 .swoop-card { width: 18px; height: 14px; border-radius: 4px; background: #fffaf0; border: 1px solid rgba(0, 0, 0, 0.12); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); }
 .save-head .folder-mark { transform-origin: 50% 100%; }
+
+/* ---------- Saved for you: folders Stashd made by itself, listed quietly under your own ---------- */
+.for-you { display: flex; flex-direction: column; gap: 1px; margin-top: 10px; padding-top: 8px; border-top: 0.5px solid var(--hair); }
+.for-you.wide { margin-top: 26px; padding-top: 16px; max-width: 560px; }
+.for-you-head { display: flex; align-items: baseline; gap: 6px; padding: 0 8px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; color: var(--muted); }
+.for-you.wide .for-you-head { font-size: 13px; color: var(--text); padding-bottom: 8px; }
+.for-you-head .faint { font-weight: 450; }
+.for-you-row { display: flex; align-items: center; gap: 4px; padding-right: 6px; border-radius: 12px; transition: background-color 150ms ease; }
+.for-you-main { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; padding: 6px 8px; border: none; background: none; border-radius: 12px; text-align: left; color: inherit; cursor: pointer; }
+/* A dashed outline in the folder's colour: a folder that isn't quite yours yet. */
+.for-you-dot { flex: none; width: 22px; height: 22px; border-radius: 7px; border: 1.5px dashed var(--tone-line, var(--accent-line)); background: color-mix(in srgb, var(--tone, var(--accent)) 16%, transparent); }
+.for-you-text { display: flex; flex-direction: column; min-width: 0; }
+.for-you-name { font-size: 13px; font-weight: 550; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.for-you-what { font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.for-you-keep { flex: none; height: 24px; padding: 0 10px; border: none; border-radius: 99px; background: var(--well); box-shadow: inset 0 0 0 0.5px var(--hair); font: 600 11.5px -apple-system, sans-serif; color: var(--text); cursor: pointer; transition: background-color 150ms ease, transform 120ms var(--ease-out, ease-out); }
+.for-you-keep:active { transform: scale(0.96); }
+.for-you .tool-btn { flex: none; display: grid; place-items: center; border: none; background: none; cursor: pointer; }
+.for-you .tool-btn svg { stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.for-you-more { align-self: flex-start; margin: 2px 8px 0; padding: 2px 0; border: none; background: none; font-size: 11.5px; color: var(--muted); cursor: pointer; }
+@media (hover: hover) and (pointer: fine) {
+  .for-you-row:hover { background: var(--well); }
+  .for-you-keep:hover { background: var(--accent); color: var(--on-accent); }
+  .for-you-more:hover { color: var(--text); }
+}
+@media (prefers-reduced-motion: reduce) { .for-you-row, .for-you-keep { transition: none; } }
+
+/* The welcome's Stashd AI step: one save, without and with. */
+.welcome-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.welcome-case { display: flex; flex-direction: column; gap: 4px; padding: 11px 12px 12px; border-radius: 14px; background: var(--well); box-shadow: inset 0 0 0 0.5px var(--hair); font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.welcome-case b { font-size: 14px; color: var(--text); }
+.welcome-case-tag { font-size: 10.5px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--faint); }
+.welcome-case.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); color: var(--text); }
+.welcome-case.on .welcome-case-tag { color: var(--accent-ink); }

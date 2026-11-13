@@ -8,8 +8,10 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 ### Added
 - ⌃S is much smarter with Stashd AI on. The box opens at once as before; a moment later Claude checks which folder the work belongs in and what's part of it, and corrects the folder, the ticks and a new folder's name. It never overrules you: your own ticks, a folder you chose yourself, what was already in the folder and the tab you're on all stay.
 - Briefs know what you were actually doing. Stashd notes roughly how long each thing was in front (kept on your Mac for a few hours; no page contents, ever), so a brief can say "The essay draft, checking the carbon tax and IPCC pages" instead of only naming the last tab. Without Stashd AI, the brief says how long you were on the last thing.
+- Saved for you. Work you have open but never saved (two or more things that belong together) is kept in a folder of its own when you step away, close the lid or shut down. Nothing closes and nothing asks. These folders sit in a quiet list under your own, in the menu bar panel and on Home: Keep makes one yours (so does opening, renaming or saving into it), the bin removes it, and unused ones go after 14 days. There's a switch for it in Settings, under Automatic saving.
 
 ### Changed
+- The welcome shows what Stashd AI changes, with the same save without and with it, and says exactly what it sends.
 - Smart Tidy all can add things to folders you already have, not only make new ones: Claude now sees your folders' names and a few titles from each.
 - Stashd AI's free daily limit is 150 requests a day (was 60), since ⌃S now asks it too.
 - Settings has its own Chrome extension section (in General, under Unpack) that says whether the extension is added, with Add to Chrome and the same step-by-step guide as the welcome. Skipped it at the start? Add it there any time.

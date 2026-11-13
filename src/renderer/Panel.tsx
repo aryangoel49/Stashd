@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { mostlyOpen, type BriefView, type JobSummary, type OpenState, type Settings } from '../shared/types';
+import { ForYouList } from './ForYou';
 import { api, errorText, prettyShortcut, timeAgo, useFitWindow, useSettings } from './api';
 import { BriefCard, NameEdit } from './BriefCard';
 import { Icon } from './icons';
@@ -224,8 +225,8 @@ function JobList(props: {
 }) {
   const { jobs, openMap, settings, onPick } = props;
   const current = (jobs ?? []).find((j) => j.current && !j.done) ?? null;
-  // The pinned folder (what ⌃O opens) comes first.
-  const active = (jobs ?? []).filter((j) => !j.done && j !== current).sort((a, b) => Number(b.pinned) - Number(a.pinned));
+  // The pinned folder (what ⌃O opens) comes first. Folders Stashd saved for you have their own quiet list below.
+  const active = (jobs ?? []).filter((j) => !j.done && j !== current && !j.forYou).sort((a, b) => Number(b.pinned) - Number(a.pinned));
   const doneOpen = (jobs ?? []).filter((j) => j.done && (j.current || mostlyOpen(openMap[j.id])));
   return (
     <>
@@ -279,6 +280,8 @@ function JobList(props: {
       {doneOpen.map((j) => (
         <JobRow key={j.id} job={j} state={openMap[j.id]} onPick={onPick} />
       ))}
+
+      <ForYouList jobs={jobs ?? []} onOpen={onPick} max={3} />
 
       <UpdateBar />
       <RecentlyClosed />

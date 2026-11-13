@@ -306,7 +306,9 @@ export function registerIpc(core: Core, secrets: SecretStore, hooks: IpcHooks): 
   });
   handle('jobs:delete', async (event, id) => {
     const jobId = v.jobId(id);
-    const ok = Date.now() - (confirmedDelete.get(jobId) ?? 0) < 10_000;
+    // A folder Stashd made for you that you never used goes without asking: you didn't make it.
+    const forYou = !!(await core.store.get(jobId).catch(() => null))?.forYou;
+    const ok = forYou || Date.now() - (confirmedDelete.get(jobId) ?? 0) < 10_000;
     confirmedDelete.delete(jobId);
     if (!ok && !(await askDelete(event, jobId))) return false;
     await core.deleteJob(jobId);

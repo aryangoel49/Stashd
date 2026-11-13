@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { mostlyOpen, type BriefView, type Item, type JobSummary, type OpenState, type Suggestion } from '../shared/types';
+import { ForYouList } from './ForYou';
 import { api, errorText, prettyShortcut, timeAgo, useSettings } from './api';
 import { AskPage } from './Ask';
 import { BriefCard } from './BriefCard';
@@ -60,7 +61,7 @@ function MainView() {
     return () => offs.forEach((o) => o());
   }, [load]);
 
-  const active = jobs.filter((j) => !j.done);
+  const active = jobs.filter((j) => !j.done && !j.forYou);
   const done = jobs.filter((j) => j.done);
 
   const row = (j: JobSummary) => (
@@ -185,8 +186,9 @@ function Home({ jobs, openMap, onOpen, shortcut }: { jobs: JobSummary[]; openMap
   const matches = (j: JobSummary) => !q || j.name.toLowerCase().includes(q) || j.hint.toLowerCase().includes(q) || j.preview.some((i) => i.label.toLowerCase().includes(q));
   const order = (list: JobSummary[]) => [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const isOpen = (j: JobSummary) => j.current || mostlyOpen(openMap[j.id]);
-  const current = jobs.filter((j) => isOpen(j) && !j.done && matches(j));
-  const active = order(jobs.filter((j) => !isOpen(j) && !j.done && matches(j)));
+  // Folders Stashd saved for you are listed apart, below your own.
+  const current = jobs.filter((j) => isOpen(j) && !j.done && !j.forYou && matches(j));
+  const active = order(jobs.filter((j) => !isOpen(j) && !j.done && !j.forYou && matches(j)));
   const done = order(jobs.filter((j) => j.done && matches(j)));
 
   return (
@@ -237,7 +239,8 @@ function Home({ jobs, openMap, onOpen, shortcut }: { jobs: JobSummary[]; openMap
               <FolderCard key={j.id} job={j} index={i} state={openMap[j.id]} onOpen={() => onOpen(j.id)} />
             ))}
           </Section>
-          {active.length === 0 && current.length === 0 && <p className="muted small">{q ? `Nothing matches “${query}”.` : 'Every folder is finished.'}</p>}
+          {active.length === 0 && current.length === 0 && <p className="muted small">{q ? `Nothing matches “${query}”.` : jobs.some((j) => j.forYou) ? 'No folders of your own yet.' : 'Every folder is finished.'}</p>}
+          <ForYouList jobs={jobs.filter(matches)} onOpen={onOpen} wide />
           {done.length > 0 && (
             <section>
               <button className="section-toggle" onClick={() => setShowFinished(!showFinished)}>

@@ -107,6 +107,12 @@ export function SettingsView() {
           on={s.autoSaveTalk === 'helpful'}
           onChange={(v) => void update({ autoSaveTalk: v ? 'helpful' : 'quiet' })}
         />
+        <Toggle
+          label="Save new work for me too"
+          hint="Work you have open but never saved (two or more things that belong together) is kept under “Saved for you” when you step away, close the lid or shut down. Nothing is closed, and ones you don’t use go after 14 days."
+          on={s.autoSave && s.autoSaveNew}
+          onChange={(v) => void update({ autoSaveNew: v })}
+        />
       </Card>
       <Card title="Updates" hint="Stashd updates itself: it downloads new versions quietly and installs them the next time it starts. It only asks GitHub which version is the latest.">
         <UpdateRow />
