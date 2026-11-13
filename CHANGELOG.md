@@ -5,6 +5,8 @@ a new feature moves the middle number (1.4.0), a release of only bug fixes moves
 
 ## Unreleased
 
+## 1.13.0 (2026-11-13)
+
 ### Added
 - ⌃S is much smarter with Stashd AI on. The box opens at once as before; a moment later Claude checks which folder the work belongs in and what's part of it, and corrects the folder, the ticks and a new folder's name. It never overrules you: your own ticks, a folder you chose yourself, what was already in the folder and the tab you're on all stay.
 - Briefs know what you were actually doing. Stashd notes roughly how long each thing was in front (kept on your Mac for a few hours; no page contents, ever), so a brief can say "The essay draft, checking the carbon tax and IPCC pages" instead of only naming the last tab. Without Stashd AI, the brief says how long you were on the last thing.
